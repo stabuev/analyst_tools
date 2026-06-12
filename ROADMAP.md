@@ -62,7 +62,7 @@ flowchart LR
 | № | Урок | Статус |
 |---:|---|---|
 | 01 | [Карта профессии аналитика](phases/00-entry-and-tools/01-profession-map) | complete |
-| 02 | Диагностика Python и SQL | designed |
+| 02 | [Диагностика Python и SQL](phases/00-entry-and-tools/02-python-and-sql-diagnostic) | complete |
 | 03 | Терминал и файловая система | designed |
 | 04 | Git: история аналитического проекта | designed |
 | 05 | Ветки, pull request и ревью | designed |

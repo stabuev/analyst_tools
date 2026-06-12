@@ -7,6 +7,7 @@ from typing import Any
 
 from course_model import ROOT, lesson_dir_name, load_curriculum, phase_dir_name
 from render_outputs import build_output_index, render_output_index
+from render_site import build_site_data, render_site_data
 
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -343,6 +344,18 @@ def validate_curriculum(curriculum: dict[str, Any], root: Path = ROOT) -> list[s
         else:
             if output_index.read_text(encoding="utf-8") != expected_output_index:
                 errors.append("outputs/index.json is stale.")
+
+    site_data = root / "site" / "data.js"
+    if not site_data.is_file():
+        errors.append("Missing site/data.js.")
+    else:
+        try:
+            expected_site_data = render_site_data(build_site_data(curriculum, root))
+        except (OSError, json.JSONDecodeError) as error:
+            errors.append(f"Cannot build site data: {error}")
+        else:
+            if site_data.read_text(encoding="utf-8") != expected_site_data:
+                errors.append("site/data.js is stale.")
     return errors
 
 
