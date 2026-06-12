@@ -49,7 +49,7 @@ window.COURSE_DATA = {
         {
           "number": 0,
           "title": "Вход и инструменты",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 1,
@@ -140,7 +140,7 @@ window.COURSE_DATA = {
         {
           "number": 0,
           "title": "Вход и инструменты",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 1,
@@ -234,7 +234,7 @@ window.COURSE_DATA = {
         {
           "number": 0,
           "title": "Вход и инструменты",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 1,
@@ -320,7 +320,7 @@ window.COURSE_DATA = {
         {
           "number": 0,
           "title": "Вход и инструменты",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 1,
@@ -421,7 +421,7 @@ window.COURSE_DATA = {
         {
           "number": 0,
           "title": "Вход и инструменты",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 1,
@@ -532,7 +532,7 @@ window.COURSE_DATA = {
       },
       "artifact": "Репозиторий первой аналитической задачи",
       "completion": "Студент проходит диагностику, создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
-      "status": "in-progress",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools",
       "lessons": [
         {
@@ -624,18 +624,18 @@ window.COURSE_DATA = {
           "number": 6,
           "slug": "secrets-and-sensitive-data",
           "title": "Секреты и безопасная работа с данными",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Классифицирует чувствительные данные и использует переменные окружения без утечек.",
-          "artifact": "Шаблон безопасной конфигурации проекта",
-          "type": "",
+          "artifact": "CLI-шаблон безопасной конфигурации и policy данных",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/00-entry-and-tools/06-secrets-and-sensitive-data",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 5,
+    "complete_lessons": 6,
     "hours": {
       "min": 238,
       "max": 326

@@ -66,7 +66,7 @@ flowchart LR
 | 03 | [Терминал и файловая система](phases/00-entry-and-tools/03-terminal-and-filesystem) | complete |
 | 04 | [Git: история аналитического проекта](phases/00-entry-and-tools/04-git-foundations) | complete |
 | 05 | [Ветки, pull request и ревью](phases/00-entry-and-tools/05-branches-and-review) | complete |
-| 06 | Секреты и безопасная работа с данными | designed |
+| 06 | [Секреты и безопасная работа с данными](phases/00-entry-and-tools/06-secrets-and-sensitive-data) | complete |
 
 ## Фаза 01: Воспроизводимый проект
 
