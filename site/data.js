@@ -54,7 +54,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 2,
@@ -145,7 +145,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 2,
@@ -239,7 +239,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 2,
@@ -325,7 +325,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 2,
@@ -426,7 +426,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 2,
@@ -656,7 +656,7 @@ window.COURSE_DATA = {
       },
       "artifact": "Проект, запускаемый с нуля одной инструкцией",
       "completion": "Коллега клонирует проект, устанавливает зафиксированные зависимости и получает тот же проверенный результат.",
-      "status": "in-progress",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project",
       "lessons": [
         {
@@ -680,137 +680,137 @@ window.COURSE_DATA = {
           "number": 2,
           "slug": "uv-environments",
           "title": "Окружения и зависимости с uv",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Создает окружение, добавляет зависимости и воспроизводит установку из lock-файла.",
-          "artifact": "uv.lock и команды восстановления окружения",
-          "type": "",
+          "artifact": "CLI-проверка uv.lock, .venv и smoke-import",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/02-uv-environments",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/02-uv-environments",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/02-uv-environments/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "pyproject",
           "title": "pyproject.toml как контракт проекта",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Описывает метаданные, зависимости и настройки инструментов в одном manifest.",
-          "artifact": "Минимальный pyproject.toml аналитического проекта",
-          "type": "",
+          "artifact": "CLI-аудит pyproject.toml и минимальный manifest",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/03-pyproject",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/03-pyproject",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/03-pyproject/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "jupyter-kernels",
           "title": "Jupyter, kernels и состояние",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Выбирает правильный kernel и диагностирует расхождение окружений.",
-          "artifact": "Ноутбук диагностики kernel и окружения",
-          "type": "",
+          "artifact": "Диагностический notebook и CLI сверки kernelspec",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/04-jupyter-kernels",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/04-jupyter-kernels",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/04-jupyter-kernels/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "notebook-reproducibility",
           "title": "Воспроизводимые ноутбуки",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Находит скрытое состояние и добивается успешного Restart and Run All.",
-          "artifact": "Проверяемый сверху вниз аналитический ноутбук",
-          "type": "",
+          "artifact": "Проверяемый notebook и CLI-аудит скрытого состояния",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/05-notebook-reproducibility",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/05-notebook-reproducibility",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/05-notebook-reproducibility/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "modules-and-scripts",
           "title": "От ноутбука к модулям и скриптам",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Выносит переиспользуемый расчет из ноутбука в функцию и CLI-скрипт.",
-          "artifact": "Импортируемый модуль и команда запуска",
-          "type": "",
+          "artifact": "Importable package расчёта заказов и JSON CLI",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/06-modules-and-scripts",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/06-modules-and-scripts",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/06-modules-and-scripts/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "ruff",
           "title": "Единый стиль и Ruff",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 45,
           "outcome": "Настраивает lint и format и исправляет типовые дефекты автоматически.",
-          "artifact": "Конфигурация Ruff и чистая проверка проекта",
-          "type": "",
+          "artifact": "Конфигурация Ruff и объединённый lint/format gate",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/07-ruff",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/07-ruff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/07-ruff/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "pytest",
           "title": "Первые проверки с pytest",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Пишет behavioral test для ключевого аналитического преобразования.",
-          "artifact": "Набор тестов с позитивным и граничным сценарием",
-          "type": "",
+          "artifact": "Behavioral pytest suite для пользовательской воронки",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/08-pytest",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/08-pytest",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/08-pytest/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "continuous-integration",
           "title": "Автоматическая проверка в CI",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Запускает lint и тесты автоматически на каждом изменении.",
-          "artifact": "CI workflow с quality gate",
-          "type": "",
+          "artifact": "GitHub Actions workflow и структурный аудит quality gate",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/09-continuous-integration",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/09-continuous-integration",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/09-continuous-integration/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 7,
+    "complete_lessons": 15,
     "hours": {
       "min": 238,
       "max": 326

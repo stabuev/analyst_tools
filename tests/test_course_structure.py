@@ -176,7 +176,24 @@ class CourseStructureTest(TestCase):
         self.assertIn("phases/00-entry-and-tools/05-branches-and-review", roadmap)
         self.assertIn("phases/00-entry-and-tools/06-secrets-and-sensitive-data", roadmap)
         self.assertIn("phases/01-reproducible-project/01-python-versions", roadmap)
-        self.assertNotIn("phases/01-reproducible-project/02-uv-environments", roadmap)
+        self.assertIn("phases/01-reproducible-project/02-uv-environments", roadmap)
+        self.assertIn("phases/01-reproducible-project/03-pyproject", roadmap)
+        self.assertIn("phases/01-reproducible-project/04-jupyter-kernels", roadmap)
+        self.assertIn(
+            "phases/01-reproducible-project/05-notebook-reproducibility",
+            roadmap,
+        )
+        self.assertIn(
+            "phases/01-reproducible-project/06-modules-and-scripts",
+            roadmap,
+        )
+        self.assertIn("phases/01-reproducible-project/07-ruff", roadmap)
+        self.assertIn("phases/01-reproducible-project/08-pytest", roadmap)
+        self.assertIn(
+            "phases/01-reproducible-project/09-continuous-integration",
+            roadmap,
+        )
+        self.assertNotIn("phases/02-numpy/01-arrays", roadmap)
 
     def test_lesson_scaffolder_creates_required_files(self) -> None:
         with TemporaryDirectory() as directory:

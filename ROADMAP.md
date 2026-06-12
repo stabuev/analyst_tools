@@ -78,14 +78,14 @@ flowchart LR
 | № | Урок | Статус |
 |---:|---|---|
 | 01 | [Версии Python и совместимость](phases/01-reproducible-project/01-python-versions) | complete |
-| 02 | Окружения и зависимости с uv | designed |
-| 03 | pyproject.toml как контракт проекта | designed |
-| 04 | Jupyter, kernels и состояние | designed |
-| 05 | Воспроизводимые ноутбуки | designed |
-| 06 | От ноутбука к модулям и скриптам | designed |
-| 07 | Единый стиль и Ruff | designed |
-| 08 | Первые проверки с pytest | designed |
-| 09 | Автоматическая проверка в CI | designed |
+| 02 | [Окружения и зависимости с uv](phases/01-reproducible-project/02-uv-environments) | complete |
+| 03 | [pyproject.toml как контракт проекта](phases/01-reproducible-project/03-pyproject) | complete |
+| 04 | [Jupyter, kernels и состояние](phases/01-reproducible-project/04-jupyter-kernels) | complete |
+| 05 | [Воспроизводимые ноутбуки](phases/01-reproducible-project/05-notebook-reproducibility) | complete |
+| 06 | [От ноутбука к модулям и скриптам](phases/01-reproducible-project/06-modules-and-scripts) | complete |
+| 07 | [Единый стиль и Ruff](phases/01-reproducible-project/07-ruff) | complete |
+| 08 | [Первые проверки с pytest](phases/01-reproducible-project/08-pytest) | complete |
+| 09 | [Автоматическая проверка в CI](phases/01-reproducible-project/09-continuous-integration) | complete |
 
 ## Фаза 02: NumPy и численные данные
 
