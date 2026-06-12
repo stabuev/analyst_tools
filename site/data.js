@@ -573,18 +573,18 @@ window.COURSE_DATA = {
           "number": 3,
           "slug": "terminal-and-filesystem",
           "title": "Терминал и файловая система",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Навигирует по проекту, управляет файлами и связывает команды через pipes.",
           "artifact": "Воспроизводимый shell-сценарий аудита файлов",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/00-entry-and-tools/03-terminal-and-filesystem",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-terminal-and-filesystem",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-terminal-and-filesystem/docs/ru.md"
         },
         {
           "number": 4,
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 2,
+    "complete_lessons": 3,
     "hours": {
       "min": 238,
       "max": 326
