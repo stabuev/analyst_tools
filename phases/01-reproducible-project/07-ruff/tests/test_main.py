@@ -16,7 +16,7 @@ if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"cannot load {ARTIFACT}")
 GATE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(GATE)
-RUFF = ["uvx", "--offline", "--from", "ruff==0.15.17", "ruff"]
+RUFF = GATE.default_command()
 
 
 class RuffGateTest(unittest.TestCase):

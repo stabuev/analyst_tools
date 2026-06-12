@@ -59,7 +59,7 @@ window.COURSE_DATA = {
         {
           "number": 2,
           "title": "NumPy и численные данные",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 3,
@@ -150,7 +150,7 @@ window.COURSE_DATA = {
         {
           "number": 2,
           "title": "NumPy и численные данные",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 3,
@@ -244,7 +244,7 @@ window.COURSE_DATA = {
         {
           "number": 2,
           "title": "NumPy и численные данные",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 3,
@@ -330,7 +330,7 @@ window.COURSE_DATA = {
         {
           "number": 2,
           "title": "NumPy и численные данные",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 3,
@@ -431,7 +431,7 @@ window.COURSE_DATA = {
         {
           "number": 2,
           "title": "NumPy и численные данные",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 3,
@@ -831,161 +831,161 @@ window.COURSE_DATA = {
       },
       "artifact": "Пакет проверенных функций для численных расчетов",
       "completion": "Студент реализует расчет без Python-циклов, объясняет shape и dtype и подтверждает корректность контрольным примером.",
-      "status": "designed",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy",
       "lessons": [
         {
           "number": 1,
           "slug": "arrays",
           "title": "ndarray и модель массива",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Создает массивы и объясняет отличие ndarray от списка Python.",
           "artifact": "Шпаргалка создания и инспекции массивов",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/01-arrays",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/01-arrays",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/01-arrays/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "shape-and-axes",
           "title": "Shape, axes и размерность",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Предсказывает форму результата до выполнения операции.",
           "artifact": "Набор проверок shape для аналитических функций",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/02-shape-and-axes",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/02-shape-and-axes",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/02-shape-and-axes/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "dtypes",
           "title": "Dtype, память и диапазоны",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Выбирает dtype с учетом диапазона, памяти, пропусков и точности.",
           "artifact": "Аудитор dtype и потребления памяти",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/03-dtypes",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/03-dtypes",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/03-dtypes/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "indexing-and-masks",
           "title": "Индексация, срезы и маски",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Извлекает и изменяет подмножества данных без скрытого копирования.",
           "artifact": "Функции фильтрации числовых наблюдений",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/04-indexing-and-masks",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/04-indexing-and-masks",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/04-indexing-and-masks/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "broadcasting",
           "title": "Broadcasting без магии",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Проверяет совместимость форм и использует broadcasting осознанно.",
           "artifact": "Векторная нормализация матрицы признаков",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/05-broadcasting",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-broadcasting",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-broadcasting/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "aggregations",
           "title": "Агрегации и оси расчета",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Выбирает правильную axis и сохраняет ожидаемую размерность результата.",
           "artifact": "Пакет агрегатов с тестами по осям",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/06-aggregations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-aggregations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-aggregations/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "random-simulations",
           "title": "Случайность и воспроизводимые симуляции",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Использует Generator и воспроизводит симуляцию по seed.",
           "artifact": "Симулятор выборочного распределения",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/07-random-simulations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/07-random-simulations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/07-random-simulations/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "vectorization",
           "title": "Векторизация и производительность",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Заменяет цикл векторной операцией и корректно измеряет ускорение.",
           "artifact": "Benchmark циклической и векторной реализации",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/08-vectorization",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/08-vectorization",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/08-vectorization/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "numerical-precision",
           "title": "Численная точность и сравнение результатов",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Использует tolerances и распознает overflow, underflow и ошибки float.",
           "artifact": "Набор устойчивых проверок численных результатов",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/02-numpy/09-numerical-precision",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/09-numerical-precision",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/09-numerical-precision/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 15,
+    "complete_lessons": 24,
     "hours": {
       "min": 238,
       "max": 326

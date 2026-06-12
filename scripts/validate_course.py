@@ -383,6 +383,8 @@ def validate_curriculum(curriculum: dict[str, Any], root: Path = ROOT) -> list[s
         "CODE_OF_CONDUCT.md",
         "LICENSE",
         "LESSON_TEMPLATE.md",
+        "pyproject.toml",
+        "uv.lock",
         "docs/README.md",
         "docs/PROJECT_STATUS.md",
         "docs/research-baseline.md",

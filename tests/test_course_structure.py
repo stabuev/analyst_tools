@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -100,6 +101,25 @@ class CourseStructureTest(TestCase):
             content = (ROOT / relative).read_text(encoding="utf-8")
             self.assertIn(marker, content, relative)
 
+    def test_root_environment_contract_is_locked(self) -> None:
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+        workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("numpy>=2.4.6,<2.5", pyproject["project"]["dependencies"])
+        self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
+        self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
+        self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
+        locked = {package["name"]: package["version"] for package in lock["package"]}
+        self.assertEqual(locked["numpy"], "2.4.6")
+        self.assertEqual(locked["pyyaml"], "6.0.3")
+        self.assertEqual(locked["pytest"], "9.0.3")
+        self.assertEqual(locked["ruff"], "0.15.17")
+        self.assertIn("uv sync --locked --dev", workflow)
+        self.assertIn("uv run --locked python scripts/run_lesson_tests.py", workflow)
+
     def test_readme_course_counts_match_curriculum(self) -> None:
         curriculum = load_curriculum()
         phase_count = len(curriculum["phases"])
@@ -193,7 +213,15 @@ class CourseStructureTest(TestCase):
             "phases/01-reproducible-project/09-continuous-integration",
             roadmap,
         )
-        self.assertNotIn("phases/02-numpy/01-arrays", roadmap)
+        self.assertIn("phases/02-numpy/01-arrays", roadmap)
+        self.assertIn("phases/02-numpy/02-shape-and-axes", roadmap)
+        self.assertIn("phases/02-numpy/03-dtypes", roadmap)
+        self.assertIn("phases/02-numpy/04-indexing-and-masks", roadmap)
+        self.assertIn("phases/02-numpy/05-broadcasting", roadmap)
+        self.assertIn("phases/02-numpy/06-aggregations", roadmap)
+        self.assertIn("phases/02-numpy/07-random-simulations", roadmap)
+        self.assertIn("phases/02-numpy/08-vectorization", roadmap)
+        self.assertIn("phases/02-numpy/09-numerical-precision", roadmap)
 
     def test_lesson_scaffolder_creates_required_files(self) -> None:
         with TemporaryDirectory() as directory:

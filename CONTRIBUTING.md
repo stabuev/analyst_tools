@@ -24,12 +24,13 @@ request должен решать одну связанную задачу: та
 После изменения программы:
 
 ```bash
-python3 scripts/render_curriculum.py
-python3 scripts/render_outputs.py
-python3 scripts/render_site.py
-python3 scripts/validate_course.py
-python3 -m unittest discover -s tests
-python3 scripts/run_lesson_tests.py
+uv sync --locked --dev
+uv run --locked python scripts/render_curriculum.py
+uv run --locked python scripts/render_outputs.py
+uv run --locked python scripts/render_site.py
+uv run --locked python scripts/validate_course.py
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
 ```
 
 ## Добавление урока

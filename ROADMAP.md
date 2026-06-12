@@ -96,15 +96,15 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | ndarray и модель массива | designed |
-| 02 | Shape, axes и размерность | designed |
-| 03 | Dtype, память и диапазоны | designed |
-| 04 | Индексация, срезы и маски | designed |
-| 05 | Broadcasting без магии | designed |
-| 06 | Агрегации и оси расчета | designed |
-| 07 | Случайность и воспроизводимые симуляции | designed |
-| 08 | Векторизация и производительность | designed |
-| 09 | Численная точность и сравнение результатов | designed |
+| 01 | [ndarray и модель массива](phases/02-numpy/01-arrays) | complete |
+| 02 | [Shape, axes и размерность](phases/02-numpy/02-shape-and-axes) | complete |
+| 03 | [Dtype, память и диапазоны](phases/02-numpy/03-dtypes) | complete |
+| 04 | [Индексация, срезы и маски](phases/02-numpy/04-indexing-and-masks) | complete |
+| 05 | [Broadcasting без магии](phases/02-numpy/05-broadcasting) | complete |
+| 06 | [Агрегации и оси расчета](phases/02-numpy/06-aggregations) | complete |
+| 07 | [Случайность и воспроизводимые симуляции](phases/02-numpy/07-random-simulations) | complete |
+| 08 | [Векторизация и производительность](phases/02-numpy/08-vectorization) | complete |
+| 09 | [Численная точность и сравнение результатов](phases/02-numpy/09-numerical-precision) | complete |
 
 ## Фаза 03: pandas и табличные данные
 
