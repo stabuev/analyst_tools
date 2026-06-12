@@ -65,7 +65,7 @@ flowchart LR
 | 02 | [Диагностика Python и SQL](phases/00-entry-and-tools/02-python-and-sql-diagnostic) | complete |
 | 03 | [Терминал и файловая система](phases/00-entry-and-tools/03-terminal-and-filesystem) | complete |
 | 04 | [Git: история аналитического проекта](phases/00-entry-and-tools/04-git-foundations) | complete |
-| 05 | Ветки, pull request и ревью | designed |
+| 05 | [Ветки, pull request и ревью](phases/00-entry-and-tools/05-branches-and-review) | complete |
 | 06 | Секреты и безопасная работа с данными | designed |
 
 ## Фаза 01: Воспроизводимый проект

@@ -607,18 +607,18 @@ window.COURSE_DATA = {
           "number": 5,
           "slug": "branches-and-review",
           "title": "Ветки, pull request и ревью",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Проводит изменение через ветку и проверяет аналитический код коллеги.",
-          "artifact": "Pull request и чек-лист аналитического ревью",
-          "type": "",
+          "artifact": "CLI-пакет pull request и чек-лист аналитического ревью",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/00-entry-and-tools/05-branches-and-review",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/05-branches-and-review",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/05-branches-and-review/docs/ru.md"
         },
         {
           "number": 6,
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 4,
+    "complete_lessons": 5,
     "hours": {
       "min": 238,
       "max": 326
