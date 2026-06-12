@@ -85,6 +85,29 @@ class CourseStructureTest(TestCase):
         self.assertIn("Следующий содержательный шаг", status)
         self.assertIn("От tool-first к problem-first", baseline)
 
+    def test_public_repository_documents_exist(self) -> None:
+        expected_markers = {
+            "README.md": "Участие в проекте",
+            "CONTRIBUTING.md": "Pull request",
+            "CHANGELOG.md": "[Unreleased]",
+            "CODE_OF_CONDUCT.md": "Кодекс поведения",
+            "docs/README.md": "Документация проекта",
+            ".github/PULL_REQUEST_TEMPLATE.md": "Как проверить вручную",
+            ".github/ISSUE_TEMPLATE/bug_report.md": "Как воспроизвести",
+            ".github/ISSUE_TEMPLATE/new_lesson_proposal.md": "Рабочая проблема",
+        }
+        for relative, marker in expected_markers.items():
+            content = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn(marker, content, relative)
+
+    def test_readme_course_counts_match_curriculum(self) -> None:
+        curriculum = load_curriculum()
+        phase_count = len(curriculum["phases"])
+        lesson_count = sum(len(phase["lessons"]) for phase in curriculum["phases"])
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"phases-{phase_count}-", readme)
+        self.assertIn(f"lessons-{lesson_count}-", readme)
+
     def test_site_uses_hosting_safe_relative_assets(self) -> None:
         site_root = ROOT / "site"
         for html_path in site_root.glob("*.html"):

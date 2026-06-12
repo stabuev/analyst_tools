@@ -377,13 +377,22 @@ def validate_curriculum(curriculum: dict[str, Any], root: Path = ROOT) -> list[s
         errors.append("Missing ROADMAP.md.")
     required_project_paths = (
         "AGENTS.md",
+        "README.md",
+        "CONTRIBUTING.md",
+        "CHANGELOG.md",
+        "CODE_OF_CONDUCT.md",
         "LICENSE",
         "LESSON_TEMPLATE.md",
+        "docs/README.md",
         "docs/PROJECT_STATUS.md",
         "docs/research-baseline.md",
         "schemas/lesson.schema.json",
         "schemas/artifact.schema.json",
         "schemas/quiz.schema.json",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/ISSUE_TEMPLATE/bug_report.md",
+        ".github/ISSUE_TEMPLATE/new_lesson_proposal.md",
+        ".github/workflows/pages.yml",
         ".agents/skills/find-your-level/SKILL.md",
         ".agents/skills/check-understanding/SKILL.md",
     )
