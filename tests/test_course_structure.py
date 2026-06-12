@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -104,21 +107,92 @@ class CourseStructureTest(TestCase):
     def test_root_environment_contract_is_locked(self) -> None:
         pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
-        workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
         self.assertIn("numpy>=2.4.6,<2.5", pyproject["project"]["dependencies"])
+        self.assertIn("pandas>=3.0.3,<3.1", pyproject["project"]["dependencies"])
         self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
         self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
         self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
         locked = {package["name"]: package["version"] for package in lock["package"]}
         self.assertEqual(locked["numpy"], "2.4.6")
+        self.assertEqual(locked["pandas"], "3.0.3")
         self.assertEqual(locked["pyyaml"], "6.0.3")
         self.assertEqual(locked["pytest"], "9.0.3")
         self.assertEqual(locked["ruff"], "0.15.17")
         self.assertIn("uv sync --locked --dev", workflow)
         self.assertIn("uv run --locked python scripts/run_lesson_tests.py", workflow)
+
+    def test_phase_03_is_complete(self) -> None:
+        phase = load_curriculum()["phases"][3]
+        lessons = phase["lessons"]
+
+        self.assertEqual(phase["slug"], "pandas")
+        self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 990)
+        self.assertEqual(
+            sum(bool(lesson.get("integration_project")) for lesson in lessons),
+            1,
+        )
+
+        previous = "02-numpy/09-numerical-precision"
+        for index, lesson in enumerate(lessons, start=1):
+            self.assertIn(lesson["type"], {"build", "learn", "case"})
+            self.assertEqual(lesson["prerequisites"], [previous])
+            self.assertTrue(lesson["outcome"])
+            self.assertTrue(lesson["artifact"])
+            previous = f"03-pandas/{index:02d}-{lesson['slug']}"
+
+    def test_pandas_3_semantics_are_the_course_baseline(self) -> None:
+        self.assertEqual(pd.__version__, "3.0.3")
+        self.assertEqual(str(pd.Series(["paid", "pending"]).dtype), "str")
+
+        orders = pd.DataFrame({"amount": [100, 200]})
+        subset = orders[["amount"]]
+        subset.loc[0, "amount"] = 999
+        self.assertEqual(orders.loc[0, "amount"], 100)
+
+    def test_phase_03_tiny_data_is_reproducible(self) -> None:
+        data_root = ROOT / "phases" / "03-pandas" / "data"
+        committed_root = data_root / "tiny"
+        contract = json.loads((data_root / "contract.json").read_text(encoding="utf-8"))
+        manifest = json.loads((committed_root / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(set(contract["tables"]), {"users", "orders", "order_items"})
+        self.assertEqual(
+            set(manifest["files"]),
+            {"users.csv", "orders.csv", "order_items.csv"},
+        )
+        for table in contract["tables"].values():
+            self.assertTrue(table["grain"])
+            self.assertTrue(table["primary_key"])
+            self.assertTrue(table["columns"])
+            self.assertIn("known_defects", table)
+            self.assertIn("generation_rules", table)
+            self.assertIn("time_range", table)
+
+        with TemporaryDirectory() as directory:
+            generated_root = Path(directory) / "tiny"
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(data_root / "generate_tiny.py"),
+                    "--output",
+                    str(generated_root),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            for filename, metadata in manifest["files"].items():
+                committed = (committed_root / filename).read_bytes()
+                generated = (generated_root / filename).read_bytes()
+                self.assertEqual(generated, committed, filename)
+                self.assertEqual(
+                    hashlib.sha256(committed).hexdigest(),
+                    metadata["sha256"],
+                    filename,
+                )
 
     def test_readme_course_counts_match_curriculum(self) -> None:
         curriculum = load_curriculum()

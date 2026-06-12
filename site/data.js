@@ -64,7 +64,7 @@ window.COURSE_DATA = {
         {
           "number": 3,
           "title": "pandas и табличные данные",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 4,
@@ -155,7 +155,7 @@ window.COURSE_DATA = {
         {
           "number": 3,
           "title": "pandas и табличные данные",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 4,
@@ -249,7 +249,7 @@ window.COURSE_DATA = {
         {
           "number": 3,
           "title": "pandas и табличные данные",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 4,
@@ -335,7 +335,7 @@ window.COURSE_DATA = {
         {
           "number": 3,
           "title": "pandas и табличные данные",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 4,
@@ -436,7 +436,7 @@ window.COURSE_DATA = {
         {
           "number": 3,
           "title": "pandas и табличные данные",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 4,
@@ -1006,195 +1006,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Витрина из нескольких грязных таблиц",
       "completion": "Студент собирает витрину, контролирует cardinality объединений и документирует grain результата.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas",
       "lessons": [
         {
           "number": 1,
           "slug": "dataframe-and-series",
           "title": "DataFrame, Series и индексы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Объясняет оси, метки, выравнивание и Copy-on-Write DataFrame и проверяет уникальность бизнес-ключа.",
+          "artifact": "CLI-инспектор структуры, индекса и grain таблицы",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/01-dataframe-and-series",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/01-dataframe-and-series",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/01-dataframe-and-series/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "types-and-missing-values",
           "title": "Типы данных и пропуски",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Приводит столбцы, включая новый str dtype, к явным nullable типам и обосновывает обработку пропусков.",
+          "artifact": "Аудитор типов, пропусков и потерь при приведении",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/02-types-and-missing-values",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/02-types-and-missing-values",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/02-types-and-missing-values/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "selection-and-filtering",
           "title": "Выбор строк и столбцов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Формулирует булевы условия и изменяет строки через loc без chained assignment.",
+          "artifact": "Набор безопасных селекторов и проверок фильтра",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/03-selection-and-filtering",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/03-selection-and-filtering",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/03-selection-and-filtering/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "transformations",
           "title": "Преобразования без apply по умолчанию",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит производные столбцы векторными операциями и использует apply только после проверки необходимости.",
+          "artifact": "Библиотека векторных преобразований заказов",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/04-transformations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/04-transformations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/04-transformations/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "groupby",
           "title": "GroupBy и единица анализа",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Объявляет grain до groupby и сверяет агрегат с ручным контрольным расчетом.",
+          "artifact": "Калькулятор метрик по сегментам с grain-контрактом",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/05-groupby",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/05-groupby",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/05-groupby/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "joins-and-cardinality",
           "title": "Joins, ключи и cardinality",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Предсказывает cardinality объединения, валидирует ключи и предотвращает размножение выручки.",
+          "artifact": "Проверка cardinality и безопасного merge",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/06-joins-and-cardinality",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/06-joins-and-cardinality",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/06-joins-and-cardinality/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "reshape",
           "title": "Pivot, melt и tidy data",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Преобразует wide- и long-формы без потери идентификаторов и обнаруживает неоднозначный pivot.",
+          "artifact": "Утилита reshape с проверкой ключей",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/07-reshape",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/07-reshape",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/07-reshape/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "dates-and-timezones",
           "title": "Даты, интервалы и часовые пояса",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Нормализует смешанные timestamps в UTC и рассчитывает календарные окна в явной бизнес-зоне.",
+          "artifact": "Нормализатор времени и календарных границ",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/08-dates-and-timezones",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/08-dates-and-timezones",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/08-dates-and-timezones/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "strings-and-categories",
           "title": "Строки и категориальные типы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Нормализует строковые признаки и применяет категории без потери новых или пропущенных значений.",
+          "artifact": "Нормализатор строк и категориальный контракт",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/09-strings-and-categories",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/09-strings-and-categories",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/09-strings-and-categories/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "method-chaining",
           "title": "Method chaining и читаемые пайплайны",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Собирает преобразования в чистую цепочку assign, pipe и query с проверяемыми промежуточными инвариантами.",
+          "artifact": "Композиционный pipeline подготовки таблицы",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/10-method-chaining",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/10-method-chaining",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/10-method-chaining/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "export-and-handoff",
           "title": "Экспорт и передача результата",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Интегрирует несколько грязных таблиц в витрину, проверяет ее grain и передает вместе с машинным манифестом.",
+          "artifact": "CLI сборки и экспорта проверенной витрины",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/03-pandas/11-export-and-handoff",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/11-export-and-handoff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/11-export-and-handoff/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 24,
+    "complete_lessons": 35,
     "hours": {
       "min": 238,
       "max": 326
