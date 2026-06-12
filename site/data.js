@@ -54,7 +54,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "designed"
+          "status": "in-progress"
         },
         {
           "number": 2,
@@ -145,7 +145,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "designed"
+          "status": "in-progress"
         },
         {
           "number": 2,
@@ -239,7 +239,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "designed"
+          "status": "in-progress"
         },
         {
           "number": 2,
@@ -325,7 +325,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "designed"
+          "status": "in-progress"
         },
         {
           "number": 2,
@@ -426,7 +426,7 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "title": "Воспроизводимый проект",
-          "status": "designed"
+          "status": "in-progress"
         },
         {
           "number": 2,
@@ -656,25 +656,25 @@ window.COURSE_DATA = {
       },
       "artifact": "Проект, запускаемый с нуля одной инструкцией",
       "completion": "Коллега клонирует проект, устанавливает зафиксированные зависимости и получает тот же проверенный результат.",
-      "status": "designed",
+      "status": "in-progress",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project",
       "lessons": [
         {
           "number": 1,
           "slug": "python-versions",
           "title": "Версии Python и совместимость",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 45,
           "outcome": "Объясняет связь интерпретатора, окружения и совместимости зависимостей.",
-          "artifact": "Зафиксированное требование к версии Python",
-          "type": "",
+          "artifact": "CLI-контракт requires-python и выбранной версии",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/01-reproducible-project/01-python-versions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/01-python-versions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/01-python-versions/docs/ru.md"
         },
         {
           "number": 2,
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 6,
+    "complete_lessons": 7,
     "hours": {
       "min": 238,
       "max": 326

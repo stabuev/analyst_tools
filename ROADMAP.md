@@ -77,7 +77,7 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Версии Python и совместимость | designed |
+| 01 | [Версии Python и совместимость](phases/01-reproducible-project/01-python-versions) | complete |
 | 02 | Окружения и зависимости с uv | designed |
 | 03 | pyproject.toml как контракт проекта | designed |
 | 04 | Jupyter, kernels и состояние | designed |
