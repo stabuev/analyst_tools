@@ -41,6 +41,7 @@ REQUIRED_HEADINGS = {
     "## Ключевые термины",
     "## Дополнительное чтение",
 }
+MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
 
 def read_json(path: Path, errors: list[str]) -> dict[str, Any] | None:
@@ -67,6 +68,58 @@ def contains_todo(value: Any) -> bool:
     if isinstance(value, list):
         return any(contains_todo(item) for item in value)
     return False
+
+
+def validate_development_reading(
+    docs: str,
+    label: str,
+    docs_path: Path | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    heading = "## Дополнительное чтение"
+    if heading not in docs:
+        return [f"{label}: missing development reading section."]
+
+    section = docs.split(heading, 1)[1]
+    next_heading = re.search(r"^##\s+", section, flags=re.MULTILINE)
+    if next_heading:
+        section = section[: next_heading.start()]
+
+    link_lines = [
+        line.strip()
+        for line in section.splitlines()
+        if MARKDOWN_LINK_PATTERN.search(line)
+    ]
+    if len(link_lines) < 3:
+        errors.append(f"{label}: development reading requires at least three links.")
+    if len(link_lines) > 5:
+        errors.append(f"{label}: development reading must contain at most five links.")
+
+    external_links = 0
+    for line in link_lines:
+        match = MARKDOWN_LINK_PATTERN.search(line)
+        if match is None:
+            continue
+        url = match.group(2).strip()
+        annotation = line[match.end() :].strip().lstrip("-—:").strip()
+        if len(annotation) < 12:
+            errors.append(
+                f"{label}: reading link '{match.group(1)}' needs a useful annotation."
+            )
+        if url.startswith("https://"):
+            external_links += 1
+        elif url.startswith("http://"):
+            errors.append(f"{label}: reading link must use HTTPS: {url}")
+        elif docs_path is not None:
+            local_target = (docs_path.parent / url.split("#", 1)[0]).resolve()
+            if not local_target.is_file():
+                errors.append(f"{label}: reading link target does not exist: {url}")
+
+    if external_links < 1:
+        errors.append(
+            f"{label}: development reading requires an external official or primary source."
+        )
+    return errors
 
 
 def validate_quiz(quiz: dict[str, Any], label: str) -> list[str]:
@@ -191,12 +244,14 @@ def validate_complete_lesson(
         errors.append(f"{label}: lesson and artifact manifests disagree.")
 
     errors.extend(validate_quiz(quiz, label))
-    docs = (lesson_root / "docs" / "ru.md").read_text(encoding="utf-8")
+    docs_path = lesson_root / "docs" / "ru.md"
+    docs = docs_path.read_text(encoding="utf-8")
     code = (lesson_root / "code" / "main.py").read_text(encoding="utf-8")
     tests = (lesson_root / "tests" / "test_main.py").read_text(encoding="utf-8")
     missing_headings = sorted(REQUIRED_HEADINGS - set(docs.splitlines()))
     if missing_headings:
         errors.append(f"{label}: docs miss headings: {missing_headings}")
+    errors.extend(validate_development_reading(docs, label, docs_path))
     if contains_todo(metadata) or contains_todo(artifact) or contains_todo(quiz) or "TODO" in docs:
         errors.append(f"{label}: completed lesson contains TODO placeholders.")
     if "NotImplementedError" in code or "self.fail(" in tests:
@@ -321,8 +376,11 @@ def validate_curriculum(curriculum: dict[str, Any], root: Path = ROOT) -> list[s
     if not (root / "ROADMAP.md").exists():
         errors.append("Missing ROADMAP.md.")
     required_project_paths = (
+        "AGENTS.md",
         "LICENSE",
         "LESSON_TEMPLATE.md",
+        "docs/PROJECT_STATUS.md",
+        "docs/research-baseline.md",
         "schemas/lesson.schema.json",
         "schemas/artifact.schema.json",
         "schemas/quiz.schema.json",

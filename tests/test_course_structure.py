@@ -16,7 +16,11 @@ from render_curriculum import render_phase_readme, render_roadmap  # noqa: E402
 from render_outputs import build_output_index, render_output_index  # noqa: E402
 from render_site import build_site_data, render_site_data  # noqa: E402
 from scaffold_lesson import scaffold  # noqa: E402
-from validate_course import validate_complete_lesson, validate_curriculum  # noqa: E402
+from validate_course import (  # noqa: E402
+    validate_complete_lesson,
+    validate_curriculum,
+    validate_development_reading,
+)
 
 
 class CourseStructureTest(TestCase):
@@ -71,6 +75,16 @@ class CourseStructureTest(TestCase):
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
 
+    def test_handoff_context_exists(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        status = (ROOT / "docs" / "PROJECT_STATUS.md").read_text(encoding="utf-8")
+        baseline = (ROOT / "docs" / "research-baseline.md").read_text(encoding="utf-8")
+        self.assertIn("docs/PROJECT_STATUS.md", agents)
+        self.assertIn("curriculum.json", agents)
+        self.assertIn("site/", agents)
+        self.assertIn("Следующий содержательный шаг", status)
+        self.assertIn("От tool-first к problem-first", baseline)
+
     def test_site_uses_hosting_safe_relative_assets(self) -> None:
         site_root = ROOT / "site"
         for html_path in site_root.glob("*.html"):
@@ -90,6 +104,39 @@ class CourseStructureTest(TestCase):
     def test_schema_files_are_valid_json(self) -> None:
         for path in (ROOT / "schemas").glob("*.json"):
             self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)
+
+    def test_development_reading_contract(self) -> None:
+        valid = (
+            "## Дополнительное чтение\n\n"
+            "- [Документация](https://example.com/docs) — "
+            "прочитайте описание API и его ограничений.\n"
+            "- [Концепция](concept.md) — "
+            "разберите модель и основные предположения "
+            "метода.\n"
+            "- [Практика](practice.md) — "
+            "перенесите подход на граничный рабочий "
+            "сценарий.\n"
+        )
+        with TemporaryDirectory() as directory:
+            docs_path = Path(directory) / "docs" / "ru.md"
+            docs_path.parent.mkdir()
+            docs_path.write_text(valid, encoding="utf-8")
+            (docs_path.parent / "concept.md").write_text("Concept", encoding="utf-8")
+            (docs_path.parent / "practice.md").write_text("Practice", encoding="utf-8")
+            self.assertEqual(
+                validate_development_reading(valid, "lesson", docs_path),
+                [],
+            )
+
+    def test_development_reading_rejects_bare_link_list(self) -> None:
+        docs = (
+            "## Дополнительное чтение\n\n"
+            "- [Одна](https://example.com/one)\n"
+            "- [Две](https://example.com/two)\n"
+        )
+        errors = validate_development_reading(docs, "lesson")
+        self.assertTrue(any("at least three" in error for error in errors))
+        self.assertTrue(any("useful annotation" in error for error in errors))
 
     def test_phase_pages_are_up_to_date(self) -> None:
         curriculum = load_curriculum()
@@ -122,6 +169,9 @@ class CourseStructureTest(TestCase):
                 - {"notebook/.gitkeep"},
                 required,
             )
+            docs = (lesson / "docs" / "ru.md").read_text(encoding="utf-8")
+            self.assertIn("## Дополнительное чтение", docs)
+            self.assertEqual(docs.count("https://example.com/TODO"), 3)
 
     def test_complete_lesson_contract(self) -> None:
         with TemporaryDirectory() as directory:
@@ -185,7 +235,13 @@ class CourseStructureTest(TestCase):
             docs = docs.replace("TODO", "Содержимое")
             docs += (
                 "\n## Ключевые термины\n\nТермин.\n"
-                "\n## Дополнительное чтение\n\nИсточник.\n"
+                "\n## Дополнительное чтение\n\n"
+                "- [Документация](https://example.com/docs) — "
+                "прочитайте контракт API и ограничения.\n"
+                "- [Концепция](https://example.com/concept) — "
+                "разберите модель и ее предположения.\n"
+                "- [Практика](https://example.com/practice) — "
+                "перенесите метод на граничный сценарий.\n"
             )
             (lesson_root / "docs" / "ru.md").write_text(docs, encoding="utf-8")
             (lesson_root / "code" / "main.py").write_text(

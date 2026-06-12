@@ -147,4 +147,4 @@ Manifest и инструкция находятся в `outputs/artifact.json`.
 
 - [Дорожная карта курса](../../../../ROADMAP.md) — фазы, зависимости и длительность маршрутов.
 - [Принципы проектирования](../../../../docs/course-design.md) — почему задача предшествует инструменту.
-- [dbt: What is analytics engineering?](https://www.getdbt.com/what-is-analytics-engineering) — описание отдельной инженерной роли в аналитике.
+- [dbt: What is analytics engineering?](https://www.getdbt.com/blog/what-is-analytics-engineering) — описание ответственности, рабочего процесса и границ роли analytics engineer.

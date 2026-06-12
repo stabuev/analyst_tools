@@ -106,6 +106,13 @@ production-библиотеку и сравнивает поведение. Дл
 └── ROADMAP.md            # сгенерированная дорожная карта
 ```
 
+## Контекст для нового чата
+
+Новый агент начинает с [`AGENTS.md`](AGENTS.md) и
+[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md). Критика исходного research-плана и
+принятые изменения сохранены в
+[`docs/research-baseline.md`](docs/research-baseline.md).
+
 ## Быстрая проверка
 
 ```bash

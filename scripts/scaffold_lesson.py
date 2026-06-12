@@ -53,7 +53,21 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
         "## Сломайте это\n\nTODO\n\n"
         "## Проверьте это\n\nTODO\n\n"
         "## Поставьте результат\n\nTODO\n\n"
-        "## Упражнения\n\n1. TODO\n2. TODO\n3. TODO\n",
+        "## Упражнения\n\n1. TODO\n2. TODO\n3. TODO\n\n"
+        "## Ключевые термины\n\n"
+        "| Термин | Распространенное заблуждение | "
+        "Точное значение |\n"
+        "|---|---|---|\n"
+        "| TODO | TODO | TODO |\n\n"
+        "## Дополнительное чтение\n\n"
+        "- [Официальная документация](https://example.com/TODO) — "
+        "TODO: что именно прочитать и зачем.\n"
+        "- [Первичный источник](https://example.com/TODO) — "
+        "TODO: какую концепцию или предположение "
+        "он раскрывает.\n"
+        "- [Практический разбор](https://example.com/TODO) — "
+        "TODO: какой сценарий или failure mode "
+        "он помогает освоить.\n",
         encoding="utf-8",
     )
     (lesson_root / "code" / "main.py").write_text(

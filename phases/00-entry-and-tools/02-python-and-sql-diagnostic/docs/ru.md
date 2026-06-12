@@ -137,6 +137,6 @@ python3 outputs/diagnostic_runner.py \
 
 ## Дополнительное чтение
 
-- [Python: структуры данных](https://docs.python.org/3/tutorial/datastructures.html)
-- [Python: sqlite3](https://docs.python.org/3/library/sqlite3.html)
-- [SQLite: SELECT](https://www.sqlite.org/lang_select.html)
+- [Python: структуры данных](https://docs.python.org/3/tutorial/datastructures.html) — повторите списковые включения, словари и различие изменяющих и неизменяющих операций.
+- [Python: `sqlite3`](https://docs.python.org/3/library/sqlite3.html) — разберите создание соединения, выполнение параметризованных запросов и получение результатов.
+- [SQLite: `SELECT`](https://www.sqlite.org/lang_select.html) — углубите порядок обработки `SELECT`, соединения и агрегацию строк.
