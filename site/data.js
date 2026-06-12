@@ -590,18 +590,18 @@ window.COURSE_DATA = {
           "number": 4,
           "slug": "git-foundations",
           "title": "Git: история аналитического проекта",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Создает репозиторий, делает атомарные коммиты и исключает данные через gitignore.",
           "artifact": "Репозиторий с осмысленной историей изменений",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/00-entry-and-tools/04-git-foundations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-git-foundations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-git-foundations/docs/ru.md"
         },
         {
           "number": 5,
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 3,
+    "complete_lessons": 4,
     "hours": {
       "min": 238,
       "max": 326
