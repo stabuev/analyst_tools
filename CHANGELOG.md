@@ -9,6 +9,9 @@
 
 ### Добавлено
 
+- Полностью завершена фаза 04 «SQL и DuckDB»: 12 уроков, 98 behavioral tests,
+  самостоятельные CLI и SQL-артефакты от grain-аудита до когорт, планов запросов и
+  интеграционной поставки `order_mart`/`user_summary` с checksum-manifest.
 - Урок `04/01` «Grain, ключи и связи» с ручной моделью проверки ключа,
   DuckDB-аудитором primary/foreign keys, девятью behavioral tests и JSON quality gate.
 - Фаза 04 «SQL и DuckDB» спроектирована целиком: 12 последовательных уроков на

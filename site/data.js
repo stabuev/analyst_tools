@@ -69,7 +69,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 5,
@@ -160,7 +160,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 5,
@@ -254,7 +254,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 5,
@@ -340,7 +340,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 5,
@@ -441,7 +441,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 5,
@@ -1215,7 +1215,7 @@ window.COURSE_DATA = {
       },
       "artifact": "Набор проверенных SQL-витрин",
       "completion": "Студент строит SQL-витрину, проверяет ключи и объясняет план выполнения критичного запроса.",
-      "status": "in-progress",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb",
       "lessons": [
         {
@@ -1239,188 +1239,188 @@ window.COURSE_DATA = {
           "number": 2,
           "slug": "select-and-expressions",
           "title": "SELECT и выражения",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Строит проекцию, вычисляемые поля и фильтры и сверяет результат с ручной таблицей.",
           "artifact": "Набор проверяемых SELECT-запросов с контрактом результата",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/02-select-and-expressions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/02-select-and-expressions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/02-select-and-expressions/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "null-semantics",
           "title": "NULL и трехзначная логика",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Предсказывает UNKNOWN в логических выражениях и обрабатывает NULL без скрытой потери строк.",
           "artifact": "Исполняемая таблица истинности SQL и набор NULL-проверок",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/03-null-semantics",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/03-null-semantics",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "aggregations",
           "title": "Агрегации и уровни детализации",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Объявляет grain результата GROUP BY и подтверждает агрегаты контрольным расчетом.",
           "artifact": "SQL-модель агрегатов с grain-инвариантами",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/04-aggregations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/04-aggregations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "joins",
           "title": "Joins без размножения метрик",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 105,
           "outcome": "Предсказывает cardinality JOIN, обнаруживает fanout и сохраняет аддитивность метрик.",
           "artifact": "Шаблон безопасного JOIN с проверками cardinality и unmatched-ключей",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/05-joins",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/05-joins",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "cte-and-subqueries",
           "title": "CTE и композиция запросов",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Разбивает расчет на именованные реляционные шаги и проверяет инварианты каждого CTE.",
           "artifact": "Композиционный SQL-pipeline из проверяемых CTE",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/06-cte-and-subqueries",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/06-cte-and-subqueries",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "window-functions",
           "title": "Оконные функции",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Выбирает PARTITION BY, ORDER BY и frame и проверяет ранги, лаги и накопительные метрики.",
           "artifact": "Набор оконных расчетов с явными frame-контрактами",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/07-window-functions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/07-window-functions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "dates",
           "title": "Время и даты в SQL",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Нормализует timestamps и строит календарные периоды в явной бизнес-временной зоне.",
           "artifact": "SQL-модель нормализации времени и календарных границ",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/08-dates",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/08-dates",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-dates/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "cohorts",
           "title": "Когорты на SQL",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 105,
           "outcome": "Строит когортную матрицу с явными cohort date, activity period и знаменателем.",
           "artifact": "Проверенная SQL-витрина когортной активности",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/09-cohorts",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/09-cohorts",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-cohorts/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "duckdb-python",
           "title": "DuckDB из Python",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Выполняет параметризованный SQL из Python и передает результаты между DuckDB и pandas без скрытой глобальной связи.",
           "artifact": "Python runner параметризованных DuckDB-запросов",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/10-duckdb-python",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/10-duckdb-python",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/10-duckdb-python/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "query-plans",
           "title": "Планы запросов и стоимость",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Читает EXPLAIN и EXPLAIN ANALYZE, находит лишние scans и сравнивает планы на sample-данных.",
           "artifact": "CLI-отчет сравнения планов и фактической стоимости запросов",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/11-query-plans",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/11-query-plans",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/11-query-plans/docs/ru.md"
         },
         {
           "number": 12,
           "slug": "sql-vs-dataframes",
           "title": "SQL или DataFrame: выбор инструмента",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Собирает проверенную order mart и обосновывает границу между SQL, DuckDB и pandas по измерениям и сопровождению.",
           "artifact": "CLI сборки набора SQL-витрин с тестами и manifest",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/12-sql-vs-dataframes",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 36,
+    "complete_lessons": 47,
     "hours": {
       "min": 238,
       "max": 326

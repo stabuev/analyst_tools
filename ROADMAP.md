@@ -137,17 +137,17 @@ flowchart LR
 | № | Урок | Статус |
 |---:|---|---|
 | 01 | [Grain, ключи и связи](phases/04-sql-and-duckdb/01-grain-keys-relations) | complete |
-| 02 | SELECT и выражения | designed |
-| 03 | NULL и трехзначная логика | designed |
-| 04 | Агрегации и уровни детализации | designed |
-| 05 | Joins без размножения метрик | designed |
-| 06 | CTE и композиция запросов | designed |
-| 07 | Оконные функции | designed |
-| 08 | Время и даты в SQL | designed |
-| 09 | Когорты на SQL | designed |
-| 10 | DuckDB из Python | designed |
-| 11 | Планы запросов и стоимость | designed |
-| 12 | SQL или DataFrame: выбор инструмента | designed |
+| 02 | [SELECT и выражения](phases/04-sql-and-duckdb/02-select-and-expressions) | complete |
+| 03 | [NULL и трехзначная логика](phases/04-sql-and-duckdb/03-null-semantics) | complete |
+| 04 | [Агрегации и уровни детализации](phases/04-sql-and-duckdb/04-aggregations) | complete |
+| 05 | [Joins без размножения метрик](phases/04-sql-and-duckdb/05-joins) | complete |
+| 06 | [CTE и композиция запросов](phases/04-sql-and-duckdb/06-cte-and-subqueries) | complete |
+| 07 | [Оконные функции](phases/04-sql-and-duckdb/07-window-functions) | complete |
+| 08 | [Время и даты в SQL](phases/04-sql-and-duckdb/08-dates) | complete |
+| 09 | [Когорты на SQL](phases/04-sql-and-duckdb/09-cohorts) | complete |
+| 10 | [DuckDB из Python](phases/04-sql-and-duckdb/10-duckdb-python) | complete |
+| 11 | [Планы запросов и стоимость](phases/04-sql-and-duckdb/11-query-plans) | complete |
+| 12 | [SQL или DataFrame: выбор инструмента](phases/04-sql-and-duckdb/12-sql-vs-dataframes) | complete |
 
 ## Фаза 05: Источники и форматы данных
 

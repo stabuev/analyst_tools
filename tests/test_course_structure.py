@@ -197,13 +197,12 @@ class CourseStructureTest(TestCase):
                     filename,
                 )
 
-    def test_phase_04_design_contract(self) -> None:
+    def test_phase_04_is_complete(self) -> None:
         phase = load_curriculum()["phases"][4]
         lessons = phase["lessons"]
 
         self.assertEqual(phase["slug"], "sql-and-duckdb")
-        self.assertEqual(lessons[0]["status"], "complete")
-        self.assertTrue(all(lesson["status"] == "designed" for lesson in lessons[1:]))
+        self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
         self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1050)
         self.assertEqual(
             sum(bool(lesson.get("integration_project")) for lesson in lessons),
