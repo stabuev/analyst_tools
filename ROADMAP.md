@@ -136,18 +136,18 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Grain, ключи и связи | planned |
-| 02 | SELECT и выражения | planned |
-| 03 | NULL и трехзначная логика | planned |
-| 04 | Агрегации и уровни детализации | planned |
-| 05 | Joins без размножения метрик | planned |
-| 06 | CTE и композиция запросов | planned |
-| 07 | Оконные функции | planned |
-| 08 | Время и даты в SQL | planned |
-| 09 | Когорты на SQL | planned |
-| 10 | DuckDB из Python | planned |
-| 11 | Планы запросов и стоимость | planned |
-| 12 | SQL или DataFrame: выбор инструмента | planned |
+| 01 | [Grain, ключи и связи](phases/04-sql-and-duckdb/01-grain-keys-relations) | complete |
+| 02 | SELECT и выражения | designed |
+| 03 | NULL и трехзначная логика | designed |
+| 04 | Агрегации и уровни детализации | designed |
+| 05 | Joins без размножения метрик | designed |
+| 06 | CTE и композиция запросов | designed |
+| 07 | Оконные функции | designed |
+| 08 | Время и даты в SQL | designed |
+| 09 | Когорты на SQL | designed |
+| 10 | DuckDB из Python | designed |
+| 11 | Планы запросов и стоимость | designed |
+| 12 | SQL или DataFrame: выбор инструмента | designed |
 
 ## Фаза 05: Источники и форматы данных
 

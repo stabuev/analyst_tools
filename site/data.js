@@ -69,7 +69,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 5,
@@ -160,7 +160,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 5,
@@ -254,7 +254,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 5,
@@ -340,7 +340,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 5,
@@ -441,7 +441,7 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "title": "SQL и DuckDB",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 5,
@@ -1215,34 +1215,34 @@ window.COURSE_DATA = {
       },
       "artifact": "Набор проверенных SQL-витрин",
       "completion": "Студент строит SQL-витрину, проверяет ключи и объясняет план выполнения критичного запроса.",
-      "status": "planned",
+      "status": "in-progress",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb",
       "lessons": [
         {
           "number": 1,
           "slug": "grain-keys-relations",
           "title": "Grain, ключи и связи",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Объявляет grain таблиц, проверяет уникальность ключей и находит нарушения связей до написания аналитического запроса.",
+          "artifact": "SQL-аудитор grain, первичных и внешних ключей",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/04-sql-and-duckdb/01-grain-keys-relations",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/01-grain-keys-relations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "select-and-expressions",
           "title": "SELECT и выражения",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Строит проекцию, вычисляемые поля и фильтры и сверяет результат с ручной таблицей.",
+          "artifact": "Набор проверяемых SELECT-запросов с контрактом результата",
           "type": "",
           "tracks": [
             "core"
@@ -1256,10 +1256,10 @@ window.COURSE_DATA = {
           "number": 3,
           "slug": "null-semantics",
           "title": "NULL и трехзначная логика",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Предсказывает UNKNOWN в логических выражениях и обрабатывает NULL без скрытой потери строк.",
+          "artifact": "Исполняемая таблица истинности SQL и набор NULL-проверок",
           "type": "",
           "tracks": [
             "core"
@@ -1273,10 +1273,10 @@ window.COURSE_DATA = {
           "number": 4,
           "slug": "aggregations",
           "title": "Агрегации и уровни детализации",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Объявляет grain результата GROUP BY и подтверждает агрегаты контрольным расчетом.",
+          "artifact": "SQL-модель агрегатов с grain-инвариантами",
           "type": "",
           "tracks": [
             "core"
@@ -1290,10 +1290,10 @@ window.COURSE_DATA = {
           "number": 5,
           "slug": "joins",
           "title": "Joins без размножения метрик",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 105,
+          "outcome": "Предсказывает cardinality JOIN, обнаруживает fanout и сохраняет аддитивность метрик.",
+          "artifact": "Шаблон безопасного JOIN с проверками cardinality и unmatched-ключей",
           "type": "",
           "tracks": [
             "core"
@@ -1307,10 +1307,10 @@ window.COURSE_DATA = {
           "number": 6,
           "slug": "cte-and-subqueries",
           "title": "CTE и композиция запросов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Разбивает расчет на именованные реляционные шаги и проверяет инварианты каждого CTE.",
+          "artifact": "Композиционный SQL-pipeline из проверяемых CTE",
           "type": "",
           "tracks": [
             "core"
@@ -1324,10 +1324,10 @@ window.COURSE_DATA = {
           "number": 7,
           "slug": "window-functions",
           "title": "Оконные функции",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Выбирает PARTITION BY, ORDER BY и frame и проверяет ранги, лаги и накопительные метрики.",
+          "artifact": "Набор оконных расчетов с явными frame-контрактами",
           "type": "",
           "tracks": [
             "core"
@@ -1341,10 +1341,10 @@ window.COURSE_DATA = {
           "number": 8,
           "slug": "dates",
           "title": "Время и даты в SQL",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Нормализует timestamps и строит календарные периоды в явной бизнес-временной зоне.",
+          "artifact": "SQL-модель нормализации времени и календарных границ",
           "type": "",
           "tracks": [
             "core"
@@ -1358,10 +1358,10 @@ window.COURSE_DATA = {
           "number": 9,
           "slug": "cohorts",
           "title": "Когорты на SQL",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 105,
+          "outcome": "Строит когортную матрицу с явными cohort date, activity period и знаменателем.",
+          "artifact": "Проверенная SQL-витрина когортной активности",
           "type": "",
           "tracks": [
             "core"
@@ -1375,10 +1375,10 @@ window.COURSE_DATA = {
           "number": 10,
           "slug": "duckdb-python",
           "title": "DuckDB из Python",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Выполняет параметризованный SQL из Python и передает результаты между DuckDB и pandas без скрытой глобальной связи.",
+          "artifact": "Python runner параметризованных DuckDB-запросов",
           "type": "",
           "tracks": [
             "core"
@@ -1392,10 +1392,10 @@ window.COURSE_DATA = {
           "number": 11,
           "slug": "query-plans",
           "title": "Планы запросов и стоимость",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Читает EXPLAIN и EXPLAIN ANALYZE, находит лишние scans и сравнивает планы на sample-данных.",
+          "artifact": "CLI-отчет сравнения планов и фактической стоимости запросов",
           "type": "",
           "tracks": [
             "core"
@@ -1409,10 +1409,10 @@ window.COURSE_DATA = {
           "number": 12,
           "slug": "sql-vs-dataframes",
           "title": "SQL или DataFrame: выбор инструмента",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Собирает проверенную order mart и обосновывает границу между SQL, DuckDB и pandas по измерениям и сопровождению.",
+          "artifact": "CLI сборки набора SQL-витрин с тестами и manifest",
           "type": "",
           "tracks": [
             "core"
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 35,
+    "complete_lessons": 36,
     "hours": {
       "min": 238,
       "max": 326

@@ -9,6 +9,13 @@
 
 ### Добавлено
 
+- Урок `04/01` «Grain, ключи и связи» с ручной моделью проверки ключа,
+  DuckDB-аудитором primary/foreign keys, девятью behavioral tests и JSON quality gate.
+- Фаза 04 «SQL и DuckDB» спроектирована целиком: 12 последовательных уроков на
+  17,5 часа с измеримыми результатами, артефактами и интеграционной SQL-витриной.
+- DuckDB 1.5.3 добавлен в корневой locked dependency contract курса.
+- Для фазы 04 добавлены детерминированный tiny-набор `users`, `orders`,
+  `order_items`, `events` и локальный sample-профиль более чем на 500 тысяч строк.
 - Полностью завершена фаза 03 «pandas и табличные данные»: 11 уроков от модели
   DataFrame и nullable dtype до безопасных join, временных зон, method chaining и
   интеграционной order mart с manifest.

@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import duckdb
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,12 +112,14 @@ class CourseStructureTest(TestCase):
 
         self.assertIn("numpy>=2.4.6,<2.5", pyproject["project"]["dependencies"])
         self.assertIn("pandas>=3.0.3,<3.1", pyproject["project"]["dependencies"])
+        self.assertIn("duckdb>=1.5.3,<1.6", pyproject["project"]["dependencies"])
         self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
         self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
         self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
         locked = {package["name"]: package["version"] for package in lock["package"]}
         self.assertEqual(locked["numpy"], "2.4.6")
         self.assertEqual(locked["pandas"], "3.0.3")
+        self.assertEqual(locked["duckdb"], "1.5.3")
         self.assertEqual(locked["pyyaml"], "6.0.3")
         self.assertEqual(locked["pytest"], "9.0.3")
         self.assertEqual(locked["ruff"], "0.15.17")
@@ -193,6 +196,98 @@ class CourseStructureTest(TestCase):
                     metadata["sha256"],
                     filename,
                 )
+
+    def test_phase_04_design_contract(self) -> None:
+        phase = load_curriculum()["phases"][4]
+        lessons = phase["lessons"]
+
+        self.assertEqual(phase["slug"], "sql-and-duckdb")
+        self.assertEqual(lessons[0]["status"], "complete")
+        self.assertTrue(all(lesson["status"] == "designed" for lesson in lessons[1:]))
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1050)
+        self.assertEqual(
+            sum(bool(lesson.get("integration_project")) for lesson in lessons),
+            1,
+        )
+
+        previous = "03-pandas/11-export-and-handoff"
+        for index, lesson in enumerate(lessons, start=1):
+            self.assertIn(lesson["type"], {"build", "learn", "case"})
+            self.assertEqual(lesson["prerequisites"], [previous])
+            self.assertTrue(lesson["outcome"])
+            self.assertTrue(lesson["artifact"])
+            previous = f"04-sql-and-duckdb/{index:02d}-{lesson['slug']}"
+
+    def test_duckdb_1_5_is_the_course_baseline(self) -> None:
+        self.assertEqual(duckdb.__version__, "1.5.3")
+        result = duckdb.sql(
+            "SELECT count(*) FILTER (WHERE value IS NULL) FROM (VALUES (1), (NULL)) t(value)"
+        ).fetchone()
+        self.assertEqual(result, (1,))
+
+    def test_phase_04_tiny_data_is_reproducible(self) -> None:
+        data_root = ROOT / "phases" / "04-sql-and-duckdb" / "data"
+        committed_root = data_root / "tiny"
+        contract = json.loads((data_root / "contract.json").read_text(encoding="utf-8"))
+        manifest = json.loads((committed_root / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            set(contract["tables"]),
+            {"users", "orders", "order_items", "events"},
+        )
+        self.assertGreater(
+            sum(contract["profiles"]["sample"]["default_rows"].values()),
+            500_000,
+        )
+        self.assertFalse(contract["profiles"]["sample"]["tracked"])
+        self.assertEqual(
+            set(manifest["files"]),
+            {"users.csv", "orders.csv", "order_items.csv", "events.csv"},
+        )
+        for table in contract["tables"].values():
+            self.assertTrue(table["grain"])
+            self.assertTrue(table["primary_key"])
+            self.assertTrue(table["columns"])
+            self.assertIn("known_defects", table)
+            self.assertIn("generation_rules", table)
+            self.assertIn("time_range", table)
+
+        with TemporaryDirectory() as directory:
+            generated_root = Path(directory) / "tiny"
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(data_root / "generate_data.py"),
+                    "--profile",
+                    "tiny",
+                    "--output",
+                    str(generated_root),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            for filename, metadata in manifest["files"].items():
+                committed = (committed_root / filename).read_bytes()
+                generated = (generated_root / filename).read_bytes()
+                self.assertEqual(generated, committed, filename)
+                self.assertEqual(
+                    hashlib.sha256(committed).hexdigest(),
+                    metadata["sha256"],
+                    filename,
+                )
+
+        users_path = committed_root / "users.csv"
+        orders_path = committed_root / "orders.csv"
+        relation_counts = duckdb.sql(
+            """
+            SELECT
+                (SELECT count(*) FROM read_csv_auto(?)) AS users,
+                (SELECT count(*) FROM read_csv_auto(?)) AS orders
+            """,
+            params=[str(users_path), str(orders_path)],
+        ).fetchone()
+        self.assertEqual(relation_counts, (8, 12))
 
     def test_readme_course_counts_match_curriculum(self) -> None:
         curriculum = load_curriculum()

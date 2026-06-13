@@ -1,0 +1,216 @@
+{
+  "version": "1.0.0",
+  "description": "Связанные таблицы для SQL, DuckDB, ручных расчетов и анализа планов запросов.",
+  "generator": "generate_data.py",
+  "profiles": {
+    "tiny": {
+      "description": "Десятки строк, committed в Git и пригодны для ручной проверки.",
+      "tracked": true
+    },
+    "sample": {
+      "description": "Более 500 тысяч строк, генерируются локально для анализа планов.",
+      "tracked": false,
+      "default_rows": {
+        "users.csv": 25000,
+        "orders.csv": 100000,
+        "order_items.csv": 200000,
+        "events.csv": 200005
+      }
+    }
+  },
+  "tables": {
+    "users": {
+      "file": "users.csv",
+      "grain": "Одна строка на пользователя.",
+      "primary_key": [
+        "user_id"
+      ],
+      "foreign_keys": [],
+      "time_range": {
+        "column": "registered_at",
+        "min": "2025-12-15T08:00:00Z",
+        "max": "2026-02-10T09:00:00+01:00"
+      },
+      "columns": {
+        "user_id": {
+          "semantic_type": "string identifier",
+          "nullable": false
+        },
+        "registered_at": {
+          "semantic_type": "timezone-aware timestamp",
+          "nullable": false
+        },
+        "country": {
+          "semantic_type": "country code",
+          "nullable": true
+        },
+        "plan": {
+          "semantic_type": "subscription category",
+          "nullable": false
+        }
+      },
+      "generation_rules": [
+        "user_id уникален.",
+        "Регистрация распределена по нескольким календарным когортам."
+      ],
+      "known_defects": [
+        "country содержит пропуск и несогласованный регистр.",
+        "registered_at использует разные UTC offsets."
+      ]
+    },
+    "orders": {
+      "file": "orders.csv",
+      "grain": "Одна строка на заказ.",
+      "primary_key": [
+        "order_id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "references": "users.user_id"
+        }
+      ],
+      "time_range": {
+        "column": "ordered_at",
+        "min": "2026-01-05T10:00:00+03:00",
+        "max": "2026-04-05T09:30:00+01:00"
+      },
+      "columns": {
+        "order_id": {
+          "semantic_type": "string identifier",
+          "nullable": false
+        },
+        "user_id": {
+          "semantic_type": "foreign key to users.user_id",
+          "nullable": false
+        },
+        "ordered_at": {
+          "semantic_type": "timezone-aware timestamp",
+          "nullable": true
+        },
+        "status": {
+          "semantic_type": "order status category",
+          "nullable": false
+        },
+        "currency": {
+          "semantic_type": "ISO currency code",
+          "nullable": false
+        },
+        "amount": {
+          "semantic_type": "decimal amount in order currency",
+          "nullable": true
+        }
+      },
+      "generation_rules": [
+        "order_id уникален.",
+        "Пользователь может иметь несколько заказов в разных периодах."
+      ],
+      "known_defects": [
+        "Один заказ ссылается на удаленного пользователя U999.",
+        "Незавершенные заказы имеют NULL amount.",
+        "Один ordered_at отсутствует."
+      ]
+    },
+    "order_items": {
+      "file": "order_items.csv",
+      "grain": "Одна строка на товарную позицию заказа.",
+      "primary_key": [
+        "order_id",
+        "product_id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "order_id"
+          ],
+          "references": "orders.order_id"
+        }
+      ],
+      "time_range": {
+        "source": "Наследуется от orders.ordered_at через order_id."
+      },
+      "columns": {
+        "order_id": {
+          "semantic_type": "foreign key to orders.order_id",
+          "nullable": false
+        },
+        "product_id": {
+          "semantic_type": "string identifier",
+          "nullable": false
+        },
+        "category": {
+          "semantic_type": "product category",
+          "nullable": false
+        },
+        "quantity": {
+          "semantic_type": "positive integer",
+          "nullable": false
+        },
+        "unit_price": {
+          "semantic_type": "decimal amount in order currency",
+          "nullable": false
+        }
+      },
+      "generation_rules": [
+        "Пара order_id и product_id уникальна.",
+        "Часть заказов содержит несколько позиций и создает fanout при JOIN."
+      ],
+      "known_defects": [
+        "category содержит разные написания add-on.",
+        "Наивный JOIN размножает orders.amount для многопозиционных заказов."
+      ]
+    },
+    "events": {
+      "file": "events.csv",
+      "grain": "Одна доставленная строка продуктового события.",
+      "primary_key": [
+        "event_id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "references": "users.user_id"
+        }
+      ],
+      "time_range": {
+        "column": "occurred_at",
+        "min": "2026-01-01T09:00:00Z",
+        "max": "2026-04-07T12:15:00Z"
+      },
+      "columns": {
+        "event_id": {
+          "semantic_type": "string event identifier",
+          "nullable": false
+        },
+        "user_id": {
+          "semantic_type": "foreign key to users.user_id",
+          "nullable": false
+        },
+        "occurred_at": {
+          "semantic_type": "UTC timestamp",
+          "nullable": false
+        },
+        "event_name": {
+          "semantic_type": "event category",
+          "nullable": false
+        },
+        "session_id": {
+          "semantic_type": "nullable session identifier",
+          "nullable": true
+        }
+      },
+      "generation_rules": [
+        "События распределены по нескольким периодам активности.",
+        "Повторная доставка сохраняет тот же event_id."
+      ],
+      "known_defects": [
+        "event_id E0005 доставлен дважды.",
+        "Часть session_id отсутствует."
+      ]
+    }
+  }
+}
