@@ -9,6 +9,14 @@
 
 ### Добавлено
 
+- Полностью завершена фаза 06 «EDA и визуальное мышление»: 11 уроков, 91 behavioral
+  test и артефакты от visual question brief и data audit до статических, интерактивных
+  и декларативных визуализаций и интеграционного EDA-report с checksum manifest.
+- Корневой locked dependency contract дополнен Matplotlib 3.11.0, Seaborn 0.13.2,
+  Plotly 6.8.0 и Altair 6.2.1.
+- Урок `06/01` «Вопрос раньше графика» с контрактом visual question brief,
+  rubric выбора представления, предупреждением о причинной формулировке и девятью
+  behavioral tests.
 - Фаза 06 «EDA и визуальное мышление» спроектирована целиком: 11 последовательных
   уроков на 15,5 часа, единый `user_journeys` dataset, явные границы Matplotlib,
   Seaborn, Plotly и Altair и интеграционный воспроизводимый EDA-report.

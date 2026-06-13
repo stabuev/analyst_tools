@@ -179,17 +179,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Вопрос раньше графика | designed |
-| 02 | Аудит набора данных | designed |
-| 03 | Воспроизводимая фигура с Matplotlib | designed |
-| 04 | Распределения и выбросы | designed |
-| 05 | Связи между переменными | designed |
-| 06 | Неопределенность на графике | designed |
-| 07 | Статистические сравнения с Seaborn | designed |
-| 08 | Интерактивный drill-down с Plotly | designed |
-| 09 | Декларативная спецификация с Altair | designed |
-| 10 | Дизайн, цвет и доступность | designed |
-| 11 | От наблюдения к аналитическому выводу | designed |
+| 01 | [Вопрос раньше графика](phases/06-eda-and-visualization/01-question-before-chart) | complete |
+| 02 | [Аудит набора данных](phases/06-eda-and-visualization/02-data-audit) | complete |
+| 03 | [Воспроизводимая фигура с Matplotlib](phases/06-eda-and-visualization/03-matplotlib-oo) | complete |
+| 04 | [Распределения и выбросы](phases/06-eda-and-visualization/04-distributions) | complete |
+| 05 | [Связи между переменными](phases/06-eda-and-visualization/05-relationships) | complete |
+| 06 | [Неопределенность на графике](phases/06-eda-and-visualization/06-uncertainty) | complete |
+| 07 | [Статистические сравнения с Seaborn](phases/06-eda-and-visualization/07-seaborn) | complete |
+| 08 | [Интерактивный drill-down с Plotly](phases/06-eda-and-visualization/08-plotly) | complete |
+| 09 | [Декларативная спецификация с Altair](phases/06-eda-and-visualization/09-altair) | complete |
+| 10 | [Дизайн, цвет и доступность](phases/06-eda-and-visualization/10-design-and-accessibility) | complete |
+| 11 | [От наблюдения к аналитическому выводу](phases/06-eda-and-visualization/11-analytical-conclusion) | complete |
 
 ## Фаза 07: Надежная аналитика
 

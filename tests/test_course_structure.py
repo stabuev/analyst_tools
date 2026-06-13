@@ -110,25 +110,33 @@ class CourseStructureTest(TestCase):
         lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
         workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
+        self.assertIn("altair>=6.2.1,<6.3", pyproject["project"]["dependencies"])
         self.assertIn("numpy>=2.4.6,<2.5", pyproject["project"]["dependencies"])
         self.assertIn("pandas>=3.0.3,<3.1", pyproject["project"]["dependencies"])
         self.assertIn("duckdb>=1.5.3,<1.6", pyproject["project"]["dependencies"])
         self.assertIn("beautifulsoup4>=4.14,<5", pyproject["project"]["dependencies"])
+        self.assertIn("matplotlib>=3.11,<3.12", pyproject["project"]["dependencies"])
         self.assertIn("openpyxl>=3.1,<3.2", pyproject["project"]["dependencies"])
+        self.assertIn("plotly>=6.8,<6.9", pyproject["project"]["dependencies"])
         self.assertIn("pyarrow>=24,<25", pyproject["project"]["dependencies"])
         self.assertIn("requests>=2.34,<3", pyproject["project"]["dependencies"])
+        self.assertIn("seaborn>=0.13.2,<0.14", pyproject["project"]["dependencies"])
         self.assertIn("sqlalchemy>=2.0,<2.1", pyproject["project"]["dependencies"])
         self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
         self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
         self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
         locked = {package["name"]: package["version"] for package in lock["package"]}
+        self.assertEqual(locked["altair"], "6.2.1")
         self.assertEqual(locked["numpy"], "2.4.6")
         self.assertEqual(locked["pandas"], "3.0.3")
         self.assertEqual(locked["duckdb"], "1.5.3")
         self.assertEqual(locked["beautifulsoup4"], "4.15.0")
+        self.assertEqual(locked["matplotlib"], "3.11.0")
         self.assertEqual(locked["openpyxl"], "3.1.5")
+        self.assertEqual(locked["plotly"], "6.8.0")
         self.assertEqual(locked["pyarrow"], "24.0.0")
         self.assertEqual(locked["requests"], "2.34.2")
+        self.assertEqual(locked["seaborn"], "0.13.2")
         self.assertEqual(locked["sqlalchemy"], "2.0.50")
         self.assertEqual(locked["pyyaml"], "6.0.3")
         self.assertEqual(locked["pytest"], "9.0.3")
@@ -354,12 +362,12 @@ class CourseStructureTest(TestCase):
             text=True,
         )
 
-    def test_phase_06_is_designed(self) -> None:
+    def test_phase_06_is_complete(self) -> None:
         phase = load_curriculum()["phases"][6]
         lessons = phase["lessons"]
 
         self.assertEqual(phase["slug"], "eda-and-visualization")
-        self.assertTrue(all(lesson["status"] == "designed" for lesson in lessons))
+        self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
         self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 930)
         self.assertEqual(
             sum(bool(lesson.get("integration_project")) for lesson in lessons),

@@ -47,9 +47,9 @@
 | Plotly | Hover, точечный drill-down, responsive standalone HTML, JSON figure | Dash и production-приложения |
 | Altair | Декларативные encodings, transforms, parameters и linked views | Большие embedded datasets и сложная Vega-разработка |
 
-Зависимости добавляются в корневой locked environment перед первым использующим их
-уроком. Pre-release версии не используются. `06/01` и `06/02` опираются на уже
-зафиксированные NumPy и pandas.
+В корневом locked environment зафиксированы Matplotlib 3.11.0, Seaborn 0.13.2,
+Plotly 6.8.0 и Altair 6.2.1. Pre-release версии не используются. `06/01` и `06/02`
+опираются на уже зафиксированные NumPy и pandas.
 
 Проверенные официальные контракты:
 
@@ -72,7 +72,7 @@
 в подписочном сервисе. Grain — одна строка на пользователя и одно фиксированное окно
 наблюдения.
 
-Планируемые поля:
+Поля:
 
 | Поле | Смысл |
 |---|---|

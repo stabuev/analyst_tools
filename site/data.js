@@ -79,7 +79,7 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 7,
@@ -170,7 +170,7 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 7,
@@ -264,7 +264,7 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 7,
@@ -350,7 +350,7 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 7,
@@ -451,7 +451,7 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 7,
@@ -1650,195 +1650,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Воспроизводимый EDA-отчет",
       "completion": "Каждый график отвечает на сформулированный вопрос, показывает неопределенность и поддерживает проверяемый вывод.",
-      "status": "designed",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization",
       "lessons": [
         {
           "number": 1,
           "slug": "question-before-chart",
           "title": "Вопрос раньше графика",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Преобразует рабочий вопрос в контракт визуального доказательства с единицей анализа, сравнением, метрикой, ожидаемым паттерном и критерием остановки.",
           "artifact": "CLI-конструктор visual question brief и rubric выбора представления",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/01-question-before-chart",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/01-question-before-chart",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/01-question-before-chart/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "data-audit",
           "title": "Аудит набора данных",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Проверяет grain, ключи, типы, пропуски, диапазоны, дубликаты и полноту окна наблюдения до построения графиков и отделяет дефект данных от сигнала.",
           "artifact": "CLI-аудитор EDA-входа с машинным профилем и журналом решений",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/02-data-audit",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/02-data-audit",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/02-data-audit/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "matplotlib-oo",
           "title": "Воспроизводимая фигура с Matplotlib",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Строит детерминированную многоосевую фигуру через явные Figure и Axes, управляет шкалами и layout и экспортирует PNG и SVG с manifest.",
           "artifact": "Фабрика статических Figure/Axes-графиков с экспортным manifest",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/03-matplotlib-oo",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/03-matplotlib-oo",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/03-matplotlib-oo/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "distributions",
           "title": "Распределения и выбросы",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Сравнивает форму распределений через histogram, ECDF и robust summaries, обосновывает bins и scale и показывает выбросы без автоматического удаления.",
           "artifact": "Генератор диагностической панели распределения с явной bin и outlier policy",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/04-distributions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/04-distributions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/04-distributions/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "relationships",
           "title": "Связи между переменными",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Выбирает представление по типам переменных, обнаруживает overplotting и смешение сегментов и проверяет видимую связь стратифицированным расчетом.",
           "artifact": "Relationship explorer со stratification checks и таблицей контрольных агрегатов",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/05-relationships",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/05-relationships",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/05-relationships/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "uncertainty",
           "title": "Неопределенность на графике",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Различает разброс данных и неопределенность оценки, воспроизводимо строит bootstrap-интервалы и показывает interval, sample size и единицу ресемплирования.",
           "artifact": "Bootstrap interval visualizer с seed, provenance и проверкой покрытия данных",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/06-uncertainty",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/06-uncertainty",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/06-uncertainty/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "seaborn",
           "title": "Статистические сравнения с Seaborn",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Воспроизводит распределения, связи и оценки через dataset-oriented API, явно задает estimator, errorbar и facets и дорабатывает результат через Matplotlib Axes.",
           "artifact": "Генератор faceted statistical comparison panel с явной семантикой интервалов",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/07-seaborn",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/07-seaborn",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/07-seaborn/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "plotly",
           "title": "Интерактивный drill-down с Plotly",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Добавляет hover и управляемый drill-down только там, где они раскрывают отдельные наблюдения, и экспортирует воспроизводимый standalone HTML без Dash.",
           "artifact": "Интерактивный anomaly explorer в standalone HTML и JSON-спецификации",
-          "type": "",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/08-plotly",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/08-plotly",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/08-plotly/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "altair",
           "title": "Декларативная спецификация с Altair",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Описывает mark, encodings, типы полей, transforms и selection parameters как проверяемую Vega-Lite-спецификацию и находит ошибочную семантику до рендера.",
           "artifact": "Builder и валидатор декларативной chart specification с linked selection",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/09-altair",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/09-altair",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/09-altair/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "design-and-accessibility",
           "title": "Дизайн, цвет и доступность",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Выбирает шкалу, baseline, порядок, подписи и perceptually uniform palette и дублирует смысл цвета формой, текстом или структурой.",
           "artifact": "CLI-аудитор доступности графика и machine-readable visual review checklist",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/10-design-and-accessibility",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/10-design-and-accessibility",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/10-design-and-accessibility/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "analytical-conclusion",
           "title": "От наблюдения к аналитическому выводу",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 105,
           "outcome": "Собирает воспроизводимый EDA-отчет, связывает каждый вывод с вопросом, расчетом и графиком и отделяет наблюдение от объяснения, ограничения и следующего шага.",
           "artifact": "CLI сборки EDA-report с static figures, interactive appendix, chart specs и manifest",
-          "type": "",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/06-eda-and-visualization/11-analytical-conclusion",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/11-analytical-conclusion",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/11-analytical-conclusion/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 58,
+    "complete_lessons": 69,
     "hours": {
       "min": 238,
       "max": 326
