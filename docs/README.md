@@ -9,6 +9,8 @@
 - [`data-universe.md`](data-universe.md) — общая предметная область и учебные данные.
 - [`research-baseline.md`](research-baseline.md) — критика исходного исследования и
   принятые изменения программы.
+- [`phase-06-design.md`](phase-06-design.md) — границы EDA-фазы, роли библиотек, общий
+  набор данных и интеграционный проект.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

@@ -74,12 +74,12 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "title": "Источники и форматы данных",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 7,
@@ -165,12 +165,12 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "title": "Источники и форматы данных",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 7,
@@ -259,12 +259,12 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "title": "Источники и форматы данных",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 7,
@@ -345,12 +345,12 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "title": "Источники и форматы данных",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 7,
@@ -446,12 +446,12 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "title": "Источники и форматы данных",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 6,
           "title": "EDA и визуальное мышление",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 7,
@@ -1441,195 +1441,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Устойчивый загрузчик внешних данных",
       "completion": "Загрузчик повторяет запросы безопасно, кеширует сырье и проверяет схему или checksum результата.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats",
       "lessons": [
         {
           "number": 1,
           "slug": "csv",
           "title": "CSV и неоднозначность типов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Объявляет диалект, кодировку, схему и правила пропусков CSV и обнаруживает поврежденные строки до анализа.",
+          "artifact": "CLI-аудитор CSV-диалекта, типов и проблемных строк",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/01-csv",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/01-csv",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "excel",
-          "title": "Excel как источник и формат выдачи",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Excel как источник: листы, диапазоны и формулы",
+          "status": "complete",
+          "time_minutes": 60,
+          "outcome": "Выбирает лист и диапазон, распознает служебное оформление и преобразует рабочую книгу в явную табличную схему.",
+          "artifact": "Аудитор Excel-книги и спецификация извлекаемого диапазона",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/02-excel",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/02-excel",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/02-excel/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "json",
           "title": "JSON и вложенные структуры",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Нормализует вложенные объекты и массивы в объявленный grain и обнаруживает изменение схемы без потери сырого JSON.",
+          "artifact": "JSON-нормализатор с отчетом о путях и изменениях схемы",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/03-json",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/03-json",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/03-json/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "http-requests",
           "title": "HTTP и Requests",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проверяет статус, заголовки, content type и кодировку ответа, задает timeout и потоково сохраняет тело ответа.",
+          "artifact": "HTTP-инспектор и безопасный потоковый загрузчик",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/04-http-requests",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/04-http-requests",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/04-http-requests/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "pagination-retries",
           "title": "Pagination, timeouts и retries",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Загружает все страницы API с явным условием остановки, ограниченными retries, backoff и поддержкой Retry-After.",
+          "artifact": "Устойчивый клиент пагинированного API с retry-policy",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/05-pagination-retries",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/05-pagination-retries",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "html-parsing",
           "title": "HTML и Beautiful Soup",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 60,
+          "outcome": "Извлекает структурированные записи по устойчивым селекторам и явно обнаруживает изменение HTML-разметки.",
+          "artifact": "HTML-экстрактор с контрактом селекторов и fixture-тестами",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/06-html-parsing",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/06-html-parsing",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/06-html-parsing/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "sqlalchemy",
           "title": "Подключение к БД через SQLAlchemy",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Читает параметризованный срез через SQLAlchemy Core, управляет соединением и не интерполирует значения в SQL.",
+          "artifact": "Параметризованный DB-reader с контрактом схемы и результата",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/07-sqlalchemy",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/07-sqlalchemy",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "parquet",
           "title": "Parquet и колоночное хранение",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Записывает и читает Parquet с явной схемой, nullable-типами и сжатием и сравнивает его контракт с CSV.",
+          "artifact": "CLI-конвертер CSV в Parquet со schema-manifest",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/08-parquet",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/08-parquet",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "arrow",
-          "title": "Arrow как общий формат памяти",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Arrow как контракт обмена таблицами",
+          "status": "complete",
+          "time_minutes": 60,
+          "outcome": "Передает таблицу между pandas, Arrow и DuckDB и проверяет схему, пропуски и факт копирования данных.",
+          "artifact": "Отчет совместимости pandas, Arrow и DuckDB",
+          "type": "learn",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/09-arrow",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/09-arrow",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "partitioning",
           "title": "Партиционирование наборов данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Выбирает ключи партиционирования по паттерну чтения, проверяет pruning и избегает мелких файлов и лишних разделов.",
+          "artifact": "Сборщик partitioned dataset с отчетом о layout и pruning",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/10-partitioning",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/10-partitioning",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "caching-and-checksums",
           "title": "Кеширование и контроль целостности",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Собирает повторяемый загрузчик, который кеширует сырые ответы, атомарно обновляет данные и проверяет схему и SHA-256 manifest.",
+          "artifact": "CLI устойчивой загрузки с raw cache, checksum-manifest и partitioned Parquet",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/05-sources-and-formats/11-caching-and-checksums",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/11-caching-and-checksums",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/docs/ru.md"
         }
       ]
     },
@@ -1650,17 +1650,17 @@ window.COURSE_DATA = {
       },
       "artifact": "Воспроизводимый EDA-отчет",
       "completion": "Каждый график отвечает на сформулированный вопрос, показывает неопределенность и поддерживает проверяемый вывод.",
-      "status": "planned",
+      "status": "designed",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization",
       "lessons": [
         {
           "number": 1,
           "slug": "question-before-chart",
           "title": "Вопрос раньше графика",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Преобразует рабочий вопрос в контракт визуального доказательства с единицей анализа, сравнением, метрикой, ожидаемым паттерном и критерием остановки.",
+          "artifact": "CLI-конструктор visual question brief и rubric выбора представления",
           "type": "",
           "tracks": [
             "core"
@@ -1674,10 +1674,10 @@ window.COURSE_DATA = {
           "number": 2,
           "slug": "data-audit",
           "title": "Аудит набора данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Проверяет grain, ключи, типы, пропуски, диапазоны, дубликаты и полноту окна наблюдения до построения графиков и отделяет дефект данных от сигнала.",
+          "artifact": "CLI-аудитор EDA-входа с машинным профилем и журналом решений",
           "type": "",
           "tracks": [
             "core"
@@ -1689,68 +1689,68 @@ window.COURSE_DATA = {
         },
         {
           "number": 3,
-          "slug": "distributions",
-          "title": "Распределения и выбросы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "matplotlib-oo",
+          "title": "Воспроизводимая фигура с Matplotlib",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Строит детерминированную многоосевую фигуру через явные Figure и Axes, управляет шкалами и layout и экспортирует PNG и SVG с manifest.",
+          "artifact": "Фабрика статических Figure/Axes-графиков с экспортным manifest",
           "type": "",
           "tracks": [
             "core"
           ],
-          "path": "phases/06-eda-and-visualization/03-distributions",
+          "path": "phases/06-eda-and-visualization/03-matplotlib-oo",
           "available": false,
           "url": null,
           "docs_url": null
         },
         {
           "number": 4,
-          "slug": "relationships",
-          "title": "Связи между переменными",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "distributions",
+          "title": "Распределения и выбросы",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Сравнивает форму распределений через histogram, ECDF и robust summaries, обосновывает bins и scale и показывает выбросы без автоматического удаления.",
+          "artifact": "Генератор диагностической панели распределения с явной bin и outlier policy",
           "type": "",
           "tracks": [
             "core"
           ],
-          "path": "phases/06-eda-and-visualization/04-relationships",
+          "path": "phases/06-eda-and-visualization/04-distributions",
           "available": false,
           "url": null,
           "docs_url": null
         },
         {
           "number": 5,
-          "slug": "uncertainty",
-          "title": "Неопределенность на графике",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "relationships",
+          "title": "Связи между переменными",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Выбирает представление по типам переменных, обнаруживает overplotting и смешение сегментов и проверяет видимую связь стратифицированным расчетом.",
+          "artifact": "Relationship explorer со stratification checks и таблицей контрольных агрегатов",
           "type": "",
           "tracks": [
             "core"
           ],
-          "path": "phases/06-eda-and-visualization/05-uncertainty",
+          "path": "phases/06-eda-and-visualization/05-relationships",
           "available": false,
           "url": null,
           "docs_url": null
         },
         {
           "number": 6,
-          "slug": "matplotlib-oo",
-          "title": "Matplotlib Object-Oriented API",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "uncertainty",
+          "title": "Неопределенность на графике",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Различает разброс данных и неопределенность оценки, воспроизводимо строит bootstrap-интервалы и показывает interval, sample size и единицу ресемплирования.",
+          "artifact": "Bootstrap interval visualizer с seed, provenance и проверкой покрытия данных",
           "type": "",
           "tracks": [
             "core"
           ],
-          "path": "phases/06-eda-and-visualization/06-matplotlib-oo",
+          "path": "phases/06-eda-and-visualization/06-uncertainty",
           "available": false,
           "url": null,
           "docs_url": null
@@ -1758,11 +1758,11 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "slug": "seaborn",
-          "title": "Статистическая визуализация с Seaborn",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Статистические сравнения с Seaborn",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Воспроизводит распределения, связи и оценки через dataset-oriented API, явно задает estimator, errorbar и facets и дорабатывает результат через Matplotlib Axes.",
+          "artifact": "Генератор faceted statistical comparison panel с явной семантикой интервалов",
           "type": "",
           "tracks": [
             "core"
@@ -1775,11 +1775,11 @@ window.COURSE_DATA = {
         {
           "number": 8,
           "slug": "plotly",
-          "title": "Интерактивная визуализация с Plotly",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Интерактивный drill-down с Plotly",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Добавляет hover и управляемый drill-down только там, где они раскрывают отдельные наблюдения, и экспортирует воспроизводимый standalone HTML без Dash.",
+          "artifact": "Интерактивный anomaly explorer в standalone HTML и JSON-спецификации",
           "type": "",
           "tracks": [
             "core"
@@ -1792,11 +1792,11 @@ window.COURSE_DATA = {
         {
           "number": 9,
           "slug": "altair",
-          "title": "Altair и декларативная графика",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Декларативная спецификация с Altair",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Описывает mark, encodings, типы полей, transforms и selection parameters как проверяемую Vega-Lite-спецификацию и находит ошибочную семантику до рендера.",
+          "artifact": "Builder и валидатор декларативной chart specification с linked selection",
           "type": "",
           "tracks": [
             "core"
@@ -1810,10 +1810,10 @@ window.COURSE_DATA = {
           "number": 10,
           "slug": "design-and-accessibility",
           "title": "Дизайн, цвет и доступность",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Выбирает шкалу, baseline, порядок, подписи и perceptually uniform palette и дублирует смысл цвета формой, текстом или структурой.",
+          "artifact": "CLI-аудитор доступности графика и machine-readable visual review checklist",
           "type": "",
           "tracks": [
             "core"
@@ -1827,10 +1827,10 @@ window.COURSE_DATA = {
           "number": 11,
           "slug": "analytical-conclusion",
           "title": "От наблюдения к аналитическому выводу",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 105,
+          "outcome": "Собирает воспроизводимый EDA-отчет, связывает каждый вывод с вопросом, расчетом и графиком и отделяет наблюдение от объяснения, ограничения и следующего шага.",
+          "artifact": "CLI сборки EDA-report с static figures, interactive appendix, chart specs и manifest",
           "type": "",
           "tracks": [
             "core"
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 47,
+    "complete_lessons": 58,
     "hours": {
       "min": 238,
       "max": 326

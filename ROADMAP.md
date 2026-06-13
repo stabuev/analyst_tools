@@ -158,17 +158,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | CSV и неоднозначность типов | planned |
-| 02 | Excel как источник и формат выдачи | planned |
-| 03 | JSON и вложенные структуры | planned |
-| 04 | HTTP и Requests | planned |
-| 05 | Pagination, timeouts и retries | planned |
-| 06 | HTML и Beautiful Soup | planned |
-| 07 | Подключение к БД через SQLAlchemy | planned |
-| 08 | Parquet и колоночное хранение | planned |
-| 09 | Arrow как общий формат памяти | planned |
-| 10 | Партиционирование наборов данных | planned |
-| 11 | Кеширование и контроль целостности | planned |
+| 01 | [CSV и неоднозначность типов](phases/05-sources-and-formats/01-csv) | complete |
+| 02 | [Excel как источник: листы, диапазоны и формулы](phases/05-sources-and-formats/02-excel) | complete |
+| 03 | [JSON и вложенные структуры](phases/05-sources-and-formats/03-json) | complete |
+| 04 | [HTTP и Requests](phases/05-sources-and-formats/04-http-requests) | complete |
+| 05 | [Pagination, timeouts и retries](phases/05-sources-and-formats/05-pagination-retries) | complete |
+| 06 | [HTML и Beautiful Soup](phases/05-sources-and-formats/06-html-parsing) | complete |
+| 07 | [Подключение к БД через SQLAlchemy](phases/05-sources-and-formats/07-sqlalchemy) | complete |
+| 08 | [Parquet и колоночное хранение](phases/05-sources-and-formats/08-parquet) | complete |
+| 09 | [Arrow как контракт обмена таблицами](phases/05-sources-and-formats/09-arrow) | complete |
+| 10 | [Партиционирование наборов данных](phases/05-sources-and-formats/10-partitioning) | complete |
+| 11 | [Кеширование и контроль целостности](phases/05-sources-and-formats/11-caching-and-checksums) | complete |
 
 ## Фаза 06: EDA и визуальное мышление
 
@@ -179,17 +179,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Вопрос раньше графика | planned |
-| 02 | Аудит набора данных | planned |
-| 03 | Распределения и выбросы | planned |
-| 04 | Связи между переменными | planned |
-| 05 | Неопределенность на графике | planned |
-| 06 | Matplotlib Object-Oriented API | planned |
-| 07 | Статистическая визуализация с Seaborn | planned |
-| 08 | Интерактивная визуализация с Plotly | planned |
-| 09 | Altair и декларативная графика | planned |
-| 10 | Дизайн, цвет и доступность | planned |
-| 11 | От наблюдения к аналитическому выводу | planned |
+| 01 | Вопрос раньше графика | designed |
+| 02 | Аудит набора данных | designed |
+| 03 | Воспроизводимая фигура с Matplotlib | designed |
+| 04 | Распределения и выбросы | designed |
+| 05 | Связи между переменными | designed |
+| 06 | Неопределенность на графике | designed |
+| 07 | Статистические сравнения с Seaborn | designed |
+| 08 | Интерактивный drill-down с Plotly | designed |
+| 09 | Декларативная спецификация с Altair | designed |
+| 10 | Дизайн, цвет и доступность | designed |
+| 11 | От наблюдения к аналитическому выводу | designed |
 
 ## Фаза 07: Надежная аналитика
 

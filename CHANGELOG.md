@@ -9,6 +9,19 @@
 
 ### Добавлено
 
+- Фаза 06 «EDA и визуальное мышление» спроектирована целиком: 11 последовательных
+  уроков на 15,5 часа, единый `user_journeys` dataset, явные границы Matplotlib,
+  Seaborn, Plotly и Altair и интеграционный воспроизводимый EDA-report.
+- Полностью завершена фаза 05 «Источники и форматы данных»: 11 уроков, 90 behavioral
+  tests, 14 детерминированных fixtures и самостоятельные артефакты от CSV/Excel/JSON
+  contracts до устойчивого загрузчика с raw cache, SHA-256 и partitioned Parquet.
+- Корневой locked dependency contract дополнен openpyxl 3.1.5, Requests 2.34.2,
+  Beautiful Soup 4.15.0, SQLAlchemy 2.0.50 и PyArrow 24.0.0.
+- Урок `05/01` «CSV и неоднозначность типов» с явным encoding/dialect/schema-контрактом,
+  CP1251 fixtures, аудитором повреждённых строк и девятью behavioral tests.
+- Фаза 05 «Источники и форматы данных» спроектирована целиком: 11 последовательных
+  уроков на 14 часов с контрактами файловых форматов, устойчивым получением внешних
+  данных, Arrow/Parquet-поставкой и интеграционным загрузчиком с кешем и checksum.
 - Полностью завершена фаза 04 «SQL и DuckDB»: 12 уроков, 98 behavioral tests,
   самостоятельные CLI и SQL-артефакты от grain-аудита до когорт, планов запросов и
   интеграционной поставки `order_mart`/`user_summary` с checksum-manifest.

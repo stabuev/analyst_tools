@@ -113,6 +113,11 @@ class CourseStructureTest(TestCase):
         self.assertIn("numpy>=2.4.6,<2.5", pyproject["project"]["dependencies"])
         self.assertIn("pandas>=3.0.3,<3.1", pyproject["project"]["dependencies"])
         self.assertIn("duckdb>=1.5.3,<1.6", pyproject["project"]["dependencies"])
+        self.assertIn("beautifulsoup4>=4.14,<5", pyproject["project"]["dependencies"])
+        self.assertIn("openpyxl>=3.1,<3.2", pyproject["project"]["dependencies"])
+        self.assertIn("pyarrow>=24,<25", pyproject["project"]["dependencies"])
+        self.assertIn("requests>=2.34,<3", pyproject["project"]["dependencies"])
+        self.assertIn("sqlalchemy>=2.0,<2.1", pyproject["project"]["dependencies"])
         self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
         self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
         self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
@@ -120,6 +125,11 @@ class CourseStructureTest(TestCase):
         self.assertEqual(locked["numpy"], "2.4.6")
         self.assertEqual(locked["pandas"], "3.0.3")
         self.assertEqual(locked["duckdb"], "1.5.3")
+        self.assertEqual(locked["beautifulsoup4"], "4.15.0")
+        self.assertEqual(locked["openpyxl"], "3.1.5")
+        self.assertEqual(locked["pyarrow"], "24.0.0")
+        self.assertEqual(locked["requests"], "2.34.2")
+        self.assertEqual(locked["sqlalchemy"], "2.0.50")
         self.assertEqual(locked["pyyaml"], "6.0.3")
         self.assertEqual(locked["pytest"], "9.0.3")
         self.assertEqual(locked["ruff"], "0.15.17")
@@ -287,6 +297,96 @@ class CourseStructureTest(TestCase):
             params=[str(users_path), str(orders_path)],
         ).fetchone()
         self.assertEqual(relation_counts, (8, 12))
+
+    def test_phase_05_is_complete(self) -> None:
+        phase = load_curriculum()["phases"][5]
+        lessons = phase["lessons"]
+
+        self.assertEqual(phase["slug"], "sources-and-formats")
+        self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 840)
+        self.assertEqual(
+            sum(bool(lesson.get("integration_project")) for lesson in lessons),
+            1,
+        )
+
+        previous = "04-sql-and-duckdb/12-sql-vs-dataframes"
+        for index, lesson in enumerate(lessons, start=1):
+            self.assertIn(lesson["type"], {"build", "learn", "case"})
+            self.assertEqual(lesson["prerequisites"], [previous])
+            self.assertTrue(lesson["outcome"])
+            self.assertTrue(lesson["artifact"])
+            previous = f"05-sources-and-formats/{index:02d}-{lesson['slug']}"
+
+    def test_phase_05_tiny_data_is_reproducible(self) -> None:
+        data_root = ROOT / "phases" / "05-sources-and-formats" / "data"
+        committed_root = data_root / "tiny"
+        manifest = json.loads((committed_root / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(len(manifest["files"]), 14)
+        self.assertEqual(
+            {metadata["kind"] for metadata in manifest["files"].values()},
+            {"api-page", "csv", "html", "http-body", "json", "sqlite", "xlsx"},
+        )
+        for filename, metadata in manifest["files"].items():
+            fixture = committed_root / filename
+            self.assertTrue(fixture.is_file(), filename)
+            self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(), metadata["sha256"])
+
+        for contract in (
+            "contract.json",
+            "db_contract.json",
+            "excel_spec.json",
+            "html_contract.json",
+            "json_contract.json",
+            "parquet_schema.json",
+        ):
+            self.assertIsInstance(
+                json.loads((data_root / contract).read_text(encoding="utf-8")),
+                dict,
+                contract,
+            )
+
+        subprocess.run(
+            [sys.executable, str(data_root / "generate_data.py"), "--check"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_phase_06_is_designed(self) -> None:
+        phase = load_curriculum()["phases"][6]
+        lessons = phase["lessons"]
+
+        self.assertEqual(phase["slug"], "eda-and-visualization")
+        self.assertTrue(all(lesson["status"] == "designed" for lesson in lessons))
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 930)
+        self.assertEqual(
+            sum(bool(lesson.get("integration_project")) for lesson in lessons),
+            1,
+        )
+
+        previous = "05-sources-and-formats/11-caching-and-checksums"
+        for index, lesson in enumerate(lessons, start=1):
+            self.assertIn(lesson["type"], {"build", "learn", "case"})
+            self.assertEqual(lesson["prerequisites"], [previous])
+            self.assertTrue(lesson["outcome"])
+            self.assertTrue(lesson["artifact"])
+            previous = f"06-eda-and-visualization/{index:02d}-{lesson['slug']}"
+
+    def test_phase_06_design_decisions_are_documented(self) -> None:
+        design = (ROOT / "docs" / "phase-06-design.md").read_text(encoding="utf-8")
+
+        for marker in (
+            "user_journeys",
+            "Matplotlib",
+            "Seaborn",
+            "Plotly",
+            "Altair",
+            "фазе 17",
+            "Интеграционный мини-проект",
+        ):
+            self.assertIn(marker, design)
 
     def test_readme_course_counts_match_curriculum(self) -> None:
         curriculum = load_curriculum()
