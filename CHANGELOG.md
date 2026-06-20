@@ -9,6 +9,92 @@
 
 ### Добавлено
 
+- Полностью завершена фаза 09 «Прикладная статистика»: 10 уроков, 13,75 часа,
+  112 behavioral tests и финальный `statistical-evidence-report/` package с sampling
+  audit, distribution cards, point estimates, bias/variance simulation, formula и
+  bootstrap intervals, correlation audit, OLS inference, regression diagnostics,
+  robust/nonparametric sensitivity checks, figures, report и SHA-256 manifest.
+- Уроки `09/04`–`09/10`: `bias-variance-simulator`, `confidence-interval-calculator`,
+  `bootstrap-interval-builder`, `correlation-auditor`, `ols-inference-runner`,
+  `regression-diagnostics-checker` и `robust-evidence-packager`; statsmodels 0.14.6
+  и patsy 1.0.2 добавлены в locked runtime для regression inference.
+- Урок `09/03` «Оценки и свойства оценок» с `estimator-runner`,
+  machine-readable estimator spec, upstream sampling audit/distribution-card checks,
+  naive и weighted point estimates для proportion/mean/quantile/rate, standard error
+  diagnostics и 17 behavioral tests.
+- Урок `09/02` «Распределения как модели» с SciPy-based
+  `distribution-card-builder`, карточками Bernoulli/binomial activation,
+  lognormal positive revenue/duration, Poisson count diagnostics, support checks,
+  limitations и 13 behavioral tests; SciPy 1.17.1 добавлен в locked runtime.
+- Урок `09/01` «Популяция, выборка и механизм отбора» с общим dataset фазы 09
+  (`population_users`, `sampling_frame`, `sample_observations`, `segment_reference`),
+  CLI-аудитором sampling frame, coverage/non-response/weight diagnostics и 10
+  behavioral tests.
+- Фаза 09 «Прикладная статистика» спроектирована целиком: 10 уроков на 13,75 часа,
+  самостоятельная user-level статистическая задача для product и ML-маршрутов, sampling
+  frame, estimator specs, intervals, bootstrap, correlation audit, OLS diagnostics,
+  robust sensitivity checks и интеграционный `statistical-evidence-report`.
+- Полностью завершена фаза 08 «Продуктовая аналитика»: 11 уроков, 12-16 часов,
+  единая событийная модель продукта и интеграционный `product-problem-investigation`
+  package с metric/tracking contracts, metric tables, anomalies, report,
+  recommendation и checksum manifest.
+- Урок `08/11` «Бизнес-вывод и рекомендация» с CLI-builder'ом
+  `product-problem-investigation/`, evidence-map, machine-readable recommendation,
+  запретом unsupported causal claims, проверкой artifact paths/metric IDs и SHA-256
+  manifest.
+- Урок `08/10` «Аномалии продуктовых метрик» с anomaly spec, CLI-детектором
+  `data_quality`/`composition`/`calendar_effect`/`product_signal` candidates,
+  freshness/duplicate/late-arrival/tracking completeness gates и запретом product-signal
+  интерпретации до прохождения quality gates.
+- Урок `08/09` «Guardrail-метрики» с guardrail spec,
+  CLI-калькулятором support ticket, subscription cancel и refund rates,
+  `risk_direction=up_is_bad`, thresholds, complete-window policy, decision status и
+  overall-блокировкой rollout при breached guardrails.
+- Урок `08/08` «Сегментация без самообмана» с segmentation spec,
+  CLI-калькулятором segment activation rates, predeclared/exploratory dimensions,
+  minimum cell size, platform decomposition на within-segment/composition effects и
+  запретом causal claims без эксперимента.
+- Урок `08/07` «Выручка, ARPU и LTV» с monetization spec,
+  CLI-калькулятором realized revenue, ARPU, ARPPU и fixed-window cohort LTV,
+  paid/refunded/pending order semantics, cancelled subscriptions, complete-window
+  policy и защитой от many-to-many revenue joins.
+- Урок `08/06` «Retention и возвращаемость» с retention spec, CLI-калькулятором
+  `exact_day`/`on_or_after` retention, fixed denominator, age_day 1-7,
+  complete-window policy, дедупликацией событий и quality report.
+- Урок `08/05` «Когортный анализ» с cohort spec, CLI-калькулятором daily cohort
+  matrix, фиксированным denominator, age_day 0-7, complete/incomplete observation
+  windows, дедупликацией событий и quality report для late arrivals.
+- Урок `08/04` «Воронки и неоднозначность конверсии» с funnel spec,
+  CLI-калькулятором closed funnels, strict/loose ordering, units `user_id`,
+  `session_id`, `user_day`, conversion window, дедупликацией событий и quality report
+  для late arrivals.
+- Урок `08/03` «Активность и активная аудитория» с activity spec, CLI-расчетом
+  DAU/rolling active users, eligible denominator, business timezone, исключением test
+  users, дедупликацией событий и флагами неполных окон.
+- Урок `08/02` «Событийная модель продукта» с machine-readable tracking plan,
+  CLI-валидатором event names, versions, required properties, identity policy,
+  duplicates, late arrivals, mobile `app_version` и связей событий с metric specs.
+- Урок `08/01` «Дерево метрик» с продуктовым metric tree, machine-readable
+  metric specs, CLI-валидатором ролей outcome/input/guardrail, знаменателей,
+  окон, source tables, validation checks и направления риска guardrail-метрик.
+- Для фазы 08 добавлен детерминированный продуктовый tiny dataset: users, sessions,
+  events, subscriptions, orders, support tickets, release calendar, contract и
+  воспроизводимый генератор.
+- Фаза 08 «Продуктовая аналитика» спроектирована целиком: 11 уроков на 12-16 часов,
+  единая событийная модель подписочного продукта, tracking plan, metric specs,
+  product metrics от активности до LTV, guardrails, диагностика аномалий и
+  интеграционное исследование продуктовой проблемы.
+- Полностью завершена фаза 07 «Надежная аналитика»: 10 уроков, 825 минут,
+  60 behavioral tests и единый order-quality pipeline от инвариантов и минимальных
+  дефектов до Hypothesis, Pandera, Pydantic, SQL, golden regression, monitoring и
+  атомарной публикации immutable mart.
+- Корневой locked dependency contract дополнен Hypothesis 6.155.2, Pandera 0.31.1 и
+  Pydantic 2.13.4.
+- Фаза 07 «Надежная аналитика» спроектирована целиком: 10 последовательных уроков на
+  13,75 часа, единый order-quality pipeline, матрица дефектов, Hypothesis, Pandera,
+  Pydantic, SQL-reconciliation, regression tests и интеграционный quality gate.
+- Урок `07/01` «Инварианты аналитического расчета» с ручным контрольным путем,
+  CLI-проверкой структурных и алгебраических правил и behavioral tests.
 - Полностью завершена фаза 06 «EDA и визуальное мышление»: 11 уроков, 91 behavioral
   test и артефакты от visual question brief и data audit до статических, интерактивных
   и декларативных визуализаций и интеграционного EDA-report с checksum manifest.

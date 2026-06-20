@@ -200,16 +200,16 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Инварианты аналитического расчета | planned |
-| 02 | Unit tests для преобразований | planned |
-| 03 | Fixtures и минимальные наборы данных | planned |
-| 04 | Параметризация тестов | planned |
-| 05 | Контракты DataFrame с Pandera | planned |
-| 06 | Валидация конфигурации с Pydantic | planned |
-| 07 | Проверки SQL-витрин | planned |
-| 08 | Golden datasets и regression tests | planned |
-| 09 | Логи, ошибки и диагностируемость | planned |
-| 10 | Quality gates в CI | planned |
+| 01 | [Инварианты аналитического расчета](phases/07-reliable-analytics/01-invariants) | complete |
+| 02 | [Тесты на границах преобразований](phases/07-reliable-analytics/02-unit-tests) | complete |
+| 03 | [Минимальные контрпримеры и матрица дефектов](phases/07-reliable-analytics/03-defect-matrix) | complete |
+| 04 | [Property-based testing с Hypothesis](phases/07-reliable-analytics/04-property-based-testing) | complete |
+| 05 | [Контракты DataFrame с Pandera](phases/07-reliable-analytics/05-pandera) | complete |
+| 06 | [Валидация конфигурации с Pydantic](phases/07-reliable-analytics/06-pydantic) | complete |
+| 07 | [Проверки SQL-витрин](phases/07-reliable-analytics/07-sql-checks) | complete |
+| 08 | [Golden datasets и regression tests](phases/07-reliable-analytics/08-golden-datasets) | complete |
+| 09 | [Наблюдаемость и мониторинг качества данных](phases/07-reliable-analytics/09-observability) | complete |
+| 10 | [Интеграционный quality gate](phases/07-reliable-analytics/10-quality-gates) | complete |
 
 ## Фаза 08: Продуктовая аналитика
 
@@ -220,17 +220,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Дерево метрик | planned |
-| 02 | Событийная модель продукта | planned |
-| 03 | Активность и активная аудитория | planned |
-| 04 | Воронки и неоднозначность конверсии | planned |
-| 05 | Когортный анализ | planned |
-| 06 | Retention и возвращаемость | planned |
-| 07 | Выручка, ARPU и LTV | planned |
-| 08 | Сегментация без самообмана | planned |
-| 09 | Guardrail-метрики | planned |
-| 10 | Аномалии продуктовых метрик | planned |
-| 11 | Бизнес-вывод и рекомендация | planned |
+| 01 | [Дерево метрик](phases/08-product-analytics/01-metric-tree) | complete |
+| 02 | [Событийная модель продукта](phases/08-product-analytics/02-event-model) | complete |
+| 03 | [Активность и активная аудитория](phases/08-product-analytics/03-activity) | complete |
+| 04 | [Воронки и неоднозначность конверсии](phases/08-product-analytics/04-funnels) | complete |
+| 05 | [Когортный анализ](phases/08-product-analytics/05-cohorts) | complete |
+| 06 | [Retention и возвращаемость](phases/08-product-analytics/06-retention) | complete |
+| 07 | [Выручка, ARPU и LTV](phases/08-product-analytics/07-monetization) | complete |
+| 08 | [Сегментация без самообмана](phases/08-product-analytics/08-segmentation) | complete |
+| 09 | [Guardrail-метрики](phases/08-product-analytics/09-guardrails) | complete |
+| 10 | [Аномалии продуктовых метрик](phases/08-product-analytics/10-anomalies) | complete |
+| 11 | [Бизнес-вывод и рекомендация](phases/08-product-analytics/11-business-conclusion) | complete |
 
 ## Фаза 09: Прикладная статистика
 
@@ -241,16 +241,16 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Популяция, выборка и механизм отбора | planned |
-| 02 | Распределения как модели | planned |
-| 03 | Оценки и свойства оценок | planned |
-| 04 | Смещение и дисперсия | planned |
-| 05 | Доверительные интервалы | planned |
-| 06 | Bootstrap | planned |
-| 07 | Корреляция и ложные связи | planned |
-| 08 | Линейная регрессия для вывода | planned |
-| 09 | Диагностика регрессии | planned |
-| 10 | Робастные и непараметрические методы | planned |
+| 01 | [Популяция, выборка и механизм отбора](phases/09-applied-statistics/01-population-and-sample) | complete |
+| 02 | [Распределения как модели](phases/09-applied-statistics/02-distributions) | complete |
+| 03 | [Оценки и свойства оценок](phases/09-applied-statistics/03-estimators) | complete |
+| 04 | [Смещение и дисперсия](phases/09-applied-statistics/04-bias-and-variance) | complete |
+| 05 | [Доверительные интервалы](phases/09-applied-statistics/05-confidence-intervals) | complete |
+| 06 | [Bootstrap](phases/09-applied-statistics/06-bootstrap) | complete |
+| 07 | [Корреляция и ложные связи](phases/09-applied-statistics/07-correlation) | complete |
+| 08 | [Линейная регрессия для вывода](phases/09-applied-statistics/08-linear-regression) | complete |
+| 09 | [Диагностика регрессии](phases/09-applied-statistics/09-regression-diagnostics) | complete |
+| 10 | [Робастные и непараметрические методы](phases/09-applied-statistics/10-robust-methods) | complete |
 
 ## Фаза 10: Эксперименты
 

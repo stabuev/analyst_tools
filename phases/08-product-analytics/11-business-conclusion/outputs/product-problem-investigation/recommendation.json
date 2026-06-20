@@ -1,0 +1,121 @@
+{
+  "allowed_decisions": [
+    "continue",
+    "rollback",
+    "investigate",
+    "run_experiment"
+  ],
+  "causal_claims_allowed": false,
+  "claims": [
+    {
+      "artifact_paths": [
+        "metrics/anomalies.json",
+        "audits/event-quality.json"
+      ],
+      "claim_id": "quality-gates-passed",
+      "limitation": "Passing gates means the slice is interpretable; it does not prove a product mechanism.",
+      "metric_ids": [
+        "__data_quality__"
+      ],
+      "statement": "Freshness, duplicate, late-arrival and tracking completeness gates passed for the observation slice.",
+      "supports_decision": true
+    },
+    {
+      "artifact_paths": [
+        "metrics/guardrails.csv",
+        "metrics/anomalies.json"
+      ],
+      "claim_id": "guardrails-breached",
+      "limitation": "A guardrail breach is a risk decision rule, not a causal estimate.",
+      "metric_ids": [
+        "support_ticket_rate_7d",
+        "subscription_cancel_rate_14d",
+        "refund_rate_7d"
+      ],
+      "statement": "3 guardrail metrics breached with risk direction up_is_bad.",
+      "supports_decision": true
+    },
+    {
+      "artifact_paths": [
+        "metrics/anomalies.json"
+      ],
+      "claim_id": "anomaly-product-signals",
+      "limitation": "The class allows investigation of product behavior, not attribution to a release.",
+      "metric_ids": [
+        "support_ticket_rate_7d",
+        "subscription_cancel_rate_14d",
+        "refund_rate_7d"
+      ],
+      "statement": "3 anomaly candidates are classified as product_signal after gates passed.",
+      "supports_decision": true
+    },
+    {
+      "artifact_paths": [
+        "metrics/segments.csv",
+        "metrics/anomalies.json"
+      ],
+      "claim_id": "composition-context",
+      "limitation": "Composition explains where the aggregate moved, not why users changed behavior.",
+      "metric_ids": [
+        "activation_rate_d0_by_segment"
+      ],
+      "statement": "1 composition candidate points to mix or segment contribution.",
+      "supports_decision": true
+    },
+    {
+      "artifact_paths": [
+        "metrics/anomalies.json"
+      ],
+      "claim_id": "calendar-context",
+      "limitation": "Calendar coincidence is context for investigation, not proof.",
+      "metric_ids": [
+        "support_ticket_rate_7d"
+      ],
+      "statement": "1 calendar candidate coincides with the comparison period.",
+      "supports_decision": true
+    }
+  ],
+  "decision": "investigate",
+  "decision_label": "Investigate before continuing rollout",
+  "next_steps": [
+    {
+      "owner": "product + mobile",
+      "step_id": "inspect-android-paywall-release",
+      "success_signal": "Support ticket rate and paywall complaints are split by platform, app_version and release cohort."
+    },
+    {
+      "owner": "monetization",
+      "step_id": "review-cancellations-and-refunds",
+      "success_signal": "Cancellation/refund reasons reconcile to subscription and order grains."
+    },
+    {
+      "owner": "analytics",
+      "step_id": "prepare-experiment-if-clean",
+      "success_signal": "A follow-up experiment or rollout holdout has explicit outcome, guardrails and decision rule."
+    }
+  ],
+  "options": [
+    {
+      "option_id": "continue",
+      "reason": "Breached guardrails make automatic continuation too risky.",
+      "status": "rejected"
+    },
+    {
+      "option_id": "rollback",
+      "reason": "Diagnostics are observational and do not prove a release effect.",
+      "status": "not_enough_evidence"
+    },
+    {
+      "option_id": "investigate",
+      "reason": "Risk metrics and anomaly context agree on a product-risk investigation.",
+      "status": "recommended"
+    },
+    {
+      "option_id": "run_experiment",
+      "reason": "Use an experiment after the instrumentation and rollout context are clean.",
+      "status": "next_after_investigation"
+    }
+  ],
+  "rationale": "Quality gates passed, but guardrail risks breached. The package recommends pausing automatic rollout and investigating support, cancellation and refund signals with Android release context before choosing continue or rollback.",
+  "version": "1.0.0"
+}

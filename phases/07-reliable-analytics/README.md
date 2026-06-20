@@ -11,18 +11,18 @@
 
 ## Уроки
 
-| № | Урок | Статус |
-|---:|---|---|
-| 01 | Инварианты аналитического расчета | planned |
-| 02 | Unit tests для преобразований | planned |
-| 03 | Fixtures и минимальные наборы данных | planned |
-| 04 | Параметризация тестов | planned |
-| 05 | Контракты DataFrame с Pandera | planned |
-| 06 | Валидация конфигурации с Pydantic | planned |
-| 07 | Проверки SQL-витрин | planned |
-| 08 | Golden datasets и regression tests | planned |
-| 09 | Логи, ошибки и диагностируемость | planned |
-| 10 | Quality gates в CI | planned |
+| № | Урок | Время | Проверяемый результат | Артефакт | Статус |
+|---:|---|---:|---|---|---|
+| 01 | [Инварианты аналитического расчета](01-invariants) | 75 мин | Формулирует структурные и алгебраические инварианты расчета, превращает их в исполняемый gate и сверяет итог независимым контрольным путем. | CLI-проверка инвариантов заказа с независимой сверкой агрегатов | complete |
+| 02 | [Тесты на границах преобразований](02-unit-tests) | 75 мин | Разбивает аналитический pipeline на наблюдаемые контракты входа и выхода и тестирует поведение стадий без привязки к внутренней реализации. | Contract-focused test suite для стадий order pipeline | complete |
+| 03 | [Минимальные контрпримеры и матрица дефектов](03-defect-matrix) | 75 мин | Сводит сбой к минимальному набору строк, связывает классы дефектов с ожидаемыми gates и переиспользует компактные fixture builders. | Фабрика минимальных datasets и machine-readable defect matrix | complete |
+| 04 | [Property-based testing с Hypothesis](04-property-based-testing) | 90 мин | Задает свойства аналитического преобразования, генерирует допустимые и граничные входы и интерпретирует shrinking до минимального контрпримера. | Hypothesis suite для денежных агрегатов и дедупликации | complete |
+| 05 | [Контракты DataFrame с Pandera](05-pandera) | 90 мин | Описывает типы, nullable policy, уникальность и межстолбцовые правила DataFrame и получает полный lazy error report вместо первого сбоя. | Версионируемый Pandera-контракт входных и выходных DataFrame | complete |
+| 06 | [Валидация конфигурации с Pydantic](06-pydantic) | 75 мин | Валидирует конфигурацию pipeline до чтения данных, запрещает неизвестные поля и осознанно выбирает strict или coercing semantics. | Pydantic-модель конфигурации и CLI проверки запуска | complete |
+| 07 | [Проверки SQL-витрин](07-sql-checks) | 90 мин | Проверяет grain, ключи, связи, допустимые значения и reconciliation SQL-витрины отдельными запросами до публикации результата. | DuckDB-набор SQL quality checks с единым отчетом | complete |
+| 08 | [Golden datasets и regression tests](08-golden-datasets) | 75 мин | Фиксирует минимальный эталонный вход и семантический output, отличает ожидаемое изменение бизнес-правила от регрессии и обновляет baseline через review. | Golden regression harness с нормализованным semantic diff | complete |
+| 09 | [Наблюдаемость и мониторинг качества данных](09-observability) | 75 мин | Выпускает структурированный run report, различает data и system failures и контролирует freshness, volume и error rates относительно явных порогов. | Run telemetry и монитор качества batch-поставки | complete |
+| 10 | [Интеграционный quality gate](10-quality-gates) | 105 мин | Собирает конфигурацию, схемы, тесты, SQL-сверки, regression checks и telemetry в pipeline, который атомарно публикует только проверенную витрину. | CLI надежного order pipeline с quality report и manifest | complete |
 
 ## Критерий завершения
 

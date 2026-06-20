@@ -11,6 +11,12 @@
   принятые изменения программы.
 - [`phase-06-design.md`](phase-06-design.md) — границы EDA-фазы, роли библиотек, общий
   набор данных и интеграционный проект.
+- [`phase-07-design.md`](phase-07-design.md) — архитектура reliability-фазы, матрица
+  дефектов, контракты инструментов и интеграционный quality gate.
+- [`phase-08-design.md`](phase-08-design.md) — границы продуктовой аналитики, модель
+  событийных данных, контракт метрик и интеграционное исследование.
+- [`phase-09-design.md`](phase-09-design.md) — границы прикладной статистики, sampling
+  assumptions, интервалы, regression diagnostics и итоговый statistical evidence report.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

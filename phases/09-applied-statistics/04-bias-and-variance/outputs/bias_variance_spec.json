@@ -1,0 +1,86 @@
+{
+  "version": "1.0.0",
+  "question_id": "activation_and_revenue_bias_variance_simulation",
+  "target_population": "Eligible non-test registered users with a complete seven-day observation window.",
+  "sampling_unit": "user_id",
+  "seed": 20260620,
+  "n_simulations": 4000,
+  "minimum_observations": 3,
+  "bias_threshold": 0.05,
+  "parameters": [
+    {
+      "parameter_id": "activation_rate",
+      "metric_column": "true_activated_7d",
+      "value_type": "boolean",
+      "description": "Population share of eligible users activated within seven days."
+    },
+    {
+      "parameter_id": "first_order_amount_rub_mean",
+      "metric_column": "true_first_order_amount_rub",
+      "value_type": "numeric",
+      "description": "Population mean first order amount in RUB across eligible users, including zero revenue."
+    }
+  ],
+  "estimators": [
+    {
+      "estimator_id": "activation_naive",
+      "parameter_id": "activation_rate",
+      "estimator": "sample_proportion",
+      "weights": null
+    },
+    {
+      "estimator_id": "activation_weighted",
+      "parameter_id": "activation_rate",
+      "estimator": "inverse_probability_weighted_proportion",
+      "weights": {"column": "sample_weight"}
+    },
+    {
+      "estimator_id": "revenue_naive",
+      "parameter_id": "first_order_amount_rub_mean",
+      "estimator": "sample_mean",
+      "weights": null
+    },
+    {
+      "estimator_id": "revenue_weighted",
+      "parameter_id": "first_order_amount_rub_mean",
+      "estimator": "inverse_probability_weighted_mean",
+      "weights": {"column": "sample_weight"}
+    }
+  ],
+  "mechanisms": [
+    {
+      "mechanism_id": "srs_population",
+      "description": "Simple random sample without replacement from the full eligible population.",
+      "source": "population",
+      "selection": "equal_without_replacement",
+      "sample_size": 5,
+      "response_model": "complete",
+      "estimators": ["activation_naive", "revenue_naive"]
+    },
+    {
+      "mechanism_id": "coverage_biased_frame",
+      "description": "Equal-probability sample from the sampling frame that misses one low-end Android user.",
+      "source": "frame",
+      "selection": "equal_without_replacement",
+      "sample_size": 5,
+      "response_model": "complete",
+      "estimators": ["activation_naive", "revenue_naive"]
+    },
+    {
+      "mechanism_id": "unequal_frame_with_nonresponse",
+      "description": "Frame sample with unequal selection probabilities and Bernoulli response.",
+      "source": "frame",
+      "selection": "probability_without_replacement",
+      "probability_column": "inclusion_probability",
+      "sample_size": 5,
+      "response_model": "bernoulli",
+      "response_probability_column": "response_probability",
+      "estimators": [
+        "activation_naive",
+        "activation_weighted",
+        "revenue_naive",
+        "revenue_weighted"
+      ]
+    }
+  ]
+}

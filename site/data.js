@@ -84,17 +84,17 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "title": "Надежная аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 8,
           "title": "Продуктовая аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 9,
           "title": "Прикладная статистика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 10,
@@ -175,17 +175,17 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "title": "Надежная аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 8,
           "title": "Продуктовая аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 9,
           "title": "Прикладная статистика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 10,
@@ -269,7 +269,7 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "title": "Надежная аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 11,
@@ -355,12 +355,12 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "title": "Надежная аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 9,
           "title": "Прикладная статистика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 12,
@@ -456,17 +456,17 @@ window.COURSE_DATA = {
         {
           "number": 7,
           "title": "Надежная аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 8,
           "title": "Продуктовая аналитика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 9,
           "title": "Прикладная статистика",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 10,
@@ -1859,178 +1859,178 @@ window.COURSE_DATA = {
       },
       "artifact": "Пайплайн с тестами и контрактом данных",
       "completion": "Пайплайн останавливается на нарушении контракта и подтверждает ключевые метрики независимым контрольным расчетом.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics",
       "lessons": [
         {
           "number": 1,
           "slug": "invariants",
           "title": "Инварианты аналитического расчета",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Формулирует структурные и алгебраические инварианты расчета, превращает их в исполняемый gate и сверяет итог независимым контрольным путем.",
+          "artifact": "CLI-проверка инвариантов заказа с независимой сверкой агрегатов",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/01-invariants",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/01-invariants",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/01-invariants/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "unit-tests",
-          "title": "Unit tests для преобразований",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Тесты на границах преобразований",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Разбивает аналитический pipeline на наблюдаемые контракты входа и выхода и тестирует поведение стадий без привязки к внутренней реализации.",
+          "artifact": "Contract-focused test suite для стадий order pipeline",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/02-unit-tests",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/02-unit-tests",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/02-unit-tests/docs/ru.md"
         },
         {
           "number": 3,
-          "slug": "fixtures",
-          "title": "Fixtures и минимальные наборы данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "slug": "defect-matrix",
+          "title": "Минимальные контрпримеры и матрица дефектов",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Сводит сбой к минимальному набору строк, связывает классы дефектов с ожидаемыми gates и переиспользует компактные fixture builders.",
+          "artifact": "Фабрика минимальных datasets и machine-readable defect matrix",
+          "type": "learn",
           "tracks": [
             "core"
           ],
-          "path": "phases/07-reliable-analytics/03-fixtures",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "path": "phases/07-reliable-analytics/03-defect-matrix",
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/03-defect-matrix",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/03-defect-matrix/docs/ru.md"
         },
         {
           "number": 4,
-          "slug": "parameterization",
-          "title": "Параметризация тестов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "slug": "property-based-testing",
+          "title": "Property-based testing с Hypothesis",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Задает свойства аналитического преобразования, генерирует допустимые и граничные входы и интерпретирует shrinking до минимального контрпримера.",
+          "artifact": "Hypothesis suite для денежных агрегатов и дедупликации",
+          "type": "build",
           "tracks": [
             "core"
           ],
-          "path": "phases/07-reliable-analytics/04-parameterization",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "path": "phases/07-reliable-analytics/04-property-based-testing",
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/04-property-based-testing",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/04-property-based-testing/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "pandera",
           "title": "Контракты DataFrame с Pandera",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Описывает типы, nullable policy, уникальность и межстолбцовые правила DataFrame и получает полный lazy error report вместо первого сбоя.",
+          "artifact": "Версионируемый Pandera-контракт входных и выходных DataFrame",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/05-pandera",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/05-pandera",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "pydantic",
           "title": "Валидация конфигурации с Pydantic",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Валидирует конфигурацию pipeline до чтения данных, запрещает неизвестные поля и осознанно выбирает strict или coercing semantics.",
+          "artifact": "Pydantic-модель конфигурации и CLI проверки запуска",
+          "type": "build",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/06-pydantic",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/06-pydantic",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/06-pydantic/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "sql-checks",
           "title": "Проверки SQL-витрин",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Проверяет grain, ключи, связи, допустимые значения и reconciliation SQL-витрины отдельными запросами до публикации результата.",
+          "artifact": "DuckDB-набор SQL quality checks с единым отчетом",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/07-sql-checks",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/07-sql-checks",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "golden-datasets",
           "title": "Golden datasets и regression tests",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Фиксирует минимальный эталонный вход и семантический output, отличает ожидаемое изменение бизнес-правила от регрессии и обновляет baseline через review.",
+          "artifact": "Golden regression harness с нормализованным semantic diff",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/08-golden-datasets",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/08-golden-datasets",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/docs/ru.md"
         },
         {
           "number": 9,
-          "slug": "logging-and-errors",
-          "title": "Логи, ошибки и диагностируемость",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "slug": "observability",
+          "title": "Наблюдаемость и мониторинг качества данных",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Выпускает структурированный run report, различает data и system failures и контролирует freshness, volume и error rates относительно явных порогов.",
+          "artifact": "Run telemetry и монитор качества batch-поставки",
+          "type": "build",
           "tracks": [
             "core"
           ],
-          "path": "phases/07-reliable-analytics/09-logging-and-errors",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "path": "phases/07-reliable-analytics/09-observability",
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/09-observability",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/09-observability/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "quality-gates",
-          "title": "Quality gates в CI",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Интеграционный quality gate",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает конфигурацию, схемы, тесты, SQL-сверки, regression checks и telemetry в pipeline, который атомарно публикует только проверенную витрину.",
+          "artifact": "CLI надежного order pipeline с quality report и manifest",
+          "type": "case",
           "tracks": [
             "core"
           ],
           "path": "phases/07-reliable-analytics/10-quality-gates",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/10-quality-gates",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/10-quality-gates/docs/ru.md"
         }
       ]
     },
@@ -2051,195 +2051,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Исследование продуктовой проблемы",
       "completion": "Студент строит согласованную систему метрик и формулирует решение с guardrail-метриками и ограничениями.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics",
       "lessons": [
         {
           "number": 1,
           "slug": "metric-tree",
           "title": "Дерево метрик",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит дерево продуктовых метрик из вопроса, задает outcome, input и guardrail-метрики с grain, population, numerator, denominator и window и валидирует metric specs.",
+          "artifact": "CLI-валидатор дерева метрик и спецификаций продуктовых метрик",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/01-metric-tree",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/01-metric-tree",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/01-metric-tree/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "event-model",
           "title": "Событийная модель продукта",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проектирует tracking plan для продуктовых событий, связывает события с metric specs и проверяет event names, versions, required properties, identity fields, дубликаты и late arrivals.",
+          "artifact": "CLI-валидатор tracking plan и событийного лога",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/02-event-model",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/02-event-model",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/02-event-model/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "activity",
           "title": "Активность и активная аудитория",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает DAU/rolling active users по явному набору активных событий, grain `user_id`, eligible population, business timezone и окнам 1/7 дней, исключая test users и помечая неполные окна.",
+          "artifact": "CLI-калькулятор active audience с activity.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/03-activity",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/03-activity",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/03-activity/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "funnels",
           "title": "Воронки и неоднозначность конверсии",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает closed funnels по tracking plan с явным unit `user_id`/`session_id`/`user_day`, strict/loose ordering, conversion window, стартовой популяцией, дедупликацией событий и проверкой late arrivals.",
+          "artifact": "CLI-калькулятор продуктовых воронок с funnel.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/04-funnels",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/04-funnels",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/04-funnels/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "cohorts",
           "title": "Когортный анализ",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит daily cohort matrix по registered_at и active events с фиксированным cohort denominator, age_day 0-7, complete/incomplete observation windows, дедупликацией событий и проверкой test users, unknown users и late arrivals.",
+          "artifact": "CLI-калькулятор когортной матрицы с cohorts.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/05-cohorts",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/05-cohorts",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/05-cohorts/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "retention",
           "title": "Retention и возвращаемость",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает daily retention по registered cohorts и return events с режимами `exact_day` и `on_or_after`, фиксированным denominator, age_day 1-7, complete-window policy, дедупликацией событий и quality report.",
+          "artifact": "CLI-калькулятор retention с retention.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/06-retention",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/06-retention",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/06-retention/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "monetization",
           "title": "Выручка, ARPU и LTV",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает realized revenue, ARPU, ARPPU и cohort LTV по registered cohorts и фиксированным revenue windows, учитывая paid/refunded/pending orders, cancelled subscriptions, complete-window policy и защиту от many-to-many revenue joins.",
+          "artifact": "CLI-калькулятор монетизации с monetization.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/07-monetization",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/07-monetization",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/07-monetization/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "segmentation",
           "title": "Сегментация без самообмана",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает сегментные activation rates по заранее объявленным dimensions, minimum cell size и cohort periods, помечает exploratory segments, строит platform decomposition на within-segment и composition effect и запрещает причинные claims без эксперимента.",
+          "artifact": "CLI-калькулятор сегментации с segments.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/08-segmentation",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/08-segmentation",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/08-segmentation/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "guardrails",
           "title": "Guardrail-метрики",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает support_ticket_rate, subscription_cancel_rate и refund_rate как guardrail-метрики с risk direction `up_is_bad`, thresholds, complete-window policy и итоговым decision status, запрещая оптимизировать outcome ценой ухудшения guardrails.",
+          "artifact": "CLI-калькулятор guardrail-метрик с guardrails.csv и quality report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/09-guardrails",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/09-guardrails",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/09-guardrails/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "anomalies",
           "title": "Аномалии продуктовых метрик",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Классифицирует скачки продуктовых метрик как data_quality, composition, calendar_effect или product_signal, пропуская product_signal только после freshness, duplicate, late-arrival и tracking completeness gates.",
+          "artifact": "CLI-детектор аномалий с anomaly spec, quality gates и anomalies.json",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/10-anomalies",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/10-anomalies",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/10-anomalies/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "business-conclusion",
           "title": "Бизнес-вывод и рекомендация",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает артефакты продуктовой фазы в проверяемое исследование проблемы: brief, metric/tracking contracts, metric tables, audits, figures, report, recommendation и checksum manifest.",
+          "artifact": "Воспроизводимый product-problem-investigation package с recommendation и manifest",
+          "type": "case",
           "tracks": [
             "product"
           ],
           "path": "phases/08-product-analytics/11-business-conclusion",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/11-business-conclusion",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/11-business-conclusion/docs/ru.md"
         }
       ]
     },
@@ -2261,188 +2261,188 @@ window.COURSE_DATA = {
       },
       "artifact": "Статистический отчет с ограничениями",
       "completion": "Студент выбирает оценку под процесс генерации данных, строит интервал и проверяет предпосылки модели.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics",
       "lessons": [
         {
           "number": 1,
           "slug": "population-and-sample",
           "title": "Популяция, выборка и механизм отбора",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Задает target population, sampling unit, sampling frame и inclusion/response mechanisms для user-level метрики, проверяет coverage bias, non-response, веса, дубликаты и неполные observation windows до расчета estimate.",
+          "artifact": "CLI-аудитор sampling frame и sample mechanism report",
+          "type": "learn",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/01-population-and-sample",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/01-population-and-sample",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/01-population-and-sample/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "distributions",
           "title": "Распределения как модели",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Сопоставляет activation, revenue, support tickets и onboarding duration с Bernoulli/binomial, lognormal, count и heavy-tailed моделями, проверяя support, параметры, empirical summaries и failure modes распределения.",
+          "artifact": "Distribution cards для продуктовых метрик с проверкой предпосылок",
+          "type": "learn",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/02-distributions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/02-distributions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/02-distributions/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "estimators",
           "title": "Оценки и свойства оценок",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Различает parameter, statistic, estimator и estimate, считает naive и weighted estimators для mean, proportion, quantile и rate и фиксирует estimator spec с population, filters, weights и standard error.",
+          "artifact": "CLI-калькулятор estimator specs и point estimates",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/03-estimators",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/03-estimators",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/03-estimators/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "bias-and-variance",
           "title": "Смещение и дисперсия",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проводит repeated-sampling simulation для нескольких механизмов отбора, оценивает bias, variance и MSE estimator'ов и объясняет, почему стабильное число может быть систематически неверным.",
+          "artifact": "Bias-variance simulator с CSV-отчетом по estimator'ам",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/04-bias-and-variance",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/04-bias-and-variance",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/04-bias-and-variance/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "confidence-intervals",
           "title": "Доверительные интервалы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит confidence intervals для средних и долей через formula-based standard errors, проверяет confidence level, coverage simulation, малые выборки, skew/outliers и явно запрещает интервал при нарушенных assumptions.",
+          "artifact": "CLI-калькулятор confidence intervals с coverage report",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/05-confidence-intervals",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/05-confidence-intervals",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/05-confidence-intervals/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "bootstrap",
           "title": "Bootstrap",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит bootstrap distribution и intervals для произвольной statistic с явной resampling unit, фиксированным RNG, paired mode, degenerate-data handling и сравнением percentile/basic/BCa подходов.",
+          "artifact": "Bootstrap interval builder с resampling manifest и diagnostics",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/06-bootstrap",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/06-bootstrap",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/06-bootstrap/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "correlation",
           "title": "Корреляция и ложные связи",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает Pearson/Spearman correlations, stratified association и shuffled controls, распознает Simpson-like reversal, common-cause segment effects и запрещает причинные claims по наблюдательной связи.",
+          "artifact": "Correlation audit report с aggregate/stratified comparisons",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/07-correlation",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/07-correlation",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/07-correlation/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "linear-regression",
           "title": "Линейная регрессия для вывода",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит design matrix, оценивает OLS coefficients, standard errors и confidence intervals для user-level outcome, интерпретирует коэффициенты при контролях и отделяет inference от prediction и causality.",
+          "artifact": "OLS inference runner с model spec и coefficient table",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/08-linear-regression",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/08-linear-regression",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/08-linear-regression/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "regression-diagnostics",
           "title": "Диагностика регрессии",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проверяет residual patterns, heteroscedasticity, leverage, influence, multicollinearity, non-linearity и specification risks, превращая diagnostics в machine-readable flags и ограничения отчета.",
+          "artifact": "Regression diagnostics checker с JSON-report и diagnostic figures",
+          "type": "build",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/09-regression-diagnostics",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/09-regression-diagnostics",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/09-regression-diagnostics/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "robust-methods",
           "title": "Робастные и непараметрические методы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает statistical evidence package: sampling audit, distribution cards, estimates, intervals, bootstrap, correlation audit, OLS diagnostics, robust/nonparametric sensitivity checks, report и checksum manifest.",
+          "artifact": "Воспроизводимый statistical-evidence-report package с assumptions, limitations и manifest",
+          "type": "case",
           "tracks": [
             "product",
             "ml"
           ],
           "path": "phases/09-applied-statistics/10-robust-methods",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/10-robust-methods",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/10-robust-methods/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 69,
+    "complete_lessons": 100,
     "hours": {
       "min": 238,
       "max": 326

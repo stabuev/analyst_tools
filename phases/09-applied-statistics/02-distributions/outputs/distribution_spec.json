@@ -1,0 +1,85 @@
+{
+  "version": "1.0.0",
+  "question_id": "early_activation_and_revenue_distribution_models",
+  "target_population": "Eligible non-test registered users with a complete seven-day observation window.",
+  "sampling_unit": "user_id",
+  "observation_filter": {
+    "outcome_observed_column": "outcome_observed",
+    "observed_days_column": "observed_days",
+    "required_observed_days": 7
+  },
+  "minimum_observations": 3,
+  "small_sample_threshold": 30,
+  "metrics": [
+    {
+      "metric_id": "activation_7d",
+      "column": "activated_7d",
+      "model": "bernoulli",
+      "parameter": "activation_probability",
+      "support": "{0, 1}",
+      "assumptions": [
+        "Each observed row is one eligible user.",
+        "The metric is binary after a fixed seven-day observation window.",
+        "The Bernoulli probability is interpreted only for the analyzed slice, not as a causal effect."
+      ],
+      "failure_modes": [
+        "Non-boolean activation values.",
+        "Mixed observation windows.",
+        "Segment-level non-response inherited from the sampling audit."
+      ]
+    },
+    {
+      "metric_id": "first_order_amount_rub_positive",
+      "column": "first_order_amount_rub",
+      "model": "lognormal_positive",
+      "parameter": "positive_order_amount_distribution",
+      "support": "x > 0 after conditioning on positive revenue",
+      "zero_handling": "Keep zero-order users as separate mass; fit the lognormal model only to positive amounts.",
+      "assumptions": [
+        "Positive order amounts are right-skewed and non-negative by construction.",
+        "Zero amounts are not silently passed into the lognormal fit.",
+        "The fitted distribution is a working model for diagnostics, not a guarantee of business truth."
+      ],
+      "failure_modes": [
+        "Negative revenue.",
+        "Zeros accidentally included in a lognormal fit.",
+        "Too few positive values for a stable shape estimate."
+      ]
+    },
+    {
+      "metric_id": "support_tickets_7d",
+      "column": "support_tickets_7d",
+      "model": "poisson_count",
+      "parameter": "ticket_rate_per_user_7d",
+      "support": "non-negative integers",
+      "assumptions": [
+        "The metric is a count in a fixed seven-day user window.",
+        "The Poisson mean is an average rate, not a product-quality explanation.",
+        "Overdispersion or excess zeros must be checked before using Poisson-based intervals."
+      ],
+      "failure_modes": [
+        "Negative or fractional ticket counts.",
+        "Observation windows with different lengths.",
+        "Variance far from the mean."
+      ]
+    },
+    {
+      "metric_id": "onboarding_seconds",
+      "column": "onboarding_seconds",
+      "model": "lognormal_positive",
+      "parameter": "positive_duration_distribution",
+      "support": "x > 0",
+      "tail_ratio_warning_threshold": 1.5,
+      "assumptions": [
+        "Durations are positive continuous measurements.",
+        "Right tail behavior matters for interpretation of the mean.",
+        "A lognormal fit is a diagnostic model, not a promise that users follow one homogeneous process."
+      ],
+      "failure_modes": [
+        "Zero or negative durations.",
+        "Mean treated as typical user experience under a visible right tail.",
+        "Small samples hiding heavy-tail or mixture behavior."
+      ]
+    }
+  ]
+}

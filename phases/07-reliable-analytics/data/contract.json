@@ -1,0 +1,99 @@
+{
+  "version": "1.0.0",
+  "description": "Детерминированные заказы для инвариантов, контрактов, regression tests и monitoring.",
+  "generator": "generate_data.py",
+  "profiles": {
+    "tiny": {
+      "description": "Валидный baseline для ручной сверки, fixtures и golden tests.",
+      "tracked": true,
+      "rows": {
+        "users": 6,
+        "orders": 10,
+        "order_items": 12
+      }
+    },
+    "sample": {
+      "description": "Локальный batch для volume checks и monitoring.",
+      "tracked": false,
+      "rows": {
+        "users": 1000,
+        "orders": 5000
+      },
+      "seed": 20260613
+    }
+  },
+  "tables": {
+    "users": {
+      "file": "users.csv",
+      "grain": "Одна строка на пользователя.",
+      "primary_key": ["user_id"],
+      "columns": {
+        "user_id": {"semantic_type": "string identifier", "nullable": false},
+        "registered_at": {"semantic_type": "timezone-aware timestamp", "nullable": false},
+        "country": {"semantic_type": "country code", "nullable": false},
+        "plan": {"semantic_type": "trial, basic or premium", "nullable": false}
+      }
+    },
+    "orders": {
+      "file": "orders.csv",
+      "grain": "Одна строка на заказ.",
+      "primary_key": ["order_id"],
+      "foreign_keys": [
+        {"columns": ["user_id"], "references": "users.user_id"}
+      ],
+      "columns": {
+        "order_id": {"semantic_type": "string identifier", "nullable": false},
+        "user_id": {"semantic_type": "string identifier", "nullable": false},
+        "ordered_at": {"semantic_type": "timezone-aware timestamp", "nullable": false},
+        "status": {
+          "semantic_type": "paid, refunded, cancelled or pending",
+          "nullable": false
+        },
+        "currency": {"semantic_type": "RUB", "nullable": false},
+        "amount_rub": {
+          "semantic_type": "non-negative decimal with at most two fractional digits",
+          "nullable": false
+        }
+      }
+    },
+    "order_items": {
+      "file": "order_items.csv",
+      "grain": "Одна товарная строка заказа.",
+      "primary_key": ["order_id", "line_number"],
+      "foreign_keys": [
+        {"columns": ["order_id"], "references": "orders.order_id"}
+      ],
+      "columns": {
+        "order_id": {"semantic_type": "string identifier", "nullable": false},
+        "line_number": {"semantic_type": "positive integer", "nullable": false},
+        "product_id": {"semantic_type": "string identifier", "nullable": false},
+        "quantity": {"semantic_type": "positive integer", "nullable": false},
+        "unit_price_rub": {
+          "semantic_type": "non-negative decimal with at most two fractional digits",
+          "nullable": false
+        }
+      }
+    }
+  },
+  "invariants": [
+    "orders.order_id уникален и не содержит пропусков.",
+    "Все timestamps содержат timezone offset.",
+    "Все monetary values конечны, неотрицательны и имеют не более двух знаков.",
+    "Сумма order_items совпадает с orders.amount_rub.",
+    "Paid revenue включает только строки со status=paid."
+  ],
+  "defect_classes": [
+    "duplicate key",
+    "null key",
+    "orphan foreign key",
+    "schema drift",
+    "type drift",
+    "invalid domain value",
+    "amount reconciliation failure",
+    "invalid configuration",
+    "semantic regression",
+    "freshness breach",
+    "volume anomaly",
+    "failed atomic publication"
+  ]
+}
