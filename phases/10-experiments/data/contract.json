@@ -1,0 +1,122 @@
+{
+  "version": "1.0.0",
+  "description": "Детерминированный experiment extract для фазы 10: протокол, варианты, пользователи, baseline-метрики и pre-experiment ковариаты для online A/B-теста.",
+  "generator": "manual_tiny_baseline",
+  "profiles": {
+    "tiny": {
+      "description": "Маленький baseline для ручной сверки experiment protocol, metric roles, eligibility и будущих assignment checks.",
+      "tracked": true,
+      "rows": {
+        "experiments": 1,
+        "experiment_variants": 2,
+        "users": 8,
+        "events": 11,
+        "assignments": 5,
+        "exposures": 5,
+        "orders": 3,
+        "subscriptions": 3,
+        "support_tickets": 2,
+        "metric_baselines": 6,
+        "pre_experiment_metrics": 8
+      }
+    },
+    "sample": {
+      "description": "Будущий локальный профиль для power simulation, SRM, peeking и heterogeneity.",
+      "tracked": false,
+      "seed": 20260620
+    }
+  },
+  "tables": {
+    "experiments": {
+      "file": "experiments.csv",
+      "grain": "Один эксперимент и версия pre-registered protocol.",
+      "primary_key": ["experiment_id"]
+    },
+    "experiment_variants": {
+      "file": "experiment_variants.csv",
+      "grain": "Один вариант внутри эксперимента.",
+      "primary_key": ["experiment_id", "variant_id"],
+      "foreign_keys": [{"columns": ["experiment_id"], "references": "experiments.experiment_id"}]
+    },
+    "users": {
+      "file": "users.csv",
+      "grain": "Один зарегистрированный пользователь, потенциально eligible для эксперимента.",
+      "primary_key": ["user_id"]
+    },
+    "events": {
+      "file": "events.csv",
+      "grain": "Одно клиентское или серверное событие, включая exposure и activation события.",
+      "primary_key": ["event_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}]
+    },
+    "assignments": {
+      "file": "assignments.csv",
+      "grain": "Одно стабильное назначение randomization unit в вариант эксперимента.",
+      "primary_key": ["experiment_id", "assignment_unit_id"],
+      "foreign_keys": [
+        {"columns": ["experiment_id"], "references": "experiments.experiment_id"},
+        {"columns": ["user_id"], "references": "users.user_id"}
+      ]
+    },
+    "exposures": {
+      "file": "exposures.csv",
+      "grain": "Один факт exposure назначенного варианта пользователю.",
+      "primary_key": ["exposure_id"],
+      "foreign_keys": [
+        {"columns": ["experiment_id"], "references": "experiments.experiment_id"},
+        {"columns": ["assignment_unit_id"], "references": "assignments.assignment_unit_id"},
+        {"columns": ["user_id"], "references": "users.user_id"}
+      ]
+    },
+    "orders": {
+      "file": "orders.csv",
+      "grain": "Один платеж или refund order пользователя.",
+      "primary_key": ["order_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}]
+    },
+    "subscriptions": {
+      "file": "subscriptions.csv",
+      "grain": "Один период подписки пользователя.",
+      "primary_key": ["subscription_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}]
+    },
+    "support_tickets": {
+      "file": "support_tickets.csv",
+      "grain": "Одно обращение пользователя в поддержку.",
+      "primary_key": ["ticket_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}]
+    },
+    "metric_baselines": {
+      "file": "metric_baselines.csv",
+      "grain": "Одна baseline-оценка метрики для планирования эксперимента.",
+      "primary_key": ["experiment_id", "metric_id"],
+      "foreign_keys": [{"columns": ["experiment_id"], "references": "experiments.experiment_id"}]
+    },
+    "pre_experiment_metrics": {
+      "file": "pre_experiment_metrics.csv",
+      "grain": "Один user-level набор pre-treatment ковариат до старта эксперимента.",
+      "primary_key": ["experiment_id", "user_id"],
+      "foreign_keys": [
+        {"columns": ["experiment_id"], "references": "experiments.experiment_id"},
+        {"columns": ["user_id"], "references": "users.user_id"}
+      ]
+    }
+  },
+  "known_failure_modes": [
+    "metric role changed after seeing results",
+    "primary metric has no explicit denominator",
+    "guardrail direction is not a risk direction",
+    "traffic allocation does not match variants",
+    "decision rule ignores guardrails",
+    "post-treatment covariate is listed for CUPED",
+    "metric window is missing from protocol",
+    "duplicate assignment for one randomization unit",
+    "exposure before assignment",
+    "shared interference unit split across variants",
+    "sample ratio mismatch in assignment or exposure counts",
+    "variant-specific telemetry loss after assignment",
+    "pre-experiment covariate imbalance before treatment",
+    "underpowered experiment interpreted as no effect",
+    "MDE changed after seeing the result"
+  ]
+}

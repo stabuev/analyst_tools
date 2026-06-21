@@ -159,10 +159,13 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-9`: 100 уроков от входной диагностики до надежного аналитического
-pipeline, продуктовых метрик, guardrails, статистических оценок, интервалов, bootstrap,
-correlation audit, OLS diagnostics и финального statistical evidence package. Следующий
-этап — проектирование фазы `10` «Эксперименты и A/B-тесты». Точная готовность указана в
+завершены фазы `0-10`: 111 уроков от входной диагностики до надежного аналитического
+pipeline, продуктовых метрик, статистического evidence package и полного протокола
+A/B-эксперимента. Фаза `11` «Analytics Engineering» спроектирована: 11 уроков на 15
+часов ведут от data layers и dbt project structure к sources/refs, materializations,
+data tests, macros, incremental models, snapshots, documentation/lineage, SQLFluff и
+локальному dbt-duckdb проекту. Следующий этап — разработка урока `11/01` «Слои и
+контракты аналитических данных». Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).
 

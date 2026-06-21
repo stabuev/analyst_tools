@@ -99,7 +99,7 @@ window.COURSE_DATA = {
         {
           "number": 10,
           "title": "Эксперименты",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 17,
@@ -190,7 +190,7 @@ window.COURSE_DATA = {
         {
           "number": 10,
           "title": "Эксперименты",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 13,
@@ -274,7 +274,7 @@ window.COURSE_DATA = {
         {
           "number": 11,
           "title": "Analytics Engineering",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 12,
@@ -471,12 +471,12 @@ window.COURSE_DATA = {
         {
           "number": 10,
           "title": "Эксперименты",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 11,
           "title": "Analytics Engineering",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 12,
@@ -2464,195 +2464,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Полный протокол A/B-эксперимента",
       "completion": "Студент проверяет назначение, рассчитывает эффект и неопределенность и принимает решение по заранее заданному правилу.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments",
       "lessons": [
         {
           "number": 1,
           "slug": "hypothesis-and-metric",
           "title": "Гипотеза и целевая метрика",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Переводит продуктовую гипотезу в pre-registered experiment protocol: variants, eligible population, primary metric, guardrails, metric windows, alpha/power assumptions и decision rule до просмотра результата.",
+          "artifact": "CLI-валидатор experiment protocol, metric roles и pre-registration contract",
+          "type": "learn",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/01-hypothesis-and-metric",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/01-hypothesis-and-metric",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/01-hypothesis-and-metric/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "randomization-unit",
           "title": "Единица рандомизации",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Выбирает randomization unit и analysis unit, строит стабильное назначение вариантов по hash bucket, проверяет one-unit-one-variant, eligibility, exposure timing, balance и риск interference.",
+          "artifact": "Детерминированный assignment engine и exposure audit report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/02-randomization-unit",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/02-randomization-unit",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/02-randomization-unit/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "aa-and-srm",
           "title": "A/A-тест и Sample Ratio Mismatch",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Проводит A/A-test, SRM check и randomization validation: сверяет expected allocation, variant counts, covariate balance, telemetry loss и metric null distribution до анализа A/B.",
+          "artifact": "CLI-диагностик A/A, SRM и randomization health checks",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/03-aa-and-srm",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/03-aa-and-srm",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "mde-and-power",
           "title": "MDE, мощность и размер выборки",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Рассчитывает baseline, MDE, power, alpha, allocation ratio, expected traffic и runtime для долей и средних, сравнивая formula-based calculation с симуляцией мощности.",
+          "artifact": "Power planner с experiment sizing spec, mde-grid.csv и power curve",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/04-mde-and-power",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/04-mde-and-power",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/04-mde-and-power/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "means-and-proportions",
           "title": "Сравнение средних и долей",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Оценивает treatment effect для user-level means, proportions и простых ratio metrics: absolute/relative lift, confidence interval, p-value, assumption checks и guardrail status без significance-only решения.",
+          "artifact": "Experiment effect calculator с primary, secondary и guardrail results",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/05-means-and-proportions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/05-means-and-proportions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/05-means-and-proportions/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "bootstrap",
           "title": "Bootstrap в экспериментах",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит bootstrap и permutation-based uncertainty для skewed, zero-inflated и ratio metrics с resampling по randomization unit, fixed RNG, paired denominator handling и diagnostics.",
+          "artifact": "Experiment bootstrap analyzer с interval report и resampling manifest",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/06-bootstrap",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/06-bootstrap",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/06-bootstrap/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "cuped",
           "title": "Снижение дисперсии и CUPED",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Применяет CUPED/pre-experiment covariate adjustment, проверяет pre-treatment статус ковариаты, missingness, correlation with outcome, variance reduction и отсутствие post-treatment leakage.",
+          "artifact": "CUPED adjusted-effect calculator с variance-reduction report",
+          "type": "build",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/07-cuped",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/07-cuped",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/07-cuped/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "multiple-testing",
           "title": "Множественные проверки",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Объявляет families of hypotheses для primary, guardrail, secondary и exploratory metrics, применяет gatekeeping, Holm/Bonferroni или FDR policy и блокирует cherry-picking по сегментам.",
+          "artifact": "Multiple-testing policy checker с adjusted results и metric-family audit",
+          "type": "case",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/08-multiple-testing",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/08-multiple-testing",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/08-multiple-testing/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "peeking",
           "title": "Подглядывание и последовательный анализ",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Показывает рост false positive rate от незапланированных interim looks, задает monitoring schedule, alpha-spending или stop/go правила и отличает quality monitoring от decision peeking.",
+          "artifact": "Peeking audit и sequential monitoring report",
+          "type": "case",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/09-peeking",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/09-peeking",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/09-peeking/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "heterogeneous-effects",
           "title": "Сегменты и неоднородные эффекты",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Анализирует predeclared segment effects, interaction checks, minimum cell sizes и guardrail differences, помечает exploratory findings и не выдает post-hoc subgroup lift за подтвержденный общий эффект.",
+          "artifact": "Segment effect auditor с heterogeneity report и exploratory flags",
+          "type": "case",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/10-heterogeneous-effects",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/10-heterogeneous-effects",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/10-heterogeneous-effects/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "decision-protocol",
           "title": "Протокол решения и коммуникация",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает experiment-decision package: protocol, assignment audit, A/A/SRM, power, primary effect, bootstrap/CUPED checks, multiple-testing policy, peeking audit, segment report, guardrails, decision и checksum manifest.",
+          "artifact": "Воспроизводимый experiment-decision-package с launch/hold/rollback/iterate decision",
+          "type": "case",
           "tracks": [
             "product"
           ],
           "path": "phases/10-experiments/11-decision-protocol",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/11-decision-protocol",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/11-decision-protocol/docs/ru.md"
         }
       ]
     },
@@ -2673,17 +2673,17 @@ window.COURSE_DATA = {
       },
       "artifact": "Документированная аналитическая витрина",
       "completion": "dbt-проект строит витрину, проверяет источники и ключи и публикует документацию lineage.",
-      "status": "planned",
+      "status": "designed",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering",
       "lessons": [
         {
           "number": 1,
           "slug": "data-layers",
           "title": "Слои и контракты аналитических данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Проектирует raw, staging, intermediate и mart слои: фиксирует grain, ключи, владельца, freshness, допустимые изменения схемы и правила публикации аналитической витрины.",
+          "artifact": "Machine-readable layer contract и mart design brief",
           "type": "",
           "tracks": [
             "data"
@@ -2697,10 +2697,10 @@ window.COURSE_DATA = {
           "number": 2,
           "slug": "dbt-project",
           "title": "Структура dbt-проекта",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Собирает минимальный dbt-проект с `dbt_project.yml`, profile contract, каталогами models/tests/macros/snapshots и воспроизводимыми командами parse, compile и debug.",
+          "artifact": "Проверяемый dbt project skeleton с configuration audit",
           "type": "",
           "tracks": [
             "data"
@@ -2714,10 +2714,10 @@ window.COURSE_DATA = {
           "number": 3,
           "slug": "sources-and-refs",
           "title": "Sources, refs и зависимости",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Объявляет raw tables как sources, строит model dependencies через `source()` и `ref()`, проверяет source freshness и запрещает скрытые прямые обращения к raw-таблицам.",
+          "artifact": "Source/ref lineage auditor для dbt graph",
           "type": "",
           "tracks": [
             "data"
@@ -2731,10 +2731,10 @@ window.COURSE_DATA = {
           "number": 4,
           "slug": "models",
           "title": "Модели и materializations",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Строит staging, intermediate и mart модели, выбирает view/table/ephemeral materialization по grain, стоимости и потребителю и сверяет compiled SQL с ожидаемой логикой.",
+          "artifact": "Набор dbt-моделей для customer revenue mart с materialization report",
           "type": "",
           "tracks": [
             "data"
@@ -2748,10 +2748,10 @@ window.COURSE_DATA = {
           "number": 5,
           "slug": "data-tests",
           "title": "Data tests",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Добавляет generic и singular data tests для not null, unique, relationships, accepted values, freshness и бизнес-reconciliation, отделяя contract failures от warning diagnostics.",
+          "artifact": "dbt data test suite и machine-readable test report",
           "type": "",
           "tracks": [
             "data"
@@ -2765,10 +2765,10 @@ window.COURSE_DATA = {
           "number": 6,
           "slug": "macros",
           "title": "Jinja и macros без злоупотребления",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Выносит повторяемые SQL-правила в читаемые Jinja macros, проверяет compiled SQL, документирует аргументы и не прячет бизнес-логику за избыточной абстракцией.",
+          "artifact": "Набор dbt macros с compiled-SQL review checklist",
           "type": "",
           "tracks": [
             "data"
@@ -2782,10 +2782,10 @@ window.COURSE_DATA = {
           "number": 7,
           "slug": "incremental-models",
           "title": "Инкрементальные модели",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Проектирует incremental mart с `is_incremental()`, `unique_key`, late-arrival window, full-refresh policy и тестами против дубликатов, пропущенных обновлений и schema change.",
+          "artifact": "Incremental model contract и backfill/full-refresh playbook",
           "type": "",
           "tracks": [
             "data"
@@ -2799,10 +2799,10 @@ window.COURSE_DATA = {
           "number": 8,
           "slug": "snapshots",
           "title": "Snapshots и история изменений",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Использует dbt snapshots для SCD type 2 истории mutable source tables и проверяет unique key, updated_at/check strategy, validity windows и исключение шумных колонок.",
+          "artifact": "Snapshot model и SCD history audit",
           "type": "",
           "tracks": [
             "data"
@@ -2816,10 +2816,10 @@ window.COURSE_DATA = {
           "number": 9,
           "slug": "documentation-and-lineage",
           "title": "Документация и lineage",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Публикует описания sources, models, columns, tests и exposures, генерирует dbt docs artifacts и связывает downstream claims с lineage и owners.",
+          "artifact": "Документированный lineage package с manifest/catalog summary",
           "type": "",
           "tracks": [
             "data"
@@ -2833,10 +2833,10 @@ window.COURSE_DATA = {
           "number": 10,
           "slug": "sqlfluff",
           "title": "SQLFluff и единый стиль",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 60,
+          "outcome": "Настраивает SQLFluff для DuckDB/dbt SQL, выбирает templater под CI или быстрый feedback, исключает generated artifacts и отличает style violations от semantic test failures.",
+          "artifact": "SQLFluff configuration и lint report для dbt-проекта",
           "type": "",
           "tracks": [
             "data"
@@ -2850,10 +2850,10 @@ window.COURSE_DATA = {
           "number": 11,
           "slug": "dbt-duckdb-project",
           "title": "Локальный проект с dbt-duckdb",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 120,
+          "outcome": "Собирает локальный dbt-duckdb проект: sources, staging/intermediate/mart models, tests, macros, incremental model, snapshot, docs, lineage, SQLFluff report, run artifacts и checksum manifest.",
+          "artifact": "Воспроизводимый analytics-mart-dbt package для customer revenue health mart",
           "type": "",
           "tracks": [
             "data"
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 100,
+    "complete_lessons": 111,
     "hours": {
       "min": 238,
       "max": 326

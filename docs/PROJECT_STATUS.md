@@ -3,14 +3,14 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 20 июня 2026
+**Обновлено:** 21 июня 2026
 **Ветка:** `main`
-**Базовый коммит перед текущим этапом:** `c4525ba` — завершение фазы 06
+**Базовый коммит перед текущим этапом:** `7fac9fd` — завершение фаз 07–09
 
-Локальная `main` на один коммит `c4525ba` опережает `origin/main`. Рабочее дерево содержит
-незакоммиченные завершенные фазы 07–09. Push и
-commit выполняются только по явной команде пользователя. Перед продолжением проверьте
-актуальное состояние через `git status`.
+Локальная `main` была синхронизирована с `origin/main` перед проектированием фазы 10.
+Рабочее дерево после текущего этапа содержит незакоммиченные изменения завершенной фазы
+10 и проектирования фазы 11. Push и commit выполняются только по явной команде
+пользователя. Перед продолжением проверьте актуальное состояние через `git status`.
 
 ## Цель
 
@@ -26,15 +26,19 @@ commit выполняются только по явной команде пол
 
 - 19 фаз.
 - 201 урок в программе.
-- 100 завершенных уроков.
-- Фазы 00–09 полностью завершены.
-- Следующий содержательный этап — проектирование фазы 10 «Эксперименты и A/B-тесты».
+- 111 завершенных уроков.
+- 11 уроков в статусе `designed`.
+- Фазы 00–10 полностью завершены.
+- Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
+- Фаза 11 «Analytics Engineering» спроектирована: 11 уроков на 900 минут.
+- Следующий содержательный этап — разработка урока `11/01`
+  «Слои и контракты аналитических данных».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10.
+`09` — 10/10, `10` — 11/11, `11` — 11/11 designed.
 
 ## Текущая работа
 
@@ -473,13 +477,229 @@ commit выполняются только по явной команде пол
 - Новые lesson suites: `09/04` — 12 tests, `09/05` — 11, `09/06` — 11, `09/07` — 9,
   `09/08` — 10, `09/09` — 10, `09/10` — 9.
 
+Фаза 10 полностью разработана:
+
+- 11 последовательных уроков рассчитаны на 945 минут, или 15,75 часа;
+- границы закреплены в `docs/phase-10-design.md`: фаза покрывает experiment protocol,
+  randomization unit, A/A, SRM, MDE/power, effect estimation, bootstrap, CUPED,
+  multiple testing, peeking, heterogeneity и decision protocol;
+- фаза переиспользует продуктовые постановки фазы 08 и статистические инструменты фазы
+  09, но не уходит в production experimentation platform, Bayesian/bandit designs,
+  causal DAG/quasi-experiments или polished delivery;
+- единая задача — A/B-тест нового paywall/onboarding hint для Android в вымышленном
+  подписочном сервисе с guardrails по support tickets, cancellations и refunds;
+- итоговый артефакт `10/11` — `experiment-decision-package/` с protocol, assignment
+  audit, A/A/SRM, power plan, primary/guardrail effects, bootstrap/CUPED checks,
+  multiple-testing policy, peeking audit, segment report, decision и checksum manifest;
+- новых обязательных библиотек не добавлено: фаза использует pandas, DuckDB, NumPy,
+  SciPy, statsmodels, Pandera/Pydantic и визуальный стек, уже введенные ранее.
+
+Урок `10/01` «Гипотеза и целевая метрика» разработан:
+
+- добавлен первый experiment extract фазы 10 с таблицами `experiments`,
+  `experiment_variants`, `users`, `events`, `orders`, `subscriptions`,
+  `support_tickets`, `metric_baselines`, `pre_experiment_metrics`, контрактом и
+  tiny-manifest;
+- урок фиксирует pre-registered protocol для A/B-теста Android paywall/onboarding hint:
+  variants, eligible population, primary metric `activation_rate_7d`, guardrails
+  `support_ticket_rate_7d`, `subscription_cancel_rate_14d`, `refund_rate_7d`,
+  secondary metrics, metric windows, alpha/power/MDE, policies и decision rule;
+- артефакт `experiment-protocol-validator` проверяет required fields, variants и traffic
+  allocation, timeline, design parameters, eligible population, metric roles, metric
+  windows, source tables, guardrail risk directions, CUPED covariates и связь decision
+  rule с primary/guardrails;
+- lesson suite содержит 13 behavioral tests.
+
+Урок `10/02` «Единица рандомизации» разработан:
+
+- добавлены `randomization_spec.json`, deterministic `assignment_engine.py`,
+  assignment/exposure fixtures и расширенный tiny experiment extract с `device_id` и
+  `household_id` для interference checks;
+- engine строит stable hash buckets по `salt:experiment_id:assignment_unit_id`,
+  назначает eligible Android non-test users в control/treatment и формирует exposure
+  records из первого `paywall_viewed`;
+- audit проверяет randomization spec против protocol, one-unit-one-variant, exact
+  eligibility match, stable bucket/variant, balance tolerance, unique exposure IDs,
+  exposure timing, assignment/exposure variant consistency и shared interference units;
+- lesson suite содержит 14 behavioral tests.
+
+Урок `10/03` «A/A-тест и Sample Ratio Mismatch» разработан:
+
+- добавлены `randomization_health_spec.json`, `randomization_health.py` и committed
+  `randomization_health_report.json`;
+- diagnostic читает assignments/exposures из `10/02`, pre-treatment metrics и protocol,
+  проверяет assignment SRM, exposure SRM, telemetry loss, completeness pre-period metrics,
+  standardized covariate balance и exact permutation A/A pseudo-outcomes;
+- blocking failures отделены от warning diagnostics: baseline tiny готов к A/B-анализу
+  по SRM/telemetry, но честно показывает warning по covariate balance на пяти users;
+- lesson suite содержит 12 behavioral tests.
+
+Урок `10/04` «MDE, мощность и размер выборки» разработан:
+
+- добавлены `power_spec.json`, `power_planner.py`, committed `power_plan.json`,
+  `mde_grid.csv` и `power_curve.png`;
+- planner проверяет upstream `randomization_health_report.json`, затем считает sample
+  size для primary proportion `activation_rate_7d` через `NormalIndPower` и для mean
+  metric `realized_revenue_per_user_7d` через `TTestIndPower`;
+- baseline `0.30`, MDE `+0.03`, alpha `0.05`, power `0.8` дают `2964` users per
+  variant для primary metric; planned `12000` per variant дает power `0.999609`;
+- MDE grid показывает trade-off для `+1`–`+5` п.п., а simulation sanity check сверяет
+  required sample с target power;
+- lesson suite содержит 9 behavioral tests.
+
+Урок `10/05` «Сравнение средних и долей» разработан:
+
+- добавлены `effect_spec.json`, `experiment_effect_calculator.py`, committed
+  `metric_observations.csv`, `effect_results.csv` и `assumption_checks.json`;
+- calculator использует protocol, metric specs, randomization health report и power plan
+  из `10/01`–`10/04`, строит user-level observations для primary, guardrails и
+  secondary metrics от exposure window;
+- effects считаются как absolute/relative lift, confidence interval и p-value:
+  proportions через two-sample z-test и Newcombe CI, mean revenue через Welch t-test,
+  `refund_rate_7d` как ratio-of-sums;
+- primary `activation_rate_7d` в tiny имеет lift `-0.666667` и статус
+  `missed_primary_direction`, secondary trial signal остается `diagnostic_only`, а
+  guardrails получают `watch`, если harmful delta не исключен interval-ом;
+- assumption report сохраняет warnings по tiny sample против power plan,
+  normal approximation cell counts и mean variance, поэтому artifact valid, но
+  `ready_for_decision = false`;
+- lesson suite содержит 9 behavioral tests.
+
+Урок `10/06` «Bootstrap в экспериментах» разработан:
+
+- добавлены `bootstrap_spec.json`, `experiment_bootstrap_analyzer.py`, committed
+  `bootstrap_intervals.json`, `bootstrap_distribution.csv` и
+  `resampling_manifest.json`;
+- analyzer переиспользует `metric_observations.csv`, `effect_results.csv` и
+  `assumption_checks.json` из `10/05`, не пересчитывая raw experiment metrics;
+- bootstrap resampling идет по `user_id` внутри variants с fixed RNG, а permutation
+  sensitivity перемешивает labels при фиксированных group sizes;
+- для `refund_rate_7d` сохраняется paired numerator/denominator handling:
+  tiny дает `148` invalid bootstrap resamples из `500`, `352` valid resamples и warning
+  `paired_denominator_contains_zero_units`;
+- primary `activation_rate_7d` получает bootstrap CI `[-1.0, 0.0]` и permutation
+  p-value `0.401198`; secondary trial/revenue signals остаются sensitivity layer, а не
+  decision;
+- manifest фиксирует SciPy `1.17.1`, seeds, resampling unit, число resamples и ratio
+  metrics с paired denominator;
+- lesson suite содержит 9 behavioral tests.
+
+Урок `10/07` «Снижение дисперсии и CUPED» разработан:
+
+- добавлены `cuped_spec.json`, `experiment_cuped_adjuster.py`, committed
+  `cuped_effects.csv`, `adjusted_observations.csv`, `variance_reduction_report.json` и
+  `cuped_manifest.json`;
+- adjuster переиспользует `metric_observations.csv`, `effect_results.csv` и
+  `assumption_checks.json` из `10/05`, а pre-treatment ковариаты берет из
+  `pre_experiment_metrics.csv` и сверяет с protocol `cuped_policy`;
+- CUPED применяется к user-level primary, support guardrail, secondary trial conversion
+  и revenue metrics через `Y - theta * (X - mean(X))`;
+- primary `activation_rate_7d` использует `sessions_7d_pre`: raw lift `-0.666667`,
+  adjusted lift `-0.416667`, `theta = -0.1`, `correlation = -0.288675`,
+  `variance_reduction = 0.083333`;
+- `refund_rate_7d` и `subscription_cancel_rate_14d` explicitly skipped: ratio metric
+  требует paired numerator/denominator augmentation, а subscription denominator в tiny
+  sparse;
+- diagnostics блокируют post-treatment covariate, не объявленную в protocol ковариату,
+  missing pre-metrics и invalid upstream effect analysis; tiny sample оставляет все
+  analyzed metrics в warning status;
+- lesson suite содержит 10 behavioral tests.
+
+Урок `10/08` «Множественные проверки» разработан:
+
+- добавлены `multiple_testing_policy.json`, `multiple_testing_policy_checker.py`,
+  committed `multiple_testing_report.json`, `adjusted_results.csv` и
+  `multiple_testing_manifest.json`;
+- checker переиспользует protocol, `effect_results.csv`, bootstrap report,
+  CUPED variance report, CUPED effects и assumption checks из уроков `10/01`–`10/07`,
+  не пересчитывая experiment metrics в multiple-testing layer;
+- policy объявляет primary, guardrail, secondary и exploratory families: primary
+  проверяется без поправки, guardrails используют Holm/FWER, secondary и exploratory
+  используют FDR/BH;
+- ручные Bonferroni, Holm и FDR/BH поправки сверяются со `statsmodels.multipletests` и
+  `scipy.stats.false_discovery_control`;
+- primary `activation_rate_7d` остается failed: raw p-value `0.931981`, CUPED
+  sensitivity p-value `0.804109`, practical status `missed_primary_direction`;
+- secondary `paywall_to_trial_conversion_7d` получает adjusted p-value `0.025348`, но
+  gate status `blocked_by_primary`, поэтому не может открыть launch decision;
+- exploratory сегменты `activation_rate_7d_by_acquisition_channel_paid_search` и
+  `activation_rate_7d_by_country_ru` получают adjusted p-values `0.021` и `0.008`, но
+  остаются `not_pre_registered_launch_gate`, а country segment помечен как post-hoc;
+- итоговый report valid, но `ready_for_decision = false`,
+  `launch_allowed_by_multiple_testing = false`;
+- lesson suite содержит 12 behavioral tests.
+
+Урок `10/09` «Подглядывание и последовательный анализ» разработан:
+
+- добавлены `peeking_policy.json`, `peeking_audit.py`, committed
+  `sequential_monitoring_report.json`, `monitoring_schedule.csv`,
+  `peeking_simulation.csv` и `peeking_manifest.json`;
+- audit переиспользует protocol из `10/01`, power plan из `10/04` и
+  multiple-testing report из `10/08`, не пересчитывая experiment metrics;
+- peeking policy разделяет daily quality monitoring (`daily_sample_size`, `daily_srm`,
+  `telemetry_loss`) и planned decision looks `interim_50`/`final`;
+- O'Brien-Fleming-style Lan-DeMets alpha spending дает boundary `0.005575` на
+  information fraction `0.5` и `0.05` на final look;
+- observed `interim_50` имеет p-value `0.031`: он пересекает naive `0.05`, но не
+  sequential boundary, поэтому status `continue_collecting`;
+- два observed looks (`day_05_slack_peek`, `day_10_dashboard_refresh`) помечены как
+  `unplanned_decision_peek` и блокируют decision-readiness;
+- null simulation показывает false positive inflation: при пяти naive looks
+  `naive_false_positive_rate = 0.14155`, O'Brien-Fleming spending дает `0.05955`;
+- итоговый report valid, но `ready_for_decision = false` из-за unplanned decision looks
+  и upstream multiple-testing launch block;
+- lesson suite содержит 11 behavioral tests.
+
+Урок `10/10` «Сегменты и неоднородные эффекты» разработан:
+
+- добавлены `segment_policy.json`, `segment_effect_auditor.py`, committed
+  `heterogeneity_report.json`, `segment_effects.csv`, `interaction_checks.csv` и
+  `segment_manifest.json`;
+- auditor переиспользует protocol, `metric_observations.csv`, users, multiple-testing
+  report и peeking report, не пересчитывая upstream experiment metrics;
+- predeclared dimensions `platform` и `acquisition_channel` сверяются с protocol
+  `segment_policy`, а post-hoc `country` остается `exploratory_only`;
+- `platform=android` имеет обе ветки и lift `-0.666667`, но не проходит
+  протокольный minimum cell size `500`, поэтому остается diagnostic layer;
+- `acquisition_channel` показывает типичный failure mode segment analysis на tiny:
+  большинство строк получает `missing_variant`, потому что внутри сегмента нет одной из
+  веток;
+- все interaction checks получают `insufficient_overlap`, segment findings явно не
+  становятся launch gates;
+- lesson suite содержит 10 behavioral tests.
+
+Урок `10/11` «Протокол решения и коммуникация» разработан:
+
+- добавлены `decision_policy.json`, `experiment_decision_packager.py` и committed
+  `experiment-decision-package/` с evidence, assignment audit, decision summary,
+  markdown report, checksums и manifest;
+- package собирает protocol, assignment/exposure evidence, A/A/SRM, power, raw effects,
+  assumption checks, bootstrap intervals, CUPED report, multiple-testing policy/report,
+  peeking audit и segment report;
+- generated `assignment_audit.json` подтверждает one-unit-one-variant и соответствие
+  exposure назначенному варианту: `5` assigned units, `5` exposed units,
+  `control=3`, `treatment=2`;
+- итоговое решение `hold`: launch запрещен из-за `missed_primary_direction`,
+  `observed_sample_below_power_plan`, `multiple_testing_does_not_allow_launch`,
+  unplanned decision looks и segment diagnostics; rollback не нужен, потому что
+  guardrails имеют статус `watch`, а не breach;
+- checksum manifest фиксирует SHA-256 digest для `23` package files и digest самого
+  `checksums.json` в `manifest.json`;
+- lesson suite содержит 10 behavioral tests.
+
 ## Следующий содержательный шаг
 
-Спроектировать фазу 10 «Эксперименты и A/B-тесты»: границы с фазой 09 уже зафиксированы,
-нужно разложить randomization unit, A/A, SRM, MDE/power, peeking, CUPED, multiple testing
-и decision protocol в последовательные уроки с проверяемым интеграционным артефактом.
+Фаза 11 спроектирована в `docs/phase-11-design.md`: зафиксированы границы analytics
+engineering, роли dbt Core/local CLI, dbt-duckdb, DuckDB, SQLFluff, PyYAML/Pydantic и
+pytest, общий customer revenue health mart, source/model/snapshot failure modes,
+machine-readable mart contract и структура финального `analytics-mart-dbt/` package.
 
-Фазы 00–09 завершены. Перед коммитом обязательно прогнать полный набор проверок.
+Разработать урок `11/01` «Слои и контракты аналитических данных»: начать фазу Analytics
+Engineering, создать общий data mart context фазы 11 и первый проверяемый layer contract
+artifact.
+
+Фазы 00–10 завершены, фаза 11 спроектирована. Перед коммитом обязательно
+прогнать полный набор проверок.
 
 ## Уже принятые решения
 

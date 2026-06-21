@@ -1,0 +1,125 @@
+{
+  "metrics": [
+    {
+      "metric_id": "activation_rate_7d",
+      "name": "Seven-day activation rate",
+      "role": "primary",
+      "question": "Does the new Android paywall and onboarding hint increase early activation?",
+      "grain": "user_id",
+      "eligible_population": "Eligible non-test Android users exposed to the paywall variant.",
+      "numerator": "Users with at least one feature_value_seen event within seven days after exposure.",
+      "denominator": "Eligible exposed users assigned to the experiment variant.",
+      "window_days": 7,
+      "expected_direction": "up",
+      "minimum_detectable_effect": {"absolute": 0.03, "relative": 0.1},
+      "source_tables": ["users", "events", "experiments", "experiment_variants", "metric_baselines"],
+      "validation_checks": [
+        "one row per user_id in analysis",
+        "exclude test users",
+        "metric window starts at exposure_event",
+        "denominator uses eligible exposed users"
+      ],
+      "known_failure_modes": [
+        "denominator includes users not exposed to the paywall",
+        "metric window starts at registration instead of exposure"
+      ]
+    },
+    {
+      "metric_id": "support_ticket_rate_7d",
+      "name": "Seven-day support ticket rate",
+      "role": "guardrail",
+      "question": "Does the variant increase support burden shortly after exposure?",
+      "grain": "user_id",
+      "eligible_population": "Eligible exposed users.",
+      "numerator": "Users with at least one support ticket within seven days after exposure.",
+      "denominator": "Eligible exposed users assigned to the experiment variant.",
+      "window_days": 7,
+      "expected_direction": "up_is_bad",
+      "maximum_allowed_delta": 0.01,
+      "source_tables": ["users", "support_tickets", "metric_baselines"],
+      "validation_checks": [
+        "ticket user_id exists in users",
+        "exclude test users",
+        "deduplicate ticket_id"
+      ],
+      "known_failure_modes": ["support telemetry loss differs by platform"]
+    },
+    {
+      "metric_id": "subscription_cancel_rate_14d",
+      "name": "Fourteen-day subscription cancellation rate",
+      "role": "guardrail",
+      "question": "Does the variant increase early subscription cancellations?",
+      "grain": "user_id",
+      "eligible_population": "Trial or subscribed users exposed to the experiment.",
+      "numerator": "Users with a cancellation within fourteen days after exposure.",
+      "denominator": "Trial or subscribed exposed users.",
+      "window_days": 14,
+      "expected_direction": "up_is_bad",
+      "maximum_allowed_delta": 0.008,
+      "source_tables": ["users", "subscriptions", "metric_baselines"],
+      "validation_checks": [
+        "subscription lifecycle status is valid",
+        "cancelled_at is timezone-aware",
+        "exclude incomplete windows"
+      ],
+      "known_failure_modes": ["cancellation window is incomplete for late exposures"]
+    },
+    {
+      "metric_id": "refund_rate_7d",
+      "name": "Seven-day refund rate",
+      "role": "guardrail",
+      "question": "Does the variant increase refunds among paid orders?",
+      "grain": "order_id",
+      "eligible_population": "Paid orders from eligible exposed users.",
+      "numerator": "Refunded paid orders within seven days after exposure.",
+      "denominator": "Paid orders from eligible exposed users.",
+      "window_days": 7,
+      "expected_direction": "up_is_bad",
+      "maximum_allowed_delta": 0.005,
+      "source_tables": ["users", "orders", "metric_baselines"],
+      "validation_checks": [
+        "order_id is unique",
+        "currency is RUB",
+        "refund amount is non-negative"
+      ],
+      "known_failure_modes": ["many-to-many join multiplies order rows"]
+    },
+    {
+      "metric_id": "paywall_to_trial_conversion_7d",
+      "name": "Paywall to trial conversion",
+      "role": "secondary",
+      "question": "Does the new paywall move users into trial?",
+      "grain": "user_id",
+      "eligible_population": "Eligible exposed users with a paywall view.",
+      "numerator": "Users with trial_started within seven days after paywall exposure.",
+      "denominator": "Eligible users with paywall_viewed exposure.",
+      "window_days": 7,
+      "expected_direction": "up",
+      "source_tables": ["users", "events", "metric_baselines"],
+      "validation_checks": [
+        "trial event is after paywall exposure",
+        "deduplicate event_id"
+      ],
+      "known_failure_modes": ["trial starts before exposure are counted"]
+    },
+    {
+      "metric_id": "realized_revenue_per_user_7d",
+      "name": "Seven-day realized revenue per exposed user",
+      "role": "secondary",
+      "question": "Does early realized revenue move in the same direction as activation?",
+      "grain": "user_id",
+      "eligible_population": "Eligible exposed users.",
+      "numerator": "Realized paid revenue minus refunds within seven days after exposure.",
+      "denominator": "Eligible exposed users.",
+      "window_days": 7,
+      "expected_direction": "up",
+      "source_tables": ["users", "orders", "metric_baselines"],
+      "validation_checks": [
+        "pending orders are excluded from realized revenue",
+        "refunds reduce realized revenue",
+        "order user_id exists"
+      ],
+      "known_failure_modes": ["pending orders are treated as revenue"]
+    }
+  ]
+}

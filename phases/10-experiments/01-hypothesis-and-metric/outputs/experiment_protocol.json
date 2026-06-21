@@ -1,0 +1,158 @@
+{
+  "experiment_id": "exp_paywall_onboarding_android_2026_06",
+  "title": "Android paywall and onboarding hint",
+  "product_hypothesis": "If eligible Android users see a clearer paywall with an onboarding hint, more of them will reach the first value moment within seven days without increasing support, cancellations or refunds.",
+  "statistical_hypotheses": [
+    {
+      "metric_id": "activation_rate_7d",
+      "null": "Treatment and control have the same seven-day activation rate.",
+      "alternative": "Treatment has a higher seven-day activation rate than control.",
+      "effect_direction": "increase"
+    }
+  ],
+  "owner": "product-growth",
+  "decision_owner": "growth-lead",
+  "variants": [
+    {
+      "variant_id": "control",
+      "label": "Current Android paywall and onboarding",
+      "is_control": true
+    },
+    {
+      "variant_id": "treatment",
+      "label": "New Android paywall with onboarding hint",
+      "is_control": false
+    }
+  ],
+  "eligible_population": {
+    "unit": "user_id",
+    "description": "Eligible non-test Android users who reach paywall_viewed during the experiment window.",
+    "source_table": "users",
+    "filters": [
+      {"field": "platform", "operator": "==", "value": "android"},
+      {"field": "is_test_user", "operator": "==", "value": false}
+    ]
+  },
+  "randomization_unit": "user_id",
+  "analysis_unit": "user_id",
+  "assignment_key": "user_id",
+  "traffic_allocation": {
+    "control": 0.5,
+    "treatment": 0.5
+  },
+  "exposure_event": "paywall_viewed",
+  "start_at": "2026-06-10T00:00:00+03:00",
+  "planned_end_at": "2026-06-24T00:00:00+03:00",
+  "metric_freeze_at": "2026-06-27T00:00:00+03:00",
+  "primary_metric": "activation_rate_7d",
+  "guardrail_metrics": [
+    "support_ticket_rate_7d",
+    "subscription_cancel_rate_14d",
+    "refund_rate_7d"
+  ],
+  "secondary_metrics": [
+    "paywall_to_trial_conversion_7d",
+    "realized_revenue_per_user_7d"
+  ],
+  "exploratory_metrics": [
+    "activation_rate_7d_by_acquisition_channel"
+  ],
+  "metric_windows": {
+    "activation_rate_7d": {"start": "exposure_event", "days": 7},
+    "support_ticket_rate_7d": {"start": "exposure_event", "days": 7},
+    "subscription_cancel_rate_14d": {"start": "exposure_event", "days": 14},
+    "refund_rate_7d": {"start": "exposure_event", "days": 7},
+    "paywall_to_trial_conversion_7d": {"start": "exposure_event", "days": 7},
+    "realized_revenue_per_user_7d": {"start": "exposure_event", "days": 7}
+  },
+  "pre_experiment_covariates": [
+    {"name": "sessions_7d_pre", "source_table": "pre_experiment_metrics", "timing": "pre_treatment"},
+    {"name": "activation_7d_pre", "source_table": "pre_experiment_metrics", "timing": "pre_treatment"}
+  ],
+  "alpha": 0.05,
+  "power": 0.8,
+  "minimum_detectable_effect": {
+    "metric_id": "activation_rate_7d",
+    "absolute": 0.03,
+    "relative": 0.1
+  },
+  "minimum_runtime_days": 14,
+  "sample_size_plan": {
+    "planned_units_per_variant": 12000,
+    "expected_daily_eligible_units": 1800,
+    "allocation_ratio": "1:1",
+    "baseline_source_table": "metric_baselines"
+  },
+  "aa_srm_policy": {
+    "srm_alpha": 0.001,
+    "expected_allocation_tolerance": 0.01,
+    "block_analysis_on_srm": true
+  },
+  "multiple_testing_policy": {
+    "primary_family": ["activation_rate_7d"],
+    "guardrail_family": [
+      "support_ticket_rate_7d",
+      "subscription_cancel_rate_14d",
+      "refund_rate_7d"
+    ],
+    "secondary_family": [
+      "paywall_to_trial_conversion_7d",
+      "realized_revenue_per_user_7d"
+    ],
+    "method": "gatekeeping_primary_then_guardrails"
+  },
+  "peeking_policy": {
+    "decision_looks": ["planned_end_at"],
+    "quality_monitoring": ["daily_sample_size", "daily_srm", "telemetry_loss"],
+    "unplanned_decision_looks_allowed": false
+  },
+  "cuped_policy": {
+    "enabled": true,
+    "requires_pre_treatment_covariates": true,
+    "covariates": ["sessions_7d_pre", "activation_7d_pre"]
+  },
+  "segment_policy": {
+    "predeclared_dimensions": ["platform", "acquisition_channel"],
+    "minimum_cell_size": 500,
+    "post_hoc_segments_are_exploratory": true
+  },
+  "decision_rule": {
+    "allowed_decisions": ["launch", "hold", "rollback", "iterate", "inconclusive"],
+    "launch": {
+      "requires_primary_metric": "activation_rate_7d",
+      "minimum_absolute_lift": 0.03,
+      "requires_p_value_lte": 0.05,
+      "requires_all_guardrails_not_breached": true
+    },
+    "hold": {
+      "when": "sample size or runtime is insufficient for the declared MDE"
+    },
+    "rollback": {
+      "when_any_guardrail_breached": true
+    },
+    "iterate": {
+      "when": "primary metric improves but a predeclared guardrail or segment needs product follow-up"
+    },
+    "inconclusive": {
+      "when": "confidence interval includes effects smaller than the declared MDE"
+    }
+  },
+  "rollback_rule": {
+    "guardrails": [
+      "support_ticket_rate_7d",
+      "subscription_cancel_rate_14d",
+      "refund_rate_7d"
+    ],
+    "owner": "growth-lead",
+    "action": "Stop rollout and restore the current Android paywall if any guardrail is breached."
+  },
+  "known_risks": [
+    "Android telemetry loss can mimic treatment effect or SRM.",
+    "Activation may improve while support tickets or refunds worsen.",
+    "Late exposures can leave incomplete metric windows."
+  ],
+  "limitations": [
+    "The protocol covers a fixed-horizon two-arm online experiment.",
+    "Long-term retention and marketplace LTV are outside the primary decision."
+  ]
+}

@@ -9,6 +9,53 @@
 
 ### Добавлено
 
+- Фаза 11 «Analytics Engineering» спроектирована целиком: 11 уроков на 15 часов,
+  data layers, dbt project, sources/refs, materializations, data tests, Jinja macros,
+  incremental models, snapshots, documentation/lineage, SQLFluff и интеграционный
+  локальный `analytics-mart-dbt` package на dbt-duckdb.
+- Урок `10/09` «Подглядывание и последовательный анализ» с
+  `peeking_audit.py`, `peeking_policy.json`, `sequential_monitoring_report.json`,
+  `monitoring_schedule.csv`, `peeking_simulation.csv`, O'Brien-Fleming/Lan-DeMets
+  alpha spending, simulation-based false positive inflation и блокировкой решения при
+  unplanned decision looks.
+- Урок `10/08` «Множественные проверки» с
+  `multiple_testing_policy_checker.py`, `multiple_testing_policy.json`,
+  `multiple_testing_report.json`, `adjusted_results.csv`, сверкой ручных
+  Bonferroni/Holm/FDR поправок со statsmodels/SciPy, gatekeeping primary/guardrail/
+  secondary и запретом launch decision по post-hoc exploratory сегментам.
+- Урок `10/07` «Снижение дисперсии и CUPED» с
+  `experiment_cuped_adjuster.py`, `cuped_spec.json`, `cuped_effects.csv`,
+  `adjusted_observations.csv`, `variance_reduction_report.json`, проверками
+  pre-treatment ковариат, missingness, post-treatment leakage, variance reduction и
+  explicit skip для ratio/sparse metrics.
+- Урок `10/06` «Bootstrap в экспериментах» с
+  `experiment_bootstrap_analyzer.py`, `bootstrap_spec.json`,
+  `bootstrap_intervals.json`, `bootstrap_distribution.csv`,
+  `resampling_manifest.json`, fixed RNG, resampling по `user_id`, permutation
+  sensitivity и paired denominator handling для ratio metrics.
+- Урок `10/05` «Сравнение средних и долей» с
+  `experiment_effect_calculator.py`, `effect_spec.json`, user-level
+  `metric_observations.csv`, `effect_results.csv`, `assumption_checks.json`, расчетом
+  proportions, means и ratio metrics, guardrail watch status и запретом launch decision
+  по secondary-only signal.
+- Урок `10/04` «MDE, мощность и размер выборки» с `power_planner.py`,
+  `power_spec.json`, `power_plan.json`, `mde_grid.csv`, `power_curve.png`, расчетом
+  sample size для proportions и means, simulation sanity check и upstream health gate.
+- Урок `10/03` «A/A-тест и Sample Ratio Mismatch» с
+  `randomization_health.py`, committed health report, assignment/exposure SRM,
+  telemetry-loss gate, pre-treatment covariate balance и exact permutation A/A
+  pseudo-outcome checks.
+- Урок `10/02` «Единица рандомизации» с deterministic `assignment_engine.py`,
+  `randomization_spec.json`, assignment/exposure fixtures, проверками stable hash,
+  one-unit-one-variant, eligibility, exposure timing, balance и interference risk.
+- Урок `10/01` «Гипотеза и целевая метрика» с первым experiment extract фазы 10,
+  pre-registered `experiment_protocol.json`, `metric_specs.json`,
+  CLI-валидатором experiment protocol, проверками variants/allocation, metric roles,
+  windows, alpha/power/MDE, CUPED covariates, guardrails и decision rule.
+- Фаза 10 «Эксперименты и A/B-тесты» спроектирована целиком: 11 уроков на
+  15,75 часа, experiment protocol, randomization unit, A/A, SRM, MDE/power,
+  effect estimation, bootstrap, CUPED, multiple testing, peeking, heterogeneity и
+  итоговый `experiment-decision-package`.
 - Полностью завершена фаза 09 «Прикладная статистика»: 10 уроков, 13,75 часа,
   112 behavioral tests и финальный `statistical-evidence-report/` package с sampling
   audit, distribution cards, point estimates, bias/variance simulation, formula и

@@ -17,6 +17,12 @@
   событийных данных, контракт метрик и интеграционное исследование.
 - [`phase-09-design.md`](phase-09-design.md) — границы прикладной статистики, sampling
   assumptions, интервалы, regression diagnostics и итоговый statistical evidence report.
+- [`phase-10-design.md`](phase-10-design.md) — границы экспериментальной фазы,
+  randomization, A/A, SRM, MDE/power, CUPED, multiple testing, peeking и итоговый
+  experiment decision package.
+- [`phase-11-design.md`](phase-11-design.md) — границы analytics engineering, dbt graph,
+  sources/refs, materializations, data tests, snapshots, docs, SQLFluff и локальный
+  dbt-duckdb проект.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

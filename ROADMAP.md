@@ -261,17 +261,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Гипотеза и целевая метрика | planned |
-| 02 | Единица рандомизации | planned |
-| 03 | A/A-тест и Sample Ratio Mismatch | planned |
-| 04 | MDE, мощность и размер выборки | planned |
-| 05 | Сравнение средних и долей | planned |
-| 06 | Bootstrap в экспериментах | planned |
-| 07 | Снижение дисперсии и CUPED | planned |
-| 08 | Множественные проверки | planned |
-| 09 | Подглядывание и последовательный анализ | planned |
-| 10 | Сегменты и неоднородные эффекты | planned |
-| 11 | Протокол решения и коммуникация | planned |
+| 01 | [Гипотеза и целевая метрика](phases/10-experiments/01-hypothesis-and-metric) | complete |
+| 02 | [Единица рандомизации](phases/10-experiments/02-randomization-unit) | complete |
+| 03 | [A/A-тест и Sample Ratio Mismatch](phases/10-experiments/03-aa-and-srm) | complete |
+| 04 | [MDE, мощность и размер выборки](phases/10-experiments/04-mde-and-power) | complete |
+| 05 | [Сравнение средних и долей](phases/10-experiments/05-means-and-proportions) | complete |
+| 06 | [Bootstrap в экспериментах](phases/10-experiments/06-bootstrap) | complete |
+| 07 | [Снижение дисперсии и CUPED](phases/10-experiments/07-cuped) | complete |
+| 08 | [Множественные проверки](phases/10-experiments/08-multiple-testing) | complete |
+| 09 | [Подглядывание и последовательный анализ](phases/10-experiments/09-peeking) | complete |
+| 10 | [Сегменты и неоднородные эффекты](phases/10-experiments/10-heterogeneous-effects) | complete |
+| 11 | [Протокол решения и коммуникация](phases/10-experiments/11-decision-protocol) | complete |
 
 ## Фаза 11: Analytics Engineering
 
@@ -282,17 +282,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Слои и контракты аналитических данных | planned |
-| 02 | Структура dbt-проекта | planned |
-| 03 | Sources, refs и зависимости | planned |
-| 04 | Модели и materializations | planned |
-| 05 | Data tests | planned |
-| 06 | Jinja и macros без злоупотребления | planned |
-| 07 | Инкрементальные модели | planned |
-| 08 | Snapshots и история изменений | planned |
-| 09 | Документация и lineage | planned |
-| 10 | SQLFluff и единый стиль | planned |
-| 11 | Локальный проект с dbt-duckdb | planned |
+| 01 | Слои и контракты аналитических данных | designed |
+| 02 | Структура dbt-проекта | designed |
+| 03 | Sources, refs и зависимости | designed |
+| 04 | Модели и materializations | designed |
+| 05 | Data tests | designed |
+| 06 | Jinja и macros без злоупотребления | designed |
+| 07 | Инкрементальные модели | designed |
+| 08 | Snapshots и история изменений | designed |
+| 09 | Документация и lineage | designed |
+| 10 | SQLFluff и единый стиль | designed |
+| 11 | Локальный проект с dbt-duckdb | designed |
 
 ## Фаза 12: Производительность аналитики
 
