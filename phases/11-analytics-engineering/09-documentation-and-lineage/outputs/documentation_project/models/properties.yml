@@ -1,0 +1,460 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: "One row per registered user with normalized user attributes."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one registered user"
+      consumer: "intermediate and mart models"
+      materialization_reason: "Light source-shaped projection; freshness should follow raw data on each query."
+      cost_note: "Low-cost casts and renames, no business aggregation."
+      required_tests: ["not_null:user_id", "unique:user_id"]
+    columns:
+      - name: user_id
+        description: "Stable user identifier and staging primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: platform
+        description: "Lower-cased platform value used for accepted-values checks and mart filters."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['android', 'ios', 'web']
+  - name: stg_events
+    description: "One row per source event with typed timestamps and normalized platform."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one client or server event"
+      consumer: "future behavior models"
+      materialization_reason: "Event staging is a transparent raw boundary, not a stored mart."
+      cost_note: "Projection only; later incremental event marts handle volume."
+      required_tests: ["not_null:event_id", "unique:event_id", "accepted_values:platform"]
+    columns:
+      - name: event_id
+        description: "Unique event delivery identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "User attached to the event; nullable only for anonymous events outside this mart."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: platform
+        description: "Lower-cased event platform used for segmentation."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['android', 'ios', 'web']
+  - name: stg_orders
+    description: "One row per order with typed amount, status and order date."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one order or marketplace payment"
+      consumer: "intermediate revenue models"
+      materialization_reason: "Keeps order source logic current and inspectable."
+      cost_note: "Small normalization work before joins."
+      required_tests: ["not_null:order_id", "unique:order_id", "relationships:user_id", "accepted_values:status"]
+    columns:
+      - name: order_id
+        description: "Stable order identifier and staging primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "User that owns the order."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: status
+        description: "Normalized billing status."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['paid', 'refunded']
+      - name: amount
+        description: "Native-currency order amount from the order header."
+        data_tests:
+          - not_null
+  - name: stg_order_items
+    description: "One row per order line item."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one line item inside an order"
+      consumer: "line revenue intermediate model"
+      materialization_reason: "Line items are source-shaped and should not be stored twice."
+      cost_note: "Projection and decimal casts only."
+      required_tests: ["not_null:order_id", "relationships:order_id", "not_null:line_number"]
+    columns:
+      - name: order_id
+        description: "Order identifier that links each line item to `stg_orders`."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: line_number
+        description: "Line number within the order; part of the line-item grain."
+        data_tests:
+          - not_null
+      - name: quantity
+        description: "Purchased quantity on the line item."
+        data_tests:
+          - not_null
+  - name: stg_subscriptions
+    description: "One row per subscription period."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one subscription period"
+      consumer: "latest subscription status model"
+      materialization_reason: "Subscription state is mutable; snapshots arrive in a later lesson."
+      cost_note: "Windowing is left to an intermediate view."
+      required_tests: ["not_null:subscription_id", "unique:subscription_id", "accepted_values:status"]
+    columns:
+      - name: subscription_id
+        description: "Stable subscription identifier and snapshot unique key."
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "User that owns the subscription."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: status
+        description: "Normalized current subscription state before history is applied."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'cancelled']
+  - name: stg_support_tickets
+    description: "One row per support ticket."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one support ticket"
+      consumer: "support aggregation by user"
+      materialization_reason: "Ticket source is small and source-shaped."
+      cost_note: "No aggregation in staging."
+      required_tests: ["not_null:ticket_id", "unique:ticket_id", "relationships:user_id"]
+    columns:
+      - name: ticket_id
+        description: "Stable support ticket identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "User that opened the support ticket."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+  - name: stg_refunds
+    description: "One row per refund event for an order."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one refund event for an order"
+      consumer: "refund aggregation intermediate model"
+      materialization_reason: "Refunds stay current and transparent before order-level aggregation."
+      cost_note: "Projection only."
+      required_tests: ["not_null:refund_id", "unique:refund_id", "relationships:order_id"]
+    columns:
+      - name: refund_id
+        description: "Stable refund event identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: "Order that received the refund."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+  - name: stg_currency_rates
+    description: "One row per currency and calendar date."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one currency rate for one calendar date"
+      consumer: "mart currency normalization"
+      materialization_reason: "Small lookup table; view is enough in the local project."
+      cost_note: "Tiny lookup with date and decimal casts."
+      required_tests: ["not_null:currency", "not_null:rate_date", "accepted_values:currency"]
+    columns:
+      - name: currency
+        description: "Currency code normalized for rate joins."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['RUB', 'USD']
+      - name: rate_date
+        description: "Calendar date when the exchange rate applies."
+        data_tests:
+          - not_null
+      - name: rate_to_rub
+        description: "Multiplier used to convert native currency amounts into RUB."
+        data_tests:
+          - not_null
+  - name: int_order_line_revenue
+    description: "Reusable line-level revenue logic joined to order status."
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: "one order line with order status"
+      consumer: "mart_customer_revenue_health"
+      materialization_reason: "Light reusable CTE used by one downstream mart; keeping it ephemeral avoids extra relations."
+      cost_note: "Safe while the compiled mart remains readable and fanout is limited."
+      required_tests: ["singular:assert_no_many_to_many_revenue_join"]
+  - name: int_refunds_by_order
+    description: "Order-level refund amount before currency conversion."
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: "one refunded order"
+      consumer: "mart_customer_revenue_health"
+      materialization_reason: "Small aggregation used by a single mart and easy to inspect as compiled CTE."
+      cost_note: "Do not make widely shared or debugging-heavy logic ephemeral."
+      required_tests: ["relationships:order_id"]
+  - name: int_support_by_user
+    description: "Support ticket counts and latest ticket timestamp by user."
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: "one user with support ticket summary"
+      consumer: "customer revenue health mart and ad-hoc support checks"
+      materialization_reason: "Reusable diagnostic model that analysts may query directly."
+      cost_note: "Small aggregation, but direct inspectability matters."
+      required_tests: ["not_null:user_id", "unique:user_id"]
+    columns:
+      - name: user_id
+        description: "User grain of the support aggregation."
+        data_tests:
+          - unique
+          - not_null
+  - name: int_subscription_latest
+    description: "Latest subscription status by user."
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: "one user with latest subscription state"
+      consumer: "customer revenue health mart"
+      materialization_reason: "Window logic should be inspectable before snapshot history is introduced."
+      cost_note: "View keeps mutable-state caveat visible."
+      required_tests: ["not_null:user_id", "unique:user_id", "accepted_values:latest_subscription_status"]
+    columns:
+      - name: user_id
+        description: "User grain of the latest subscription state model."
+        data_tests:
+          - unique
+          - not_null
+      - name: latest_subscription_status
+        description: "Most recent normalized subscription status for the user."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'cancelled']
+  - name: int_subscription_history
+    description: "{{ doc('subscription_history_docs') }}"
+    config:
+      materialized: view
+    meta:
+      owner: lifecycle_analytics
+      owner_email: lifecycle-analytics@example.com
+      layer: intermediate
+      grain: "one subscription version with validity window"
+      consumer: "subscription lifecycle analysis and point-in-time joins"
+      materialization_reason: "Snapshot meta-fields are normalized into business-friendly validity columns before downstream use."
+      cost_note: "History stays as a view because the snapshot table is already persisted."
+      required_tests:
+        - "not_null:subscription_id"
+        - "not_null:valid_from"
+        - "not_null:valid_to"
+        - "singular:assert_subscription_history_has_one_current_row"
+        - "singular:assert_subscription_history_windows_do_not_overlap"
+        - "singular:assert_snapshot_does_not_version_noisy_updated_at"
+      snapshot_contract:
+        snapshot_name: subscription_status_snapshot
+        source_model: stg_subscriptions
+        unique_key: subscription_id
+        strategy: check
+        updated_at: updated_at
+        check_cols:
+          - plan
+          - status
+          - started_at
+          - ended_at
+        excluded_noisy_columns:
+          - updated_at
+        current_valid_to: "9999-12-31"
+    columns:
+      - name: subscription_id
+        description: "Stable subscription identifier shared with the snapshot unique key."
+        data_tests:
+          - not_null
+      - name: user_id
+        description: "User that owns the subscription version."
+      - name: plan
+        description: "Subscription plan valid during this version interval."
+      - name: started_at
+        description: "Business start timestamp of the subscription period."
+      - name: ended_at
+        description: "Business end timestamp when the source subscription was cancelled."
+      - name: valid_from
+        description: "Inclusive timestamp when this snapshot version became valid."
+        data_tests:
+          - not_null
+      - name: valid_to
+        description: "Exclusive timestamp when this snapshot version stopped being valid; current rows use 9999-12-31."
+        data_tests:
+          - not_null
+      - name: dbt_updated_at
+        description: "dbt snapshot updated timestamp used to date the captured version."
+      - name: dbt_scd_id
+        description: "dbt-generated unique identifier for this SCD version."
+        data_tests:
+          - unique
+          - not_null
+      - name: is_current
+        description: "Boolean flag derived from `valid_to = 9999-12-31`."
+      - name: status
+        description: "Subscription status valid during this version interval."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'cancelled']
+  - name: mart_customer_revenue_health
+    description: "{{ doc('mart_customer_revenue_health_docs') }}"
+    config:
+      materialized: table
+    meta:
+      owner: analytics_engineering
+      owner_email: analytics-engineering@example.com
+      layer: marts
+      grain: "one active non-deleted user"
+      consumer: "product and finance analysis"
+      documentation_contract:
+        exposure: customer_revenue_health_dashboard
+        owner: analytics_engineering
+        claims:
+          - customer_health_segment_supported
+          - daily_paid_revenue_reconciles
+          - subscription_history_is_point_in_time
+      materialization_reason: "Published mart is queried by consumers and should be fast and stable between runs."
+      cost_note: "Rebuild cost is acceptable for the tiny local project; incremental comes later."
+      required_tests: ["not_null:user_id", "unique:user_id", "accepted_values:revenue_health_segment", "singular:assert_paid_revenue_reconciles"]
+      warning_checks: ["warn_customers_without_subscription"]
+    columns:
+      - name: user_id
+        description: "Active, non-deleted user identifier and mart grain."
+        data_tests:
+          - unique
+          - not_null
+      - name: country
+        description: "User country used for dashboard segmentation."
+      - name: platform
+        description: "User platform used for dashboard segmentation."
+      - name: plan
+        description: "Current profile plan from the user source."
+      - name: latest_subscription_status
+        description: "Latest subscription status joined from `int_subscription_latest`; `none` means no subscription row."
+      - name: has_active_subscription
+        description: "Whether the latest subscription status is active."
+      - name: order_count
+        description: "Distinct orders observed for the user."
+      - name: paid_order_count
+        description: "Distinct paid orders observed for the user."
+      - name: gross_revenue_rub
+        description: "Gross order revenue converted to RUB before refund exclusion."
+      - name: paid_revenue_rub
+        description: "Paid revenue in RUB after refund policy, used for monetization claims."
+      - name: refunded_amount_rub
+        description: "Refunded amount in RUB, kept visible as a customer health risk."
+      - name: support_ticket_count
+        description: "Support ticket count attached to the user."
+      - name: high_priority_ticket_count
+        description: "High-priority support ticket count attached to the user."
+      - name: revenue_health_segment
+        description: "Consumer-facing triage segment derived from refunds, support load and paid revenue."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['needs_attention', 'high_value', 'monetized', 'no_revenue']
+  - name: fct_order_revenue_daily
+    description: "Incremental daily order revenue fact refreshed with a late-arriving data window."
+    config:
+      materialized: incremental
+      unique_key: revenue_date
+      incremental_strategy: delete+insert
+      on_schema_change: fail
+    meta:
+      owner: finance_analytics
+      owner_email: finance-analytics@example.com
+      layer: marts
+      grain: "one calendar revenue date"
+      consumer: "finance reporting and daily revenue monitoring"
+      materialization_reason: "Daily revenue grows over time; incremental refresh limits work while preserving a controlled late-arrival window."
+      cost_note: "Reprocesses the last two days on every incremental run to catch late orders and refund updates."
+      required_tests: ["not_null:revenue_date", "unique:revenue_date", "singular:assert_daily_revenue_reconciles"]
+      incremental_contract:
+        event_time_column: revenue_date
+        unique_key: revenue_date
+        late_arrival_window_days: 2
+        incremental_strategy: delete+insert
+        schema_change_policy: fail
+        duplicate_policy: "delete existing rows by revenue_date unique_key, then insert the recalculated window"
+        full_refresh_policy: "Run dbt run --full-refresh --select fct_order_revenue_daily after revenue_date grain, schema, key, currency logic or late-arrival policy changes."
+        backfill_command: "dbt run --full-refresh --select fct_order_revenue_daily"
+    columns:
+      - name: revenue_date
+        description: "Calendar date grain of the incremental fact."
+        data_tests:
+          - unique
+          - not_null
+      - name: order_count
+        description: "Distinct orders represented on the revenue date."
+        data_tests:
+          - not_null
+      - name: paid_order_count
+        description: "Distinct paid orders represented on the revenue date."
+        data_tests:
+          - not_null
+      - name: gross_revenue_rub
+        description: "Gross revenue in RUB before paid/refund policy."
+      - name: paid_revenue_rub
+        description: "Paid revenue in RUB reconciled by the daily singular test."
+        data_tests:
+          - not_null
+      - name: refunded_amount_rub
+        description: "Refunded amount in RUB on the revenue date."
+      - name: max_source_order_date
+        description: "Maximum order date included in the aggregate, used as incremental sanity metadata."

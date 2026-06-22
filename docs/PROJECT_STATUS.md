@@ -3,13 +3,13 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 21 июня 2026
+**Обновлено:** 22 июня 2026
 **Ветка:** `main`
 **Базовый коммит перед текущим этапом:** `7fac9fd` — завершение фаз 07–09
 
 Локальная `main` была синхронизирована с `origin/main` перед проектированием фазы 10.
 Рабочее дерево после текущего этапа содержит незакоммиченные изменения завершенной фазы
-10 и проектирования фазы 11. Push и commit выполняются только по явной команде
+10 и разработки фазы 11. Push и commit выполняются только по явной команде
 пользователя. Перед продолжением проверьте актуальное состояние через `git status`.
 
 ## Цель
@@ -26,19 +26,24 @@
 
 - 19 фаз.
 - 201 урок в программе.
-- 111 завершенных уроков.
-- 11 уроков в статусе `designed`.
-- Фазы 00–10 полностью завершены.
+- 122 завершенных урока.
+- 0 уроков в статусе `designed`.
+- Фазы 00–11 полностью завершены.
 - Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
-- Фаза 11 «Analytics Engineering» спроектирована: 11 уроков на 900 минут.
-- Следующий содержательный этап — разработка урока `11/01`
-  «Слои и контракты аналитических данных».
+- Фаза 11 «Analytics Engineering» завершена: 11 уроков на 900 минут; готовы уроки
+  `11/01` «Слои и контракты аналитических данных», `11/02` «Структура dbt-проекта»,
+  `11/03` «Sources, refs и зависимости», `11/04` «Модели и materializations»,
+  `11/05` «Data tests», `11/06` «Jinja и macros без злоупотребления»,
+  `11/07` «Инкрементальные модели», `11/08` «Snapshots и история изменений» и
+  `11/09` «Документация и lineage», `11/10` «SQLFluff и единый стиль» и `11/11`
+  «Локальный проект с dbt-duckdb».
+- Следующий содержательный этап — проектирование фазы 12 «Производительность аналитики».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10, `10` — 11/11, `11` — 11/11 designed.
+`09` — 10/10, `10` — 11/11, `11` — 11/11.
 
 ## Текущая работа
 
@@ -687,19 +692,209 @@
   `checksums.json` в `manifest.json`;
 - lesson suite содержит 10 behavioral tests.
 
-## Следующий содержательный шаг
+## Фаза 11
 
 Фаза 11 спроектирована в `docs/phase-11-design.md`: зафиксированы границы analytics
 engineering, роли dbt Core/local CLI, dbt-duckdb, DuckDB, SQLFluff, PyYAML/Pydantic и
 pytest, общий customer revenue health mart, source/model/snapshot failure modes,
 machine-readable mart contract и структура финального `analytics-mart-dbt/` package.
 
-Разработать урок `11/01` «Слои и контракты аналитических данных»: начать фазу Analytics
-Engineering, создать общий data mart context фазы 11 и первый проверяемый layer contract
-artifact.
+Урок `11/01` «Слои и контракты аналитических данных» разработан:
 
-Фазы 00–10 завершены, фаза 11 спроектирована. Перед коммитом обязательно
-прогнать полный набор проверок.
+- добавлен общий tiny extract фазы 11: `raw_users`, `raw_events`, `raw_orders`,
+  `raw_order_items`, `raw_subscriptions`, `raw_support_tickets`, `raw_refunds`,
+  `raw_currency_rates` и `data/contract.json`;
+- добавлены `layer_contract.json`, `mart_design_brief.md`,
+  `layer_contract_auditor.py` и committed `layer_contract_audit.json`;
+- аудитор проверяет uniqueness model ids, required fields, allowed layers/materializations,
+  source tables against data contract, raw primary keys, upstream graph, direct raw-to-mart
+  skips, key tests, freshness, mart publication contract, limitations и design brief;
+- lesson suite содержит 11 behavioral tests.
+
+Урок `11/02` «Структура dbt-проекта» разработан:
+
+- добавлен `dbt_project_skeleton/` с `dbt_project.yml`, `profiles.yml.example`,
+  `commands.md`, каталогами `models/`, `tests/`, `macros/`, `snapshots/`, `seeds/` и
+  smoke graph `staging -> intermediate -> marts`;
+- locked runtime дополнен `dbt-core==1.11.11` и `dbt-duckdb==1.10.1`;
+- добавлен `dbt_project_auditor.py` и committed `dbt_project_audit.json`;
+- аудитор проверяет required project files, project/profile match, resource directories,
+  smoke models per layer, local DuckDB profile, отсутствие secret-like fields,
+  документацию команд `debug`/`parse`/`compile` и умеет запускать эти команды во
+  временной копии проекта;
+- lesson suite содержит 11 behavioral tests.
+
+Урок `11/03` «Sources, refs и зависимости» разработан:
+
+- добавлен `source_ref_project/` с 8 raw tables, объявленными как dbt sources через
+  `raw_app`, `identifier` и table-level `loaded_at_field`/freshness config;
+- staging-модели `stg_users`, `stg_orders`, `stg_order_items` читают raw только через
+  `source()`;
+- `int_order_line_revenue` и `mart_customer_revenue_health` строят downstream graph через
+  `ref()` без direct raw references;
+- добавлен `source_ref_lineage_auditor.py` и committed `source_ref_lineage_audit.json`;
+- аудитор проверяет source declarations against data contract, freshness config,
+  `source()`/`ref()` boundaries, отсутствие hardcoded `raw_*` в SQL, а в live mode
+  поднимает временную DuckDB-базу, запускает `dbt parse`, `dbt compile`,
+  `dbt source freshness` и сверяет manifest dependencies;
+- lesson suite содержит 10 behavioral tests.
+
+Урок `11/04` «Модели и materializations» разработан:
+
+- добавлен `materialization_project/` с 13 моделями: 8 staging views, 2 intermediate
+  ephemeral models, 2 reusable intermediate views и consumer-facing table
+  `mart_customer_revenue_health`;
+- materialization policy хранится в `models/properties.yml`: для каждой модели объявлены
+  `config.materialized`, layer, grain, consumer, materialization reason и cost note;
+- mart объединяет users, orders, order_items, refunds, subscriptions, support tickets и
+  currency rates, переводит USD order в RUB и сохраняет grain «один активный
+  неудаленный пользователь»;
+- добавлен `materialization_reporter.py` и committed `materialization_report.json`;
+- аудитор проверяет source/ref boundaries, отсутствие direct raw references,
+  documented materialization decisions, запрет incremental/materialized_view до
+  следующих уроков, ограниченный fanout ephemeral-моделей, live `dbt parse`,
+  targeted `dbt compile`, `dbt run`, physical relation counts, compiled ephemeral CTE
+  names и independent mart reconciliation;
+- lesson suite содержит 10 behavioral tests.
+
+Урок `11/05` «Data tests» разработан:
+
+- добавлен `data_test_project/` на базе mart-графа из `11/04` с 64 generic data tests
+  для `not_null`, `unique`, `relationships` и `accepted_values`;
+- добавлены 3 singular tests: `assert_paid_revenue_reconciles`,
+  `assert_no_many_to_many_revenue_join` и non-blocking
+  `warn_customers_without_subscription`;
+- source freshness настроена для всех 8 raw sources по `loaded_at_field` из phase data
+  contract;
+- добавлен `dbt_test_reporter.py` и committed `dbt_test_report.json`;
+- аудитор проверяет использование `data_tests` вместо legacy `tests`, наличие generic
+  families, документацию singular tests, `severity: warn` для warning diagnostics,
+  mart policy в `meta.required_tests`/`meta.warning_checks`, live `dbt parse`, `dbt run`,
+  `dbt source freshness`, `dbt test --select test_type:data`, dbt artifacts и разделение
+  contract failures от warnings;
+- lesson suite содержит 11 behavioral tests, включая мутации bad order status, orphan
+  relationship и paid revenue reconciliation drift.
+
+Урок `11/06` «Jinja и macros без злоупотребления» разработан:
+
+- добавлен `macro_project/` на базе mart/test графа из `11/05`;
+- добавлены 5 documented low-level macros в `macros/normalization.sql`:
+  `normalize_status`, `normalize_currency`, `to_decimal`, `money_product` и
+  `rub_amount`;
+- `macros/properties.yml` документирует descriptions, arguments, types и review rules;
+- `revenue_health_segment` и paid/refund business policy оставлены в mart-модели, а не
+  спрятаны в macro;
+- добавлен `compiled_sql_review_checklist.json`, `macro_review_auditor.py` и committed
+  `macro_review_report.json`;
+- аудитор проверяет macro definitions, matching documented arguments, intentional call
+  counts, whitespace control, запрет business-policy macros, live `dbt parse`,
+  `dbt compile`, `dbt run`, `dbt test --select test_type:data`, отсутствие Jinja в
+  compiled model SQL, expected compiled fragments и mart baseline
+  `row_count=5`/`paid_revenue_rub=4312.50`;
+- lesson suite содержит 10 behavioral tests, включая поломки macro docs, bypass
+  inline SQL, скрытую business macro, compiled SQL drift и неправильную RUB conversion.
+
+Урок `11/07` «Инкрементальные модели» разработан:
+
+- добавлен `incremental_project/` на базе dbt-графа из `11/06`;
+- добавлена incremental fact-модель `fct_order_revenue_daily` с grain
+  `revenue_date`, `unique_key='revenue_date'`, strategy `delete+insert`,
+  `is_incremental()` predicate через `{{ this }}` и двухдневным late-arrival window;
+- `models/properties.yml` содержит `incremental_contract` в `meta`: event time column,
+  unique key, late-arrival window, schema change policy, duplicate policy,
+  full-refresh policy и backfill command;
+- добавлены singular test `assert_daily_revenue_reconciles.sql`,
+  `backfill_full_refresh_playbook.md`, `incremental_model_auditor.py` и committed
+  `incremental_audit_report.json`;
+- аудитор проверяет статический contract, data tests на unique key, playbook, live
+  начальный full refresh, обычный incremental run с новой датой и поздним заказом,
+  отсутствие дублей по `revenue_date`, compiled SQL без Jinja и документированный
+  `--full-refresh`;
+- lesson suite содержит 9 behavioral tests, включая поломки `unique_key`,
+  `is_incremental()`/`{{ this }}`, late-arrival window, meta contract, unique/not_null
+  tests и full-refresh playbook.
+
+Урок `11/08` «Snapshots и история изменений» разработан:
+
+- добавлен `snapshot_project/` на базе dbt-графа из `11/07`;
+- добавлен YAML snapshot `subscription_status_snapshot` для `stg_subscriptions`:
+  `unique_key=subscription_id`, `strategy=check`, `updated_at=updated_at`,
+  `check_cols=[plan,status,started_at,ended_at]`, `dbt_valid_to_current=9999-12-31`;
+- `updated_at` исключен из `check_cols`, чтобы шумный source reload не создавал новую
+  SCD-версию без бизнес-изменения;
+- добавлена downstream-модель `int_subscription_history`, которая нормализует
+  `dbt_valid_from`, `dbt_valid_to`, `dbt_scd_id` и `is_current`;
+- добавлены singular tests: `assert_subscription_history_has_one_current_row`,
+  `assert_subscription_history_windows_do_not_overlap`,
+  `assert_snapshot_does_not_version_noisy_updated_at`;
+- добавлены `snapshot_history_runbook.md`, `snapshot_history_auditor.py` и committed
+  `snapshot_history_audit_report.json`;
+- аудитор проверяет YAML snapshot configs, запрет legacy SQL snapshots, source key tests,
+  snapshot meta column tests, runbook schedule/hard delete policy, staging timestamp
+  safety, live первый `dbt snapshot` и второй snapshot с бизнес-изменениями/шумным
+  `updated_at`;
+- lesson suite содержит 10 behavioral tests, включая поломки `unique_key`, `updated_at`,
+  `check_cols: all`, шумного `updated_at` в `check_cols`, legacy SQL snapshot,
+  history model contract, staging timestamp safety и runbook.
+
+Урок `11/09` «Документация и lineage» разработан:
+
+- добавлен `documentation_project/` на базе dbt-графа из `11/08`;
+- добавлены docs blocks для project overview, `mart_customer_revenue_health`,
+  `int_subscription_history` и `customer_revenue_health_dashboard`;
+- sources, key models, snapshot columns и singular data tests получили descriptions,
+  owners, grain/consumer metadata и freshness context;
+- добавлен exposure `customer_revenue_health_dashboard` с owner, maturity, URL,
+  `depends_on` на `mart_customer_revenue_health`, `fct_order_revenue_daily`,
+  `int_subscription_history` и machine-readable decision claims;
+- добавлен `documentation_lineage_auditor.py` и committed
+  `documentation_lineage_report.json`;
+- аудитор проверяет static docs contract, запрет прямой raw-source зависимости в exposure,
+  claims-to-models/tests mapping, live `dbt parse`/`run`/`snapshot`/`test`/`docs generate`,
+  `manifest.json`, `catalog.json`, docs blocks, exposure lineage и catalog columns;
+- lesson suite содержит 10 behavioral tests, включая поломки owner, raw dependency,
+  docs block, key column description, source freshness, singular test docs и CLI exit code.
+
+Урок `11/10` «SQLFluff и единый стиль» разработан:
+
+- добавлен `sqlfluff_project/` на базе dbt-графа `11/09`, приведенный к единому
+  SQLFluff style contract;
+- добавлены `.sqlfluff` с `dialect = duckdb`, `templater = dbt`, local dbt templater
+  settings и `max_line_length = 120`;
+- добавлены `.sqlfluffignore` для `target/`, `logs/`, `dbt_packages/` и локальных
+  `*.duckdb`;
+- добавлен safe local `profiles.yml` без секретов для dbt templater;
+- исправлены реальные style violations: длинные Jinja macro calls, keyword-like aliases,
+  qualification в reconciliation tests и layout в singular tests;
+- добавлен `bad_style_example.sql` для raw-templater fast feedback;
+- добавлены `sqlfluff_quality_gate.py` и committed `sqlfluff_lint_report.json`;
+- аудитор проверяет static SQLFluff contract, generated ignores, safe profile,
+  separation of style gate and `dbt test`, live `sqlfluff lint` на 22 SQL-файлах и
+  ожидаемое падение bad style example;
+- lesson suite содержит 10 behavioral tests, включая поломки templater, global ignore,
+  generated ignores, keyword-like alias, profile, commands и CLI exit code;
+- dev environment дополнен `sqlfluff==3.5.0` и `sqlfluff-templater-dbt==3.5.0`.
+
+Урок `11/11` «Локальный проект с dbt-duckdb» разработан:
+
+- добавлен финальный пакет `analytics-mart-dbt/` с `dbt_project.yml`, safe local
+  DuckDB profile, `.sqlfluff`, `.sqlfluffignore`, sources, staging/intermediate/mart
+  models, macros, tests, snapshot, seed `calendar.csv`, `docs/mart_contract.md` и
+  `commands.md`;
+- добавлен `analytics_mart_packager.py`, который загружает fixture CSV в DuckDB, запускает
+  `dbt parse`, `dbt run`, `dbt snapshot`, `dbt test`, `dbt docs generate` и
+  `sqlfluff lint`, затем обновляет release artifacts;
+- пакет содержит `target-artifacts/manifest.json`, `catalog.json`, `run_results.json`,
+  `lineage-summary.json`, `quality/dbt-test-report.json`, `source-freshness.json`,
+  `sqlfluff-report.json`, `contract-audit.json`, `report.md` и SHA-256 `manifest.json`;
+- live build проходит: 15 моделей, 1 seed, 1 snapshot, 8 sources, 1 exposure, 87 dbt
+  data tests (`86 pass`, `1 warn`), SQLFluff lint на 22 SQL-файлах без нарушений;
+- lesson suite содержит 8 behavioral tests, включая live build на временной копии,
+  запрет direct raw references, incremental late-window contract, dbt templater,
+  report-to-manifest traceability, checksum tampering и CLI exit code.
+
+Фазы 00–11 завершены. Следующий содержательный шаг — спроектировать фазу 12
+«Производительность аналитики». Перед коммитом обязательно прогнать полный набор проверок.
 
 ## Уже принятые решения
 

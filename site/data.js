@@ -274,7 +274,7 @@ window.COURSE_DATA = {
         {
           "number": 11,
           "title": "Analytics Engineering",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 12,
@@ -476,7 +476,7 @@ window.COURSE_DATA = {
         {
           "number": 11,
           "title": "Analytics Engineering",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 12,
@@ -2673,195 +2673,195 @@ window.COURSE_DATA = {
       },
       "artifact": "Документированная аналитическая витрина",
       "completion": "dbt-проект строит витрину, проверяет источники и ключи и публикует документацию lineage.",
-      "status": "designed",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering",
       "lessons": [
         {
           "number": 1,
           "slug": "data-layers",
           "title": "Слои и контракты аналитических данных",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Проектирует raw, staging, intermediate и mart слои: фиксирует grain, ключи, владельца, freshness, допустимые изменения схемы и правила публикации аналитической витрины.",
           "artifact": "Machine-readable layer contract и mart design brief",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/01-data-layers",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/01-data-layers",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/01-data-layers/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "dbt-project",
           "title": "Структура dbt-проекта",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Собирает минимальный dbt-проект с `dbt_project.yml`, profile contract, каталогами models/tests/macros/snapshots и воспроизводимыми командами parse, compile и debug.",
           "artifact": "Проверяемый dbt project skeleton с configuration audit",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/02-dbt-project",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/02-dbt-project",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/02-dbt-project/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "sources-and-refs",
           "title": "Sources, refs и зависимости",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Объявляет raw tables как sources, строит model dependencies через `source()` и `ref()`, проверяет source freshness и запрещает скрытые прямые обращения к raw-таблицам.",
           "artifact": "Source/ref lineage auditor для dbt graph",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/03-sources-and-refs",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/03-sources-and-refs",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "models",
           "title": "Модели и materializations",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Строит staging, intermediate и mart модели, выбирает view/table/ephemeral materialization по grain, стоимости и потребителю и сверяет compiled SQL с ожидаемой логикой.",
           "artifact": "Набор dbt-моделей для customer revenue mart с materialization report",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/04-models",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/04-models",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "data-tests",
           "title": "Data tests",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Добавляет generic и singular data tests для not null, unique, relationships, accepted values, freshness и бизнес-reconciliation, отделяя contract failures от warning diagnostics.",
           "artifact": "dbt data test suite и machine-readable test report",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/05-data-tests",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/05-data-tests",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/05-data-tests/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "macros",
           "title": "Jinja и macros без злоупотребления",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Выносит повторяемые SQL-правила в читаемые Jinja macros, проверяет compiled SQL, документирует аргументы и не прячет бизнес-логику за избыточной абстракцией.",
           "artifact": "Набор dbt macros с compiled-SQL review checklist",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/06-macros",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/06-macros",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/06-macros/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "incremental-models",
           "title": "Инкрементальные модели",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Проектирует incremental mart с `is_incremental()`, `unique_key`, late-arrival window, full-refresh policy и тестами против дубликатов, пропущенных обновлений и schema change.",
           "artifact": "Incremental model contract и backfill/full-refresh playbook",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/07-incremental-models",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/07-incremental-models",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "snapshots",
           "title": "Snapshots и история изменений",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Использует dbt snapshots для SCD type 2 истории mutable source tables и проверяет unique key, updated_at/check strategy, validity windows и исключение шумных колонок.",
           "artifact": "Snapshot model и SCD history audit",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/08-snapshots",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/08-snapshots",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/08-snapshots/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "documentation-and-lineage",
           "title": "Документация и lineage",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Публикует описания sources, models, columns, tests и exposures, генерирует dbt docs artifacts и связывает downstream claims с lineage и owners.",
           "artifact": "Документированный lineage package с manifest/catalog summary",
-          "type": "",
+          "type": "learn",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/09-documentation-and-lineage",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/09-documentation-and-lineage",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/09-documentation-and-lineage/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "sqlfluff",
           "title": "SQLFluff и единый стиль",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 60,
           "outcome": "Настраивает SQLFluff для DuckDB/dbt SQL, выбирает templater под CI или быстрый feedback, исключает generated artifacts и отличает style violations от semantic test failures.",
           "artifact": "SQLFluff configuration и lint report для dbt-проекта",
-          "type": "",
+          "type": "build",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/10-sqlfluff",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/10-sqlfluff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/10-sqlfluff/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "dbt-duckdb-project",
           "title": "Локальный проект с dbt-duckdb",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 120,
           "outcome": "Собирает локальный dbt-duckdb проект: sources, staging/intermediate/mart models, tests, macros, incremental model, snapshot, docs, lineage, SQLFluff report, run artifacts и checksum manifest.",
           "artifact": "Воспроизводимый analytics-mart-dbt package для customer revenue health mart",
-          "type": "",
+          "type": "case",
           "tracks": [
             "data"
           ],
           "path": "phases/11-analytics-engineering/11-dbt-duckdb-project",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/11-dbt-duckdb-project",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/11-dbt-duckdb-project/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 111,
+    "complete_lessons": 122,
     "hours": {
       "min": 238,
       "max": 326

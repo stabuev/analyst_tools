@@ -159,13 +159,16 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-10`: 111 уроков от входной диагностики до надежного аналитического
+завершены фазы `0-11`: 122 урока от входной диагностики до надежного аналитического
 pipeline, продуктовых метрик, статистического evidence package и полного протокола
-A/B-эксперимента. Фаза `11` «Analytics Engineering» спроектирована: 11 уроков на 15
-часов ведут от data layers и dbt project structure к sources/refs, materializations,
-data tests, macros, incremental models, snapshots, documentation/lineage, SQLFluff и
-локальному dbt-duckdb проекту. Следующий этап — разработка урока `11/01` «Слои и
-контракты аналитических данных». Точная готовность указана в
+A/B-эксперимента и локального analytics engineering package. В фазе `11`
+«Analytics Engineering» разработаны уроки `11/01`–`11/11`:
+layer contract, проверяемый dbt-duckdb project skeleton, source/ref lineage graph,
+materialization policy, data test suite, macro review, incremental mart contract и SCD
+snapshot history для customer revenue mart, dbt docs/exposure lineage package,
+SQLFluff style gate для DuckDB/dbt SQL и финальный `analytics-mart-dbt` release package
+с dbt artifacts, quality reports, lineage summary, `report.md` и checksum manifest.
+Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).
 

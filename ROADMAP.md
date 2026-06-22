@@ -282,17 +282,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Слои и контракты аналитических данных | designed |
-| 02 | Структура dbt-проекта | designed |
-| 03 | Sources, refs и зависимости | designed |
-| 04 | Модели и materializations | designed |
-| 05 | Data tests | designed |
-| 06 | Jinja и macros без злоупотребления | designed |
-| 07 | Инкрементальные модели | designed |
-| 08 | Snapshots и история изменений | designed |
-| 09 | Документация и lineage | designed |
-| 10 | SQLFluff и единый стиль | designed |
-| 11 | Локальный проект с dbt-duckdb | designed |
+| 01 | [Слои и контракты аналитических данных](phases/11-analytics-engineering/01-data-layers) | complete |
+| 02 | [Структура dbt-проекта](phases/11-analytics-engineering/02-dbt-project) | complete |
+| 03 | [Sources, refs и зависимости](phases/11-analytics-engineering/03-sources-and-refs) | complete |
+| 04 | [Модели и materializations](phases/11-analytics-engineering/04-models) | complete |
+| 05 | [Data tests](phases/11-analytics-engineering/05-data-tests) | complete |
+| 06 | [Jinja и macros без злоупотребления](phases/11-analytics-engineering/06-macros) | complete |
+| 07 | [Инкрементальные модели](phases/11-analytics-engineering/07-incremental-models) | complete |
+| 08 | [Snapshots и история изменений](phases/11-analytics-engineering/08-snapshots) | complete |
+| 09 | [Документация и lineage](phases/11-analytics-engineering/09-documentation-and-lineage) | complete |
+| 10 | [SQLFluff и единый стиль](phases/11-analytics-engineering/10-sqlfluff) | complete |
+| 11 | [Локальный проект с dbt-duckdb](phases/11-analytics-engineering/11-dbt-duckdb-project) | complete |
 
 ## Фаза 12: Производительность аналитики
 

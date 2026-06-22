@@ -1,0 +1,67 @@
+version: 2
+
+snapshots:
+  - name: subscription_status_snapshot
+    relation: ref('stg_subscriptions')
+    description: "Type-2 history of subscription business state from the mutable subscription source."
+    config:
+      target_schema: snapshots
+      unique_key: subscription_id
+      strategy: check
+      updated_at: updated_at
+      check_cols:
+        - plan
+        - status
+        - started_at
+        - ended_at
+      dbt_valid_to_current: "cast('9999-12-31' as timestamp)"
+    meta:
+      owner: lifecycle_analytics
+      owner_email: lifecycle-analytics@example.com
+      layer: snapshots
+      grain: "one subscription version"
+      consumer: "subscription lifecycle and point-in-time analysis"
+      snapshot_contract:
+        source_model: stg_subscriptions
+        unique_key: subscription_id
+        strategy: check
+        updated_at: updated_at
+        check_cols:
+          - plan
+          - status
+          - started_at
+          - ended_at
+        excluded_noisy_columns:
+          - updated_at
+        current_valid_to: "9999-12-31"
+        schedule: "Run dbt snapshot after raw subscription refresh and before history-dependent marts."
+    columns:
+      - name: subscription_id
+        description: "Stable subscription identifier used as the snapshot unique key."
+        data_tests:
+          - not_null
+      - name: user_id
+        description: "User that owns the subscription version."
+      - name: plan
+        description: "Subscription plan captured for the validity interval."
+      - name: status
+        description: "Subscription status captured for the validity interval."
+      - name: started_at
+        description: "Business start timestamp from the subscription source."
+      - name: ended_at
+        description: "Business end timestamp from the subscription source, when present."
+      - name: dbt_updated_at
+        description: "dbt snapshot update timestamp for this version."
+      - name: dbt_scd_id
+        description: "dbt-generated stable identifier for the SCD version."
+        data_tests:
+          - unique
+          - not_null
+      - name: dbt_valid_from
+        description: "Inclusive timestamp when dbt marked this version as valid."
+        data_tests:
+          - not_null
+      - name: dbt_valid_to
+        description: "Exclusive timestamp when dbt closed this version; current rows use the configured sentinel."
+        data_tests:
+          - not_null

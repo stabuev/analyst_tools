@@ -1,0 +1,225 @@
+version: 2
+
+sources:
+  - name: raw_app
+    schema: raw
+    description: "Raw extract for the phase 11 customer revenue mart."
+    meta:
+      owner: analytics_engineering
+      owner_email: analytics-engineering@example.com
+      system_of_record: "lesson fixture CSV files loaded into DuckDB raw schema"
+    tables:
+      - name: users
+        identifier: raw_users
+        description: "Registered users from the application profile service."
+        meta:
+          owner: product_analytics
+          grain: "one application user"
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: user_id
+            description: "Stable user identifier and primary key for the raw user table."
+            data_tests:
+              - unique
+              - not_null
+          - name: platform
+            description: "Acquisition platform recorded for segmentation and dashboard filters."
+          - name: updated_at
+            description: "Source update timestamp used for freshness checks."
+      - name: events
+        identifier: raw_events
+        description: "Product event log used by future behavioral models and source lineage examples."
+        meta:
+          owner: product_analytics
+          grain: "one tracked product event"
+        config:
+          loaded_at_field: received_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: event_id
+            description: "Unique event delivery identifier."
+            data_tests:
+              - unique
+              - not_null
+          - name: event_name
+            description: "Canonical event name from the product tracking plan."
+            data_tests:
+              - not_null
+          - name: received_at
+            description: "Warehouse receipt timestamp used for event source freshness."
+      - name: orders
+        identifier: raw_orders
+        description: "Order header records from the billing system."
+        meta:
+          owner: finance_analytics
+          grain: "one order"
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            description: "Stable order identifier and primary key."
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: "User that owns the order; must resolve to raw users."
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+          - name: status
+            description: "Billing status normalized downstream to paid or refunded."
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ['paid', 'refunded']
+          - name: updated_at
+            description: "Source update timestamp used for order freshness."
+      - name: order_items
+        identifier: raw_order_items
+        description: "Line items for each order, used before order-level revenue aggregation."
+        meta:
+          owner: finance_analytics
+          grain: "one line item inside an order"
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            description: "Order identifier that joins each line item to the order header."
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'orders')
+                    field: order_id
+          - name: line_number
+            description: "Line number within the order; part of the source grain."
+            data_tests:
+              - not_null
+          - name: loaded_at
+            description: "Source load timestamp used for order item freshness."
+      - name: subscriptions
+        identifier: raw_subscriptions
+        description: "Mutable subscription state table that is preserved through dbt snapshots."
+        meta:
+          owner: lifecycle_analytics
+          grain: "one current subscription state row"
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: subscription_id
+            description: "Stable subscription identifier and unique key for snapshot matching."
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: "User that owns the subscription."
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+          - name: status
+            description: "Current subscription state before SCD history is applied."
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ['active', 'cancelled']
+          - name: updated_at
+            description: "Source update timestamp used by snapshot validity timestamps and freshness."
+      - name: support_tickets
+        identifier: raw_support_tickets
+        description: "Support ticket records used as a customer-health risk signal."
+        meta:
+          owner: customer_success
+          grain: "one support ticket"
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: ticket_id
+            description: "Stable support ticket identifier."
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: "User who opened the ticket."
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+          - name: created_at
+            description: "Ticket creation timestamp used for freshness and latest-ticket context."
+      - name: refunds
+        identifier: raw_refunds
+        description: "Refund events that reduce paid revenue and flag customer health risk."
+        meta:
+          owner: finance_analytics
+          grain: "one refund event"
+        config:
+          loaded_at_field: refunded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: refund_id
+            description: "Stable refund event identifier."
+            data_tests:
+              - unique
+              - not_null
+          - name: order_id
+            description: "Order that received the refund."
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'orders')
+                    field: order_id
+          - name: refunded_at
+            description: "Refund timestamp used for source freshness."
+      - name: currency_rates
+        identifier: raw_currency_rates
+        description: "Daily currency rates used to normalize order revenue into RUB."
+        meta:
+          owner: finance_analytics
+          grain: "one currency and one calendar date"
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: currency
+            description: "Currency code for the exchange-rate row."
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['RUB', 'USD']
+          - name: rate_date
+            description: "Calendar date when the rate applies."
+            data_tests:
+              - not_null
+          - name: rate_to_rub
+            description: "Multiplier used to convert native amount into RUB."
+          - name: loaded_at
+            description: "Source load timestamp used for currency rate freshness."

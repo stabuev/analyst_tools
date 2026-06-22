@@ -1,0 +1,82 @@
+{
+  "questions": [
+    {
+      "id": "pre-incremental-risk",
+      "stage": "pre",
+      "question": "Почему incremental-модель опасно писать как \"добавляем только новые строки\"?",
+      "options": [
+        "Без ключа, окна поздних данных и full-refresh policy она может копить дубли и пропускать исторические исправления.",
+        "Потому что dbt запрещает incremental materialization для fact-таблиц.",
+        "Потому что incremental-модель всегда медленнее table materialization.",
+        "Потому что data tests не запускаются на incremental-моделях."
+      ],
+      "correct": 0,
+      "explanation": "Incremental безопасен только как контракт обновления: grain, unique_key, окно пересчета, тесты и правила полного пересчета."
+    },
+    {
+      "id": "pre-unique-key",
+      "stage": "pre",
+      "question": "Что должен описывать `unique_key` в дневной витрине `fct_order_revenue_daily`?",
+      "options": [
+        "Ключ grain: одну строку target-таблицы, в уроке это `revenue_date`.",
+        "Любую колонку, которая есть в source CSV.",
+        "Только surrogate key, созданный случайным UUID.",
+        "Колонку, по которой сортируется итоговый отчет."
+      ],
+      "correct": 0,
+      "explanation": "`unique_key` должен совпадать с grain модели и позволять заменить уже существующую строку при повторном пересчете."
+    },
+    {
+      "id": "post-is-incremental",
+      "stage": "post",
+      "question": "Когда `is_incremental()` становится true в dbt-модели?",
+      "options": [
+        "Когда target relation уже существует, модель materialized как incremental и запуск идет без `--full-refresh`.",
+        "На любом запуске модели, где в SQL есть `unique_key`.",
+        "Только при запуске `dbt test`.",
+        "Только если source freshness показывает новые строки."
+      ],
+      "correct": 0,
+      "explanation": "Именно поэтому SQL должен быть валиден в обеих ветках: первый full build и последующие incremental runs компилируются по-разному."
+    },
+    {
+      "id": "post-late-arrival-window",
+      "stage": "post",
+      "question": "Зачем в уроке используется `max(revenue_date) - interval '2 days'`, а не просто `max(revenue_date)`?",
+      "options": [
+        "Чтобы обычный incremental run пересчитал недавние даты и поймал поздно пришедший заказ.",
+        "Чтобы DuckDB быстрее создал схему `analytics`.",
+        "Чтобы dbt перестал требовать `unique_key`.",
+        "Чтобы отключить full refresh."
+      ],
+      "correct": 0,
+      "explanation": "Окно поздних данных намеренно пересчитывает недавнюю историю, где еще могут появиться задержанные source-строки."
+    },
+    {
+      "id": "post-full-refresh-policy",
+      "stage": "post",
+      "question": "Когда для incremental-модели нужен `--full-refresh`?",
+      "options": [
+        "Когда меняется grain, ключ, историческая бизнес-логика, схема или нужен backfill вне обычного окна.",
+        "После каждого обычного daily run.",
+        "Только если `dbt parse` не нашел YAML-файл.",
+        "Никогда: incremental-модель должна чинить всю историю сама."
+      ],
+      "correct": 0,
+      "explanation": "Incremental predicate ограничивает историю, поэтому изменения вне окна требуют полного перестроения или отдельного backfill-процесса."
+    },
+    {
+      "id": "post-schema-change",
+      "stage": "post",
+      "question": "Почему в модели стоит `on_schema_change='fail'`?",
+      "options": [
+        "Чтобы изменение опубликованных колонок остановило run и заставило пересмотреть контракт и full-refresh/backfill.",
+        "Чтобы dbt автоматически заполнил новые колонки во всех исторических строках.",
+        "Чтобы запретить любые data tests.",
+        "Чтобы модель стала ephemeral."
+      ],
+      "correct": 0,
+      "explanation": "Schema change policy не заменяет исторический backfill. Fail-режим делает изменение явным и ревьюируемым."
+    }
+  ]
+}

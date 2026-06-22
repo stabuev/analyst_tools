@@ -1,0 +1,238 @@
+{
+  "exposures": [
+    {
+      "decision_claims": [
+        {
+          "claim": "Customer health segment is backed by paid revenue, refunds and support load.",
+          "id": "customer_health_segment_supported",
+          "required_tests": [
+            "assert_paid_revenue_reconciles",
+            "warn_customers_without_subscription"
+          ],
+          "upstream_models": [
+            "mart_customer_revenue_health"
+          ]
+        },
+        {
+          "claim": "Daily paid revenue can be reconciled to order grain.",
+          "id": "daily_paid_revenue_reconciles",
+          "required_tests": [
+            "assert_daily_revenue_reconciles"
+          ],
+          "upstream_models": [
+            "fct_order_revenue_daily"
+          ]
+        },
+        {
+          "claim": "Subscription plan/status history has one current version and non-overlapping validity windows.",
+          "id": "subscription_history_is_point_in_time",
+          "required_tests": [
+            "assert_subscription_history_has_one_current_row",
+            "assert_subscription_history_windows_do_not_overlap",
+            "assert_snapshot_does_not_version_noisy_updated_at"
+          ],
+          "upstream_models": [
+            "int_subscription_history"
+          ]
+        }
+      ],
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.fct_order_revenue_daily",
+        "model.analytics_mart_dbt.int_subscription_history",
+        "model.analytics_mart_dbt.mart_customer_revenue_health"
+      ],
+      "maturity": "high",
+      "name": "customer_revenue_health_dashboard",
+      "type": "dashboard",
+      "unique_id": "exposure.analytics_mart_dbt.customer_revenue_health_dashboard"
+    }
+  ],
+  "generated_at_utc": "2026-06-22T11:07:05Z",
+  "models": [
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.int_order_line_revenue",
+        "model.analytics_mart_dbt.int_refunds_by_order",
+        "model.analytics_mart_dbt.stg_currency_rates"
+      ],
+      "grain": "one calendar revenue date",
+      "layer": "marts",
+      "materialized": "incremental",
+      "name": "fct_order_revenue_daily",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.fct_order_revenue_daily"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.stg_order_items",
+        "model.analytics_mart_dbt.stg_orders"
+      ],
+      "grain": "one order line with order status",
+      "layer": "intermediate",
+      "materialized": "ephemeral",
+      "name": "int_order_line_revenue",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.int_order_line_revenue"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.stg_refunds"
+      ],
+      "grain": "one refunded order",
+      "layer": "intermediate",
+      "materialized": "ephemeral",
+      "name": "int_refunds_by_order",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.int_refunds_by_order"
+    },
+    {
+      "depends_on_nodes": [
+        "snapshot.analytics_mart_dbt.subscription_status_snapshot"
+      ],
+      "grain": "one subscription version with validity window",
+      "layer": "intermediate",
+      "materialized": "view",
+      "name": "int_subscription_history",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.int_subscription_history"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.stg_subscriptions"
+      ],
+      "grain": "one user with latest subscription state",
+      "layer": "intermediate",
+      "materialized": "view",
+      "name": "int_subscription_latest",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.int_subscription_latest"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.stg_support_tickets"
+      ],
+      "grain": "one user with support ticket summary",
+      "layer": "intermediate",
+      "materialized": "view",
+      "name": "int_support_by_user",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.int_support_by_user"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.int_order_line_revenue",
+        "model.analytics_mart_dbt.int_refunds_by_order",
+        "model.analytics_mart_dbt.int_subscription_latest",
+        "model.analytics_mart_dbt.int_support_by_user",
+        "model.analytics_mart_dbt.stg_currency_rates",
+        "model.analytics_mart_dbt.stg_users"
+      ],
+      "grain": "one active non-deleted user",
+      "layer": "marts",
+      "materialized": "table",
+      "name": "mart_customer_revenue_health",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.mart_customer_revenue_health"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.currency_rates"
+      ],
+      "grain": "one currency rate for one calendar date",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_currency_rates",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_currency_rates"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.events"
+      ],
+      "grain": "one client or server event",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_events",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_events"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.order_items"
+      ],
+      "grain": "one line item inside an order",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_order_items",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_order_items"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.orders"
+      ],
+      "grain": "one order or marketplace payment",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_orders",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_orders"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.refunds"
+      ],
+      "grain": "one refund event for an order",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_refunds",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_refunds"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.subscriptions"
+      ],
+      "grain": "one subscription period",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_subscriptions",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_subscriptions"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.support_tickets"
+      ],
+      "grain": "one support ticket",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_support_tickets",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_support_tickets"
+    },
+    {
+      "depends_on_nodes": [
+        "source.analytics_mart_dbt.raw_app.users"
+      ],
+      "grain": "one registered user",
+      "layer": "staging",
+      "materialized": "view",
+      "name": "stg_users",
+      "resource_type": "model",
+      "unique_id": "model.analytics_mart_dbt.stg_users"
+    },
+    {
+      "depends_on_nodes": [
+        "model.analytics_mart_dbt.stg_subscriptions"
+      ],
+      "grain": "one subscription version",
+      "layer": "snapshots",
+      "materialized": "snapshot",
+      "name": "subscription_status_snapshot",
+      "resource_type": "snapshot",
+      "unique_id": "snapshot.analytics_mart_dbt.subscription_status_snapshot"
+    }
+  ],
+  "project_name": "analytics_mart_dbt"
+}

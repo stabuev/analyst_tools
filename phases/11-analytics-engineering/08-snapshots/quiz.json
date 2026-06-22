@@ -1,0 +1,82 @@
+{
+  "questions": [
+    {
+      "id": "pre-snapshot-purpose",
+      "stage": "pre",
+      "question": "Зачем нужен dbt snapshot для mutable source table?",
+      "options": [
+        "Чтобы сохранить версии строк и интервалы валидности, когда source перезаписывает текущее состояние.",
+        "Чтобы ускорить любой SELECT без изменения модели данных.",
+        "Чтобы заменить все data tests.",
+        "Чтобы автоматически восстановить события, которые произошли между двумя запусками dbt."
+      ],
+      "correct": 0,
+      "explanation": "Snapshot реализует SCD type 2: хранит версии mutable row state с meta-fields вроде dbt_valid_from и dbt_valid_to."
+    },
+    {
+      "id": "pre-snapshot-schedule",
+      "stage": "pre",
+      "question": "Что произойдет, если source изменился дважды между двумя запусками `dbt snapshot`?",
+      "options": [
+        "Snapshot увидит только состояние на момент запуска; промежуточное состояние может быть потеряно.",
+        "dbt прочитает transaction log source-системы и восстановит все промежуточные версии.",
+        "dbt автоматически переключится на incremental model.",
+        "Snapshot упадет с ошибкой unique key."
+      ],
+      "correct": 0,
+      "explanation": "Snapshots являются batch-based CDC: они фиксируют состояния, которые реально попали в запуск."
+    },
+    {
+      "id": "post-unique-key",
+      "stage": "post",
+      "question": "Почему `unique_key` в snapshot должен быть реально уникальным в source?",
+      "options": [
+        "dbt использует этот ключ, чтобы сопоставить source-row с текущей snapshot-версией и закрыть правильное окно.",
+        "Иначе dbt не сможет создать schema `snapshots`.",
+        "Иначе `dbt_valid_to_current` станет NULL.",
+        "Иначе Jinja не скомпилирует YAML."
+      ],
+      "correct": 0,
+      "explanation": "Если ключ неоднозначен, snapshot не может надежно понять, какую историческую версию нужно закрывать."
+    },
+    {
+      "id": "post-check-cols",
+      "stage": "post",
+      "question": "Почему в уроке `check_cols` перечислены явно, а не задано `check_cols: all`?",
+      "options": [
+        "Чтобы версионировать только бизнес-изменения и не создавать версии из-за шумных технических колонок.",
+        "Потому что dbt запрещает `check_cols: all` во всех адаптерах.",
+        "Потому что `all` работает только для seed-таблиц.",
+        "Чтобы отключить `updated_at` полностью."
+      ],
+      "correct": 0,
+      "explanation": "Явный список check_cols делает policy ревьюируемой: какие поля считаются изменением состояния, а какие нет."
+    },
+    {
+      "id": "post-updated-at-with-check",
+      "stage": "post",
+      "question": "Как в уроке используется `updated_at` при `strategy: check`?",
+      "options": [
+        "dbt сравнивает `check_cols`, а `updated_at` использует как timestamp новой версии, если бизнес-поля изменились.",
+        "dbt всегда создает новую версию при любом изменении `updated_at`.",
+        "dbt игнорирует `updated_at`, потому что strategy не timestamp.",
+        "dbt использует `updated_at` как surrogate key."
+      ],
+      "correct": 0,
+      "explanation": "С `check` strategy изменение определяют check_cols; configured updated_at задает время validity meta-fields для новых версий."
+    },
+    {
+      "id": "post-validity-tests",
+      "stage": "post",
+      "question": "Какая проверка показывает, что SCD history не сломала интервалы валидности?",
+      "options": [
+        "Для каждой подписки закрытая версия заканчивается ровно в `valid_from` следующей версии, а current row ровно один.",
+        "Количество строк snapshot всегда равно количеству source-строк.",
+        "Все строки snapshot имеют одинаковый `dbt_scd_id`.",
+        "В `dbt_valid_to` всегда должен быть NULL."
+      ],
+      "correct": 0,
+      "explanation": "SCD type 2 history должна иметь непротиворечивые windows: одна current-версия и непересекающиеся интервалы."
+    }
+  ]
+}

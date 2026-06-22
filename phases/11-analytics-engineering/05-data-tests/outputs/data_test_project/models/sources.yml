@@ -1,0 +1,152 @@
+version: 2
+
+sources:
+  - name: raw_app
+    schema: raw
+    description: "Raw extract for the phase 11 customer revenue mart."
+    tables:
+      - name: users
+        identifier: raw_users
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: user_id
+            data_tests:
+              - unique
+              - not_null
+      - name: events
+        identifier: raw_events
+        config:
+          loaded_at_field: received_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: event_id
+            data_tests:
+              - unique
+              - not_null
+          - name: event_name
+            data_tests:
+              - not_null
+      - name: orders
+        identifier: raw_orders
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+          - name: status
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ['paid', 'refunded']
+      - name: order_items
+        identifier: raw_order_items
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'orders')
+                    field: order_id
+          - name: line_number
+            data_tests:
+              - not_null
+      - name: subscriptions
+        identifier: raw_subscriptions
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: subscription_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+          - name: status
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ['active', 'cancelled']
+      - name: support_tickets
+        identifier: raw_support_tickets
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: ticket_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'users')
+                    field: user_id
+      - name: refunds
+        identifier: raw_refunds
+        config:
+          loaded_at_field: refunded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: refund_id
+            data_tests:
+              - unique
+              - not_null
+          - name: order_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_app', 'orders')
+                    field: order_id
+      - name: currency_rates
+        identifier: raw_currency_rates
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: currency
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['RUB', 'USD']
+          - name: rate_date
+            data_tests:
+              - not_null

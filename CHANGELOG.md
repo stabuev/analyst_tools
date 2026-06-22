@@ -9,6 +9,63 @@
 
 ### Добавлено
 
+- Урок `11/11` «Локальный проект с dbt-duckdb» с финальным пакетом
+  `analytics-mart-dbt`: sources, staging/intermediate/mart models, macros, 87 dbt data
+  tests, incremental fact, snapshot, docs/exposure lineage, SQLFluff lint на 22
+  SQL-файлах, `target-artifacts/manifest.json`/`catalog.json`/`run_results.json`,
+  `lineage-summary.json`, quality reports, `report.md`, SHA-256 checksum manifest,
+  CLI-packager `analytics_mart_packager.py` и 8 behavioral tests.
+- Урок `11/10` «SQLFluff и единый стиль» с dbt-проектом `sqlfluff_project`,
+  `.sqlfluff` для DuckDB/dbt templater, `.sqlfluffignore` для generated artifacts,
+  safe local `profiles.yml`, cleaned SQL models/tests, raw-templater bad style example,
+  live `sqlfluff lint` на 22 SQL-файлах, machine-readable lint report, CLI-аудитором
+  `sqlfluff_quality_gate.py`, разделением style gate и `dbt test` semantic gate и
+  10 behavioral tests; в dev dependencies добавлены `sqlfluff==3.5.0` и
+  `sqlfluff-templater-dbt==3.5.0`.
+- Урок `11/09` «Документация и lineage» с dbt-проектом `documentation_project`,
+  docs blocks, descriptions для sources/models/columns/snapshots/singular tests,
+  exposure `customer_revenue_health_dashboard`, decision claims, owners, live
+  `dbt docs generate`, проверкой `manifest.json`/`catalog.json`, lineage до mart/fact/SCD
+  models и 10 behavioral tests.
+- Урок `11/08` «Snapshots и история изменений» с dbt-проектом `snapshot_project`,
+  YAML snapshot `subscription_status_snapshot`, SCD type 2 моделью
+  `int_subscription_history`, `unique_key=subscription_id`, `strategy=check`,
+  `updated_at`, явным `check_cols` без шумного `updated_at`, `dbt_valid_to_current`,
+  runbook для schedule/hard deletes, live двумя `dbt snapshot` циклами и 10
+  behavioral tests.
+- Урок `11/07` «Инкрементальные модели» с dbt-проектом `incremental_project`,
+  incremental fact-моделью `fct_order_revenue_daily`, `unique_key='revenue_date'`,
+  strategy `delete+insert`, late-arrival window на 2 дня, `on_schema_change='fail'`,
+  `incremental_contract` в `models/properties.yml`, full-refresh/backfill playbook,
+  source-level reconciliation test, live initial full refresh + incremental late-arrival
+  сценарий без дублей и 9 behavioral tests.
+- Урок `11/06` «Jinja и macros без злоупотребления» с dbt-проектом
+  `macro_project`, 5 documented low-level macros, `macros/properties.yml`,
+  compiled SQL review checklist, live `dbt parse`/`compile`/`run`/`test`, проверкой
+  отсутствия Jinja в compiled models, запретом macro для customer health business logic,
+  mart baseline audit и 10 behavioral tests.
+- Урок `11/05` «Data tests» с dbt-проектом `data_test_project`, 64 generic
+  data tests, 3 singular tests, source freshness, разделением blocking contract gates и
+  warning diagnostics, live `dbt parse`/`run`/`source freshness`/`test`, JSON-аудитором
+  `dbt_test_reporter.py` и 11 behavioral tests.
+- Урок `11/04` «Модели и materializations» с dbt-проектом
+  `materialization_project`, 13 staging/intermediate/mart моделями, policy
+  `view`/`table`/`ephemeral` в `properties.yml`, live `dbt parse`/`compile`/`run`,
+  physical relation audit, compiled ephemeral CTE check, independent mart
+  reconciliation и 10 behavioral tests.
+- Урок `11/03` «Sources, refs и зависимости» с dbt-проектом `source_ref_project`,
+  объявлением 8 raw tables как `sources`, staging-моделями через `source()`,
+  downstream graph через `ref()`, source freshness smoke check, manifest lineage audit,
+  запретом hardcoded `raw_*` references и 10 behavioral tests.
+- Урок `11/02` «Структура dbt-проекта» с `dbt_project_skeleton/`,
+  `profiles.yml.example`, smoke graph `staging -> intermediate -> marts`,
+  командами `dbt debug`/`dbt parse`/`dbt compile`, CLI-аудитором структуры проекта и
+  11 behavioral tests; в locked runtime добавлены `dbt-core==1.11.11` и
+  `dbt-duckdb==1.10.1`.
+- Урок `11/01` «Слои и контракты аналитических данных» с первым tiny extract фазы 11,
+  `layer_contract.json`, `mart_design_brief.md`, CLI-аудитором layer contract,
+  проверками raw/staging/intermediate/mart boundaries, source lineage, key tests,
+  mart publication contract и design brief.
 - Фаза 11 «Analytics Engineering» спроектирована целиком: 11 уроков на 15 часов,
   data layers, dbt project, sources/refs, materializations, data tests, Jinja macros,
   incremental models, snapshots, documentation/lineage, SQLFluff и интеграционный

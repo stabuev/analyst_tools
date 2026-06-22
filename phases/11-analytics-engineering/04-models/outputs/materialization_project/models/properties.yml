@@ -1,0 +1,133 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: "One row per registered user with normalized user attributes."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one registered user"
+      consumer: "intermediate and mart models"
+      materialization_reason: "Light source-shaped projection; freshness should follow raw data on each query."
+      cost_note: "Low-cost casts and renames, no business aggregation."
+  - name: stg_events
+    description: "One row per source event with typed timestamps and normalized platform."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one client or server event"
+      consumer: "future behavior models"
+      materialization_reason: "Event staging is a transparent raw boundary, not a stored mart."
+      cost_note: "Projection only; later incremental event marts handle volume."
+  - name: stg_orders
+    description: "One row per order with typed amount, status and order date."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one order or marketplace payment"
+      consumer: "intermediate revenue models"
+      materialization_reason: "Keeps order source logic current and inspectable."
+      cost_note: "Small normalization work before joins."
+  - name: stg_order_items
+    description: "One row per order line item."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one line item inside an order"
+      consumer: "line revenue intermediate model"
+      materialization_reason: "Line items are source-shaped and should not be stored twice."
+      cost_note: "Projection and decimal casts only."
+  - name: stg_subscriptions
+    description: "One row per subscription period."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one subscription period"
+      consumer: "latest subscription status model"
+      materialization_reason: "Subscription state is mutable; snapshots arrive in a later lesson."
+      cost_note: "Windowing is left to an intermediate view."
+  - name: stg_support_tickets
+    description: "One row per support ticket."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one support ticket"
+      consumer: "support aggregation by user"
+      materialization_reason: "Ticket source is small and source-shaped."
+      cost_note: "No aggregation in staging."
+  - name: stg_refunds
+    description: "One row per refund event for an order."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one refund event for an order"
+      consumer: "refund aggregation intermediate model"
+      materialization_reason: "Refunds stay current and transparent before order-level aggregation."
+      cost_note: "Projection only."
+  - name: stg_currency_rates
+    description: "One row per currency and calendar date."
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: "one currency rate for one calendar date"
+      consumer: "mart currency normalization"
+      materialization_reason: "Small lookup table; view is enough in the local project."
+      cost_note: "Tiny lookup with date and decimal casts."
+  - name: int_order_line_revenue
+    description: "Reusable line-level revenue logic joined to order status."
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: "one order line with order status"
+      consumer: "mart_customer_revenue_health"
+      materialization_reason: "Light reusable CTE used by one downstream mart; keeping it ephemeral avoids extra relations."
+      cost_note: "Safe while the compiled mart remains readable and fanout is limited."
+  - name: int_refunds_by_order
+    description: "Order-level refund amount before currency conversion."
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: "one refunded order"
+      consumer: "mart_customer_revenue_health"
+      materialization_reason: "Small aggregation used by a single mart and easy to inspect as compiled CTE."
+      cost_note: "Do not make widely shared or debugging-heavy logic ephemeral."
+  - name: int_support_by_user
+    description: "Support ticket counts and latest ticket timestamp by user."
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: "one user with support ticket summary"
+      consumer: "customer revenue health mart and ad-hoc support checks"
+      materialization_reason: "Reusable diagnostic model that analysts may query directly."
+      cost_note: "Small aggregation, but direct inspectability matters."
+  - name: int_subscription_latest
+    description: "Latest subscription status by user."
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: "one user with latest subscription state"
+      consumer: "customer revenue health mart"
+      materialization_reason: "Window logic should be inspectable before snapshot history is introduced."
+      cost_note: "View keeps mutable-state caveat visible."
+  - name: mart_customer_revenue_health
+    description: "Consumer-facing customer revenue health mart."
+    config:
+      materialized: table
+    meta:
+      layer: marts
+      grain: "one active non-deleted user"
+      consumer: "product and finance analysis"
+      materialization_reason: "Published mart is queried by consumers and should be fast and stable between runs."
+      cost_note: "Rebuild cost is acceptable for the tiny local project; incremental comes later."
