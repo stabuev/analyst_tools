@@ -279,7 +279,7 @@ window.COURSE_DATA = {
         {
           "number": 12,
           "title": "Производительность аналитики",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 17,
@@ -365,7 +365,7 @@ window.COURSE_DATA = {
         {
           "number": 12,
           "title": "Производительность аналитики",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 15,
@@ -481,7 +481,7 @@ window.COURSE_DATA = {
         {
           "number": 12,
           "title": "Производительность аналитики",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 13,
@@ -2883,206 +2883,206 @@ window.COURSE_DATA = {
       },
       "artifact": "Бенчмарк одного пайплайна на нескольких движках",
       "completion": "Студент воспроизводимо измеряет время и память и обосновывает выбор pandas, DuckDB или Polars.",
-      "status": "planned",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance",
       "lessons": [
         {
           "number": 1,
           "slug": "benchmarking",
           "title": "Корректный benchmarking",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит воспроизводимый benchmark harness: фиксирует вход, версии, warm-up, повторы, cache policy, equivalence gate и интерпретирует разброс измерений без ложной точности.",
+          "artifact": "Benchmark harness с environment report и equivalence gate",
+          "type": "build",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/01-benchmarking",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/01-benchmarking",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "profiling",
           "title": "CPU и memory profiling",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Профилирует один аналитический pipeline по wall time, CPU и памяти, отделяет Python overhead, native allocations, IO и algorithmic hot spots и выпускает actionable profile report.",
+          "artifact": "CPU/memory profiling report и hot-spot classifier",
+          "type": "build",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/02-profiling",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/02-profiling",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/02-profiling/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "memory-and-dtypes",
           "title": "Память и типы данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Оценивает footprint DataFrame, выбирает dtype policy для чисел, строк, категорий, дат и nullable fields и проверяет, что экономия памяти не меняет бизнес-смысл.",
+          "artifact": "Schema optimization plan с memory budget и semantic checks",
+          "type": "build",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/03-memory-and-dtypes",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/03-memory-and-dtypes",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/03-memory-and-dtypes/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "parquet-pushdown",
           "title": "Projection и predicate pushdown",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проектирует Parquet layout с row groups, partitions, statistics и нужными колонками, измеряет projection/predicate pushdown и подтверждает его через query plans.",
+          "artifact": "Parquet layout audit с pushdown benchmark report",
+          "type": "case",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/04-parquet-pushdown",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/04-parquet-pushdown",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "arrow-memory",
           "title": "Arrow memory model",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Разбирает Arrow buffers, null bitmaps, offsets, chunks и dictionary encoding, инспектирует PyArrow Table/Array и отличает zero-copy обмен от скрытого копирования.",
+          "artifact": "Arrow memory inspector и copy audit",
+          "type": "learn",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/05-arrow-memory",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/05-arrow-memory",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "duckdb-out-of-core",
           "title": "DuckDB и данные больше памяти",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Запускает DuckDB workload с заданными memory_limit, temp_directory и threads, читает EXPLAIN/EXPLAIN ANALYZE, распознает blocking operators и проверяет larger-than-memory ограничения.",
+          "artifact": "DuckDB out-of-core runbook и query profile report",
+          "type": "case",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/06-duckdb-out-of-core",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/06-duckdb-out-of-core",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "polars-expressions",
           "title": "Polars expressions",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Переносит pipeline из pandas в Polars expressions, использует select/with_columns/filter/group_by contexts, избегает row-wise Python UDF и проверяет эквивалентность результата.",
+          "artifact": "Polars expression pipeline с equivalence tests",
+          "type": "build",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/07-polars-expressions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/07-polars-expressions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/07-polars-expressions/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "lazy-execution",
           "title": "Lazy execution и оптимизация",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит lazy scan-план, читает optimized logical plan, подтверждает projection/predicate pushdown и показывает, где ранний collect или UDF блокирует оптимизацию.",
+          "artifact": "Optimized Polars lazy plan audit",
+          "type": "case",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/08-lazy-execution",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/08-lazy-execution",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/08-lazy-execution/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "streaming",
           "title": "Streaming и пакетная обработка",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проектирует chunked/streaming обработку для ограниченной памяти, отличает ассоциативные агрегаты от операций с полной координацией и выпускает checkpointed batch report.",
+          "artifact": "Streaming batch processor с checkpoint и correctness report",
+          "type": "build",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/09-streaming",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/09-streaming",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/09-streaming/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "interoperability",
           "title": "Обмен между pandas, Arrow и Polars",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Передает таблицу между pandas, PyArrow, DuckDB и Polars, проверяет schema/null/timezone/category semantics, фиксирует копии и выбирает минимально дорогую границу обмена.",
+          "artifact": "Interoperability matrix и conversion audit",
+          "type": "case",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/10-interoperability",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/10-interoperability",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "ibis",
           "title": "Ibis как переносимый DataFrame API",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 120,
+          "outcome": "Выражает один performance pipeline переносимым Ibis API, сравнивает backend-specific планы и измерения с pandas, DuckDB и Polars и оформляет решение о движке с ограничениями.",
+          "artifact": "Multi-engine benchmark package с Ibis portability audit",
+          "type": "case",
           "tracks": [
             "data",
             "ml"
           ],
           "path": "phases/12-performance/11-ibis",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/11-ibis",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 122,
+    "complete_lessons": 133,
     "hours": {
       "min": 238,
       "max": 326

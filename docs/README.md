@@ -23,6 +23,9 @@
 - [`phase-11-design.md`](phase-11-design.md) — границы analytics engineering, dbt graph,
   sources/refs, materializations, data tests, snapshots, docs, SQLFluff и локальный
   dbt-duckdb проект.
+- [`phase-12-design.md`](phase-12-design.md) — границы performance-фазы, benchmark
+  protocol, Parquet/Arrow/DuckDB/Polars/Ibis, memory budget и multi-engine benchmark
+  package.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

@@ -3,14 +3,15 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 22 июня 2026
+**Обновлено:** 25 июня 2026
 **Ветка:** `main`
 **Базовый коммит перед текущим этапом:** `7fac9fd` — завершение фаз 07–09
 
 Локальная `main` была синхронизирована с `origin/main` перед проектированием фазы 10.
-Рабочее дерево после текущего этапа содержит незакоммиченные изменения завершенной фазы
-10 и разработки фазы 11. Push и commit выполняются только по явной команде
-пользователя. Перед продолжением проверьте актуальное состояние через `git status`.
+Рабочее дерево после текущего этапа содержит незакоммиченные изменения завершенных фаз
+10–12. Push и commit выполняются только по
+явной команде пользователя. Перед продолжением проверьте актуальное состояние через
+`git status`.
 
 ## Цель
 
@@ -26,9 +27,9 @@
 
 - 19 фаз.
 - 201 урок в программе.
-- 122 завершенных урока.
-- 0 уроков в статусе `designed`.
-- Фазы 00–11 полностью завершены.
+- 133 завершенных урока.
+- Уроков в статусе `designed` нет.
+- Фазы 00–12 полностью завершены.
 - Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
 - Фаза 11 «Analytics Engineering» завершена: 11 уроков на 900 минут; готовы уроки
   `11/01` «Слои и контракты аналитических данных», `11/02` «Структура dbt-проекта»,
@@ -37,13 +38,22 @@
   `11/07` «Инкрементальные модели», `11/08` «Snapshots и история изменений» и
   `11/09` «Документация и lineage», `11/10` «SQLFluff и единый стиль» и `11/11`
   «Локальный проект с dbt-duckdb».
-- Следующий содержательный этап — проектирование фазы 12 «Производительность аналитики».
+- Фаза 12 «Производительность аналитики» завершена: 11 уроков на 915 минут,
+  готовы `12/01` «Корректный benchmarking», `12/02` «CPU и memory profiling»,
+  `12/03` «Память и типы данных», `12/04` «Projection и predicate pushdown»,
+  `12/05` «Arrow memory model», `12/06` «DuckDB и данные больше памяти» и
+  `12/07` «Polars expressions», `12/08` «Lazy execution и оптимизация»,
+  `12/09` «Streaming и пакетная обработка» и `12/10` «Обмен между pandas, Arrow
+  и Polars», `12/11` «Ibis как переносимый DataFrame API»,
+  единая задача `customer_revenue_health_weekly`, benchmark protocol,
+  Parquet/Arrow/DuckDB/Polars/Ibis и финальный multi-engine benchmark package.
+- Следующий содержательный этап — проектирование фазы 13 «Причинный анализ».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10, `10` — 11/11, `11` — 11/11.
+`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11.
 
 ## Текущая работа
 
@@ -893,8 +903,78 @@ machine-readable mart contract и структура финального `analy
   запрет direct raw references, incremental late-window contract, dbt templater,
   report-to-manifest traceability, checksum tampering и CLI exit code.
 
-Фазы 00–11 завершены. Следующий содержательный шаг — спроектировать фазу 12
-«Производительность аналитики». Перед коммитом обязательно прогнать полный набор проверок.
+## Фаза 12
+
+Фаза 12 спроектирована в `docs/phase-12-design.md`: зафиксированы границы
+performance-фазы, роли Python profiling tools, pandas, PyArrow/Arrow, DuckDB, Polars,
+Ibis, NumPy, Pandera/Pydantic и pytest, общий `customer_revenue_health_weekly` pipeline,
+failure modes benchmark/data layout/interoperability, machine-readable benchmark scenario
+contract и структура финального `performance-benchmark-package/`.
+
+Уроки фазы 12 развернуты в `curriculum.json`: `12/01`-`12/11` завершены.
+
+- `12/01` «Корректный benchmarking»: benchmark harness, environment report,
+  equivalence gate; разработан полный lesson package с `benchmark_harness.py`,
+  behavioral tests, quiz, docs и artifact manifest;
+- `12/02` «CPU и memory profiling»: разработан полный lesson package с
+  `profiling_report.py`, `cProfile`, `tracemalloc`, wall/process time,
+  hot-spot classifier, memory budget findings, behavioral tests, quiz, docs и
+  artifact manifest;
+- `12/03` «Память и типы данных»: разработан полный lesson package с
+  `dtype_policy.py`, pandas `memory_usage(deep=True)`, safe integer downcast,
+  category/domain checks, nullable fields, memory budget findings, behavioral tests,
+  quiz, docs и artifact manifest;
+- `12/04` «Projection и predicate pushdown»: разработан полный lesson package с
+  `parquet_pushdown_audit.py`, Hive-partitioned Parquet layout, PyArrow Dataset scan,
+  DuckDB `EXPLAIN`, file/row-group pruning audit, result contract, behavioral tests,
+  quiz, docs и artifact manifest;
+- `12/05` «Arrow memory model»: разработан полный lesson package с
+  `arrow_memory_inspector.py`, PyArrow Table/Array buffer inspector, null bitmap,
+  offsets, chunked arrays, dictionary encoding, zero-copy/copy boundary audit,
+  behavioral tests, quiz, docs и artifact manifest;
+- `12/06` «DuckDB и данные больше памяти»: разработан полный lesson package с
+  `duckdb_out_of_core_report.py`, генератором Parquet workload, DuckDB
+  `memory_limit`/`temp_directory`/`threads`, `EXPLAIN`/`EXPLAIN ANALYZE`, классификацией
+  blocking operators, spill observation, pandas equivalence gate, runbook, behavioral
+  tests, quiz, docs и artifact manifest;
+- `12/07` «Polars expressions»: разработан полный lesson package с
+  `polars_expression_pipeline.py`, Polars `select`/`with_columns`/`filter`/`group_by`
+  expression pipeline, pandas control, schema report, row-wise Python UDF audit,
+  equivalence gate, behavioral tests, quiz, docs и artifact manifest;
+- `12/08` «Lazy execution и оптимизация»: разработан полный lesson package с
+  `polars_lazy_plan_audit.py`, широким Parquet input, `pl.scan_parquet` lazy pipeline,
+  optimized/unoptimized `LazyFrame.explain`, projection/predicate pushdown audit,
+  early `collect`/Python UDF source audit, pandas equivalence gate, behavioral tests,
+  quiz, docs и artifact manifest;
+- `12/09` «Streaming и пакетная обработка»: разработан полный lesson package с
+  `streaming_batch_processor.py`, Parquet batch manifest и SHA-256 identity,
+  additive partial state, атомарным checkpoint через `os.replace`, simulated
+  interruption/resume без двойного учета, классификацией bounded/mergeable operations,
+  median-of-medians counterexample, pandas и Polars streaming equivalence gates,
+  behavioral tests, quiz, docs и artifact manifest;
+- `12/10` «Обмен между pandas, Arrow и Polars»: разработан полный lesson package с
+  `interoperability_audit.py`, каноническим Arrow schema contract, pandas ArrowDtype
+  storage audit, buffer-address reuse checks, Polars string/category re-encoding,
+  DuckDB Arrow materialization и dictionary decode, timezone session counterexample,
+  interoperability matrix, engine-boundary decision, behavioral tests, quiz, docs и
+  artifact manifest;
+- `12/11` «Ibis как переносимый DataFrame API»: разработан интеграционный
+  `performance-benchmark-packager` на Ibis `12.0.0`; один portable core компилируется
+  в DuckDB SQL и Polars `LazyFrame`, проходит equivalence gate вместе с pandas,
+  native DuckDB и native Polars, а неподдержанное dense-rank окно Polars backend
+  фиксируется как явная divergence; пакет сохраняет raw runs, summary, планы,
+  CPU/memory profiles, portability audit, динамическое engine decision и SHA-256
+  manifest; lesson suite содержит 16 behavioral tests.
+
+Для `12/07` добавлен runtime Polars `1.41.2`, для `12/11` — Ibis `12.0.0` с DuckDB и
+Polars extras; версии зафиксированы в `pyproject.toml` и `uv.lock`.
+
+Фазы 00–12 завершены.
+Следующий содержательный шаг — спроектировать фазу 13 «Причинный анализ», уточнить
+границы с экспериментами и статистическим выводом, общий учебный кейс и состав
+проверяемых артефактов.
+Перед коммитом обязательно
+прогнать полный набор проверок.
 
 ## Уже принятые решения
 

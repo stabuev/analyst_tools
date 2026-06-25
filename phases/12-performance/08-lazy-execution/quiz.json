@@ -1,0 +1,82 @@
+{
+  "questions": [
+    {
+      "id": "pre_lazy_scan",
+      "stage": "pre",
+      "question": "Почему lazy pipeline в уроке начинается с `pl.scan_parquet`, а не с `pl.read_parquet`?",
+      "options": [
+        "`scan_parquet` строит lazy scan, который optimizer может переписать до чтения данных.",
+        "`scan_parquet` всегда читает больше колонок, чем `read_parquet`.",
+        "`scan_parquet` отключает все фильтры.",
+        "`scan_parquet` нужен только для CSV-файлов."
+      ],
+      "correct": 0,
+      "explanation": "Lazy scan оставляет чтение данных частью плана. Поэтому projection и predicate могут быть протолкнуты к scan."
+    },
+    {
+      "id": "pre_collect_boundary",
+      "stage": "pre",
+      "question": "Что означает ранний `collect()` в середине lazy pipeline?",
+      "options": [
+        "Материализацию данных, после которой downstream операции уже не видны optimizer как часть scan-плана.",
+        "Автоматическое включение predicate pushdown.",
+        "Проверку, что все колонки отброшены.",
+        "Запуск только unoptimized plan без результата."
+      ],
+      "correct": 0,
+      "explanation": "`collect()` является границей выполнения. Если вызвать его слишком рано, фильтры и projection после него уже не могут быть pushed down."
+    },
+    {
+      "id": "post_projection_pushdown",
+      "stage": "post",
+      "question": "Какой признак в optimized Polars plan подтверждает projection pushdown в уроке?",
+      "options": [
+        "`PROJECT 11/15 COLUMNS` у `Parquet SCAN` вместо чтения всех колонок.",
+        "`PROJECT */15 COLUMNS` в unoptimized plan.",
+        "Отсутствие `Parquet SCAN` в плане.",
+        "Наличие `collect()` в source code."
+      ],
+      "correct": 0,
+      "explanation": "Projection pushdown виден, когда scan читает меньше колонок, чем всего есть в Parquet input."
+    },
+    {
+      "id": "post_predicate_pushdown",
+      "stage": "post",
+      "question": "Какой признак показывает predicate pushdown?",
+      "options": [
+        "`SELECTION:` рядом с `Parquet SCAN`, где упомянуты ожидаемые фильтры.",
+        "Только финальный `SORT BY`.",
+        "Наличие широких колонок в source DataFrame.",
+        "Совпадение количества строк до и после фильтра."
+      ],
+      "correct": 0,
+      "explanation": "Predicate pushdown означает, что фильтр перенесен к scan. В плане урока это видно как `SELECTION` у Parquet scan."
+    },
+    {
+      "id": "post_udf_blocker",
+      "stage": "post",
+      "question": "Почему audit блокирует `map_elements` в lazy pipeline?",
+      "options": [
+        "Python UDF делает часть логики непрозрачной для optimizer и может помешать векторному выполнению.",
+        "Polars никогда не умеет пользовательские функции.",
+        "UDF всегда меняет порядок строк.",
+        "UDF нужен только для DuckDB."
+      ],
+      "correct": 0,
+      "explanation": "UDF может быть осознанным исключением, но в performance-пайплайне его нужно явно измерять и документировать."
+    },
+    {
+      "id": "post_equivalence",
+      "stage": "post",
+      "question": "Почему lazy plan audit все равно сверяет результат с pandas control?",
+      "options": [
+        "Потому что оптимизированный план полезен только если бизнес-результат не изменился.",
+        "Потому что pandas нужен для включения projection pushdown.",
+        "Потому что Polars не может выполнить group_by без pandas.",
+        "Потому что plan text всегда содержит готовый CSV-результат."
+      ],
+      "correct": 0,
+      "explanation": "Performance-оптимизация без equivalence gate может ускорить неправильный расчет. Поэтому результат сверяется отдельно."
+    }
+  ]
+}

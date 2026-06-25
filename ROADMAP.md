@@ -303,17 +303,17 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Корректный benchmarking | planned |
-| 02 | CPU и memory profiling | planned |
-| 03 | Память и типы данных | planned |
-| 04 | Projection и predicate pushdown | planned |
-| 05 | Arrow memory model | planned |
-| 06 | DuckDB и данные больше памяти | planned |
-| 07 | Polars expressions | planned |
-| 08 | Lazy execution и оптимизация | planned |
-| 09 | Streaming и пакетная обработка | planned |
-| 10 | Обмен между pandas, Arrow и Polars | planned |
-| 11 | Ibis как переносимый DataFrame API | planned |
+| 01 | [Корректный benchmarking](phases/12-performance/01-benchmarking) | complete |
+| 02 | [CPU и memory profiling](phases/12-performance/02-profiling) | complete |
+| 03 | [Память и типы данных](phases/12-performance/03-memory-and-dtypes) | complete |
+| 04 | [Projection и predicate pushdown](phases/12-performance/04-parquet-pushdown) | complete |
+| 05 | [Arrow memory model](phases/12-performance/05-arrow-memory) | complete |
+| 06 | [DuckDB и данные больше памяти](phases/12-performance/06-duckdb-out-of-core) | complete |
+| 07 | [Polars expressions](phases/12-performance/07-polars-expressions) | complete |
+| 08 | [Lazy execution и оптимизация](phases/12-performance/08-lazy-execution) | complete |
+| 09 | [Streaming и пакетная обработка](phases/12-performance/09-streaming) | complete |
+| 10 | [Обмен между pandas, Arrow и Polars](phases/12-performance/10-interoperability) | complete |
+| 11 | [Ibis как переносимый DataFrame API](phases/12-performance/11-ibis) | complete |
 
 ## Фаза 13: Причинный анализ
 
