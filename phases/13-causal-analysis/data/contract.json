@@ -1,0 +1,173 @@
+{
+  "version": "1.0.0",
+  "description": "Детерминированный observational causal extract для assisted onboarding: baseline до time zero, неслучайный treatment, outcomes, regional rollout, cutoff и encouragement.",
+  "generator": "generate_data.py",
+  "profiles": {
+    "tiny": {
+      "description": "Маленький профиль для ручной сверки target population, treatment timing, estimand и будущих RA/matching/IPW/DiD/RDD/IV расчетов.",
+      "tracked": true,
+      "rows": {
+        "users": 13,
+        "pre_treatment_behavior": 13,
+        "onboarding_assistance": 13,
+        "outcomes": 13,
+        "encouragement_assignments": 10,
+        "rollout_calendar": 2,
+        "region_week_panel": 16,
+        "causal_scenarios": 4
+      }
+    },
+    "sample": {
+      "description": "Локальный профиль для balance, overlap, multi-period DiD, cutoff и sensitivity analysis.",
+      "tracked": false,
+      "seed": 20260625,
+      "default_rows": {
+        "users": 2000
+      }
+    }
+  },
+  "tables": {
+    "users": {
+      "file": "users.csv",
+      "grain": "Один зарегистрированный пользователь, потенциально входящий в causal target population.",
+      "primary_key": ["user_id"],
+      "columns": {
+        "user_id": {"type": "string", "timing": "identifier"},
+        "registered_at": {"type": "timestamp_tz", "timing": "baseline"},
+        "platform": {"type": "string", "timing": "baseline"},
+        "device_tier": {"type": "string", "timing": "baseline"},
+        "acquisition_channel": {"type": "string", "timing": "baseline"},
+        "region_id": {"type": "string", "timing": "baseline"},
+        "language": {"type": "string", "timing": "baseline"},
+        "is_test_user": {"type": "boolean", "timing": "baseline"},
+        "eligible_for_program": {"type": "boolean", "timing": "baseline"}
+      }
+    },
+    "pre_treatment_behavior": {
+      "file": "pre_treatment_behavior.csv",
+      "grain": "Один user-level baseline, измеренный до treatment time zero.",
+      "primary_key": ["user_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}],
+      "columns": {
+        "user_id": {"type": "string", "timing": "identifier"},
+        "time_zero": {"type": "timestamp_tz", "timing": "time_zero"},
+        "friction_score": {"type": "integer", "timing": "baseline"},
+        "network_quality": {"type": "string", "timing": "baseline"},
+        "app_crashes_before_time_zero": {"type": "integer", "timing": "baseline"},
+        "onboarding_steps_before_time_zero": {"type": "integer", "timing": "baseline"},
+        "sessions_before_time_zero": {"type": "integer", "timing": "baseline"},
+        "specialist_capacity": {"type": "integer", "timing": "baseline"},
+        "activation_14d_pre": {"type": "boolean", "timing": "baseline"},
+        "signup_cohort": {"type": "date", "timing": "baseline"}
+      }
+    },
+    "onboarding_assistance": {
+      "file": "onboarding_assistance.csv",
+      "grain": "Одна запись assisted onboarding program на пользователя.",
+      "primary_key": ["program_id", "user_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}],
+      "columns": {
+        "program_id": {"type": "string", "timing": "identifier"},
+        "user_id": {"type": "string", "timing": "identifier"},
+        "time_zero": {"type": "timestamp_tz", "timing": "time_zero"},
+        "friction_score": {"type": "integer", "timing": "baseline"},
+        "eligibility_cutoff": {"type": "integer", "timing": "baseline"},
+        "offered_assistance": {"type": "boolean", "timing": "treatment"},
+        "received_assistance": {"type": "boolean", "timing": "treatment"},
+        "offered_at": {"type": "timestamp_tz", "timing": "treatment"},
+        "started_at": {"type": "timestamp_tz", "timing": "treatment"},
+        "region_id": {"type": "string", "timing": "baseline"},
+        "specialist_capacity": {"type": "integer", "timing": "baseline"},
+        "assignment_reason": {"type": "string", "timing": "treatment"}
+      }
+    },
+    "outcomes": {
+      "file": "outcomes.csv",
+      "grain": "Один user-level набор post-treatment outcomes и observation metadata.",
+      "primary_key": ["user_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}],
+      "columns": {
+        "user_id": {"type": "string", "timing": "identifier"},
+        "activation_14d": {"type": "boolean", "timing": "outcome"},
+        "paid_subscription_30d": {"type": "boolean", "timing": "outcome"},
+        "cancelled_subscription_30d": {"type": "boolean", "timing": "outcome"},
+        "refund_amount_30d": {"type": "decimal", "timing": "outcome"},
+        "support_minutes_14d": {"type": "integer", "timing": "outcome"},
+        "onboarding_completed_48h": {"type": "boolean", "timing": "post_treatment"},
+        "opened_support_chat_after_offer": {"type": "boolean", "timing": "post_treatment"},
+        "telemetry_complete_30d": {"type": "boolean", "timing": "post_treatment"},
+        "followup_end_at": {"type": "timestamp_tz", "timing": "outcome"}
+      }
+    },
+    "encouragement_assignments": {
+      "file": "encouragement_assignments.csv",
+      "grain": "Одно pre-treatment encouragement assignment пользователя.",
+      "primary_key": ["encouragement_id"],
+      "foreign_keys": [{"columns": ["user_id"], "references": "users.user_id"}],
+      "columns": {
+        "encouragement_id": {"type": "string", "timing": "identifier"},
+        "user_id": {"type": "string", "timing": "identifier"},
+        "encouraged": {"type": "boolean", "timing": "baseline"},
+        "assigned_at": {"type": "timestamp_tz", "timing": "baseline"},
+        "instrument_version": {"type": "string", "timing": "baseline"}
+      }
+    },
+    "rollout_calendar": {
+      "file": "rollout_calendar.csv",
+      "grain": "Одна версия регионального rollout.",
+      "primary_key": ["region_id", "rollout_version"],
+      "columns": {
+        "region_id": {"type": "string", "timing": "baseline"},
+        "rollout_version": {"type": "string", "timing": "identifier"},
+        "rollout_start": {"type": "date", "timing": "treatment"},
+        "rollout_end": {"type": "date", "timing": "treatment"},
+        "eligibility_rule": {"type": "string", "timing": "baseline"}
+      }
+    },
+    "region_week_panel": {
+      "file": "region_week_panel.csv",
+      "grain": "Один регион и одна календарная неделя.",
+      "primary_key": ["region_id", "week_start"],
+      "columns": {
+        "region_id": {"type": "string", "timing": "baseline"},
+        "week_start": {"type": "date", "timing": "time_index"},
+        "rollout_active": {"type": "boolean", "timing": "treatment"},
+        "eligible_users": {"type": "integer", "timing": "aggregate"},
+        "assisted_users": {"type": "integer", "timing": "aggregate"},
+        "activation_rate_14d": {"type": "decimal", "timing": "outcome"},
+        "paid_subscription_rate_30d": {"type": "decimal", "timing": "outcome"},
+        "mean_friction_score": {"type": "decimal", "timing": "baseline"}
+      }
+    },
+    "causal_scenarios": {
+      "file": "causal_scenarios.csv",
+      "grain": "Один machine-readable causal design scenario.",
+      "primary_key": ["scenario_id"],
+      "columns": {
+        "scenario_id": {"type": "string", "timing": "identifier"},
+        "design": {"type": "string", "timing": "design"},
+        "treatment": {"type": "string", "timing": "design"},
+        "outcome": {"type": "string", "timing": "design"},
+        "estimand": {"type": "string", "timing": "design"},
+        "unit": {"type": "string", "timing": "design"},
+        "identification_strategy": {"type": "string", "timing": "design"}
+      }
+    }
+  },
+  "known_failure_modes": [
+    "association is presented as a causal effect before identification",
+    "time zero is defined after treatment starts",
+    "treatment versions are left ambiguous",
+    "ATE is labeled while the population is restricted to treated users",
+    "LATE is labeled without an instrument and complier population",
+    "post-treatment mediator enters eligibility or baseline adjustment",
+    "treatment starts before time zero or outside the declared grace period",
+    "outcome window is incomplete for the declared estimand",
+    "confounding by indication makes naive treated/control difference misleading",
+    "positivity is violated in region and friction-score cells",
+    "selection on telemetry completeness changes the target population",
+    "regional rollout violates parallel trends",
+    "running-variable manipulation invalidates a cutoff design",
+    "weak encouragement is interpreted as a population ATE"
+  ]
+}

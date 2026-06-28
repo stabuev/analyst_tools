@@ -2,31 +2,31 @@
 
 # Фаза 13: Причинный анализ
 
-> Отделяйте причинные предположения от статистических вычислений.
+> Проектируйте наблюдательное причинное исследование: сначала estimand и идентификация, затем оценка и проверка чувствительности.
 
 **Треки:** decision, product  
 **Пререквизиты:** Фаза 09, Фаза 10  
 **Время:** ~12-16 часов  
-**Итоговый артефакт:** Причинное исследование с явными assumptions
+**Итоговый артефакт:** Воспроизводимый causal-study-package с DAG, идентификацией, оценками и sensitivity checks
 
 ## Уроки
 
-| № | Урок | Статус |
-|---:|---|---|
-| 01 | Корреляция и причинность | planned |
-| 02 | Причинные DAG | planned |
-| 03 | Confounders и backdoor paths | planned |
-| 04 | Colliders и selection bias | planned |
-| 05 | Regression adjustment | planned |
-| 06 | Matching | planned |
-| 07 | Propensity weighting | planned |
-| 08 | Difference-in-Differences | planned |
-| 09 | RDD и instrumental variables: обзор | planned |
-| 10 | Sensitivity analysis | planned |
-| 11 | DoWhy и EconML: границы автоматизации | planned |
+| № | Урок | Время | Проверяемый результат | Артефакт | Статус |
+|---:|---|---:|---|---|---|
+| 01 | [Причинный вопрос и estimand](01-causal-question-and-estimand) | 75 мин | Переводит продуктовый вопрос в target trial-style causal spec: treatment, contrast, outcome, time zero, population и ATE/ATT/LATE estimand, явно фиксируя consistency, exchangeability, positivity и interference risks. | CLI-валидатор causal question, target trial и estimand spec | complete |
+| 02 | [Причинные DAG и идентификация](02-causal-dags) | 75 мин | Строит направленный ациклический граф из предметных assumptions, различает association и intervention, проверяет temporal order и d-separation и отделяет идентификацию эффекта от выбора estimator. | Causal DAG validator с identification map и d-separation checks | complete |
+| 03 | Confounders и backdoor adjustment | 75 мин | Находит открытые backdoor paths, выбирает достаточный pre-treatment adjustment set и фиксирует, какие confounders измерены, проксированы или остаются ненаблюдаемыми. | Backdoor adjustment-set auditor с measured/unmeasured confounder report | designed |
+| 04 | Colliders, mediators и selection bias | 75 мин | Распознает collider, mediator, descendant of treatment и selection variable, объясняет bias от bad controls и блокирует adjustment по post-treatment данным. | Bad-control и selection-bias auditor для candidate adjustment sets | designed |
+| 05 | Regression adjustment и g-formula | 90 мин | Оценивает standardized potential outcomes и ATE/ATT через outcome regression, сверяет ручную g-computation со statsmodels и диагностирует misspecification, extrapolation и неверный adjustment set. | G-computation estimator с standardized outcomes и model diagnostics | designed |
+| 06 | Matching и баланс ковариат | 90 мин | Строит matching по pre-treatment covariates или propensity score, задает caliper и replacement policy, проверяет common support, standardized mean differences и изменение target population после отбора. | Matching pipeline с balance table, love plot data и common-support audit | designed |
+| 07 | Propensity weighting и doubly robust оценка | 90 мин | Оценивает propensity scores, строит stabilized IPW и AIPW estimates, проверяет overlap, extreme weights, effective sample size и trimming sensitivity и сравнивает методы при misspecified treatment или outcome model. | IPW/AIPW estimator с overlap, weight и effective-sample-size diagnostics | designed |
+| 08 | Difference-in-Differences | 105 мин | Рассчитывает 2x2 и multi-period DiD для регионального rollout, формулирует parallel-trends assumption, проверяет pre-trends и placebo periods и распознает риск наивного TWFE при staggered adoption. | DiD analyzer с manual reconciliation, event-study table и placebo/pre-trend checks | designed |
+| 09 | RDD и instrumental variables: дизайн до оценки | 75 мин | Проверяет применимость RDD и IV, формулирует локальный estimand, continuity/relevance/exclusion/monotonicity assumptions и обнаруживает manipulation at cutoff, weak instrument и неверное обобщение LATE на ATE. | Quasi-experiment design auditor для RDD и IV с local-estimand contract | designed |
+| 10 | Sensitivity analysis и falsification checks | 75 мин | Проводит placebo treatment/outcome, negative-control и omitted-confounding sensitivity checks, сравнивает estimates между designs и формулирует, какая сила нарушения assumptions изменит вывод. | Sensitivity и refutation suite с placebo, negative-control и omitted-variable report | designed |
+| 11 | Causal workflow и границы автоматизации | 105 мин | Собирает causal-study-package, воспроизводит model-identify-estimate-refute workflow в DoWhy, сверяет его с прозрачными RA/IPW/AIPW/DiD расчетами и объясняет, почему EconML не заменяет identification и нужен только для отдельно поставленной heterogeneity-задачи. | Causal-study-package с DAG, estimates, balance, falsification, sensitivity, automation audit и checksum manifest | designed |
 
 ## Критерий завершения
 
-Студент рисует причинный граф, объясняет идентификацию эффекта и проводит sensitivity analysis.
+Студент формулирует estimand, обосновывает adjustment или quasi-experimental design, проверяет overlap, falsification и sensitivity и ограничивает causal claim выполненными assumptions.
 
 [Вернуться к общей дорожной карте](../../ROADMAP.md)

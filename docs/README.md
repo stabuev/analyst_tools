@@ -26,6 +26,9 @@
 - [`phase-12-design.md`](phase-12-design.md) — границы performance-фазы, benchmark
   protocol, Parquet/Arrow/DuckDB/Polars/Ibis, memory budget и multi-engine benchmark
   package.
+- [`phase-13-design.md`](phase-13-design.md) — causal question и estimand, DAG,
+  adjustment sets, matching/IPW/AIPW, DiD, RDD/IV, sensitivity и итоговый
+  causal-study-package.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

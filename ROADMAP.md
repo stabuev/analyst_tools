@@ -320,21 +320,21 @@ flowchart LR
 **Треки:** decision, product  
 **Пререквизиты:** Фаза 09, Фаза 10  
 **Время:** ~12-16 часов  
-**Итоговый артефакт:** Причинное исследование с явными assumptions
+**Итоговый артефакт:** Воспроизводимый causal-study-package с DAG, идентификацией, оценками и sensitivity checks
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Корреляция и причинность | planned |
-| 02 | Причинные DAG | planned |
-| 03 | Confounders и backdoor paths | planned |
-| 04 | Colliders и selection bias | planned |
-| 05 | Regression adjustment | planned |
-| 06 | Matching | planned |
-| 07 | Propensity weighting | planned |
-| 08 | Difference-in-Differences | planned |
-| 09 | RDD и instrumental variables: обзор | planned |
-| 10 | Sensitivity analysis | planned |
-| 11 | DoWhy и EconML: границы автоматизации | planned |
+| 01 | [Причинный вопрос и estimand](phases/13-causal-analysis/01-causal-question-and-estimand) | complete |
+| 02 | [Причинные DAG и идентификация](phases/13-causal-analysis/02-causal-dags) | complete |
+| 03 | Confounders и backdoor adjustment | designed |
+| 04 | Colliders, mediators и selection bias | designed |
+| 05 | Regression adjustment и g-formula | designed |
+| 06 | Matching и баланс ковариат | designed |
+| 07 | Propensity weighting и doubly robust оценка | designed |
+| 08 | Difference-in-Differences | designed |
+| 09 | RDD и instrumental variables: дизайн до оценки | designed |
+| 10 | Sensitivity analysis и falsification checks | designed |
+| 11 | Causal workflow и границы автоматизации | designed |
 
 ## Фаза 14: Временные ряды
 

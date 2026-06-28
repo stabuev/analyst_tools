@@ -195,7 +195,7 @@ window.COURSE_DATA = {
         {
           "number": 13,
           "title": "Причинный анализ",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 17,
@@ -486,7 +486,7 @@ window.COURSE_DATA = {
         {
           "number": 13,
           "title": "Причинный анализ",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "number": 14,
@@ -3090,7 +3090,7 @@ window.COURSE_DATA = {
       "number": 13,
       "slug": "causal-analysis",
       "title": "Причинный анализ",
-      "summary": "Отделяйте причинные предположения от статистических вычислений.",
+      "summary": "Проектируйте наблюдательное причинное исследование: сначала estimand и идентификация, затем оценка и проверка чувствительности.",
       "tracks": [
         "decision",
         "product"
@@ -3103,55 +3103,55 @@ window.COURSE_DATA = {
         "min": 12,
         "max": 16
       },
-      "artifact": "Причинное исследование с явными assumptions",
-      "completion": "Студент рисует причинный граф, объясняет идентификацию эффекта и проводит sensitivity analysis.",
-      "status": "planned",
+      "artifact": "Воспроизводимый causal-study-package с DAG, идентификацией, оценками и sensitivity checks",
+      "completion": "Студент формулирует estimand, обосновывает adjustment или quasi-experimental design, проверяет overlap, falsification и sensitivity и ограничивает causal claim выполненными assumptions.",
+      "status": "in-progress",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis",
       "lessons": [
         {
           "number": 1,
-          "slug": "correlation-and-causation",
-          "title": "Корреляция и причинность",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "slug": "causal-question-and-estimand",
+          "title": "Причинный вопрос и estimand",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Переводит продуктовый вопрос в target trial-style causal spec: treatment, contrast, outcome, time zero, population и ATE/ATT/LATE estimand, явно фиксируя consistency, exchangeability, positivity и interference risks.",
+          "artifact": "CLI-валидатор causal question, target trial и estimand spec",
+          "type": "learn",
           "tracks": [
             "decision",
             "product"
           ],
-          "path": "phases/13-causal-analysis/01-correlation-and-causation",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "path": "phases/13-causal-analysis/01-causal-question-and-estimand",
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/01-causal-question-and-estimand",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/01-causal-question-and-estimand/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "causal-dags",
-          "title": "Причинные DAG",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Причинные DAG и идентификация",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит направленный ациклический граф из предметных assumptions, различает association и intervention, проверяет temporal order и d-separation и отделяет идентификацию эффекта от выбора estimator.",
+          "artifact": "Causal DAG validator с identification map и d-separation checks",
+          "type": "learn",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/02-causal-dags",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/02-causal-dags",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/02-causal-dags/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "confounders",
-          "title": "Confounders и backdoor paths",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Confounders и backdoor adjustment",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Находит открытые backdoor paths, выбирает достаточный pre-treatment adjustment set и фиксирует, какие confounders измерены, проксированы или остаются ненаблюдаемыми.",
+          "artifact": "Backdoor adjustment-set auditor с measured/unmeasured confounder report",
           "type": "",
           "tracks": [
             "decision",
@@ -3165,11 +3165,11 @@ window.COURSE_DATA = {
         {
           "number": 4,
           "slug": "colliders",
-          "title": "Colliders и selection bias",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Colliders, mediators и selection bias",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Распознает collider, mediator, descendant of treatment и selection variable, объясняет bias от bad controls и блокирует adjustment по post-treatment данным.",
+          "artifact": "Bad-control и selection-bias auditor для candidate adjustment sets",
           "type": "",
           "tracks": [
             "decision",
@@ -3183,11 +3183,11 @@ window.COURSE_DATA = {
         {
           "number": 5,
           "slug": "regression-adjustment",
-          "title": "Regression adjustment",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Regression adjustment и g-formula",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Оценивает standardized potential outcomes и ATE/ATT через outcome regression, сверяет ручную g-computation со statsmodels и диагностирует misspecification, extrapolation и неверный adjustment set.",
+          "artifact": "G-computation estimator с standardized outcomes и model diagnostics",
           "type": "",
           "tracks": [
             "decision",
@@ -3201,11 +3201,11 @@ window.COURSE_DATA = {
         {
           "number": 6,
           "slug": "matching",
-          "title": "Matching",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Matching и баланс ковариат",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Строит matching по pre-treatment covariates или propensity score, задает caliper и replacement policy, проверяет common support, standardized mean differences и изменение target population после отбора.",
+          "artifact": "Matching pipeline с balance table, love plot data и common-support audit",
           "type": "",
           "tracks": [
             "decision",
@@ -3218,18 +3218,18 @@ window.COURSE_DATA = {
         },
         {
           "number": 7,
-          "slug": "weighting",
-          "title": "Propensity weighting",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "weighting-and-doubly-robust",
+          "title": "Propensity weighting и doubly robust оценка",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Оценивает propensity scores, строит stabilized IPW и AIPW estimates, проверяет overlap, extreme weights, effective sample size и trimming sensitivity и сравнивает методы при misspecified treatment или outcome model.",
+          "artifact": "IPW/AIPW estimator с overlap, weight и effective-sample-size diagnostics",
           "type": "",
           "tracks": [
             "decision",
             "product"
           ],
-          "path": "phases/13-causal-analysis/07-weighting",
+          "path": "phases/13-causal-analysis/07-weighting-and-doubly-robust",
           "available": false,
           "url": null,
           "docs_url": null
@@ -3238,10 +3238,10 @@ window.COURSE_DATA = {
           "number": 8,
           "slug": "difference-in-differences",
           "title": "Difference-in-Differences",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 105,
+          "outcome": "Рассчитывает 2x2 и multi-period DiD для регионального rollout, формулирует parallel-trends assumption, проверяет pre-trends и placebo periods и распознает риск наивного TWFE при staggered adoption.",
+          "artifact": "DiD analyzer с manual reconciliation, event-study table и placebo/pre-trend checks",
           "type": "",
           "tracks": [
             "decision",
@@ -3255,11 +3255,11 @@ window.COURSE_DATA = {
         {
           "number": 9,
           "slug": "quasi-experiments",
-          "title": "RDD и instrumental variables: обзор",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "RDD и instrumental variables: дизайн до оценки",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Проверяет применимость RDD и IV, формулирует локальный estimand, continuity/relevance/exclusion/monotonicity assumptions и обнаруживает manipulation at cutoff, weak instrument и неверное обобщение LATE на ATE.",
+          "artifact": "Quasi-experiment design auditor для RDD и IV с local-estimand contract",
           "type": "",
           "tracks": [
             "decision",
@@ -3273,11 +3273,11 @@ window.COURSE_DATA = {
         {
           "number": 10,
           "slug": "sensitivity",
-          "title": "Sensitivity analysis",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "title": "Sensitivity analysis и falsification checks",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Проводит placebo treatment/outcome, negative-control и omitted-confounding sensitivity checks, сравнивает estimates между designs и формулирует, какая сила нарушения assumptions изменит вывод.",
+          "artifact": "Sensitivity и refutation suite с placebo, negative-control и omitted-variable report",
           "type": "",
           "tracks": [
             "decision",
@@ -3290,18 +3290,18 @@ window.COURSE_DATA = {
         },
         {
           "number": 11,
-          "slug": "causal-libraries",
-          "title": "DoWhy и EconML: границы автоматизации",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "slug": "causal-workflow",
+          "title": "Causal workflow и границы автоматизации",
+          "status": "designed",
+          "time_minutes": 105,
+          "outcome": "Собирает causal-study-package, воспроизводит model-identify-estimate-refute workflow в DoWhy, сверяет его с прозрачными RA/IPW/AIPW/DiD расчетами и объясняет, почему EconML не заменяет identification и нужен только для отдельно поставленной heterogeneity-задачи.",
+          "artifact": "Causal-study-package с DAG, estimates, balance, falsification, sensitivity, automation audit и checksum manifest",
           "type": "",
           "tracks": [
             "decision",
             "product"
           ],
-          "path": "phases/13-causal-analysis/11-causal-libraries",
+          "path": "phases/13-causal-analysis/11-causal-workflow",
           "available": false,
           "url": null,
           "docs_url": null
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 133,
+    "complete_lessons": 135,
     "hours": {
       "min": 238,
       "max": 326

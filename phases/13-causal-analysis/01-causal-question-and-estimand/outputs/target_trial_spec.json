@@ -1,0 +1,100 @@
+{
+  "trial_id": "target_trial_assisted_onboarding_v1",
+  "question_id": "assisted_onboarding_activation_ate_v1",
+  "analysis_unit": "user_id",
+  "target_population": {
+    "population_id": "eligible_high_friction_users",
+    "description": "Non-test users eligible for the program with friction_score at least 50 at time zero.",
+    "criteria": [
+      {"table": "users", "field": "is_test_user", "operator": "==", "value": false},
+      {"table": "users", "field": "eligible_for_program", "operator": "==", "value": true},
+      {"table": "pre_treatment_behavior", "field": "friction_score", "operator": ">=", "value": 50}
+    ]
+  },
+  "time_zero": {
+    "time_zero_id": "onboarding_assessment_time",
+    "source_table": "pre_treatment_behavior",
+    "column": "time_zero",
+    "rule": "Первый автоматический friction assessment после регистрации и до offer или старта assisted onboarding."
+  },
+  "treatment": {
+    "treatment_id": "assisted_within_24h",
+    "source_table": "onboarding_assistance",
+    "column": "received_assistance",
+    "timing_column": "started_at",
+    "offer_column": "offered_assistance",
+    "offer_timing_column": "offered_at",
+    "assignment_type": "observational_nonrandomized",
+    "grace_period_hours": 24,
+    "contrast": "assisted_within_24h_vs_no_assistance_within_24h",
+    "strategies": [
+      {
+        "strategy_id": "assisted_within_24h",
+        "value": true,
+        "operational_definition": "Пользователь начинает одну 30-минутную сессию assisted onboarding не позже 24 часов после time zero.",
+        "versions": ["specialist_session_playbook_v1_30_minutes"]
+      },
+      {
+        "strategy_id": "no_assistance_within_24h",
+        "value": false,
+        "operational_definition": "Пользователь не начинает assisted onboarding в течение 24 часов после time zero.",
+        "versions": ["usual_self_service_onboarding_v1"]
+      }
+    ]
+  },
+  "followup": {
+    "start": "time_zero",
+    "end_days": 30,
+    "loss_to_followup_field": "telemetry_complete_30d",
+    "source_table": "outcomes"
+  },
+  "outcomes": [
+    {
+      "outcome_id": "activation_14d",
+      "role": "primary",
+      "source_table": "outcomes",
+      "column": "activation_14d",
+      "type": "binary",
+      "window_days": 14,
+      "definition": "Пользователь достиг первого value moment в течение 14 дней после time zero."
+    },
+    {
+      "outcome_id": "paid_subscription_30d",
+      "role": "secondary",
+      "source_table": "outcomes",
+      "column": "paid_subscription_30d",
+      "type": "binary",
+      "window_days": 30,
+      "definition": "Пользователь начал платную подписку в течение 30 дней после time zero."
+    }
+  ],
+  "baseline_covariates": [
+    {"table": "users", "field": "platform"},
+    {"table": "users", "field": "device_tier"},
+    {"table": "users", "field": "acquisition_channel"},
+    {"table": "users", "field": "region_id"},
+    {"table": "pre_treatment_behavior", "field": "friction_score"},
+    {"table": "pre_treatment_behavior", "field": "network_quality"},
+    {"table": "pre_treatment_behavior", "field": "app_crashes_before_time_zero"},
+    {"table": "pre_treatment_behavior", "field": "onboarding_steps_before_time_zero"},
+    {"table": "pre_treatment_behavior", "field": "sessions_before_time_zero"},
+    {"table": "pre_treatment_behavior", "field": "specialist_capacity"}
+  ],
+  "forbidden_post_treatment_fields": [
+    {"table": "outcomes", "field": "onboarding_completed_48h", "reason": "mediator for the total effect"},
+    {"table": "outcomes", "field": "opened_support_chat_after_offer", "reason": "possible collider"},
+    {"table": "outcomes", "field": "telemetry_complete_30d", "reason": "selection variable"}
+  ],
+  "intercurrent_events": [
+    {
+      "event": "offer_without_received_assistance",
+      "strategy": "treatment_policy",
+      "handling": "Treatment is defined by received assistance within the grace period; offer alone does not count as treatment."
+    },
+    {
+      "event": "incomplete_30d_telemetry",
+      "strategy": "missing_outcome",
+      "handling": "Do not silently complete-case filter; report selection and missingness assumptions."
+    }
+  ]
+}

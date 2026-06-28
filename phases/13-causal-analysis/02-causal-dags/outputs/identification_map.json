@@ -1,0 +1,220 @@
+{
+  "identification_map_id": "assisted_onboarding_activation_identification_v1",
+  "graph_id": "assisted_onboarding_activation_dag_v1",
+  "question_id": "assisted_onboarding_activation_ate_v1",
+  "estimand_id": "ate_activation_14d_eligible_users",
+  "treatment": "assisted_within_24h",
+  "outcome": "activation_14d",
+  "estimand_type": "ATE",
+  "effect": "total_effect",
+  "identification_status": "not_identified_from_observed_variables",
+  "estimator": "not_selected",
+  "association_vs_intervention": {
+    "association_query": "P(activation_14d | assisted_within_24h)",
+    "intervention_query": "P(activation_14d | do(assisted_within_24h))",
+    "why_different": "Association keeps incoming arrows into treatment; intervention cuts assignment causes of treatment and asks about counterfactual treatment strategies."
+  },
+  "intervention_graph": {
+    "operation": "do(assisted_within_24h)",
+    "remove_incoming_edges_to_treatment": [
+      ["latent_motivation", "assisted_within_24h"],
+      ["friction_score", "assisted_within_24h"],
+      ["specialist_capacity", "assisted_within_24h"],
+      ["offered_assistance", "assisted_within_24h"]
+    ],
+    "keep_outgoing_edges_from_treatment": [
+      ["assisted_within_24h", "onboarding_completed_48h"],
+      ["assisted_within_24h", "opened_support_chat_after_offer"],
+      ["assisted_within_24h", "activation_14d"],
+      ["assisted_within_24h", "paid_subscription_30d"],
+      ["assisted_within_24h", "telemetry_complete_30d"]
+    ]
+  },
+  "adjustment_sets": [
+    {
+      "set_id": "none",
+      "label": "Naive association",
+      "variables": [],
+      "status": "invalid_open_backdoor_paths",
+      "interpretation": "Treated/control comparison is associational because assignment causes of assisted_within_24h remain connected to activation_14d."
+    },
+    {
+      "set_id": "measured_baseline_core",
+      "label": "Observed pre-treatment baseline controls",
+      "variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "status": "insufficient_due_to_unmeasured_confounding",
+      "interpretation": "This set blocks measured backdoor paths in the declared graph, but the path assisted_within_24h <- latent_motivation -> activation_14d remains open."
+    },
+    {
+      "set_id": "oracle_unobserved_adjustment",
+      "label": "Invalid oracle set containing latent motivation",
+      "variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity",
+        "latent_motivation"
+      ],
+      "status": "invalid_contains_unobserved_variable",
+      "interpretation": "D-separation would improve in the graph, but this is not an observed adjustment strategy because latent_motivation is not measured."
+    },
+    {
+      "set_id": "bad_mediator_adjustment",
+      "label": "Bad control: mediator",
+      "variables": [
+        "friction_score",
+        "onboarding_completed_48h"
+      ],
+      "status": "invalid_for_total_effect",
+      "interpretation": "Conditioning on onboarding_completed_48h blocks part of the total effect of assistance on activation."
+    },
+    {
+      "set_id": "bad_collider_adjustment",
+      "label": "Bad control: support-chat collider",
+      "variables": [
+        "friction_score",
+        "opened_support_chat_after_offer"
+      ],
+      "status": "invalid_opens_collider_path",
+      "interpretation": "Conditioning on opened_support_chat_after_offer opens the collider path assisted_within_24h -> opened_support_chat_after_offer <- friction_score -> activation_14d."
+    },
+    {
+      "set_id": "bad_selection_adjustment",
+      "label": "Bad control: complete-case selection",
+      "variables": [
+        "telemetry_complete_30d"
+      ],
+      "status": "invalid_post_treatment_control",
+      "interpretation": "Complete-case filtering on telemetry_complete_30d conditions on a post-treatment selection variable affected by treatment and outcome."
+    }
+  ],
+  "d_separation_checks": [
+    {
+      "check_id": "naive_backdoors_open",
+      "scope": "backdoor",
+      "conditioned_on": [],
+      "expected_d_separated": false,
+      "explanation": "Without adjustment, assignment causes leave open backdoor paths from treatment to outcome."
+    },
+    {
+      "check_id": "friction_path_blocked_by_friction",
+      "scope": "path",
+      "path": ["assisted_within_24h", "friction_score", "activation_14d"],
+      "conditioned_on": ["friction_score"],
+      "expected_path_active": false,
+      "explanation": "A non-collider on the path blocks the path when conditioned on."
+    },
+    {
+      "check_id": "measured_set_leaves_latent_path_open",
+      "scope": "path",
+      "path": ["assisted_within_24h", "latent_motivation", "activation_14d"],
+      "conditioned_on": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "expected_path_active": true,
+      "explanation": "Observed baseline controls do not close the direct unmeasured confounding path."
+    },
+    {
+      "check_id": "measured_set_not_enough_for_backdoor_identification",
+      "scope": "backdoor",
+      "conditioned_on": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "expected_d_separated": false,
+      "explanation": "A sufficient observed backdoor adjustment set is not available under the declared graph."
+    },
+    {
+      "check_id": "collider_closed_when_unconditioned",
+      "scope": "path",
+      "path": ["assisted_within_24h", "opened_support_chat_after_offer", "friction_score", "activation_14d"],
+      "conditioned_on": [],
+      "expected_path_active": false,
+      "explanation": "A collider blocks the path when it is not conditioned on."
+    },
+    {
+      "check_id": "collider_opens_when_conditioned",
+      "scope": "path",
+      "path": ["assisted_within_24h", "opened_support_chat_after_offer", "friction_score", "activation_14d"],
+      "conditioned_on": ["opened_support_chat_after_offer"],
+      "expected_path_active": true,
+      "explanation": "Conditioning on the collider opens a non-causal path."
+    },
+    {
+      "check_id": "total_effect_path_remains_open",
+      "scope": "path",
+      "path": ["assisted_within_24h", "onboarding_completed_48h", "activation_14d"],
+      "conditioned_on": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "expected_path_active": true,
+      "explanation": "For the total effect, causal paths from treatment to outcome should remain open."
+    }
+  ],
+  "assumptions_and_limitations": [
+    {
+      "assumption_id": "dag_edges_are_domain_assumptions",
+      "status": "declared_not_proven",
+      "meaning": "DAG encodes a causal story; data alone did not discover these arrows."
+    },
+    {
+      "assumption_id": "latent_motivation_unmeasured",
+      "status": "limitation",
+      "meaning": "Observed baseline controls may proxy motivation, but the graph does not treat them as perfect measurements."
+    },
+    {
+      "assumption_id": "total_effect_not_direct_effect",
+      "status": "declared",
+      "meaning": "Mediators such as onboarding_completed_48h must not be adjusted away for the primary estimand."
+    }
+  ],
+  "next_step": "13/03 will audit measured and unmeasured confounders and decide whether a defensible adjustment set can be stated for a narrower claim."
+}

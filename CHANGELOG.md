@@ -9,6 +9,22 @@
 
 ### Добавлено
 
+- Урок `13/02` «Причинные DAG и идентификация» с machine-readable
+  `causal_dag.json`, `identification_map.json`, standalone CLI
+  `causal_dag_validator.py`, `dag_audit.json`, проверками acyclicity, temporal order,
+  d-separation, active backdoor paths, association-vs-intervention, mediator/collider/
+  selection bad controls, преждевременного estimator и ложного `identified` status и
+  17 behavioral tests.
+- Урок `13/01` «Причинный вопрос и estimand» с общим deterministic causal dataset фазы,
+  target trial-style `causal_question.json`/`target_trial_spec.json`/`estimand.json`,
+  CLI `causal_question_validator.py`, проверками ATE/ATT/LATE population semantics,
+  time zero, treatment versions, grace period, outcome windows, causal assumptions,
+  запретом post-treatment eligibility и premature effect claims и 14 behavioral tests.
+- Фаза 13 «Причинный анализ» спроектирована целиком: 11 уроков на 15,5 часа,
+  causal question и estimand, DAG/identification, backdoor adjustment, bad controls,
+  regression adjustment/g-formula, matching, IPW/AIPW, DiD, RDD/IV design audit,
+  sensitivity/falsification и интеграционный `causal-study-package` с DoWhy automation
+  audit и явной границей применения EconML.
 - Урок `11/11` «Локальный проект с dbt-duckdb» с финальным пакетом
   `analytics-mart-dbt`: sources, staging/intermediate/mart models, macros, 87 dbt data
   tests, incremental fact, snapshot, docs/exposure lineage, SQLFluff lint на 22

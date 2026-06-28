@@ -159,15 +159,13 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-11`: 122 урока от входной диагностики до надежного аналитического
-pipeline, продуктовых метрик, статистического evidence package и полного протокола
-A/B-эксперимента и локального analytics engineering package. В фазе `11`
-«Analytics Engineering» разработаны уроки `11/01`–`11/11`:
-layer contract, проверяемый dbt-duckdb project skeleton, source/ref lineage graph,
-materialization policy, data test suite, macro review, incremental mart contract и SCD
-snapshot history для customer revenue mart, dbt docs/exposure lineage package,
-SQLFluff style gate для DuckDB/dbt SQL и финальный `analytics-mart-dbt` release package
-с dbt artifacts, quality reports, lineage summary, `report.md` и checksum manifest.
+завершены фазы `0-12`: 133 урока от входной диагностики до продуктовых экспериментов,
+analytics engineering и воспроизводимого multi-engine benchmark package. Фаза `13`
+«Причинный анализ» спроектирована как 11 уроков на 15,5 часа; завершены `13/01`
+с target trial-style contract, ATE/ATT/LATE semantics и общим causal dataset и `13/02`
+с machine-readable DAG, identification map, d-separation/backdoor checks и CLI-валидатором
+DAG/identification. Всего готовы 135 уроков. Следующий шаг — разработка `13/03` про
+confounders и backdoor adjustment.
 Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).

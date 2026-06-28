@@ -3,15 +3,13 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 25 июня 2026
+**Обновлено:** 28 июня 2026
 **Ветка:** `main`
-**Базовый коммит перед текущим этапом:** `7fac9fd` — завершение фаз 07–09
+**Базовый коммит перед текущим этапом:** `c15f59a` — завершение фазы 12
 
-Локальная `main` была синхронизирована с `origin/main` перед проектированием фазы 10.
-Рабочее дерево после текущего этапа содержит незакоммиченные изменения завершенных фаз
-10–12. Push и commit выполняются только по
-явной команде пользователя. Перед продолжением проверьте актуальное состояние через
-`git status`.
+Локальная `main` синхронизирована с `origin/main`. Рабочее дерево после текущего этапа
+содержит незакоммиченный проект фазы 13. Push и commit выполняются только по явной
+команде пользователя. Перед продолжением проверьте актуальное состояние через `git status`.
 
 ## Цель
 
@@ -27,8 +25,8 @@
 
 - 19 фаз.
 - 201 урок в программе.
-- 133 завершенных урока.
-- Уроков в статусе `designed` нет.
+- 135 завершенных уроков.
+- 9 уроков в статусе `designed`.
 - Фазы 00–12 полностью завершены.
 - Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
 - Фаза 11 «Analytics Engineering» завершена: 11 уроков на 900 минут; готовы уроки
@@ -47,13 +45,22 @@
   и Polars», `12/11` «Ibis как переносимый DataFrame API»,
   единая задача `customer_revenue_health_weekly`, benchmark protocol,
   Parquet/Arrow/DuckDB/Polars/Ibis и финальный multi-engine benchmark package.
-- Следующий содержательный этап — проектирование фазы 13 «Причинный анализ».
+- Фаза 13 «Причинный анализ» спроектирована: 11 уроков на 930 минут с causal question,
+  estimand, DAG/identification, adjustment, matching, IPW/AIPW, DiD, RDD/IV,
+  sensitivity и итоговым `causal-study-package`.
+- Урок `13/01` «Причинный вопрос и estimand» завершен: target trial-style contract,
+  ATE/ATT/LATE semantics, общий causal dataset и CLI-валидатор question/estimand/timing.
+- Урок `13/02` «Причинные DAG и идентификация» завершен: machine-readable causal DAG,
+  identification map, ручные d-separation/backdoor checks, association-vs-intervention
+  audit, запрет bad controls и CLI-валидатор DAG/identification с 17 behavioral tests.
+- Следующий содержательный этап — разработка урока `13/03` «Confounders и backdoor
+  adjustment».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11.
+`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11, `13` — 2/11.
 
 ## Текущая работа
 
@@ -970,11 +977,70 @@ contract и структура финального `performance-benchmark-packa
 Polars extras; версии зафиксированы в `pyproject.toml` и `uv.lock`.
 
 Фазы 00–12 завершены.
-Следующий содержательный шаг — спроектировать фазу 13 «Причинный анализ», уточнить
-границы с экспериментами и статистическим выводом, общий учебный кейс и состав
-проверяемых артефактов.
-Перед коммитом обязательно
-прогнать полный набор проверок.
+
+## Фаза 13
+
+Фаза 13 спроектирована в `docs/phase-13-design.md`: зафиксированы границы со статистикой,
+экспериментами, временными рядами и ML, роли statsmodels, NetworkX, DoWhy и optional
+EconML, единая задача assisted onboarding, causal study spec, failure modes
+identification/adjustment/overlap/quasi-experiments и структура итогового
+`causal-study-package`.
+
+Уроки `13/01`–`13/11` развернуты в `curriculum.json` как последовательность на
+930 минут:
+
+- `13/01` — causal question, target trial-style contract и ATE/ATT/LATE estimand;
+- `13/02` — causal DAG, temporal order, d-separation и identification map;
+- `13/03` — confounders, backdoor paths и adjustment-set audit;
+- `13/04` — colliders, mediators, post-treatment controls и selection bias;
+- `13/05` — regression adjustment, standardization и g-formula;
+- `13/06` — matching, common support и balance diagnostics;
+- `13/07` — propensity weighting, effective sample size и AIPW;
+- `13/08` — 2x2/multi-period DiD, pre-trends, event-study и staggered-adoption risk;
+- `13/09` — RDD/IV design audit, local estimands, cutoff manipulation и weak instrument;
+- `13/10` — placebo, negative controls и omitted-confounding sensitivity;
+- `13/11` — DoWhy workflow, EconML scope audit и интеграционный
+  `causal-study-package`.
+
+Урок `13/01` «Причинный вопрос и estimand» разработан:
+
+- добавлен общий dataset фазы с `users`, `pre_treatment_behavior`,
+  `onboarding_assistance`, `outcomes`, `encouragement_assignments`,
+  `rollout_calendar`, `region_week_panel`, `causal_scenarios`, контрактом,
+  deterministic `tiny` и локальным `sample` generator;
+- tiny-profile содержит 13 users, из которых target population включает 10:
+  6 treated и 4 comparator; treatment starts после общего time zero и внутри
+  24-часового grace period;
+- `causal_question.json`, `target_trial_spec.json` и `estimand.json` фиксируют
+  population, strategies, time zero, outcomes, ATE, risk difference и четыре
+  assumptions;
+- `causal_question_validator.py` проверяет IDs, data contract, timing-safe eligibility,
+  treatment versions, ATE/ATT/LATE population semantics, assumptions, grain,
+  treatment/follow-up chronology и блокирует effect claim до identification;
+- валидный отчет намеренно сохраняет warning
+  `observational_assignment_requires_identification`;
+- lesson suite содержит 14 behavioral tests.
+
+Урок `13/02` «Причинные DAG и идентификация» разработан:
+
+- `causal_dag.json` фиксирует 19 узлов и 44 causal edges для assisted onboarding,
+  включая observed baseline confounders, mediator, collider, selection variable и
+  unmeasured `latent_motivation`;
+- `identification_map.json` связывает DAG с estimand `13/01`, разделяет association
+  `P(Y | T)` и intervention `P(Y | do(T))`, описывает removed incoming treatment edges,
+  candidate adjustment sets и d-separation checks;
+- `causal_dag_validator.py` проверяет required fields, уникальность узлов, unknown edge
+  endpoints, acyclicity, temporal order, required causal roles, alignment с question/
+  estimand, d-separation claims, active backdoor paths, forbidden controls и premature
+  estimator/identified claims;
+- валидный audit сохраняет warning
+  `unmeasured_confounding_blocks_backdoor_identification`: measured baseline controls
+  оставляют открытым путь `assisted_within_24h <- latent_motivation -> activation_14d`;
+- lesson suite содержит 17 behavioral tests.
+
+Следующий содержательный шаг — разработать `13/03` с confounder inventory, measured/
+unmeasured backdoor paths и adjustment-set audit. Перед коммитом обязательно прогнать
+полный набор проверок.
 
 ## Уже принятые решения
 
