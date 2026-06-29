@@ -1,0 +1,148 @@
+{
+  "did_spec_id": "regional_rollout_did_v1",
+  "scenario_id": "regional_did",
+  "design": "difference_in_differences",
+  "unit": "region_week",
+  "treatment": "rollout_active",
+  "outcome": "activation_rate_14d",
+  "effect_measure": "percentage_point_difference",
+  "estimand": {
+    "estimand_id": "att_activation_rate_regional_rollout_not_yet_treated_v1",
+    "target": "ATT for the first treated region during the weeks before the later region starts rollout",
+    "treated_region": "north",
+    "not_yet_treated_control_region": "south",
+    "interpretation": "Change in activation_rate_14d for north after the north rollout, net of the contemporaneous change in south while south is still not treated."
+  },
+  "primary_2x2": {
+    "design_id": "north_rollout_vs_south_not_yet_2x2",
+    "treated_region": "north",
+    "control_region": "south",
+    "pre_window": {
+      "start": "2026-06-15",
+      "end": "2026-06-29"
+    },
+    "post_window": {
+      "start": "2026-07-06",
+      "end": "2026-07-13"
+    },
+    "aggregation": "unweighted_region_week_mean",
+    "required_control_status": "not_yet_treated",
+    "declared_status": "estimable_with_assumptions"
+  },
+  "pretrend_check": {
+    "check_id": "parallel_pretrend_slope_check",
+    "window": {
+      "start": "2026-06-15",
+      "end": "2026-06-29"
+    },
+    "method": "manual_ols_slope_by_region",
+    "max_abs_slope_difference": 0.001,
+    "minimum_pre_periods_per_region": 3
+  },
+  "placebo_checks": [
+    {
+      "check_id": "fake_rollout_in_pre_period",
+      "label": "Fake north rollout on the last pre-period week",
+      "treated_region": "north",
+      "control_region": "south",
+      "pre_window": {
+        "start": "2026-06-15",
+        "end": "2026-06-22"
+      },
+      "post_window": {
+        "start": "2026-06-29",
+        "end": "2026-06-29"
+      },
+      "outcome": "activation_rate_14d",
+      "max_abs_placebo_effect": 0.005
+    },
+    {
+      "check_id": "mean_friction_score_should_not_jump",
+      "label": "Pre-treatment composition covariate should not show a DiD jump",
+      "treated_region": "north",
+      "control_region": "south",
+      "pre_window": {
+        "start": "2026-06-15",
+        "end": "2026-06-29"
+      },
+      "post_window": {
+        "start": "2026-07-06",
+        "end": "2026-07-13"
+      },
+      "outcome": "mean_friction_score",
+      "max_abs_placebo_effect": 0.005
+    }
+  ],
+  "event_study": {
+    "event_time_column": "event_time_weeks",
+    "reference_event_time": -1,
+    "event_time_min": -5,
+    "event_time_max": 4,
+    "preferred_balanced_window": [-3, 2],
+    "min_regions_per_event_time": 2,
+    "warn_on_sparse_tails": true
+  },
+  "twfe_diagnostic": {
+    "enabled": true,
+    "formula": "activation_rate_14d ~ rollout_active + region fixed effects + week fixed effects",
+    "status": "diagnostic_only_due_to_staggered_adoption",
+    "risk": "With staggered adoption, naive TWFE can compare later-treated cohorts to already-treated cohorts and can mix dynamic effects with cohort weights."
+  },
+  "candidate_designs": [
+    {
+      "design_id": "north_rollout_vs_south_not_yet_2x2",
+      "label": "Primary early-treated north versus not-yet-treated south",
+      "treated_region": "north",
+      "control_region": "south",
+      "pre_window": ["2026-06-15", "2026-06-29"],
+      "post_window": ["2026-07-06", "2026-07-13"],
+      "declared_status": "estimable_with_assumptions",
+      "interpretation": "Valid teaching contrast if parallel trends, no anticipation and no spillovers are credible."
+    },
+    {
+      "design_id": "fake_pre_rollout_placebo",
+      "label": "Placebo rollout before any region is treated",
+      "treated_region": "north",
+      "control_region": "south",
+      "pre_window": ["2026-06-15", "2026-06-22"],
+      "post_window": ["2026-06-29", "2026-06-29"],
+      "declared_status": "placebo_check",
+      "interpretation": "Should be near zero if pre-period trends are parallel."
+    },
+    {
+      "design_id": "south_late_vs_north_already_treated",
+      "label": "Late-treated south versus already-treated north",
+      "treated_region": "south",
+      "control_region": "north",
+      "pre_window": ["2026-07-06", "2026-07-13"],
+      "post_window": ["2026-07-20", "2026-08-03"],
+      "declared_status": "invalid_already_treated_control",
+      "interpretation": "North is already treated during the south pre-window, so it is not an untreated counterfactual control."
+    },
+    {
+      "design_id": "naive_twfe_full_staggered_panel",
+      "label": "Full-panel TWFE coefficient",
+      "treated_region": "multiple",
+      "control_region": "multiple",
+      "pre_window": ["2026-06-15", "2026-07-13"],
+      "post_window": ["2026-07-06", "2026-08-03"],
+      "declared_status": "diagnostic_only_staggered_risk",
+      "interpretation": "Useful as a regression reconciliation, not as the primary design choice when adoption is staggered."
+    }
+  ],
+  "assumptions": {
+    "parallel_trends": "North and south would have continued with the same activation-rate trend absent the rollout.",
+    "no_anticipation": "Users and regional teams did not change behavior before the active rollout week.",
+    "stable_composition": "Region-week eligible population remains comparable; mean_friction_score placebo should not jump.",
+    "no_spillovers": "The north rollout does not change south activation before the south rollout."
+  },
+  "claim_policy": {
+    "allowed_effect_claim": true,
+    "allowed_wording": "Under the stated parallel-trends, no-anticipation, stable-composition and no-spillover assumptions, the early north rollout DiD estimate is +8.0 percentage points.",
+    "blocked_wording": [
+      "TWFE proves the causal effect",
+      "parallel trends are guaranteed because pre-trends look flat",
+      "the south rollout can use already-treated north as an untreated control"
+    ]
+  }
+}

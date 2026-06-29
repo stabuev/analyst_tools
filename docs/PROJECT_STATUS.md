@@ -3,7 +3,7 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 28 июня 2026
+**Обновлено:** 29 июня 2026
 **Ветка:** `main`
 **Базовый коммит перед текущим этапом:** `c15f59a` — завершение фазы 12
 
@@ -25,9 +25,9 @@
 
 - 19 фаз.
 - 201 урок в программе.
-- 135 завершенных уроков.
-- 9 уроков в статусе `designed`.
-- Фазы 00–12 полностью завершены.
+- 144 завершенных урока.
+- 0 уроков в статусе `designed`.
+- Фазы 00–13 полностью завершены.
 - Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
 - Фаза 11 «Analytics Engineering» завершена: 11 уроков на 900 минут; готовы уроки
   `11/01` «Слои и контракты аналитических данных», `11/02` «Структура dbt-проекта»,
@@ -45,7 +45,7 @@
   и Polars», `12/11` «Ibis как переносимый DataFrame API»,
   единая задача `customer_revenue_health_weekly`, benchmark protocol,
   Parquet/Arrow/DuckDB/Polars/Ibis и финальный multi-engine benchmark package.
-- Фаза 13 «Причинный анализ» спроектирована: 11 уроков на 930 минут с causal question,
+- Фаза 13 «Причинный анализ» завершена: 11 уроков на 930 минут с causal question,
   estimand, DAG/identification, adjustment, matching, IPW/AIPW, DiD, RDD/IV,
   sensitivity и итоговым `causal-study-package`.
 - Урок `13/01` «Причинный вопрос и estimand» завершен: target trial-style contract,
@@ -53,14 +53,58 @@
 - Урок `13/02` «Причинные DAG и идентификация» завершен: machine-readable causal DAG,
   identification map, ручные d-separation/backdoor checks, association-vs-intervention
   audit, запрет bad controls и CLI-валидатор DAG/identification с 17 behavioral tests.
-- Следующий содержательный этап — разработка урока `13/03` «Confounders и backdoor
-  adjustment».
+- Урок `13/03` «Confounders и backdoor adjustment» завершен: confounder inventory,
+  measured/unmeasured report, candidate adjustment-set spec, backdoor path audit,
+  observed baseline primary recommendation, claim policy при remaining unmeasured
+  confounding и CLI-аудитор с 15 behavioral tests.
+- Урок `13/04` «Colliders, mediators и selection bias» завершен: bad-control policy,
+  candidate control actions, mediator/collider/selection mechanism examples,
+  population-change gate для post-treatment filters, outcome leakage checks, allowed
+  baseline handoff для будущих estimators и CLI-аудитор с 16 behavioral tests.
+- Урок `13/05` «Regression adjustment и g-formula» завершен: g-formula spec,
+  outcome-regression g-computation estimator, ручная OLS standardization,
+  statsmodels cross-check, standardized potential outcomes, ATE/ATT estimates,
+  LPM bounds/support diagnostics, bad-control/source coverage gates и CLI с 16
+  behavioral tests.
+- Урок `13/06` «Matching и баланс ковариат» завершен: matching spec, nearest-neighbor
+  ATT matching по pre-treatment covariates, standardized Euclidean distance, caliper,
+  replacement policy, common-support audit, matched pairs, balance table, love plot data,
+  bad-control/source coverage gates и CLI с 16 behavioral tests.
+- Урок `13/07` «Propensity weighting и doubly robust оценка» завершен: ridge propensity
+  scoring, stabilized IPW, Horvitz-Thompson и Hájek estimates, AIPW residual correction,
+  overlap/tail diagnostics, weight и effective-sample-size report, trimming sensitivity,
+  stress tests для misspecified treatment/outcome models, bad-control/source coverage
+  gates и CLI с 19 behavioral tests.
+- Урок `13/08` «Difference-in-Differences» завершен: региональный rollout DiD spec,
+  manual 2x2 north-vs-south not-yet-treated estimate, saturated regression
+  reconciliation, pretrend slope check, fake pre-period и composition placebo checks,
+  event-study table, sparse-tail warning, full-panel TWFE diagnostic-only warning для
+  staggered adoption и CLI с 17 behavioral tests.
+- Урок `13/09` «RDD и instrumental variables: дизайн до оценки» завершен:
+  quasi-experiment spec, fuzzy RDD around friction-score cutoff, local bandwidth,
+  density/manipulation и continuity checks, sharp-vs-fuzzy candidate policy, IV first
+  stage, reduced form, Wald LATE, observed balance screen, LATE-not-ATE claim policy,
+  warnings по diagnostic-only tiny RDD и непроверяемым exclusion/monotonicity assumptions
+  и CLI с 16 behavioral tests.
+- Урок `13/10` «Sensitivity analysis и falsification checks» завершен:
+  sensitivity spec, refutation suite, placebo treatment/outcome checks,
+  negative-control outcome, upstream DiD placebo propagation, omitted-confounding
+  sensitivity grid, cross-design estimate comparison, no-pooling policy для разных
+  estimands и claim policy, которая блокирует single strong causal effect statement,
+  с CLI и 15 behavioral tests.
+- Урок `13/11` «Causal workflow и границы автоматизации» завершен:
+  causal workflow spec, causal-study-package builder, интеграция 15 upstream artifacts
+  фазы 13, DoWhy-compatible trace `model -> identify -> estimate -> refute`, EconML
+  scope audit, checksum manifest, no-pooling policy для разных estimands и финальная
+  claim policy, которая блокирует single strong causal claim, с CLI и 14 behavioral
+  tests.
+- Следующий содержательный этап — проектирование и разработка фазы 14 «Временные ряды».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11, `13` — 2/11.
+`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11, `13` — 11/11.
 
 ## Текущая работа
 
@@ -1038,9 +1082,192 @@ identification/adjustment/overlap/quasi-experiments и структура ито
   оставляют открытым путь `assisted_within_24h <- latent_motivation -> activation_14d`;
 - lesson suite содержит 17 behavioral tests.
 
-Следующий содержательный шаг — разработать `13/03` с confounder inventory, measured/
-unmeasured backdoor paths и adjustment-set audit. Перед коммитом обязательно прогнать
-полный набор проверок.
+Урок `13/03` «Confounders и backdoor adjustment» разработан:
+
+- `confounder_inventory.json` перечисляет 11 measured baseline confounders,
+  unmeasured `latent_motivation`, proxy variables и forbidden controls для total-effect
+  question;
+- `adjustment_set_spec.json` сравнивает naive, too-narrow, recommended measured,
+  oracle latent и bad-control candidate sets и фиксирует claim policy
+  `not_identified_due_to_unmeasured_confounding`;
+- `backdoor_adjustment_auditor.py` переиспользует ручной d-separation engine из `13/02`
+  и проверяет source fields в data contract, active backdoor path participation,
+  measured/unmeasured status, forbidden mediator/collider/selection controls,
+  consistency declared/calculated statuses, ровно один primary recommendation и запрет
+  causal effect claim при remaining unmeasured path;
+- валидный audit показывает 48 active backdoor paths без adjustment, 11 measured
+  confounders, 1 unmeasured confounder, primary set
+  `measured_baseline_backdoor_set`, 0 open measured paths и 1 open unmeasured path после
+  primary adjustment;
+- lesson suite содержит 15 behavioral tests.
+
+Урок `13/04` «Colliders, mediators и selection bias» разработан:
+
+- `bad_control_policy.json` фиксирует forbidden controls для primary total-effect
+  question: assignment mechanism `offered_assistance`, mediator
+  `onboarding_completed_48h`, collider `opened_support_chat_after_offer`, selection
+  variable `telemetry_complete_30d`, primary outcome `activation_14d` и downstream
+  outcome `paid_subscription_30d`;
+- `candidate_control_actions.json` сравнивает allowed observed baseline handoff,
+  offer split, mediator adjustment, support-chat filter, telemetry complete-case filter,
+  post-treatment feature soup и outcome leakage candidates;
+- `bad_control_selection_auditor.py` переиспользует d-separation engine из `13/02`,
+  проверяет policy coverage по DAG roles/timing/descendants, source fields в data
+  contract, declared/calculated statuses, population-change notes для filters,
+  primary action без bad controls и запрет bad-control actions для future estimators;
+- валидный audit показывает 50 active total paths, 48 active backdoor paths, 2 directed
+  total-effect paths, единственный allowed action `recommended_pre_treatment_set`,
+  0 open measured и 1 open unmeasured backdoor path после primary handoff;
+- report содержит mechanism examples: mediator blocking directed total-effect path,
+  collider-opened support-chat paths и selection-opened telemetry paths;
+- lesson suite содержит 16 behavioral tests.
+
+Урок `13/05` «Regression adjustment и g-formula» разработан:
+
+- `g_formula_spec.json` фиксирует outcome-regression estimator для target trial и
+  estimand из `13/01`, handoff из bad-control gate `13/04`, source coverage для
+  recommended pre-treatment adjustment set и запрет causal effect claim при remaining
+  unmeasured confounding;
+- `g_computation_estimator.py` собирает target-population cohort, проверяет grain,
+  timing, treatment arms, follow-up, model source policy, bad-control candidates,
+  declared candidate statuses и claim policy;
+- валидный `g_formula_estimate_report.json` показывает cohort 10 users, naive
+  risk difference `-0.08333333333333337`, manual OLS и statsmodels ATE/ATT
+  `-0.39978100191623295`, standardized potential outcomes и warnings по LPM
+  probability bounds и counterfactual support;
+- lesson suite содержит 16 behavioral tests: ручная OLS сверяется со statsmodels,
+  standardization использует те же cohort rows, bad-control/source leakage блокируется,
+  duplicate source grain возвращает structured invalid report, timing вне grace period
+  и неверный claim policy дают отказ.
+
+Урок `13/06` «Matching и баланс ковариат» разработан:
+
+- `matching_spec.json` фиксирует nearest-neighbor ATT matching для target trial и
+  estimand из `13/01`, handoff из bad-control gate `13/04`, distance features
+  `friction_score` и `specialist_capacity`, standardized Euclidean distance, caliper
+  `1.5`, replacement policy и запрет causal effect claim при remaining unmeasured
+  confounding;
+- `matching_pipeline.py` собирает target-population cohort, проверяет grain, timing,
+  treatment arms, follow-up, matching source policy, candidate design statuses, claim
+  policy, ручную distance matrix против `scipy.spatial.distance.cdist`, matched pairs,
+  common support и balance diagnostics;
+- валидный `matching_report.json` показывает cohort 10 users, 6 treated, 4 comparators,
+  naive risk difference `-0.08333333333333337`, 4 matched treated, 2 unmatched treated
+  (`U001`, `U002`), reuse control `U005`, matched ATT `-0.25`, balance/love plot data и
+  warnings по unmatched support, post-match balance threshold и worsened balance;
+- lesson suite содержит 16 behavioral tests: matched pairs и replacement deterministic,
+  distance matrix сверяется со SciPy, common-support warning перечисляет unmatched users,
+  bad-control/source leakage блокируется, duplicate source grain возвращает structured
+  invalid report, timing вне grace period и неверный claim policy дают отказ.
+
+Урок `13/07` «Propensity weighting и doubly robust оценка» разработан:
+
+- `ipw_aipw_spec.json` фиксирует primary ridge propensity model, outcome model из
+  observed-baseline basis, diagnostics для overlap, weights, ESS и trimming, stress
+  tests для misspecified treatment/outcome models и claim policy;
+- `ipw_aipw_estimator.py` собирает target-population cohort, проверяет grain, timing,
+  follow-up, source coverage, bad controls, candidate statuses, ridge logistic propensity
+  solver, stabilized/unstabilized weights, HT/Hájek IPW, AIPW residual correction,
+  trimming sensitivity и сверку ручной OLS со statsmodels;
+- валидный `ipw_aipw_report.json` показывает cohort 10 users, naive risk difference
+  `-0.08333333333333337`, IPW Hájek `-0.08519236630007954`, IPW HT
+  `0.07893418528076585`, AIPW `-0.3868752937879506`, outcome-regression ATE
+  `-0.399781001916233`, overlap tail по `U001`, ESS `9.555331641172497` и trimming
+  population-change warnings;
+- lesson suite содержит 19 behavioral tests: unit-level propensity/weights,
+  manual AIPW reconstruction, trimming sensitivity, stress tests, bad-control/source
+  gates, duplicate grain, timing/follow-up failures и CLI `--fail-on-invalid`.
+
+Урок `13/08` «Difference-in-Differences» разработан:
+
+- `did_spec.json` фиксирует региональный rollout design: north starts `2026-07-06`,
+  south starts `2026-07-20`, primary 2x2 contrast north versus not-yet-treated south,
+  pretrend, fake rollout placebo, mean-friction composition placebo, event-study policy,
+  TWFE diagnostic и candidate design statuses;
+- `did_analyzer.py` проверяет grain `region_id + week_start`, rollout calendar,
+  scenario registry, not-yet-treated control status, считает four-cell manual DiD,
+  saturated 2x2 regression reconciliation, pretrend slopes, placebo checks, event-study
+  table и full-panel TWFE coefficient через manual dummy matrix со statsmodels check;
+- валидный `did_report.json` показывает treated change `0.105`, control change
+  `0.025`, DiD `0.08000000000000002`, fake pre-period placebo `0.0`, pretrend slope
+  difference `2.7755575615628914e-17`, sparse event times `[-5, -4, 3, 4]`, TWFE
+  coefficient `0.07999999999999921` и warnings по sparse tails и diagnostic-only TWFE;
+- lesson suite содержит 17 behavioral tests: 2x2 accounting, saturated regression,
+  pretrend/placebo checks, event-study sparse tails, TWFE diagnostic, candidate design
+  policy, duplicate region-week, calendar mismatch, already-treated control, failed
+  pretrend/placebo claim blocking, scenario alignment и CLI `--fail-on-invalid`.
+
+Урок `13/09` «RDD и instrumental variables: дизайн до оценки» разработан:
+
+- `quasi_experiment_spec.json` фиксирует два quasi-experimental candidates:
+  fuzzy RDD около cutoff `friction_score >= 60` с bandwidth `8` и IV design
+  `capacity_encouragement_late` с instrument `encouraged`, treatment
+  `received_assistance`, outcome `activation_14d` и estimand `LATE`;
+- `quasi_experiment_design_auditor.py` проверяет declared source grain, scenario
+  registry, RDD local support, local estimand, sharp-vs-fuzzy assignment, simple
+  density/manipulation screen, pre-treatment continuity, IV first stage, LATE contract,
+  observed balance, recorded exclusion/monotonicity assumptions и candidate design
+  statuses;
+- валидный `quasi_experiment_report.json` показывает RDD local rows `6`, side counts
+  `3/3`, fuzzy first stage `0.6666666666666667`, reduced form
+  `-0.6666666666666667`, diagnostic local Wald `-1.0`, IV rows `10`, IV first stage
+  `0.4`, reduced form `0.20000000000000007`, Wald LATE `0.5000000000000001`,
+  allowed local/LATE claim wording и warnings `rdd_tiny_wald_estimate_is_diagnostic_only`
+  и `iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data`;
+- lesson suite содержит 16 behavioral tests: expected RDD/IV numbers, runnable example,
+  fuzzy assignment violation, local window, density/continuity screens, IV first stage
+  и LATE, candidate status policy, cutoff bunching, narrow bandwidth, covariate jump,
+  weak instrument, LATE-to-ATE overclaim, duplicate grain, scenario alignment и CLI
+  `--fail-on-invalid`.
+
+Урок `13/10` «Sensitivity analysis и falsification checks» разработан:
+
+- `sensitivity_spec.json` фиксирует primary AIPW effect из `13/07`, upstream reports
+  `13/07`/`13/08`/`13/09`, target population, placebo treatment/outcome,
+  negative-control outcome, upstream DiD placebo, omitted-confounding grid,
+  candidate claim statuses и claim policy;
+- `sensitivity_refutation_suite.py` проверяет source grain, target population,
+  доступность upstream reports, запускает falsification checks, строит sensitivity grid,
+  сравнивает RA/IPW/AIPW, DiD, RDD и IV estimates без pooling и переводит diagnostics в
+  claim policy;
+- валидный `sensitivity_report.json` показывает cohort `10`, primary AIPW effect
+  `-0.3868752937879506`, falsification failures
+  `placebo_outcome_pre_activation` и `negative_control_outcome_app_crashes`, required
+  bias to reach null `0.3868752937879506`, first nulling bias `0.4`, design estimate
+  range `1.5`, opposite signs across designs и `allowed_effect_claim = false` с
+  reasons `falsification_checks_failed`, `upstream_primary_claim_disallowed`,
+  `design_estimates_have_opposite_signs`, `different_estimands_not_poolable`;
+- lesson suite содержит 15 behavioral tests: blocked strong claim policy, runnable
+  example, placebo treatment pass, placebo outcome и negative-control failures,
+  upstream DiD placebo propagation, omitted-confounding nulling scenario, cross-design
+  no-pooling, candidate claim statuses, relaxed threshold, duplicate source grain,
+  empty target population, missing upstream report, CLI `--fail-on-invalid` и committed
+  report reproducibility.
+
+Урок `13/11` «Causal workflow и границы автоматизации» разработан:
+
+- `causal_workflow_spec.json` фиксирует package contract, 15 upstream source files,
+  обязательные секции question/model/identify/estimate/refute/automation/evidence/
+  checksum, DoWhy workflow order и runtime policy без добавления тяжелой optional
+  dependency;
+- `causal_study_package_builder.py` собирает воспроизводимый
+  `causal_study_package.json`, checksum manifest, estimate comparison table,
+  refutation handoff, evidence statement и automation audit;
+- валидный package показывает 15 source files, 7 design-specific estimate rows,
+  DoWhy-compatible trace `model -> identify -> estimate -> refute`,
+  `econml_used = false`, `allowed_effect_claim = false` и финальный статус
+  `blocked_single_strong_claim`;
+- package явно не усредняет несовместимые ATE/ATT/LATE/local estimates, не превращает
+  unmeasured-confounding block в identified claim и не использует EconML без отдельного
+  heterogeneity/CATE/policy-learning вопроса;
+- lesson suite содержит 14 behavioral tests: section/checksum contract, preservation of
+  question/model/identification, no-pooling policy, sensitivity-aligned evidence
+  statement, DoWhy trace order, automation boundaries, reproducibility, missing/invalid
+  upstream sources, wrong workflow order, too-strong final claim и CLI
+  `--fail-on-invalid`.
+
+Следующий содержательный шаг — проектировать и разрабатывать фазу 14 «Временные ряды».
+Перед коммитом обязательно прогнать полный набор проверок.
 
 ## Уже принятые решения
 

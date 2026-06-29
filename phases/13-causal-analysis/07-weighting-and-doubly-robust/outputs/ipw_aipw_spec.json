@@ -1,0 +1,240 @@
+{
+  "ipw_aipw_spec_id": "assisted_onboarding_ipw_aipw_v1",
+  "question_id": "assisted_onboarding_activation_ate_v1",
+  "estimand_id": "ate_activation_14d_eligible_users",
+  "trial_id": "target_trial_assisted_onboarding_v1",
+  "graph_id": "assisted_onboarding_activation_dag_v1",
+  "adjustment_gate_id": "assisted_onboarding_bad_control_actions_v1",
+  "adjustment_action_id": "recommended_pre_treatment_set",
+  "primary_estimator_id": "ridge_dr_baseline_risk_v1",
+  "treatment": "assisted_within_24h",
+  "outcome": "activation_14d",
+  "effect_measure": "risk_difference",
+  "population": "eligible_high_friction_users",
+  "propensity_model": {
+    "model_id": "ridge_propensity_baseline_risk_v1",
+    "model_type": "l2_logistic_regression",
+    "implementation": "manual_newton_solver",
+    "alpha": 0.5,
+    "standardize_numeric_terms": true,
+    "clip_epsilon": 0.001,
+    "terms": ["intercept", "baseline_risk_score", "specialist_capacity"],
+    "direct_numeric_terms": ["specialist_capacity"],
+    "derived_features": [
+      {
+        "name": "baseline_risk_score",
+        "description": "Compact teaching basis built only from allowed observed baseline covariates. It is not a learned propensity score and does not remove unmeasured confounding.",
+        "source_variables": [
+          "platform",
+          "device_tier",
+          "acquisition_channel",
+          "region_id",
+          "language",
+          "network_quality",
+          "app_crashes_before_time_zero",
+          "onboarding_steps_before_time_zero",
+          "sessions_before_time_zero",
+          "friction_score"
+        ],
+        "components": [
+          {"type": "scaled_numeric", "field": "friction_score", "center": 60, "scale": 10, "weight": 1.0},
+          {"type": "numeric", "field": "app_crashes_before_time_zero", "weight": 0.3},
+          {"type": "numeric", "field": "onboarding_steps_before_time_zero", "weight": -0.2},
+          {"type": "numeric", "field": "sessions_before_time_zero", "weight": -0.1},
+          {"type": "categorical_map", "field": "network_quality", "values": {"good": 0.0, "fair": 0.2, "poor": 0.4}},
+          {"type": "categorical_map", "field": "platform", "values": {"android": 0.2, "ios": 0.0, "web": -0.1}},
+          {"type": "categorical_map", "field": "device_tier", "values": {"low": 0.2, "mid": 0.0, "high": -0.1}},
+          {"type": "categorical_map", "field": "acquisition_channel", "values": {"paid_social": 0.2, "paid_search": 0.1, "organic": 0.0, "referral": -0.05}},
+          {"type": "categorical_map", "field": "region_id", "values": {"north": 0.05, "south": 0.0}},
+          {"type": "categorical_map", "field": "language", "values": {"ru": 0.0, "en": 0.05}}
+        ]
+      }
+    ]
+  },
+  "outcome_model": {
+    "model_id": "lpm_outcome_baseline_risk_v1",
+    "model_type": "linear_probability_ols",
+    "library_comparison": "statsmodels.OLS",
+    "terms": ["intercept", "treatment", "baseline_risk_score", "specialist_capacity"],
+    "treatment_term": "treatment",
+    "direct_numeric_terms": ["specialist_capacity"],
+    "derived_features": [
+      {
+        "name": "baseline_risk_score",
+        "description": "Same compact observed-baseline score as the g-formula lesson, reused to compare outcome regression, IPW and AIPW on the same basis.",
+        "source_variables": [
+          "platform",
+          "device_tier",
+          "acquisition_channel",
+          "region_id",
+          "language",
+          "network_quality",
+          "app_crashes_before_time_zero",
+          "onboarding_steps_before_time_zero",
+          "sessions_before_time_zero",
+          "friction_score"
+        ],
+        "components": [
+          {"type": "scaled_numeric", "field": "friction_score", "center": 60, "scale": 10, "weight": 1.0},
+          {"type": "numeric", "field": "app_crashes_before_time_zero", "weight": 0.3},
+          {"type": "numeric", "field": "onboarding_steps_before_time_zero", "weight": -0.2},
+          {"type": "numeric", "field": "sessions_before_time_zero", "weight": -0.1},
+          {"type": "categorical_map", "field": "network_quality", "values": {"good": 0.0, "fair": 0.2, "poor": 0.4}},
+          {"type": "categorical_map", "field": "platform", "values": {"android": 0.2, "ios": 0.0, "web": -0.1}},
+          {"type": "categorical_map", "field": "device_tier", "values": {"low": 0.2, "mid": 0.0, "high": -0.1}},
+          {"type": "categorical_map", "field": "acquisition_channel", "values": {"paid_social": 0.2, "paid_search": 0.1, "organic": 0.0, "referral": -0.05}},
+          {"type": "categorical_map", "field": "region_id", "values": {"north": 0.05, "south": 0.0}},
+          {"type": "categorical_map", "field": "language", "values": {"ru": 0.0, "en": 0.05}}
+        ]
+      }
+    ]
+  },
+  "diagnostics": {
+    "overlap_warning_bounds": [0.1, 0.9],
+    "overlap_severe_bounds": [0.02, 0.98],
+    "max_stabilized_weight_warning": 2.0,
+    "max_unstabilized_weight_warning": 3.0,
+    "min_effective_sample_size": 6.0,
+    "trim_thresholds": [0.02, 0.05, 0.1, 0.2, 0.25],
+    "material_retention_loss_fraction": 0.3,
+    "probability_bounds": [0.0, 1.0],
+    "warn_if_outcome_prediction_outside_probability_bounds": true
+  },
+  "stress_tests": [
+    {
+      "stress_test_id": "misspecified_treatment_friction_capacity",
+      "label": "Treatment model with obvious assignment drivers only",
+      "propensity_model": {
+        "model_id": "ridge_propensity_friction_capacity_only",
+        "model_type": "l2_logistic_regression",
+        "alpha": 0.5,
+        "standardize_numeric_terms": true,
+        "clip_epsilon": 0.001,
+        "terms": ["intercept", "friction_score", "specialist_capacity"],
+        "direct_numeric_terms": ["friction_score", "specialist_capacity"],
+        "derived_features": []
+      },
+      "outcome_model": "primary",
+      "interpretation": "Diagnostic only: friction and capacity approximate assignment pressure but omit measured baseline confounder sources from 13/03."
+    },
+    {
+      "stress_test_id": "misspecified_outcome_friction_capacity",
+      "label": "Outcome model without compact baseline risk score",
+      "propensity_model": "primary",
+      "outcome_model": {
+        "model_id": "lpm_outcome_friction_capacity_only",
+        "model_type": "linear_probability_ols",
+        "terms": ["intercept", "treatment", "friction_score", "specialist_capacity"],
+        "treatment_term": "treatment",
+        "direct_numeric_terms": ["friction_score", "specialist_capacity"],
+        "derived_features": []
+      },
+      "interpretation": "Diagnostic only: a misspecified outcome model makes AIPW move toward the wrong regression adjustment despite the primary propensity score."
+    }
+  ],
+  "candidate_estimators": [
+    {
+      "estimator_id": "ridge_dr_baseline_risk_v1",
+      "label": "Primary ridge propensity + baseline-risk outcome model",
+      "propensity_source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "outcome_source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "filter_variables": [],
+      "declared_status": "estimable_with_warnings",
+      "interpretation": "Allowed as a transparent observed-baseline estimator. Warnings remain because tiny data have weak overlap and unmeasured confounding is still open."
+    },
+    {
+      "estimator_id": "propensity_friction_capacity_only",
+      "label": "Propensity score with only assignment pressure variables",
+      "propensity_source_variables": ["friction_score", "specialist_capacity"],
+      "outcome_source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "filter_variables": [],
+      "declared_status": "invalid_omits_required_adjustment_sources",
+      "interpretation": "Good diagnostic stress test, but not a valid primary estimator for the observed-baseline adjustment gate."
+    },
+    {
+      "estimator_id": "outcome_friction_capacity_only",
+      "label": "Outcome model without baseline-risk score",
+      "propensity_source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "outcome_source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": [],
+      "declared_status": "invalid_omits_required_adjustment_sources",
+      "interpretation": "Omitting the compact baseline risk basis leaves measured backdoor paths open."
+    },
+    {
+      "estimator_id": "mediator_augmented_outcome_model",
+      "label": "Outcome model with onboarding completion mediator",
+      "propensity_source_variables": ["friction_score", "specialist_capacity"],
+      "outcome_source_variables": ["friction_score", "specialist_capacity", "onboarding_completed_48h"],
+      "filter_variables": [],
+      "declared_status": "invalid_bad_control",
+      "interpretation": "AIPW does not make a mediator safe for a total-effect outcome model."
+    },
+    {
+      "estimator_id": "telemetry_complete_case_weighting",
+      "label": "Complete-case IPW after telemetry filter",
+      "propensity_source_variables": ["friction_score", "specialist_capacity"],
+      "outcome_source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": ["telemetry_complete_30d"],
+      "declared_status": "invalid_bad_control",
+      "interpretation": "Filtering on post-treatment telemetry completeness changes the population before weighting."
+    }
+  ],
+  "claim_policy": {
+    "allowed_effect_claim": false,
+    "identification_status": "not_identified_due_to_unmeasured_confounding",
+    "allowed_estimation_claim": "Transparent IPW/AIPW estimates under the stated observed-baseline models, overlap diagnostics and trimming sensitivity.",
+    "blocked_causal_wording": [
+      "AIPW proved the causal effect",
+      "propensity weighting removed all bias",
+      "doubly robust means assumptions no longer matter"
+    ]
+  }
+}

@@ -195,7 +195,7 @@ window.COURSE_DATA = {
         {
           "number": 13,
           "title": "Причинный анализ",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 17,
@@ -486,7 +486,7 @@ window.COURSE_DATA = {
         {
           "number": 13,
           "title": "Причинный анализ",
-          "status": "in-progress"
+          "status": "complete"
         },
         {
           "number": 14,
@@ -3105,7 +3105,7 @@ window.COURSE_DATA = {
       },
       "artifact": "Воспроизводимый causal-study-package с DAG, идентификацией, оценками и sensitivity checks",
       "completion": "Студент формулирует estimand, обосновывает adjustment или quasi-experimental design, проверяет overlap, falsification и sensitivity и ограничивает causal claim выполненными assumptions.",
-      "status": "in-progress",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis",
       "lessons": [
         {
@@ -3148,163 +3148,163 @@ window.COURSE_DATA = {
           "number": 3,
           "slug": "confounders",
           "title": "Confounders и backdoor adjustment",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Находит открытые backdoor paths, выбирает достаточный pre-treatment adjustment set и фиксирует, какие confounders измерены, проксированы или остаются ненаблюдаемыми.",
           "artifact": "Backdoor adjustment-set auditor с measured/unmeasured confounder report",
-          "type": "",
+          "type": "build",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/03-confounders",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/03-confounders",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "colliders",
           "title": "Colliders, mediators и selection bias",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Распознает collider, mediator, descendant of treatment и selection variable, объясняет bias от bad controls и блокирует adjustment по post-treatment данным.",
           "artifact": "Bad-control и selection-bias auditor для candidate adjustment sets",
-          "type": "",
+          "type": "case",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/04-colliders",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/04-colliders",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/04-colliders/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "regression-adjustment",
           "title": "Regression adjustment и g-formula",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Оценивает standardized potential outcomes и ATE/ATT через outcome regression, сверяет ручную g-computation со statsmodels и диагностирует misspecification, extrapolation и неверный adjustment set.",
           "artifact": "G-computation estimator с standardized outcomes и model diagnostics",
-          "type": "",
+          "type": "build",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/05-regression-adjustment",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/05-regression-adjustment",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/05-regression-adjustment/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "matching",
           "title": "Matching и баланс ковариат",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Строит matching по pre-treatment covariates или propensity score, задает caliper и replacement policy, проверяет common support, standardized mean differences и изменение target population после отбора.",
           "artifact": "Matching pipeline с balance table, love plot data и common-support audit",
-          "type": "",
+          "type": "build",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/06-matching",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/06-matching",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "weighting-and-doubly-robust",
           "title": "Propensity weighting и doubly robust оценка",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Оценивает propensity scores, строит stabilized IPW и AIPW estimates, проверяет overlap, extreme weights, effective sample size и trimming sensitivity и сравнивает методы при misspecified treatment или outcome model.",
           "artifact": "IPW/AIPW estimator с overlap, weight и effective-sample-size diagnostics",
-          "type": "",
+          "type": "build",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/07-weighting-and-doubly-robust",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/07-weighting-and-doubly-robust",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "difference-in-differences",
           "title": "Difference-in-Differences",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 105,
           "outcome": "Рассчитывает 2x2 и multi-period DiD для регионального rollout, формулирует parallel-trends assumption, проверяет pre-trends и placebo periods и распознает риск наивного TWFE при staggered adoption.",
           "artifact": "DiD analyzer с manual reconciliation, event-study table и placebo/pre-trend checks",
-          "type": "",
+          "type": "case",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/08-difference-in-differences",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/08-difference-in-differences",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/08-difference-in-differences/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "quasi-experiments",
           "title": "RDD и instrumental variables: дизайн до оценки",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Проверяет применимость RDD и IV, формулирует локальный estimand, continuity/relevance/exclusion/monotonicity assumptions и обнаруживает manipulation at cutoff, weak instrument и неверное обобщение LATE на ATE.",
           "artifact": "Quasi-experiment design auditor для RDD и IV с local-estimand contract",
-          "type": "",
+          "type": "case",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/09-quasi-experiments",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/09-quasi-experiments",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "sensitivity",
           "title": "Sensitivity analysis и falsification checks",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Проводит placebo treatment/outcome, negative-control и omitted-confounding sensitivity checks, сравнивает estimates между designs и формулирует, какая сила нарушения assumptions изменит вывод.",
           "artifact": "Sensitivity и refutation suite с placebo, negative-control и omitted-variable report",
-          "type": "",
+          "type": "case",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/10-sensitivity",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/10-sensitivity",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/10-sensitivity/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "causal-workflow",
           "title": "Causal workflow и границы автоматизации",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 105,
           "outcome": "Собирает causal-study-package, воспроизводит model-identify-estimate-refute workflow в DoWhy, сверяет его с прозрачными RA/IPW/AIPW/DiD расчетами и объясняет, почему EconML не заменяет identification и нужен только для отдельно поставленной heterogeneity-задачи.",
           "artifact": "Causal-study-package с DAG, estimates, balance, falsification, sensitivity, automation audit и checksum manifest",
-          "type": "",
+          "type": "case",
           "tracks": [
             "decision",
             "product"
           ],
           "path": "phases/13-causal-analysis/11-causal-workflow",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/11-causal-workflow",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/11-causal-workflow/docs/ru.md"
         }
       ]
     },
@@ -4462,7 +4462,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 135,
+    "complete_lessons": 144,
     "hours": {
       "min": 238,
       "max": 326

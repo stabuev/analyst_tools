@@ -1,0 +1,120 @@
+{
+  "g_formula_spec_id": "assisted_onboarding_g_formula_v1",
+  "question_id": "assisted_onboarding_activation_ate_v1",
+  "estimand_id": "ate_activation_14d_eligible_users",
+  "trial_id": "target_trial_assisted_onboarding_v1",
+  "graph_id": "assisted_onboarding_activation_dag_v1",
+  "adjustment_gate_id": "assisted_onboarding_bad_control_actions_v1",
+  "adjustment_action_id": "recommended_pre_treatment_set",
+  "treatment": "assisted_within_24h",
+  "outcome": "activation_14d",
+  "effect_measure": "risk_difference",
+  "population": "eligible_high_friction_users",
+  "estimator": {
+    "estimator_id": "lpm_g_computation_baseline_risk_v1",
+    "estimator_family": "outcome_regression_g_formula",
+    "model_type": "linear_probability_ols",
+    "library_comparison": "statsmodels.OLS",
+    "terms": ["intercept", "treatment", "baseline_risk_score", "specialist_capacity"],
+    "treatment_term": "treatment",
+    "direct_numeric_terms": ["specialist_capacity"],
+    "derived_features": [
+      {
+        "name": "baseline_risk_score",
+        "description": "Compact teaching basis built only from allowed observed baseline covariates. It is not a learned propensity score and does not remove unmeasured confounding.",
+        "source_variables": [
+          "platform",
+          "device_tier",
+          "acquisition_channel",
+          "region_id",
+          "language",
+          "network_quality",
+          "app_crashes_before_time_zero",
+          "onboarding_steps_before_time_zero",
+          "sessions_before_time_zero",
+          "friction_score"
+        ],
+        "components": [
+          {"type": "scaled_numeric", "field": "friction_score", "center": 60, "scale": 10, "weight": 1.0},
+          {"type": "numeric", "field": "app_crashes_before_time_zero", "weight": 0.3},
+          {"type": "numeric", "field": "onboarding_steps_before_time_zero", "weight": -0.2},
+          {"type": "numeric", "field": "sessions_before_time_zero", "weight": -0.1},
+          {"type": "categorical_map", "field": "network_quality", "values": {"good": 0.0, "fair": 0.2, "poor": 0.4}},
+          {"type": "categorical_map", "field": "platform", "values": {"android": 0.2, "ios": 0.0, "web": -0.1}},
+          {"type": "categorical_map", "field": "device_tier", "values": {"low": 0.2, "mid": 0.0, "high": -0.1}},
+          {"type": "categorical_map", "field": "acquisition_channel", "values": {"paid_social": 0.2, "paid_search": 0.1, "organic": 0.0, "referral": -0.05}},
+          {"type": "categorical_map", "field": "region_id", "values": {"north": 0.05, "south": 0.0}},
+          {"type": "categorical_map", "field": "language", "values": {"ru": 0.0, "en": 0.05}}
+        ]
+      }
+    ],
+    "standardization": {
+      "counterfactual_treatment_values": [1, 0],
+      "population_estimands": ["ATE", "ATT"],
+      "prediction_population": "same target-population rows under both treatment strategies"
+    },
+    "diagnostics": {
+      "probability_bounds": [0.0, 1.0],
+      "overlap_features": ["baseline_risk_score", "specialist_capacity"],
+      "warn_if_prediction_outside_probability_bounds": true,
+      "warn_if_counterfactual_outside_observed_support": true,
+      "min_rows_per_parameter": 2.0
+    }
+  },
+  "candidate_model_variants": [
+    {
+      "model_id": "lpm_g_computation_baseline_risk_v1",
+      "label": "Primary compact baseline-risk LPM",
+      "source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "filter_variables": [],
+      "declared_status": "estimable_with_warnings",
+      "interpretation": "Allowed for a transparent teaching estimate, but not enough for a final causal claim because unmeasured confounding and LPM diagnostics remain."
+    },
+    {
+      "model_id": "too_narrow_friction_capacity_model",
+      "label": "Too narrow model with only obvious assignment drivers",
+      "source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": [],
+      "declared_status": "invalid_omits_required_adjustment_sources",
+      "interpretation": "This reproduces the 13/03 warning: friction and capacity alone leave measured baseline paths open."
+    },
+    {
+      "model_id": "mediator_leakage_outcome_model",
+      "label": "Outcome model with onboarding completion mediator",
+      "source_variables": ["friction_score", "specialist_capacity", "onboarding_completed_48h"],
+      "filter_variables": [],
+      "declared_status": "invalid_bad_control",
+      "interpretation": "A predictive model with a mediator is not a valid total-effect outcome regression."
+    },
+    {
+      "model_id": "complete_case_lpm",
+      "label": "LPM after telemetry complete-case filter",
+      "source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": ["telemetry_complete_30d"],
+      "declared_status": "invalid_bad_control",
+      "interpretation": "Filtering on post-treatment telemetry completeness changes population before estimation."
+    }
+  ],
+  "claim_policy": {
+    "allowed_effect_claim": false,
+    "identification_status": "not_identified_due_to_unmeasured_confounding",
+    "allowed_estimation_claim": "Transparent g-computation estimate under the stated outcome model and observed-baseline adjustment gate.",
+    "blocked_causal_wording": [
+      "assisted onboarding caused",
+      "the causal effect is proven",
+      "regression adjustment removed all bias"
+    ]
+  }
+}

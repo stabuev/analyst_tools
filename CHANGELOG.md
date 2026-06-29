@@ -9,6 +9,62 @@
 
 ### Добавлено
 
+- Урок `13/11` «Causal workflow и границы автоматизации» с
+  `causal_workflow_spec.json`, `causal_study_package.json`,
+  `checksum_manifest.json`, CLI `causal_study_package_builder.py`, интеграцией 15
+  upstream artifacts фазы 13, DoWhy-compatible workflow trace
+  `model -> identify -> estimate -> refute`, явной границей автоматизации,
+  EconML scope audit, запретом pooling разных estimands, финальной claim policy,
+  которая блокирует single strong causal claim, и 14 behavioral tests.
+- Урок `13/10` «Sensitivity analysis и falsification checks» с
+  `sensitivity_spec.json`, `sensitivity_report.json`, CLI
+  `sensitivity_refutation_suite.py`, placebo treatment/outcome checks,
+  negative-control outcome, upstream DiD placebo propagation, omitted-confounding
+  sensitivity grid, cross-design estimate comparison, no-pooling policy для разных
+  estimands, claim policy с блокировкой single strong causal effect statement и 15
+  behavioral tests.
+- Урок `13/09` «RDD и instrumental variables: дизайн до оценки» с
+  `quasi_experiment_spec.json`, `quasi_experiment_report.json`, CLI
+  `quasi_experiment_design_auditor.py`, fuzzy RDD around friction-score cutoff,
+  local bandwidth/density/continuity checks, sharp-vs-fuzzy candidate policy, IV first
+  stage, reduced form, Wald LATE, observed balance screen, LATE-not-ATE claim policy,
+  warnings по diagnostic-only tiny RDD и непроверяемым exclusion/monotonicity assumptions
+  и 16 behavioral tests.
+- Урок `13/08` «Difference-in-Differences» с `did_spec.json`,
+  `did_report.json`, CLI `did_analyzer.py`, региональным rollout design,
+  manual 2x2 DiD north versus not-yet-treated south, saturated regression
+  reconciliation, pretrend slope check, fake pre-period и composition placebo checks,
+  event-study table, sparse-tail warning, TWFE diagnostic-only warning для staggered
+  adoption, limited claim policy и 17 behavioral tests.
+- Урок `13/07` «Propensity weighting и doubly robust оценка» с
+  `ipw_aipw_spec.json`, `ipw_aipw_report.json`, CLI `ipw_aipw_estimator.py`,
+  ridge propensity scoring, stabilized IPW, Horvitz-Thompson и Hájek estimates,
+  AIPW residual correction, overlap/tail diagnostics, weight и effective-sample-size
+  report, trimming sensitivity, stress tests для misspecified treatment/outcome models,
+  bad-control/source coverage gates, claim policy и 19 behavioral tests.
+- Урок `13/06` «Matching и баланс ковариат» с `matching_spec.json`,
+  `matching_report.json`, CLI `matching_pipeline.py`, nearest-neighbor ATT matching
+  по pre-treatment covariates, standardized Euclidean distance, caliper, replacement
+  policy, common-support audit, matched pairs, balance table, love plot data, bad-control
+  gates, claim policy и 16 behavioral tests.
+- Урок `13/05` «Regression adjustment и g-formula» с `g_formula_spec.json`,
+  `g_formula_estimate_report.json`, CLI `g_computation_estimator.py`, ручной OLS
+  g-computation, сверкой со statsmodels, standardized potential outcomes, ATE/ATT,
+  diagnostics по LPM bounds, support/extrapolation, bad-control/source coverage, claim
+  policy и 16 behavioral tests.
+- Урок `13/04` «Colliders, mediators и selection bias» с
+  `bad_control_policy.json`, `candidate_control_actions.json`,
+  `bad_control_selection_audit.json`, CLI `bad_control_selection_auditor.py`,
+  проверками mediator, collider, selection filter, treatment descendant, outcome
+  leakage, assignment-mechanism controls, population-change policy, allowed baseline
+  handoff для будущих estimators и 16 behavioral tests.
+- Урок `13/03` «Confounders и backdoor adjustment» с
+  `confounder_inventory.json`, `adjustment_set_spec.json`,
+  `backdoor_adjustment_audit.json`, CLI `backdoor_adjustment_auditor.py`, проверками
+  measured/unmeasured confounders, source fields в data contract, active backdoor paths,
+  candidate adjustment set statuses, primary observed baseline recommendation,
+  forbidden mediator/collider/selection controls, claim policy при remaining unmeasured
+  confounding и 15 behavioral tests.
 - Урок `13/02` «Причинные DAG и идентификация» с machine-readable
   `causal_dag.json`, `identification_map.json`, standalone CLI
   `causal_dag_validator.py`, `dag_audit.json`, проверками acyclicity, temporal order,

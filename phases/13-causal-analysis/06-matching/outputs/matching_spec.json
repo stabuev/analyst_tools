@@ -1,0 +1,169 @@
+{
+  "matching_spec_id": "assisted_onboarding_matching_v1",
+  "question_id": "assisted_onboarding_activation_ate_v1",
+  "estimand_id": "ate_activation_14d_eligible_users",
+  "trial_id": "target_trial_assisted_onboarding_v1",
+  "graph_id": "assisted_onboarding_activation_dag_v1",
+  "adjustment_gate_id": "assisted_onboarding_bad_control_actions_v1",
+  "adjustment_action_id": "recommended_pre_treatment_set",
+  "previous_estimator_id": "lpm_g_computation_baseline_risk_v1",
+  "treatment": "assisted_within_24h",
+  "outcome": "activation_14d",
+  "effect_measure": "risk_difference",
+  "population": "eligible_high_friction_users",
+  "matching_design": {
+    "design_id": "nearest_neighbor_friction_capacity_att_v1",
+    "estimand_after_matching": "ATT_in_matched_common_support_subset",
+    "algorithm": "nearest_neighbor",
+    "distance_metric": "standardized_euclidean",
+    "distance_features": ["friction_score", "specialist_capacity"],
+    "replacement": true,
+    "ratio": 1,
+    "caliper": 1.5,
+    "allow_unmatched_treated": true,
+    "tie_breaker": ["distance", "control_user_id"],
+    "matched_effect_measure": "treated_outcome_minus_matched_control_outcome",
+    "source_variables": [
+      "platform",
+      "device_tier",
+      "acquisition_channel",
+      "region_id",
+      "language",
+      "network_quality",
+      "app_crashes_before_time_zero",
+      "onboarding_steps_before_time_zero",
+      "sessions_before_time_zero",
+      "friction_score",
+      "specialist_capacity"
+    ],
+    "filter_variables": []
+  },
+  "derived_features": [
+    {
+      "name": "baseline_risk_score",
+      "description": "Compact teaching balance feature reused from 13/05. It is built only from allowed observed baseline covariates and is not used as the primary distance score in this lesson.",
+      "source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score"
+      ],
+      "components": [
+        {"type": "scaled_numeric", "field": "friction_score", "center": 60, "scale": 10, "weight": 1.0},
+        {"type": "numeric", "field": "app_crashes_before_time_zero", "weight": 0.3},
+        {"type": "numeric", "field": "onboarding_steps_before_time_zero", "weight": -0.2},
+        {"type": "numeric", "field": "sessions_before_time_zero", "weight": -0.1},
+        {"type": "categorical_map", "field": "network_quality", "values": {"good": 0.0, "fair": 0.2, "poor": 0.4}},
+        {"type": "categorical_map", "field": "platform", "values": {"android": 0.2, "ios": 0.0, "web": -0.1}},
+        {"type": "categorical_map", "field": "device_tier", "values": {"low": 0.2, "mid": 0.0, "high": -0.1}},
+        {"type": "categorical_map", "field": "acquisition_channel", "values": {"paid_social": 0.2, "paid_search": 0.1, "organic": 0.0, "referral": -0.05}},
+        {"type": "categorical_map", "field": "region_id", "values": {"north": 0.05, "south": 0.0}},
+        {"type": "categorical_map", "field": "language", "values": {"ru": 0.0, "en": 0.05}}
+      ]
+    }
+  ],
+  "balance_diagnostics": {
+    "features": [
+      {"name": "friction_score", "type": "continuous", "threshold_abs_smd": 0.25},
+      {"name": "specialist_capacity", "type": "continuous", "threshold_abs_smd": 0.25},
+      {"name": "baseline_risk_score", "type": "continuous", "threshold_abs_smd": 0.25},
+      {"name": "activation_14d_pre", "type": "binary", "threshold_abs_smd": 0.25}
+    ],
+    "love_plot_fields": ["feature", "smd_before", "smd_after", "abs_smd_before", "abs_smd_after", "status_after"],
+    "warn_if_any_abs_smd_after_above_threshold": true,
+    "warn_if_abs_smd_gets_worse": true
+  },
+  "common_support": {
+    "minimum_matched_treated_fraction": 0.5,
+    "warn_if_unmatched_treated_fraction_above": 0.0,
+    "warn_if_unique_control_fraction_below": 0.75,
+    "max_allowed_nearest_distance_without_caliper": 1.5,
+    "report_unmatched_treated": true,
+    "report_reused_controls": true
+  },
+  "candidate_matching_designs": [
+    {
+      "design_id": "nearest_neighbor_friction_capacity_att_v1",
+      "label": "Primary nearest-neighbor ATT match with caliper and replacement",
+      "source_variables": [
+        "platform",
+        "device_tier",
+        "acquisition_channel",
+        "region_id",
+        "language",
+        "network_quality",
+        "app_crashes_before_time_zero",
+        "onboarding_steps_before_time_zero",
+        "sessions_before_time_zero",
+        "friction_score",
+        "specialist_capacity"
+      ],
+      "filter_variables": [],
+      "caliper": 1.5,
+      "replacement": true,
+      "allow_unmatched_treated": true,
+      "declared_status": "estimable_with_warnings",
+      "interpretation": "Transparent ATT matching estimate for the matched common-support subset. It is not a full-population ATE and still has unmeasured-confounding limitations."
+    },
+    {
+      "design_id": "forced_no_caliper_all_treated_match",
+      "label": "Nearest neighbor without caliper, forcing every treated user to match",
+      "source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": [],
+      "caliper": null,
+      "replacement": true,
+      "allow_unmatched_treated": false,
+      "declared_status": "invalid_common_support_policy",
+      "interpretation": "This hides lack of overlap by forcing high-risk treated users to distant controls."
+    },
+    {
+      "design_id": "no_replacement_full_att_match",
+      "label": "Full ATT match without replacement despite fewer controls than treated users",
+      "source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": [],
+      "caliper": 1.5,
+      "replacement": false,
+      "allow_unmatched_treated": false,
+      "declared_status": "invalid_insufficient_controls_for_full_att",
+      "interpretation": "With 6 treated and 4 comparators in tiny data, ratio-1 full ATT matching without replacement cannot cover all treated units."
+    },
+    {
+      "design_id": "mediator_outcome_matching",
+      "label": "Matching on onboarding completion mediator",
+      "source_variables": ["friction_score", "specialist_capacity", "onboarding_completed_48h"],
+      "filter_variables": [],
+      "caliper": 1.5,
+      "replacement": true,
+      "allow_unmatched_treated": true,
+      "declared_status": "invalid_bad_control",
+      "interpretation": "Matching on a post-treatment mediator changes the total-effect question."
+    },
+    {
+      "design_id": "telemetry_complete_case_matching",
+      "label": "Matching after telemetry complete-case filter",
+      "source_variables": ["friction_score", "specialist_capacity"],
+      "filter_variables": ["telemetry_complete_30d"],
+      "caliper": 1.5,
+      "replacement": true,
+      "allow_unmatched_treated": true,
+      "declared_status": "invalid_bad_control",
+      "interpretation": "Filtering on post-treatment telemetry completeness changes the target population."
+    }
+  ],
+  "claim_policy": {
+    "allowed_effect_claim": false,
+    "identification_status": "not_identified_due_to_unmeasured_confounding",
+    "allowed_estimation_claim": "Transparent matching estimate for the matched common-support subset under the stated distance, caliper and replacement policy.",
+    "blocked_causal_wording": [
+      "matching proved causality",
+      "matched ATT is the full ATE",
+      "balance diagnostics remove unmeasured confounding"
+    ]
+  }
+}

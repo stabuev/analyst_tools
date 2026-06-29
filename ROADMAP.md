@@ -326,15 +326,15 @@ flowchart LR
 |---:|---|---|
 | 01 | [Причинный вопрос и estimand](phases/13-causal-analysis/01-causal-question-and-estimand) | complete |
 | 02 | [Причинные DAG и идентификация](phases/13-causal-analysis/02-causal-dags) | complete |
-| 03 | Confounders и backdoor adjustment | designed |
-| 04 | Colliders, mediators и selection bias | designed |
-| 05 | Regression adjustment и g-formula | designed |
-| 06 | Matching и баланс ковариат | designed |
-| 07 | Propensity weighting и doubly robust оценка | designed |
-| 08 | Difference-in-Differences | designed |
-| 09 | RDD и instrumental variables: дизайн до оценки | designed |
-| 10 | Sensitivity analysis и falsification checks | designed |
-| 11 | Causal workflow и границы автоматизации | designed |
+| 03 | [Confounders и backdoor adjustment](phases/13-causal-analysis/03-confounders) | complete |
+| 04 | [Colliders, mediators и selection bias](phases/13-causal-analysis/04-colliders) | complete |
+| 05 | [Regression adjustment и g-formula](phases/13-causal-analysis/05-regression-adjustment) | complete |
+| 06 | [Matching и баланс ковариат](phases/13-causal-analysis/06-matching) | complete |
+| 07 | [Propensity weighting и doubly robust оценка](phases/13-causal-analysis/07-weighting-and-doubly-robust) | complete |
+| 08 | [Difference-in-Differences](phases/13-causal-analysis/08-difference-in-differences) | complete |
+| 09 | [RDD и instrumental variables: дизайн до оценки](phases/13-causal-analysis/09-quasi-experiments) | complete |
+| 10 | [Sensitivity analysis и falsification checks](phases/13-causal-analysis/10-sensitivity) | complete |
+| 11 | [Causal workflow и границы автоматизации](phases/13-causal-analysis/11-causal-workflow) | complete |
 
 ## Фаза 14: Временные ряды
 

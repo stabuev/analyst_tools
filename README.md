@@ -159,13 +159,15 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-12`: 133 урока от входной диагностики до продуктовых экспериментов,
-analytics engineering и воспроизводимого multi-engine benchmark package. Фаза `13`
-«Причинный анализ» спроектирована как 11 уроков на 15,5 часа; завершены `13/01`
-с target trial-style contract, ATE/ATT/LATE semantics и общим causal dataset и `13/02`
-с machine-readable DAG, identification map, d-separation/backdoor checks и CLI-валидатором
-DAG/identification. Всего готовы 135 уроков. Следующий шаг — разработка `13/03` про
-confounders и backdoor adjustment.
+завершены фазы `0-13`: 144 урока от входной диагностики до продуктовых экспериментов,
+analytics engineering, воспроизводимого multi-engine benchmark package и причинного
+анализа. Фаза `13` «Причинный анализ» завершена как 11 уроков на 15,5 часа: causal
+question/estimand, DAG/identification, backdoor adjustment, bad controls, g-formula,
+matching, IPW/AIPW, DiD, RDD/IV, sensitivity/falsification и интеграционный `13/11`
+causal-study-package с DoWhy-compatible workflow trace, EconML scope audit, checksum
+manifest и финальной claim policy, которая блокирует single strong causal claim при
+невыполненных assumptions. Следующий шаг — проектирование и разработка фазы `14`
+«Временные ряды».
 Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).
