@@ -3,13 +3,15 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 29 июня 2026
+**Обновлено:** 1 июля 2026
 **Ветка:** `main`
 **Базовый коммит перед текущим этапом:** `c15f59a` — завершение фазы 12
 
-Локальная `main` синхронизирована с `origin/main`. Рабочее дерево после текущего этапа
-содержит незакоммиченный проект фазы 13. Push и commit выполняются только по явной
-команде пользователя. Перед продолжением проверьте актуальное состояние через `git status`.
+Локальная `main` синхронизирована с `origin/main` на момент последней проверки. Рабочее
+дерево содержит незакоммиченные изменения по проектированию фазы 14, разработке уроков
+`14/01`–`14/12` и проектированию фазы 15. Push и commit выполняются только по явной
+команде пользователя. Перед
+продолжением проверьте актуальное состояние через `git status`.
 
 ## Цель
 
@@ -25,9 +27,9 @@
 
 - 19 фаз.
 - 201 урок в программе.
-- 144 завершенных урока.
-- 0 уроков в статусе `designed`.
-- Фазы 00–13 полностью завершены.
+- 156 завершенных уроков.
+- 15 уроков в статусе `designed`.
+- Фазы 00–14 полностью завершены.
 - Фаза 10 «Эксперименты и A/B-тесты» завершена: готовы уроки `10/01`–`10/11`.
 - Фаза 11 «Analytics Engineering» завершена: 11 уроков на 900 минут; готовы уроки
   `11/01` «Слои и контракты аналитических данных», `11/02` «Структура dbt-проекта»,
@@ -48,6 +50,81 @@
 - Фаза 13 «Причинный анализ» завершена: 11 уроков на 930 минут с causal question,
   estimand, DAG/identification, adjustment, matching, IPW/AIPW, DiD, RDD/IV,
   sensitivity и итоговым `causal-study-package`.
+- Фаза 14 «Временные ряды» завершена: 12 уроков на 945 минут с временным индексом,
+  resampling, leakage-free rolling features, temporal leakage audit, seasonal baseline,
+  decomposition, ETS/ARIMA, rolling backtesting, forecast metrics, prediction intervals,
+  anomaly policy и итоговым `time-series forecast package`.
+- Фаза 15 «Прикладное машинное обучение» спроектирована: 15 уроков на 1170 минут с ML
+  problem framing, train/validation/test split, metric/cost policy, preprocessing,
+  scikit-learn Pipeline/ColumnTransformer, dummy/linear/tree/ensemble baselines,
+  cross-validation, imbalance, probability calibration, leakage audit, segment error
+  analysis и итоговым `ML baseline package`/model card.
+- Урок `14/01` «Временной индекс, частота и календарный grain» завершен: общий
+  deterministic tiny profile, `forecast_scenario.json`, calendar/revision contract,
+  CLI-аудитор time index/frequency/calendar coverage, warnings для incomplete rows и
+  revisions after origin и 10 behavioral tests.
+- Урок `14/02` «Resampling и агрегация» завершен: `subscription_events.csv`,
+  `resampling_spec.json`, CLI `resampling-pipeline`, daily/weekly stock-from-deltas
+  aggregation, UTC-to-business-date normalization, reconciliation с published
+  `metric_observations.csv`, partial-period warnings и 11 behavioral tests.
+- Урок `14/03` «Rolling и expanding windows» завершен: `window_feature_spec.json`, CLI
+  `window-feature-builder`, leakage-safe lag/rolling/expanding features, `window_features.csv`,
+  `leakage_audit.csv`, warmup/partial row policy и 12 behavioral tests.
+- Урок `14/04` «Тренд, сезонность и календарные эффекты» завершен:
+  `seasonality_profile_spec.json`, CLI `seasonality-profiler`, `trend_summary.csv`,
+  `seasonality_profile.csv`, `calendar_effect_inventory.csv`, known-before-origin gates
+  для holiday/campaign/release context, warnings для partial rows, future campaign без
+  historical examples и single-month profile, 13 behavioral tests.
+- Урок `14/05` «Временная утечка» завершен: `temporal_leakage_spec.json`, CLI
+  `temporal-leakage-auditor`, `cutoff_contract.json`, `forbidden_feature_report.csv`,
+  `temporal_leakage_report.json`, gates для time-ordered cutoff, embargo rows,
+  selected feature availability, known-before-origin calendar features, past-only window
+  audit и revision policy, warnings для отклоненных forbidden candidates и excluded
+  revisions after origin, 14 behavioral tests.
+- Урок `14/06` «Наивные и сезонные baseline» завершен: `baseline_forecast_spec.json`,
+  CLI `baseline-forecaster`, `baseline_forecasts.csv`, `baseline_trace.csv`,
+  `baseline_report.json`, naive/seasonal naive/drift/moving-average forecasts,
+  seasonal-naive primary baseline policy, forecast trace anchors, warnings для known
+  future campaign context и embargo gap, 15 behavioral tests.
+- Урок `14/07` «Декомпозиция ряда» завершен: `decomposition_spec.json`, CLI
+  `stl-decomposition-reporter`, `decomposition_components.csv`,
+  `residual_diagnostics.csv`, `decomposition_report.json`, STL additive components,
+  reconstruction invariant, residual diagnostics, diagnostic-only interpretation policy,
+  warning для short history и 15 behavioral tests.
+- Урок `14/08` «ETS и ARIMA» завершен: `statsmodels_model_spec.json`, CLI
+  `statsmodels-forecast-runner`, `candidate_forecasts.csv`, `model_diagnostics.csv`,
+  `library_vs_baseline.csv`, `model_report.json`, predeclared ETS/ARIMA candidates,
+  convergence/warning diagnostics, shape-only comparison к `seasonal_naive_7`,
+  warnings для short history, known future calendar effects и embargo gap, 15
+  behavioral tests.
+- Урок `14/09` «Rolling backtesting» завершен: `backtesting_spec.json`,
+  `backtest_observations.csv`, CLI `rolling-origin-backtester`,
+  `split_manifest.csv`, `backtest_forecasts.csv`, `backtest_errors.csv`,
+  `backtest_report.json`, expanding и rolling origins, fixed 3-day horizon,
+  gap/embargo checks, refit_each_origin policy, raw error table без premature
+  leaderboard, warnings для small origin count и shorter-than-final horizon, 14
+  behavioral tests.
+- Урок `14/10` «Метрики прогноза» завершен: `forecast_metric_spec.json`, CLI
+  `forecast-metric-evaluator`, `forecast_metrics.csv`,
+  `metric_suitability_audit.csv`, `mase_denominators.csv`,
+  `metric_leaderboard.csv`, `metric_report.json`, MAE/RMSE/MAPE/sMAPE/WAPE/MASE,
+  overall/segment/horizon slices, weighted-MASE leaderboard policy,
+  zero-denominator handling для MAPE/sMAPE и 14 behavioral tests.
+- Урок `14/11` «Интервалы прогноза» завершен: `prediction_interval_spec.json`, CLI
+  `prediction-interval-calibrator`, `interval_forecasts.csv`,
+  `interval_backtest_predictions.csv`, `interval_coverage.csv`,
+  `interval_calibration_audit.csv`, `interval_report.json`,
+  residual/bootstrap/model-based prediction intervals, empirical coverage по
+  rolling-origin backtests, uncertainty statements, horizon extrapolation warnings и
+  15 behavioral tests.
+- Урок `14/12` «Аномалии временных рядов и forecast package» завершен:
+  `forecast_package_spec.json`, CLI `time-series-forecast-packager`,
+  `anomaly_flags.csv`, `quality_gate_summary.csv`, `anomaly_policy.json`,
+  `forecast_package_report.json`, `decision_report.md`,
+  `forecast_package_manifest.json`, anomaly triage labels
+  `data_quality`/`calendar_expected`/`model_misspecification`/`inconclusive`,
+  upstream warning propagation, no-causal-claim boundary, checksum manifest и
+  13 behavioral tests.
 - Урок `13/01` «Причинный вопрос и estimand» завершен: target trial-style contract,
   ATE/ATT/LATE semantics, общий causal dataset и CLI-валидатор question/estimand/timing.
 - Урок `13/02` «Причинные DAG и идентификация» завершен: machine-readable causal DAG,
@@ -98,13 +175,14 @@
   scope audit, checksum manifest, no-pooling policy для разных estimands и финальная
   claim policy, которая блокирует single strong causal claim, с CLI и 14 behavioral
   tests.
-- Следующий содержательный этап — проектирование и разработка фазы 14 «Временные ряды».
+- Следующий содержательный этап — разработка урока `15/01` «Постановка ML-задачи».
 - Полный маршрут: 238–326 часов.
 - Сайт содержит главную дорожную карту, каталог, маршруты, глоссарий и локальный прогресс.
 
 Готовность по фазам: `00` — 6/6, `01` — 9/9, `02` — 9/9, `03` — 11/11,
 `04` — 12/12, `05` — 11/11, `06` — 11/11, `07` — 10/10, `08` — 11/11,
-`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11, `13` — 11/11.
+`09` — 10/10, `10` — 11/11, `11` — 11/11, `12` — 11/11, `13` — 11/11,
+`14` — 12/12, `15` — 0/15 complete, 15 designed.
 
 ## Текущая работа
 
@@ -1266,8 +1344,118 @@ identification/adjustment/overlap/quasi-experiments и структура ито
   upstream sources, wrong workflow order, too-strong final claim и CLI
   `--fail-on-invalid`.
 
-Следующий содержательный шаг — проектировать и разрабатывать фазу 14 «Временные ряды».
+## Фаза 14
+
+Фаза 14 спроектирована в `docs/phase-14-design.md`: зафиксированы границы с продуктовой
+аналитикой, статистикой, причинным анализом, ML и delivery, роли pandas, NumPy, SciPy,
+statsmodels, DuckDB, Pandera/Pydantic и визуализаций, единая forecasting-задача по
+активным подпискам, net revenue и нагрузке на поддержку, forecast scenario spec, failure
+modes time index/resampling/leakage/backtesting/metrics/intervals/anomalies и структура
+итогового `time-series forecast package`.
+
+Уроки `14/01`–`14/12` развернуты в `curriculum.json` как последовательность на
+945 минут; все 12 уроков завершены:
+
+- `14/01` — временной индекс, timezone, frequency, observation window и calendar grain:
+  завершен как `time-index-auditor` с общим tiny dataset, manifest и 10 behavioral tests;
+- `14/02` — resampling, aggregation policy, complete-period policy и reconciliation:
+  завершен как `resampling-pipeline` с `subscription_events.csv`, resampling spec,
+  daily/weekly outputs, reconciliation table, partial-period audit и 11 behavioral tests;
+- `14/03` — rolling/expanding windows, lag policy и leakage checks:
+  завершен как `window-feature-builder` с `window_feature_spec.json`,
+  `window_features.csv`, `leakage_audit.csv`, warmup/partial policy и 12 behavioral
+  tests;
+- `14/04` — trend, seasonality, calendar/campaign/release effects:
+  завершен как `seasonality-profiler` с `seasonality_profile_spec.json`,
+  `trend_summary.csv`, `seasonality_profile.csv`, `calendar_effect_inventory.csv`,
+  known-before-origin gates и 13 behavioral tests;
+- `14/05` — forecast origin, horizon, data availability и temporal leakage audit:
+  завершен как `temporal-leakage-auditor` с `temporal_leakage_spec.json`,
+  `cutoff_contract.json`, `forbidden_feature_report.csv`, `temporal_leakage_report.json`,
+  gates для cutoff/embargo/feature availability/calendar known-before-origin/revisions
+  и 14 behavioral tests;
+- `14/06` — naive, seasonal naive, drift и moving-average baselines:
+  завершен как `baseline-forecaster` с `baseline_forecast_spec.json`,
+  `baseline_forecasts.csv`, `baseline_trace.csv`, `baseline_report.json`,
+  seasonal-naive primary baseline policy, forecast anchors trace и 15 behavioral tests;
+- `14/07` — STL decomposition, component tables и residual diagnostics:
+  завершен как `stl-decomposition-reporter` с `decomposition_spec.json`,
+  `decomposition_components.csv`, `residual_diagnostics.csv`,
+  `decomposition_report.json`, additive STL reconstruction, residual diagnostics,
+  diagnostic-only policy и 15 behavioral tests;
+- `14/08` — ETS и ARIMA/SARIMAX candidate models в statsmodels:
+  завершен как `statsmodels-forecast-runner` с `statsmodels_model_spec.json`,
+  `candidate_forecasts.csv`, `model_diagnostics.csv`, `library_vs_baseline.csv`,
+  `model_report.json`, predeclared model spec, warnings/convergence propagation,
+  shape-only baseline comparison и 15 behavioral tests;
+- `14/09` — rolling-origin backtesting:
+  завершен как `rolling-origin-backtester` с `backtesting_spec.json`,
+  `backtest_observations.csv`, `split_manifest.csv`, `backtest_forecasts.csv`,
+  `backtest_errors.csv`, `backtest_report.json`, expanding/rolling origins,
+  fixed horizon, gap/embargo checks, refit_each_origin policy и 14 behavioral tests;
+- `14/10` — MAE/RMSE/MAPE/sMAPE/WAPE/MASE и metric suitability audit:
+  завершен как `forecast-metric-evaluator` с `forecast_metric_spec.json`,
+  `forecast_metrics.csv`, `metric_suitability_audit.csv`, `mase_denominators.csv`,
+  `metric_leaderboard.csv`, `metric_report.json`, overall/segment/horizon slices,
+  weighted-MASE leaderboard policy, zero-denominator handling и 14 behavioral tests;
+- `14/11` — residual/bootstrap/model-based prediction intervals и coverage report:
+  завершен как `prediction-interval-calibrator` с `prediction_interval_spec.json`,
+  `interval_forecasts.csv`, `interval_backtest_predictions.csv`,
+  `interval_coverage.csv`, `interval_calibration_audit.csv`, `interval_report.json`,
+  empirical coverage, horizon extrapolation policy, uncertainty statements и 15
+  behavioral tests;
+- `14/12` — anomaly policy и интеграционный `time-series forecast package`:
+  завершен как `time-series-forecast-packager` с `forecast_package_spec.json`,
+  `anomaly_flags.csv`, `quality_gate_summary.csv`, `anomaly_policy.json`,
+  `forecast_package_report.json`, `decision_report.md`,
+  `forecast_package_manifest.json`, explicit anomaly labels, upstream warning
+  propagation, no-causal-claim boundary и 13 behavioral tests.
+
+Следующий содержательный шаг — разработка урока `15/01` «Постановка ML-задачи».
 Перед коммитом обязательно прогнать полный набор проверок.
+
+## Фаза 15
+
+Фаза 15 спроектирована в `docs/phase-15-design.md`: зафиксированы границы с
+прикладной статистикой, causal inference, forecasting, production delivery и фазой 16,
+единая supervised ML-задача churn-risk за 7 дней до окончания trial, problem spec,
+split/metric/preprocessing/pipeline/calibration/leakage/model-card contracts и структура
+итогового `ml-baseline-package`.
+
+Уроки `15/01`–`15/15` развернуты в `curriculum.json` как последовательность на
+1170 минут; все 15 уроков пока имеют статус `designed`:
+
+- `15/01` — постановка ML-задачи: business decision, prediction unit, target horizon,
+  prediction time, positive/negative class, allowed feature sources и no-causal-claim
+  boundary; планируемый artifact `ML problem spec validator`;
+- `15/02` — train/validation/test split manifest с group/time constraints и split-role
+  checks;
+- `15/03` — classification metrics, confusion matrix, threshold sweep и business-cost
+  policy;
+- `15/04` — preprocessing contract: train-fitted imputation/encoding/scaling, missing
+  semantics и unknown categories;
+- `15/05` — scikit-learn `Pipeline` как единый fit/transform/predict объект;
+- `15/06` — `ColumnTransformer`, feature routing и transformed schema report;
+- `15/07` — dummy и linear/logistic baseline с coefficients и baseline comparison;
+- `15/08` — decision tree diagnostics, overfit report и readable rules;
+- `15/09` — tree ensemble comparison, stability across seeds и feature-importance audit;
+- `15/10` — cross-validation planner с fold manifest и no-test-peeking audit;
+- `15/11` — imbalance policy, accuracy trap и budget-threshold report;
+- `15/12` — probability calibration, calibration bins, Brier/log loss и threshold impact;
+- `15/13` — ML leakage audit: forbidden features, availability timestamps,
+  full-sample preprocessing, feature selection outside CV и validation-score
+  cherry-picking;
+- `15/14` — segment error analysis со slice metrics, small-n warnings и hidden aggregate
+  failures;
+- `15/15` — интеграционный model card package: problem spec, data/split/leakage
+  evidence, pipeline summary, metrics, calibration, segment errors, decision и checksum
+  manifest.
+
+Новая runtime-зависимость `scikit-learn` намеренно не добавлена на этапе проектирования.
+Ее нужно добавить в том уроке, где впервые используется реальный sklearn API, после
+проверки официальной документации и версии в `uv.lock`.
+
+Следующий содержательный шаг — разработка урока `15/01` «Постановка ML-задачи».
 
 ## Уже принятые решения
 

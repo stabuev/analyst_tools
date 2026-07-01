@@ -1584,6 +1584,138 @@
       "lesson": 11,
       "lesson_title": "Causal workflow и границы автоматизации",
       "source": "phases/13-causal-analysis/11-causal-workflow/outputs"
+    },
+    {
+      "name": "time-index-auditor",
+      "type": "cli",
+      "path": "outputs/time_index_auditor.py",
+      "description": "Audits forecast scenario time index, calendar coverage, daily frequency, timezone buckets, complete history, incomplete periods, and revisions after forecast origin.",
+      "usage": "python outputs/time_index_auditor.py --metrics ../data/tiny/metric_observations.csv --calendar ../data/tiny/calendar.csv --scenario ../data/tiny/forecast_scenario.json --revisions ../data/tiny/data_revisions.csv --output outputs/time_index_audit.json",
+      "phase": 14,
+      "lesson": 1,
+      "lesson_title": "Временной индекс, частота и календарный grain",
+      "source": "phases/14-time-series/01-time-index/outputs"
+    },
+    {
+      "name": "resampling-pipeline",
+      "type": "cli",
+      "path": "outputs/resampling_pipeline.py",
+      "description": "Resamples subscription ledger events into regular daily and weekly active subscription series, normalizes timestamps to business dates, reconciles against published metric observations, and flags partial periods.",
+      "usage": "python outputs/resampling_pipeline.py --events ../data/tiny/subscription_events.csv --metrics ../data/tiny/metric_observations.csv --calendar ../data/tiny/calendar.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/resampling_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 2,
+      "lesson_title": "Resampling и агрегация",
+      "source": "phases/14-time-series/02-resampling/outputs"
+    },
+    {
+      "name": "window-feature-builder",
+      "type": "cli",
+      "path": "outputs/window_feature_builder.py",
+      "description": "Builds leakage-safe lag, rolling, and expanding features from a complete daily forecast series, emits warmup and partial rows, and audits that every feature uses only source dates before the feature date.",
+      "usage": "python outputs/window_feature_builder.py --series ../02-resampling/outputs/daily_resampled.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/window_feature_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 3,
+      "lesson_title": "Rolling и expanding windows",
+      "source": "phases/14-time-series/03-rolling/outputs"
+    },
+    {
+      "name": "seasonality-profiler",
+      "type": "cli",
+      "path": "outputs/seasonality_profiler.py",
+      "description": "Profiles complete daily forecast history into trend, day-of-week seasonality, insufficient monthly seasonality, and known-before-origin calendar effect inventory for holiday, campaign, and release context.",
+      "usage": "python outputs/seasonality_profiler.py --series ../02-resampling/outputs/daily_resampled.csv --calendar ../data/tiny/calendar.csv --campaign-calendar ../data/tiny/campaign_calendar.csv --release-calendar ../data/tiny/release_calendar.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/seasonality_profile_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 4,
+      "lesson_title": "Тренд, сезонность и календарные эффекты",
+      "source": "phases/14-time-series/04-trend-and-seasonality/outputs"
+    },
+    {
+      "name": "temporal-leakage-auditor",
+      "type": "cli",
+      "path": "outputs/temporal_leakage_auditor.py",
+      "description": "Audits a time-series forecast setup for temporal leakage by checking the cutoff contract, time-ordered split, embargo dates, selected feature availability, known-before-origin calendar features, past-only window feature evidence, and revision policy.",
+      "usage": "python outputs/temporal_leakage_auditor.py --series ../02-resampling/outputs/daily_resampled.csv --features ../03-rolling/outputs/window_features.csv --feature-audit ../03-rolling/outputs/leakage_audit.csv --calendar ../data/tiny/calendar.csv --revisions ../data/tiny/data_revisions.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/temporal_leakage_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 5,
+      "lesson_title": "Временная утечка",
+      "source": "phases/14-time-series/05-temporal-leakage/outputs"
+    },
+    {
+      "name": "baseline-forecaster",
+      "type": "cli",
+      "path": "outputs/baseline_forecaster.py",
+      "description": "Builds naive, seasonal naive, drift, and seven-day moving-average baseline forecasts from a cutoff contract, producing forecast rows, trace evidence, and a baseline policy report.",
+      "usage": "python outputs/baseline_forecaster.py --series ../02-resampling/outputs/daily_resampled.csv --calendar ../data/tiny/calendar.csv --scenario ../data/tiny/forecast_scenario.json --cutoff-contract ../05-temporal-leakage/outputs/cutoff_contract.json --spec ../data/tiny/baseline_forecast_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 6,
+      "lesson_title": "Наивные и сезонные baseline",
+      "source": "phases/14-time-series/06-forecast-baselines/outputs"
+    },
+    {
+      "name": "stl-decomposition-reporter",
+      "type": "cli",
+      "path": "outputs/decomposition_reporter.py",
+      "description": "Builds an STL additive decomposition diagnostic from cutoff-safe training rows, producing component tables, residual diagnostics, and a report that blocks forecast accuracy claims from decomposition alone.",
+      "usage": "python outputs/decomposition_reporter.py --series ../02-resampling/outputs/daily_resampled.csv --scenario ../data/tiny/forecast_scenario.json --cutoff-contract ../05-temporal-leakage/outputs/cutoff_contract.json --baseline-report ../06-forecast-baselines/outputs/baseline_report.json --spec ../data/tiny/decomposition_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 7,
+      "lesson_title": "Декомпозиция ряда",
+      "source": "phases/14-time-series/07-decomposition/outputs"
+    },
+    {
+      "name": "statsmodels-forecast-runner",
+      "type": "cli",
+      "path": "outputs/statsmodels_forecast_runner.py",
+      "description": "Fits predeclared ETS and ARIMA statsmodels candidates from cutoff-safe training rows, captures convergence and warning diagnostics, and compares the emitted forecast shape against the primary seasonal-naive baseline.",
+      "usage": "python outputs/statsmodels_forecast_runner.py --series ../02-resampling/outputs/daily_resampled.csv --calendar ../data/tiny/calendar.csv --scenario ../data/tiny/forecast_scenario.json --cutoff-contract ../05-temporal-leakage/outputs/cutoff_contract.json --baseline-report ../06-forecast-baselines/outputs/baseline_report.json --baseline-forecasts ../06-forecast-baselines/outputs/baseline_forecasts.csv --decomposition-report ../07-decomposition/outputs/decomposition_report.json --spec ../data/tiny/statsmodels_model_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 8,
+      "lesson_title": "ETS и ARIMA",
+      "source": "phases/14-time-series/08-ets-and-arima/outputs"
+    },
+    {
+      "name": "rolling-origin-backtester",
+      "type": "cli",
+      "path": "outputs/rolling_backtester.py",
+      "description": "Runs predeclared expanding and rolling-origin backtests for the primary baseline and statsmodels candidates, publishes a split manifest, forecast table, raw error table, and validation report.",
+      "usage": "python outputs/rolling_backtester.py --series ../data/tiny/backtest_observations.csv --scenario ../data/tiny/forecast_scenario.json --model-spec ../data/tiny/statsmodels_model_spec.json --model-report ../08-ets-and-arima/outputs/model_report.json --spec ../data/tiny/backtesting_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 9,
+      "lesson_title": "Rolling backtesting",
+      "source": "phases/14-time-series/09-backtesting/outputs"
+    },
+    {
+      "name": "forecast-metric-evaluator",
+      "type": "cli",
+      "path": "outputs/forecast_metric_evaluator.py",
+      "description": "Evaluates rolling-origin forecast errors with MAE, RMSE, MAPE, sMAPE, WAPE and MASE, publishes metric slices, metric suitability audit, MASE denominators, and a weighted-MASE leaderboard policy.",
+      "usage": "python outputs/forecast_metric_evaluator.py --errors ../09-backtesting/outputs/backtest_errors.csv --split-manifest ../09-backtesting/outputs/split_manifest.csv --series ../data/tiny/backtest_observations.csv --backtest-report ../09-backtesting/outputs/backtest_report.json --spec ../data/tiny/forecast_metric_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 10,
+      "lesson_title": "Метрики прогноза",
+      "source": "phases/14-time-series/10-forecast-metrics/outputs"
+    },
+    {
+      "name": "prediction-interval-calibrator",
+      "type": "cli",
+      "path": "outputs/prediction_interval_calibrator.py",
+      "description": "Calibrates residual, bootstrap and model-based prediction intervals from rolling-origin forecast errors, checks empirical coverage, writes interval forecasts, backtest interval rows, calibration audit and coverage report.",
+      "usage": "python outputs/prediction_interval_calibrator.py --errors ../09-backtesting/outputs/backtest_errors.csv --final-baseline-forecasts ../06-forecast-baselines/outputs/baseline_forecasts.csv --final-candidate-forecasts ../08-ets-and-arima/outputs/candidate_forecasts.csv --backtest-report ../09-backtesting/outputs/backtest_report.json --metric-report ../10-forecast-metrics/outputs/metric_report.json --spec ../data/tiny/prediction_interval_spec.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 11,
+      "lesson_title": "Интервалы прогноза",
+      "source": "phases/14-time-series/11-prediction-intervals/outputs"
+    },
+    {
+      "name": "time-series-forecast-packager",
+      "type": "cli",
+      "path": "outputs/time_series_forecast_packager.py",
+      "description": "Builds an integrated time-series forecast package from phase 14 evidence: upstream reports, leaderboard, prediction intervals, anomaly triage flags, decision report, quality gate summary and checksum manifest.",
+      "usage": "python outputs/time_series_forecast_packager.py --spec ../data/tiny/forecast_package_spec.json --scenario ../data/tiny/forecast_scenario.json --metric-observations ../data/tiny/metric_observations.csv --calendar ../data/tiny/calendar.csv --data-revisions ../data/tiny/data_revisions.csv --metric-leaderboard ../10-forecast-metrics/outputs/metric_leaderboard.csv --interval-forecasts ../11-prediction-intervals/outputs/interval_forecasts.csv --interval-coverage ../11-prediction-intervals/outputs/interval_coverage.csv --time-index-report ../01-time-index/outputs/time_index_audit.json --resampling-report ../02-resampling/outputs/resampling_report.json --window-feature-report ../03-rolling/outputs/window_feature_report.json --seasonality-report ../04-trend-and-seasonality/outputs/seasonality_report.json --temporal-leakage-report ../05-temporal-leakage/outputs/temporal_leakage_report.json --baseline-report ../06-forecast-baselines/outputs/baseline_report.json --model-report ../08-ets-and-arima/outputs/model_report.json --backtest-report ../09-backtesting/outputs/backtest_report.json --metric-report ../10-forecast-metrics/outputs/metric_report.json --interval-report ../11-prediction-intervals/outputs/interval_report.json --output-dir outputs",
+      "phase": 14,
+      "lesson": 12,
+      "lesson_title": "Аномалии временных рядов и forecast package",
+      "source": "phases/14-time-series/12-time-series-anomalies/outputs"
     }
   ]
 }

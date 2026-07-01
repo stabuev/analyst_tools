@@ -370,7 +370,7 @@ window.COURSE_DATA = {
         {
           "number": 15,
           "title": "Прикладное машинное обучение",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 16,
@@ -491,12 +491,12 @@ window.COURSE_DATA = {
         {
           "number": 14,
           "title": "Временные ряды",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 15,
           "title": "Прикладное машинное обучение",
-          "status": "planned"
+          "status": "designed"
         },
         {
           "number": 16,
@@ -3312,225 +3312,227 @@ window.COURSE_DATA = {
       "number": 14,
       "slug": "time-series",
       "title": "Временные ряды",
-      "summary": "Стройте прогнозы с временной валидацией и честным baseline.",
+      "summary": "Превращайте продуктовые метрики в проверяемые прогнозы с временной валидацией, интервалами и честным сезонным baseline.",
       "tracks": [
         "decision"
       ],
       "prerequisites": [
+        8,
         9
       ],
       "hours": {
         "min": 12,
         "max": 16
       },
-      "artifact": "Прогноз с корректным backtesting",
-      "completion": "Студент сравнивает модель с сезонным baseline, использует временные splits и показывает интервалы прогноза.",
-      "status": "planned",
+      "artifact": "Time-series forecast package с backtesting, интервалами и anomaly policy",
+      "completion": "Студент фиксирует частоту и forecast horizon, сравнивает модели с сезонным baseline, использует rolling-origin backtesting, показывает интервалы прогноза и отделяет прогнозную аномалию от дефекта данных или календарного эффекта.",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series",
       "lessons": [
         {
           "number": 1,
           "slug": "time-index",
-          "title": "Временной индекс и частота",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Временной индекс, частота и календарный grain",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Задает временной индекс, timezone, frequency, observation window и календарный grain для продуктовой метрики, находя пропущенные даты, дубликаты, неполные периоды, late revisions и несовместимые timestamps до построения прогноза.",
+          "artifact": "CLI-аудитор временного индекса и частоты с calendar coverage report",
+          "type": "learn",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/01-time-index",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/01-time-index",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/01-time-index/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "resampling",
           "title": "Resampling и агрегация",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Переводит event-level и daily extracts в регулярный daily/weekly ряд с явными правилами label/closed, complete-period policy, timezone normalization и reconciliation между исходными событиями и агрегированной метрикой.",
+          "artifact": "Resampling pipeline с aggregation spec, reconciliation table и partial-period audit",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/02-resampling",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/02-resampling",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/02-resampling/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "rolling",
           "title": "Rolling и expanding windows",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит rolling и expanding summaries только из доступного на момент прогноза прошлого, фиксирует alignment, min_periods, lag policy и проверяет leakage от centered windows или будущих наблюдений.",
+          "artifact": "Window feature builder с leakage checks и rolling-summary report",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/03-rolling",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/03-rolling",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "trend-and-seasonality",
-          "title": "Тренд и сезонность",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Тренд, сезонность и календарные эффекты",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Описывает тренд, weekly/monthly seasonality, holiday, campaign и release effects через сезонные профили и календарные срезы, отделяя устойчивую структуру ряда от единичных всплесков и дефектов данных.",
+          "artifact": "Seasonality profile report с calendar effect inventory",
+          "type": "learn",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/04-trend-and-seasonality",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/04-trend-and-seasonality",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "temporal-leakage",
           "title": "Временная утечка",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Фиксирует forecast origin, horizon, data availability и revision policy, блокируя random splits, target leakage, future-known-only признаки, backfilled значения и вычисления, которые используют данные после cutoff.",
+          "artifact": "Temporal leakage auditor с cutoff contract и forbidden-feature report",
+          "type": "case",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/05-temporal-leakage",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/05-temporal-leakage",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/05-temporal-leakage/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "forecast-baselines",
           "title": "Наивные и сезонные baseline",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит naive, seasonal naive, drift и moving-average baselines для заданного horizon, сверяет ручные tiny-расчеты и фиксирует baseline policy, ниже которой сложная модель не считается улучшением.",
+          "artifact": "Baseline forecaster с seasonal-naive policy и forecast trace",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/06-forecast-baselines",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/06-forecast-baselines",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/06-forecast-baselines/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "decomposition",
           "title": "Декомпозиция ряда",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Разлагает ряд на trend, seasonal и residual components, выбирает additive или multiplicative interpretation, проверяет остатки и показывает, почему decomposition является диагностикой, а не доказательством будущей точности.",
+          "artifact": "STL decomposition report с component tables и residual diagnostics",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/07-decomposition",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/07-decomposition",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/07-decomposition/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "ets-and-arima",
           "title": "ETS и ARIMA",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Обучает ETS и ARIMA/SARIMAX candidate models в statsmodels, фиксирует order/seasonal_order, initialization, convergence warnings, residual diagnostics и сравнивает model forecast с прозрачным baseline без auto-modeling магии.",
+          "artifact": "Statsmodels forecast runner с model spec, diagnostics и library-vs-baseline comparison",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/08-ets-and-arima",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/08-ets-and-arima",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/08-ets-and-arima/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "backtesting",
           "title": "Rolling backtesting",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Проектирует expanding и rolling-origin backtests с несколькими cutoffs, fixed horizon, retraining policy и gap/embargo, публикуя split manifest, forecast table и raw error table без вывода победителя по одному последнему окну.",
+          "artifact": "Rolling-origin backtester с split manifest, forecast table и raw error table",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/09-backtesting",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/09-backtesting",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "forecast-metrics",
           "title": "Метрики прогноза",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает MAE, RMSE, MAPE/sMAPE, WAPE и MASE с overall, horizon-level и segment-level разрезами, объясняя failure modes нулевых значений, разных масштабов, выбросов и несопоставимых business costs.",
+          "artifact": "Forecast metric evaluator с metric slices, metric suitability audit, MASE denominators и leaderboard policy",
+          "type": "case",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/10-forecast-metrics",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/10-forecast-metrics",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "prediction-intervals",
           "title": "Интервалы прогноза",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Строит residual, bootstrap и model-based prediction intervals, проверяет empirical coverage по backtests, различает confidence и prediction intervals и блокирует точечный forecast без uncertainty statement.",
+          "artifact": "Prediction interval calibrator с residual/bootstrap/model-based intervals, coverage report, calibration audit и interval forecast table",
+          "type": "build",
           "tracks": [
             "decision"
           ],
           "path": "phases/14-time-series/11-prediction-intervals",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/11-prediction-intervals",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/11-prediction-intervals/docs/ru.md"
         },
         {
           "number": 12,
           "slug": "time-series-anomalies",
-          "title": "Аномалии временных рядов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Аномалии временных рядов и forecast package",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Собирает интегрированный time-series forecast package: upstream quality gates, metric leaderboard, prediction intervals, anomaly policy, decision report и checksum manifest.",
+          "artifact": "Time-series forecast packager с anomaly flags, quality gate summary, decision report и checksum manifest",
+          "type": "case",
           "tracks": [
-            "decision"
+            "decision",
+            "systems"
           ],
           "path": "phases/14-time-series/12-time-series-anomalies",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/12-time-series-anomalies",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/12-time-series-anomalies/docs/ru.md"
         }
       ]
     },
@@ -3552,17 +3554,17 @@ window.COURSE_DATA = {
       },
       "artifact": "Воспроизводимый ML baseline и model card",
       "completion": "Полный Pipeline оценивается на корректном split, сравнивается с простым baseline и сопровождается анализом ошибок.",
-      "status": "planned",
+      "status": "designed",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning",
       "lessons": [
         {
           "number": 1,
           "slug": "problem-framing",
           "title": "Постановка ML-задачи",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Формулирует supervised ML-задачу через business decision, prediction unit, target horizon, prediction time, positive/negative class, allowed feature sources и no-causal-claim boundary.",
+          "artifact": "ML problem spec validator с target timing, prediction-unit и feature-availability checks",
           "type": "",
           "tracks": [
             "ml"
@@ -3576,10 +3578,10 @@ window.COURSE_DATA = {
           "number": 2,
           "slug": "data-splitting",
           "title": "Train, validation и test",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Строит train/validation/test split manifest, который уважает prediction time, user grouping, label horizon и роли validation/test.",
+          "artifact": "ML split auditor с group/time split manifest и leakage checks",
           "type": "",
           "tracks": [
             "ml"
@@ -3593,10 +3595,10 @@ window.COURSE_DATA = {
           "number": 3,
           "slug": "metrics",
           "title": "Метрики и стоимость ошибки",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Связывает confusion matrix, precision/recall/FPR/FNR, PR-oriented metrics, threshold и business cost ошибки в metric policy.",
+          "artifact": "Classification metric evaluator с threshold sweep, cost table и metric suitability audit",
           "type": "",
           "tracks": [
             "ml"
@@ -3610,10 +3612,10 @@ window.COURSE_DATA = {
           "number": 4,
           "slug": "preprocessing",
           "title": "Предобработка как часть модели",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Разделяет raw features, train-fitted preprocessing и transformed feature matrix, блокируя fit-before-split, silent missing-value policy и unknown categories.",
+          "artifact": "Preprocessing contract checker с train-fitted imputing/encoding/scaling audit",
           "type": "",
           "tracks": [
             "ml"
@@ -3627,10 +3629,10 @@ window.COURSE_DATA = {
           "number": 5,
           "slug": "pipeline",
           "title": "scikit-learn Pipeline",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Собирает scikit-learn Pipeline, где preprocessing и estimator обучаются одним объектом, а predictions воспроизводимо строятся для validation/test.",
+          "artifact": "Pipeline runner с fit/transform order audit, serialized spec и prediction report",
           "type": "",
           "tracks": [
             "ml"
@@ -3644,10 +3646,10 @@ window.COURSE_DATA = {
           "number": 6,
           "slug": "column-transformer",
           "title": "ColumnTransformer",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Маршрутизирует numeric, categorical и binary columns через ColumnTransformer, проверяя dropped columns, transformed feature names и unknown-category policy.",
+          "artifact": "ColumnTransformer auditor с feature routing table и transformed schema report",
           "type": "",
           "tracks": [
             "ml"
@@ -3661,10 +3663,10 @@ window.COURSE_DATA = {
           "number": 7,
           "slug": "linear-models",
           "title": "Линейные baseline",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Строит dummy и logistic/linear baseline, сравнивает их на validation, фиксирует regularization, intercept и coefficient interpretation limits.",
+          "artifact": "Linear baseline trainer с dummy comparison, coefficients и baseline report",
           "type": "",
           "tracks": [
             "ml"
@@ -3678,10 +3680,10 @@ window.COURSE_DATA = {
           "number": 8,
           "slug": "trees",
           "title": "Деревья решений",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Обучает decision tree как диагностическую non-linear модель, контролируя depth/min samples, train-validation gap и rule export.",
+          "artifact": "Tree diagnostic trainer с overfit report и readable rules",
           "type": "",
           "tracks": [
             "ml"
@@ -3695,10 +3697,10 @@ window.COURSE_DATA = {
           "number": 9,
           "slug": "ensembles",
           "title": "Ансамбли деревьев",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Сравнивает tree ensemble с baselines, фиксируя random seed, stability across seeds, feature-importance warnings и slice metrics.",
+          "artifact": "Tree ensemble comparator с stability report и feature-importance audit",
           "type": "",
           "tracks": [
             "ml"
@@ -3712,10 +3714,10 @@ window.COURSE_DATA = {
           "number": 10,
           "slug": "cross-validation",
           "title": "Cross-validation",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Проектирует cross-validation folds, которые уважают group/time constraints, scoring policy и запрет test peeking.",
+          "artifact": "Cross-validation planner с fold manifest, scoring alignment и no-peeking audit",
           "type": "",
           "tracks": [
             "ml"
@@ -3729,10 +3731,10 @@ window.COURSE_DATA = {
           "number": 11,
           "slug": "imbalanced-data",
           "title": "Несбалансированные классы",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Диагностирует imbalance, ловушку accuracy, class weights/resampling role и threshold selection для ограниченного offer budget.",
+          "artifact": "Imbalance policy evaluator с class distribution, baseline trap и budget-threshold report",
           "type": "",
           "tracks": [
             "ml"
@@ -3746,10 +3748,10 @@ window.COURSE_DATA = {
           "number": 12,
           "slug": "calibration",
           "title": "Калибровка вероятностей",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Проверяет probability calibration через bins, Brier/log loss и сравнивает calibrated vs uncalibrated threshold decisions.",
+          "artifact": "Probability calibration auditor с calibration bins, Brier score и threshold impact report",
           "type": "",
           "tracks": [
             "ml"
@@ -3763,10 +3765,10 @@ window.COURSE_DATA = {
           "number": 13,
           "slug": "leakage",
           "title": "Data leakage",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Аудирует forbidden features, post-outcome information, full-sample preprocessing, feature selection outside CV и validation-score cherry-picking.",
+          "artifact": "ML leakage auditor с feature availability report, forbidden-source table и model-selection checks",
           "type": "",
           "tracks": [
             "ml"
@@ -3780,10 +3782,10 @@ window.COURSE_DATA = {
           "number": 14,
           "slug": "error-analysis",
           "title": "Анализ ошибок по сегментам",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 75,
+          "outcome": "Публикует error analysis по segment, score band и business cohort, показывая small-n warnings и hidden aggregate failures.",
+          "artifact": "Segment error analyzer с slice metrics, confusion rows и small-n warnings",
           "type": "",
           "tracks": [
             "ml"
@@ -3797,10 +3799,10 @@ window.COURSE_DATA = {
           "number": 15,
           "slug": "model-card",
           "title": "Model card и ограничения",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
+          "status": "designed",
+          "time_minutes": 90,
+          "outcome": "Собирает ML baseline package: problem spec, data/split/leakage evidence, pipeline summary, metrics, calibration, segment errors, model card, decision и checksum manifest.",
+          "artifact": "ML baseline package с model card, decision report и manifest",
           "type": "",
           "tracks": [
             "ml"
@@ -4462,7 +4464,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 144,
+    "complete_lessons": 156,
     "hours": {
       "min": 238,
       "max": 326

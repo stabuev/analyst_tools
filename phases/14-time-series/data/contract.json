@@ -1,0 +1,497 @@
+{
+  "dataset_id": "phase-14-time-series",
+  "description": "Daily product metric time-series extract for forecasting lessons.",
+  "business_timezone": "Europe/Moscow",
+  "profiles": {
+    "tiny": {
+      "tracked": true,
+      "description": "Small deterministic daily series for hand checks and behavioral tests.",
+      "default_rows": {
+        "metric_observations": 32,
+        "backtest_observations": 86,
+        "subscription_events": 32,
+        "calendar": 44,
+        "release_calendar": 1,
+        "campaign_calendar": 1,
+        "data_revisions": 1,
+        "resampling_spec": 1,
+        "window_feature_spec": 1,
+        "seasonality_profile_spec": 1,
+        "temporal_leakage_spec": 1,
+        "baseline_forecast_spec": 1,
+        "decomposition_spec": 1,
+        "statsmodels_model_spec": 1,
+        "backtesting_spec": 1,
+        "forecast_metric_spec": 1,
+        "prediction_interval_spec": 1
+      }
+    },
+    "sample": {
+      "tracked": false,
+      "description": "Reserved for later lessons with longer history and rolling backtests."
+    }
+  },
+  "tables": {
+    "metric_observations": {
+      "file": "metric_observations.csv",
+      "grain": "one metric, segment, and business date",
+      "primary_key": ["metric_id", "segment_id", "observed_date"],
+      "time_range": {"start": "2026-03-02", "end": "2026-03-17"},
+      "known_defects": [
+        "last observed date is intentionally incomplete",
+        "one historical value receives a revision after forecast origin"
+      ],
+      "generation_rules": [
+        "observed_date is the Europe/Moscow business date",
+        "period_start_at is the UTC instant of local midnight",
+        "published_at is a timezone-aware publication timestamp"
+      ],
+      "columns": {
+        "metric_id": "Forecast target metric identifier.",
+        "segment_id": "Forecast segment identifier.",
+        "observed_date": "Business date after timezone normalization.",
+        "period_start_at": "Timezone-aware timestamp at the start of the business period.",
+        "published_at": "Timezone-aware timestamp when the value became available.",
+        "value": "Published metric value.",
+        "denominator": "Metric denominator when the metric is a rate or share.",
+        "is_complete_period": "Whether the business period is closed for analysis.",
+        "revision_number": "Published revision number.",
+        "source_status": "Source quality status: ok, partial, late, backfilled, or quality_hold."
+      }
+    },
+    "backtest_observations": {
+      "file": "backtest_observations.csv",
+      "grain": "one metric, segment, and complete historical business date for rolling-origin backtests",
+      "primary_key": ["metric_id", "segment_id", "observed_date"],
+      "time_range": {"start": "2026-02-02", "end": "2026-03-16"},
+      "known_defects": [
+        "the profile is still intentionally short for final 28-day model selection claims"
+      ],
+      "generation_rules": [
+        "values follow the same deterministic active_subscriptions pattern as the forecast tiny profile",
+        "all rows are complete because this table is used only for historical backtest origins",
+        "the table extends history without changing the final forecast scenario or current cutoff contract"
+      ],
+      "columns": {
+        "metric_id": "Forecast target metric identifier.",
+        "segment_id": "Forecast segment identifier.",
+        "observed_date": "Historical business date available for backtest training or actuals.",
+        "frequency": "Declared time-series frequency.",
+        "value": "Historical metric value.",
+        "is_complete_period": "Whether the historical business period is complete.",
+        "include_in_backtest": "Whether the row is eligible for historical backtest windows."
+      }
+    },
+    "subscription_events": {
+      "file": "subscription_events.csv",
+      "grain": "one subscription ledger delta event for a segment and business date",
+      "primary_key": ["event_id"],
+      "time_range": {"start": "2026-03-02", "end": "2026-03-17"},
+      "known_defects": ["last observed date is intentionally partial"],
+      "generation_rules": [
+        "occurred_at is stored as a UTC timestamp but belongs to the Europe/Moscow business date",
+        "delta_active reconciles opening balances to published active_subscriptions",
+        "events after complete_through are present but must be excluded from training by policy"
+      ],
+      "columns": {
+        "event_id": "Stable event identifier.",
+        "segment_id": "Forecast segment identifier.",
+        "occurred_at": "Timezone-aware event timestamp stored in UTC.",
+        "available_at": "Timezone-aware timestamp when the source event was available to analysts.",
+        "event_type": "Event type; tiny profile uses active_subscription_delta.",
+        "delta_active": "Signed change in active subscriptions for the segment.",
+        "source_system": "Source system that produced the event.",
+        "ingestion_status": "Source quality status: ok or partial in the tiny profile."
+      }
+    },
+    "calendar": {
+      "file": "calendar.csv",
+      "grain": "one calendar day",
+      "primary_key": ["date"],
+      "time_range": {"start": "2026-03-02", "end": "2026-04-14"},
+      "known_defects": [],
+      "generation_rules": [
+        "calendar covers the observed history and the 28-day forecast horizon",
+        "campaign and release flags are known before the forecast origin"
+      ],
+      "columns": {
+        "date": "Business date.",
+        "week_start": "Monday week start.",
+        "day_of_week": "English weekday name.",
+        "is_weekend": "Weekend flag.",
+        "is_holiday": "Holiday or internal calendar event flag.",
+        "holiday_name": "Holiday or business event name.",
+        "campaign_active": "Whether a known marketing campaign is active.",
+        "release_active": "Whether a known release is active.",
+        "payday_week": "Whether the date belongs to a payday-like business week.",
+        "support_capacity": "Known support capacity for the date.",
+        "known_before_date": "Date when the calendar attribute was known to analysts."
+      }
+    },
+    "release_calendar": {
+      "file": "release_calendar.csv",
+      "grain": "one release or rollout event",
+      "primary_key": ["release_id"],
+      "time_range": {"start": "2026-03-10", "end": "2026-03-12"},
+      "known_defects": [],
+      "generation_rules": ["release events are known before forecast origin"],
+      "columns": {
+        "release_id": "Release identifier.",
+        "platform": "Affected platform.",
+        "start_date": "Release start date.",
+        "end_date": "Release end date.",
+        "known_before_date": "Date when the release calendar became known.",
+        "expected_metric_impact": "Expected qualitative impact on metrics."
+      }
+    },
+    "campaign_calendar": {
+      "file": "campaign_calendar.csv",
+      "grain": "one marketing campaign",
+      "primary_key": ["campaign_id"],
+      "time_range": {"start": "2026-03-20", "end": "2026-03-27"},
+      "known_defects": [],
+      "generation_rules": ["campaign events are known before forecast origin"],
+      "columns": {
+        "campaign_id": "Campaign identifier.",
+        "start_date": "Campaign start date.",
+        "end_date": "Campaign end date.",
+        "known_before_date": "Date when the campaign calendar became known.",
+        "target_segment": "Target segment for the campaign."
+      }
+    },
+    "data_revisions": {
+      "file": "data_revisions.csv",
+      "grain": "one revision of one metric, segment, and business date",
+      "primary_key": ["metric_id", "segment_id", "observed_date", "revision_number"],
+      "time_range": {"start": "2026-03-12", "end": "2026-03-18"},
+      "known_defects": ["one revision arrives after forecast origin"],
+      "generation_rules": ["revision 2 changes a historical value after the original publication"],
+      "columns": {
+        "metric_id": "Metric identifier.",
+        "segment_id": "Segment identifier.",
+        "observed_date": "Business date of the revised value.",
+        "revision_number": "Revision number.",
+        "previous_value": "Previous published value.",
+        "revised_value": "Revised value.",
+        "first_published_at": "Initial publication timestamp.",
+        "revised_at": "Revision publication timestamp.",
+        "revision_reason": "Reason for revision."
+      }
+    },
+    "forecast_scenario": {
+      "file": "forecast_scenario.json",
+      "grain": "one forecast setup",
+      "primary_key": ["forecast_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": ["scenario fixes frequency, target segments, forecast origin, and horizon"],
+      "columns": {
+        "forecast_id": "Forecast scenario identifier.",
+        "target_metric": "Metric to forecast.",
+        "target_segments": "Segments to audit and forecast.",
+        "timezone": "Business timezone.",
+        "frequency": "Declared time-series frequency.",
+        "complete_through": "Last date that must be complete.",
+        "forecast_origin": "Moment when the forecast is made."
+      }
+    },
+    "resampling_spec": {
+      "file": "resampling_spec.json",
+      "grain": "one resampling setup for the forecast target",
+      "primary_key": ["resampling_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "spec fixes timezone normalization, daily frequency, weekly label/closed policy, opening balances, and reconciliation tolerance"
+      ],
+      "columns": {
+        "resampling_id": "Resampling job identifier.",
+        "source_time_column": "Timestamp column to bucket into business dates.",
+        "target_metric": "Published metric that the resampled series must reconcile to.",
+        "target_segments": "Segments to resample and reconcile.",
+        "timezone": "Business timezone used for timestamp bucketing.",
+        "weekly_label": "Label side for weekly periods.",
+        "weekly_closed": "Closed side for weekly periods.",
+        "opening_balances": "Segment balances before expected_start.",
+        "complete_period_policy": "Policy for periods after complete_through.",
+        "reconciliation_tolerance": "Maximum allowed difference between resampled and published values."
+      }
+    },
+    "window_feature_spec": {
+      "file": "window_feature_spec.json",
+      "grain": "one leakage-safe window feature setup for the forecast target",
+      "primary_key": ["feature_set_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "all declared rolling and expanding features use strictly past observations",
+        "warmup rows and partial source rows are emitted for review but excluded from training"
+      ],
+      "columns": {
+        "feature_set_id": "Feature set identifier.",
+        "source_table": "Source table for feature building.",
+        "target_metric": "Metric whose series receives features.",
+        "target_segments": "Segments to build features for.",
+        "time_column": "Business-date column in the source series.",
+        "value_column": "Metric value used by lag, rolling, and expanding features.",
+        "delta_column": "Daily delta column used by delta lag features.",
+        "complete_flag_column": "Boolean source flag that controls training eligibility.",
+        "feature_date_policy": "Policy requiring features to use only observations before the feature date.",
+        "rules": "List of lag, rolling_mean, and expanding_mean feature rules.",
+        "warmup_policy": "Policy for rows without enough history.",
+        "partial_period_policy": "Policy for incomplete source periods."
+      }
+    },
+    "seasonality_profile_spec": {
+      "file": "seasonality_profile_spec.json",
+      "grain": "one trend, seasonality, and calendar-effect profiling setup for the forecast target",
+      "primary_key": ["profile_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "seasonality profiles use complete historical rows only",
+        "calendar effects are allowed only when their calendar attributes are known before the forecast origin",
+        "monthly seasonality is marked as insufficient on the tiny profile because only one calendar month is observed"
+      ],
+      "columns": {
+        "profile_id": "Seasonality profile identifier.",
+        "source_table": "Daily source table used for historical values.",
+        "calendar_table": "Calendar table joined by business date.",
+        "campaign_table": "Known campaign calendar table.",
+        "release_table": "Known release calendar table.",
+        "target_metric": "Metric whose trend and calendar profiles are described.",
+        "target_segments": "Segments to profile.",
+        "time_column": "Business-date column in the source series.",
+        "value_column": "Metric value used by trend and seasonal summaries.",
+        "delta_column": "Daily delta column summarized by seasonal profile.",
+        "complete_flag_column": "Boolean source flag that controls historical eligibility.",
+        "calendar_date_column": "Business-date column in the calendar table.",
+        "seasonal_period_days": "Declared weekly seasonal period in days.",
+        "trend_policy": "Policy for calculating the trend summary.",
+        "seasonality_policy": "Policy for grouping complete history into seasonal profiles.",
+        "calendar_effect_policy": "Policy requiring known-before-origin calendar effects.",
+        "calendar_effect_columns": "Calendar boolean columns that can become effect inventory rows."
+      }
+    },
+    "temporal_leakage_spec": {
+      "file": "temporal_leakage_spec.json",
+      "grain": "one temporal leakage audit setup for a forecast origin",
+      "primary_key": ["leakage_audit_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "split plan is time-ordered and ends training at complete_through",
+        "partial rows after complete_through are embargoed rather than used for training",
+        "candidate features include selected safe features and rejected examples of target, future, centered-window, full-sample, random-split, and backfilled leakage"
+      ],
+      "columns": {
+        "leakage_audit_id": "Temporal leakage audit identifier.",
+        "target_metric": "Metric whose forecast setup is audited.",
+        "target_segments": "Segments whose rows and features are audited.",
+        "split_plan": "Time-ordered cutoff, training window, embargo dates, and horizon.",
+        "revision_policy": "Policy for revisions published after forecast origin.",
+        "known_future_feature_policy": "Policy for known future calendar features.",
+        "forbidden_availability_types": "Availability classes that cannot be selected for modeling.",
+        "candidate_features": "Feature catalog with source, availability class, selection flag, and required evidence.",
+        "quality_gates": "Checks that must pass before forecasting lessons can use the setup."
+      }
+    },
+    "baseline_forecast_spec": {
+      "file": "baseline_forecast_spec.json",
+      "grain": "one baseline forecast setup for a forecast origin",
+      "primary_key": ["baseline_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "baseline models are declared before forecast evaluation",
+        "seasonal period is fixed at seven days from the calendar contract",
+        "simple baselines ignore known future campaign uplift and report that limitation"
+      ],
+      "columns": {
+        "baseline_id": "Baseline forecast setup identifier.",
+        "forecast_id": "Forecast scenario that the baselines belong to.",
+        "source_table": "Regular daily source table used by the baseline forecaster.",
+        "cutoff_contract_id": "Temporal leakage/cutoff contract that defines origin, training window, embargo, and horizon.",
+        "target_metric": "Metric whose baseline forecasts are built.",
+        "target_segments": "Segments whose baselines are built independently.",
+        "training_start": "First complete training date.",
+        "training_end": "Last complete training date.",
+        "first_forecast_date": "First forecast horizon date.",
+        "horizon_end": "Last forecast horizon date.",
+        "horizon_days": "Number of forecast dates.",
+        "seasonal_period_days": "Precommitted seasonal period for seasonal naive baseline.",
+        "embargo_dates": "Dates that exist near cutoff but cannot become training anchors.",
+        "primary_baseline_model": "Baseline model that future candidate models must beat.",
+        "baseline_policy": "Comparison and trace policy for future model evaluation.",
+        "models": "List of naive, seasonal naive, drift, and moving average baseline definitions.",
+        "quality_gates": "Checks that must pass before candidate forecast models can be compared to the baselines."
+      }
+    },
+    "decomposition_spec": {
+      "file": "decomposition_spec.json",
+      "grain": "one decomposition diagnostic setup for a forecast origin",
+      "primary_key": ["decomposition_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "decomposition uses complete training rows only",
+        "the STL seasonal period is fixed at seven days from the calendar contract",
+        "short tiny history can support diagnostic component checks but not a forecast accuracy claim"
+      ],
+      "columns": {
+        "decomposition_id": "Decomposition diagnostic identifier.",
+        "forecast_id": "Forecast scenario that the decomposition belongs to.",
+        "source_table": "Regular daily source table used for component extraction.",
+        "cutoff_contract_id": "Temporal leakage/cutoff contract that defines origin and training window.",
+        "baseline_id": "Baseline forecast setup that remains the comparison floor after decomposition.",
+        "target_metric": "Metric whose historical series is decomposed.",
+        "target_segments": "Segments decomposed independently.",
+        "training_start": "First complete training date.",
+        "training_end": "Last complete training date.",
+        "seasonal_period_days": "Precommitted weekly STL period.",
+        "component_model": "Additive or multiplicative interpretation policy.",
+        "method": "Decomposition method used by the report.",
+        "residual_diagnostics": "Residual quality thresholds and reconstruction tolerance.",
+        "interpretation_policy": "Rules that prevent treating decomposition as forecast proof.",
+        "quality_gates": "Checks that must pass before component diagnostics can be handed to model lessons."
+      }
+    },
+    "statsmodels_model_spec": {
+      "file": "statsmodels_model_spec.json",
+      "grain": "one declared statsmodels candidate forecast setup for a forecast origin",
+      "primary_key": ["model_run_id"],
+      "time_range": {"forecast_origin": "2026-03-18T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "ETS and ARIMA candidates are declared before evaluation",
+        "ARIMA order and seasonal_order are fixed explicitly rather than discovered by auto-search",
+        "model selection is deferred until rolling-origin backtests and forecast metrics exist"
+      ],
+      "columns": {
+        "model_run_id": "Statsmodels candidate forecast run identifier.",
+        "forecast_id": "Forecast scenario that the model candidates belong to.",
+        "source_table": "Regular daily source table used for fitting.",
+        "cutoff_contract_id": "Temporal leakage/cutoff contract that defines origin, training window, embargo, and horizon.",
+        "baseline_id": "Baseline forecast setup that remains the comparison floor.",
+        "decomposition_id": "Decomposition diagnostic used as upstream evidence, not selection proof.",
+        "target_metric": "Metric whose candidate forecasts are built.",
+        "target_segments": "Segments whose models are fit independently.",
+        "training_start": "First complete training date.",
+        "training_end": "Last complete training date.",
+        "first_forecast_date": "First forecast horizon date.",
+        "horizon_end": "Last forecast horizon date.",
+        "horizon_days": "Number of emitted forecast dates.",
+        "embargo_dates": "Dates between training and horizon that model forecasts must skip.",
+        "primary_baseline_model": "Baseline model used for library-vs-baseline comparison.",
+        "uses_exogenous_calendar_features": "Whether candidate models consume known future calendar regressors.",
+        "selection_policy": "Rules that forbid auto-modeling and in-sample model choice.",
+        "candidate_models": "Explicit ETS and ARIMA/SARIMAX candidate definitions.",
+        "residual_diagnostics": "Residual warning thresholds reported per fitted model.",
+        "quality_gates": "Checks that must pass before model forecasts can be handed to backtesting lessons."
+      }
+    },
+    "backtesting_spec": {
+      "file": "backtesting_spec.json",
+      "grain": "one rolling-origin backtest setup with multiple historical cutoffs",
+      "primary_key": ["backtest_id"],
+      "time_range": {"start": "2026-02-24T09:00:00+03:00", "end": "2026-03-14T09:00:00+03:00"},
+      "known_defects": [],
+      "generation_rules": [
+        "backtest origins are chronological and use fixed three-day historical horizons in the tiny profile",
+        "each split has an explicit one-day embargo gap between training_end and first_forecast_date",
+        "models are refit independently for every origin rather than reusing the final forecast fit",
+        "model selection is deferred because the tiny profile has fewer than the required number of origins for a decision claim"
+      ],
+      "columns": {
+        "backtest_id": "Rolling-origin backtest setup identifier.",
+        "forecast_id": "Forecast scenario whose model candidates are evaluated historically.",
+        "source_table": "Historical complete series used for backtest training and actuals.",
+        "upstream_model_run_id": "Statsmodels candidate run whose model definitions are reused.",
+        "baseline_id": "Baseline setup that provides the primary comparison model.",
+        "target_metric": "Metric whose forecasts are backtested.",
+        "target_segments": "Segments evaluated independently.",
+        "seasonal_period_days": "Precommitted weekly seasonal period.",
+        "primary_baseline_model": "Baseline model used as the comparison floor.",
+        "candidate_model_ids": "Statsmodels candidate model ids to refit on each origin.",
+        "baseline_model_ids": "Baseline model ids emitted in the same backtest table.",
+        "final_forecast_horizon_days": "Final business forecast horizon from the scenario.",
+        "backtest_horizon_days": "Historical horizon length used by the tiny profile.",
+        "gap_days": "Number of embargo days between each training window and horizon.",
+        "minimum_origins_for_model_selection": "Minimum origin count required before a selection claim is allowed.",
+        "retraining_policy": "Rules for refitting models at each origin.",
+        "split_plan": "Chronological expanding and rolling-origin split definitions.",
+        "quality_gates": "Checks that must pass before forecast metrics can consume backtest outputs."
+      }
+    },
+    "forecast_metric_spec": {
+      "file": "forecast_metric_spec.json",
+      "grain": "one forecast metric evaluation policy for rolling-origin backtest outputs",
+      "primary_key": ["metric_evaluation_id"],
+      "time_range": {"backtest_origins": "2026-02-24..2026-03-14"},
+      "known_defects": [],
+      "generation_rules": [
+        "MAE, RMSE, MAPE, sMAPE, WAPE and MASE are required output metrics",
+        "weighted MASE is the primary leaderboard metric because segments have different scales",
+        "MAPE and sMAPE are diagnostic-only and must be blocked when zero or tiny denominators appear",
+        "tiny profile leaderboard is diagnostic because the upstream backtest still has warning-level limitations"
+      ],
+      "columns": {
+        "metric_evaluation_id": "Forecast metric evaluation identifier.",
+        "forecast_id": "Forecast scenario whose backtests are evaluated.",
+        "backtest_id": "Rolling-origin backtest package that provides forecast errors.",
+        "source_table": "Backtest error table consumed by the metric evaluator.",
+        "history_table": "Historical series used to calculate MASE denominators.",
+        "split_manifest": "Split manifest used to find training windows for scaled errors.",
+        "target_metric": "Metric whose forecasts are scored.",
+        "target_segments": "Segments included in segment-level and weighted leaderboard metrics.",
+        "primary_baseline_model": "Baseline model that candidates must beat.",
+        "candidate_model_ids": "Candidate models that can appear in the leaderboard.",
+        "required_metrics": "Forecast metrics that must be emitted.",
+        "primary_metric": "Leaderboard metric used for model ordering.",
+        "seasonal_period_days": "Seasonal lag used for MASE denominator calculations.",
+        "segment_weights": "Weights used by the primary weighted MASE leaderboard.",
+        "horizon_weighting": "Policy for horizon-step coverage and weighting.",
+        "percentage_metric_policy": "Rules that keep MAPE and sMAPE diagnostic-only and denominator-safe.",
+        "leaderboard_policy": "Rules that compare candidates to the primary baseline without overclaiming tiny backtests.",
+        "quality_gates": "Checks that must pass before metric outputs can be used downstream."
+      }
+    },
+    "prediction_interval_spec": {
+      "file": "prediction_interval_spec.json",
+      "grain": "one prediction interval calibration policy for rolling-origin forecast errors",
+      "primary_key": ["interval_calibration_id"],
+      "time_range": {"backtest_origins": "2026-02-24..2026-03-14", "forecast_horizon": "2026-03-18..2026-04-14"},
+      "known_defects": [],
+      "generation_rules": [
+        "residual quantile, residual bootstrap and model-based normal intervals are emitted for the same model, segment and horizon grain",
+        "coverage is checked empirically on rolling-origin backtest rows rather than trusted from a model formula",
+        "final 28-day forecast intervals reuse the last calibrated tiny horizon after day 3 and must carry a warning",
+        "tiny profile intervals are diagnostic because backtest origin count and horizon are too small for a production SLA claim"
+      ],
+      "columns": {
+        "interval_calibration_id": "Prediction interval calibration identifier.",
+        "forecast_id": "Forecast scenario whose point forecasts receive intervals.",
+        "backtest_id": "Rolling-origin backtest package that provides historical forecast errors.",
+        "metric_evaluation_id": "Forecast metric package used as upstream evidence.",
+        "model_run_id": "Statsmodels candidate forecast run whose final forecasts are intervalized.",
+        "baseline_id": "Baseline forecast package used for primary baseline intervals.",
+        "source_errors_table": "Backtest error table used for residual calibration.",
+        "final_baseline_forecasts": "Final baseline forecast table used to intervalize the primary baseline.",
+        "final_candidate_forecasts": "Final candidate forecast table used to intervalize ETS and ARIMA candidates.",
+        "target_metric": "Metric whose forecast intervals are calibrated.",
+        "target_segments": "Segments calibrated independently.",
+        "interval_model_ids": "Baseline and candidate model ids that must receive intervals.",
+        "primary_interval_method": "Method used for the required uncertainty handoff.",
+        "coverage_target": "Nominal empirical coverage target for prediction intervals.",
+        "alpha": "Tail probability for two-sided intervals.",
+        "minimum_backtest_rows_per_group": "Minimum calibration rows for each model, segment and horizon group.",
+        "minimum_origins_for_coverage_claim": "Minimum origin count required before coverage can be treated as production evidence.",
+        "calibration_grain": "Keys used to calibrate residual distributions.",
+        "horizon_policy": "Rules for applying short backtest horizons to longer final forecast horizons.",
+        "methods": "Declared residual, bootstrap and model-based interval methods.",
+        "interval_policy": "Rules distinguishing prediction intervals from confidence intervals and requiring uncertainty statements.",
+        "quality_gates": "Checks that must pass before interval outputs can be shipped downstream."
+      }
+    }
+  }
+}

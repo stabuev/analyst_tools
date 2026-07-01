@@ -29,6 +29,12 @@
 - [`phase-13-design.md`](phase-13-design.md) — causal question и estimand, DAG,
   adjustment sets, matching/IPW/AIPW, DiD, RDD/IV, sensitivity и итоговый
   causal-study-package.
+- [`phase-14-design.md`](phase-14-design.md) — временной индекс, resampling,
+  leakage-free rolling features, baselines, ETS/ARIMA, rolling backtesting, интервалы и
+  итоговый time-series forecast package.
+- [`phase-15-design.md`](phase-15-design.md) — ML problem framing, split protocol,
+  preprocessing pipelines, baselines, calibration, leakage, error analysis и итоговый
+  model card package.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

@@ -159,15 +159,29 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-13`: 144 урока от входной диагностики до продуктовых экспериментов,
-analytics engineering, воспроизводимого multi-engine benchmark package и причинного
-анализа. Фаза `13` «Причинный анализ» завершена как 11 уроков на 15,5 часа: causal
+завершены фазы `0-14`: 156 уроков от входной диагностики до
+продуктовых экспериментов, analytics engineering, воспроизводимого multi-engine benchmark
+package и причинного анализа. Фаза `13` «Причинный анализ» завершена как 11 уроков на 15,5 часа: causal
 question/estimand, DAG/identification, backdoor adjustment, bad controls, g-formula,
 matching, IPW/AIPW, DiD, RDD/IV, sensitivity/falsification и интеграционный `13/11`
 causal-study-package с DoWhy-compatible workflow trace, EconML scope audit, checksum
 manifest и финальной claim policy, которая блокирует single strong causal claim при
-невыполненных assumptions. Следующий шаг — проектирование и разработка фазы `14`
-«Временные ряды».
+невыполненных assumptions. Фаза `14` «Временные ряды» спроектирована как 12 уроков на
+15,75 часа: временной индекс, resampling, leakage-free rolling features, temporal leakage
+audit, seasonal baseline, decomposition, ETS/ARIMA, rolling backtesting, forecast metrics,
+prediction intervals и итоговый time-series forecast package; уроки `14/01`–`14/12`
+завершены как time-index auditor, resampling pipeline, leakage-safe window feature
+builder, seasonality profiler, temporal leakage auditor, baseline forecaster,
+STL decomposition reporter, statsmodels forecast runner, rolling-origin backtester
+и forecast metric evaluator с metric slices, suitability audit, MASE denominators
+и weighted-MASE leaderboard policy, prediction interval calibrator с empirical coverage
+report, calibration audit и uncertainty statements, а также финальный time-series
+forecast packager с anomaly flags, decision report и checksum manifest.
+Фаза `15` «Прикладное машинное обучение» спроектирована как 15 уроков на 19,5 часа:
+ML problem framing, split protocol, metrics/cost policy, preprocessing, scikit-learn
+Pipeline и ColumnTransformer, baselines, trees/ensembles, cross-validation, imbalance,
+calibration, leakage audit, segment error analysis и итоговый model card package.
+Следующий шаг — разработка урока `15/01`.
 Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).
