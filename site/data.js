@@ -370,7 +370,7 @@ window.COURSE_DATA = {
         {
           "number": 15,
           "title": "Прикладное машинное обучение",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 16,
@@ -496,7 +496,7 @@ window.COURSE_DATA = {
         {
           "number": 15,
           "title": "Прикладное машинное обучение",
-          "status": "designed"
+          "status": "complete"
         },
         {
           "number": 16,
@@ -3554,263 +3554,263 @@ window.COURSE_DATA = {
       },
       "artifact": "Воспроизводимый ML baseline и model card",
       "completion": "Полный Pipeline оценивается на корректном split, сравнивается с простым baseline и сопровождается анализом ошибок.",
-      "status": "designed",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning",
       "lessons": [
         {
           "number": 1,
           "slug": "problem-framing",
           "title": "Постановка ML-задачи",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Формулирует supervised ML-задачу через business decision, prediction unit, target horizon, prediction time, positive/negative class, allowed feature sources и no-causal-claim boundary.",
           "artifact": "ML problem spec validator с target timing, prediction-unit и feature-availability checks",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/01-problem-framing",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/01-problem-framing",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/01-problem-framing/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "data-splitting",
           "title": "Train, validation и test",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Строит train/validation/test split manifest, который уважает prediction time, user grouping, label horizon и роли validation/test.",
           "artifact": "ML split auditor с group/time split manifest и leakage checks",
-          "type": "",
+          "type": "build",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/02-data-splitting",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/02-data-splitting",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/02-data-splitting/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "metrics",
           "title": "Метрики и стоимость ошибки",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Связывает confusion matrix, precision/recall/FPR/FNR, PR-oriented metrics, threshold и business cost ошибки в metric policy.",
           "artifact": "Classification metric evaluator с threshold sweep, cost table и metric suitability audit",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/03-metrics",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/03-metrics",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/03-metrics/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "preprocessing",
           "title": "Предобработка как часть модели",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Разделяет raw features, train-fitted preprocessing и transformed feature matrix, блокируя fit-before-split, silent missing-value policy и unknown categories.",
           "artifact": "Preprocessing contract checker с train-fitted imputing/encoding/scaling audit",
-          "type": "",
+          "type": "build",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/04-preprocessing",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/04-preprocessing",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/04-preprocessing/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "pipeline",
           "title": "scikit-learn Pipeline",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Собирает scikit-learn Pipeline, где preprocessing и estimator обучаются одним объектом, а predictions воспроизводимо строятся для validation/test.",
           "artifact": "Pipeline runner с fit/transform order audit, serialized spec и prediction report",
-          "type": "",
+          "type": "build",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/05-pipeline",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/05-pipeline",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "column-transformer",
           "title": "ColumnTransformer",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Маршрутизирует numeric, categorical и binary columns через ColumnTransformer, проверяя dropped columns, transformed feature names и unknown-category policy.",
           "artifact": "ColumnTransformer auditor с feature routing table и transformed schema report",
-          "type": "",
+          "type": "build",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/06-column-transformer",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/06-column-transformer",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/06-column-transformer/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "linear-models",
           "title": "Линейные baseline",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Строит dummy и logistic/linear baseline, сравнивает их на validation, фиксирует regularization, intercept и coefficient interpretation limits.",
           "artifact": "Linear baseline trainer с dummy comparison, coefficients и baseline report",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/07-linear-models",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/07-linear-models",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/07-linear-models/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "trees",
           "title": "Деревья решений",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Обучает decision tree как диагностическую non-linear модель, контролируя depth/min samples, train-validation gap и rule export.",
           "artifact": "Tree diagnostic trainer с overfit report и readable rules",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/08-trees",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/08-trees",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "ensembles",
           "title": "Ансамбли деревьев",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Сравнивает tree ensemble с baselines, фиксируя random seed, stability across seeds, feature-importance warnings и slice metrics.",
           "artifact": "Tree ensemble comparator с stability report и feature-importance audit",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/09-ensembles",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/09-ensembles",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/09-ensembles/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "cross-validation",
           "title": "Cross-validation",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Проектирует cross-validation folds, которые уважают group/time constraints, scoring policy и запрет test peeking.",
           "artifact": "Cross-validation planner с fold manifest, scoring alignment и no-peeking audit",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/10-cross-validation",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/10-cross-validation",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "imbalanced-data",
           "title": "Несбалансированные классы",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Диагностирует imbalance, ловушку accuracy, class weights/resampling role и threshold selection для ограниченного offer budget.",
           "artifact": "Imbalance policy evaluator с class distribution, baseline trap и budget-threshold report",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/11-imbalanced-data",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/11-imbalanced-data",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/11-imbalanced-data/docs/ru.md"
         },
         {
           "number": 12,
           "slug": "calibration",
           "title": "Калибровка вероятностей",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Проверяет probability calibration через bins, Brier/log loss и сравнивает calibrated vs uncalibrated threshold decisions.",
           "artifact": "Probability calibration auditor с calibration bins, Brier score и threshold impact report",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/12-calibration",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/12-calibration",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/docs/ru.md"
         },
         {
           "number": 13,
           "slug": "leakage",
           "title": "Data leakage",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Аудирует forbidden features, post-outcome information, full-sample preprocessing, feature selection outside CV и validation-score cherry-picking.",
           "artifact": "ML leakage auditor с feature availability report, forbidden-source table и model-selection checks",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/13-leakage",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/13-leakage",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/13-leakage/docs/ru.md"
         },
         {
           "number": 14,
           "slug": "error-analysis",
           "title": "Анализ ошибок по сегментам",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 75,
           "outcome": "Публикует error analysis по segment, score band и business cohort, показывая small-n warnings и hidden aggregate failures.",
           "artifact": "Segment error analyzer с slice metrics, confusion rows и small-n warnings",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/14-error-analysis",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/14-error-analysis",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/14-error-analysis/docs/ru.md"
         },
         {
           "number": 15,
           "slug": "model-card",
           "title": "Model card и ограничения",
-          "status": "designed",
+          "status": "complete",
           "time_minutes": 90,
           "outcome": "Собирает ML baseline package: problem spec, data/split/leakage evidence, pipeline summary, metrics, calibration, segment errors, model card, decision и checksum manifest.",
           "artifact": "ML baseline package с model card, decision report и manifest",
-          "type": "",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/15-applied-machine-learning/15-model-card",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/15-model-card",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/15-model-card/docs/ru.md"
         }
       ]
     },
@@ -4464,7 +4464,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 156,
+    "complete_lessons": 171,
     "hours": {
       "min": 238,
       "max": 326

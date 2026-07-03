@@ -1,0 +1,98 @@
+{
+  "imbalance_policy_id": "trial-churn-imbalance-policy-v0",
+  "problem_id": "trial-churn-risk-7d-before-end",
+  "pipeline_id": "trial-churn-sklearn-pipeline-v0",
+  "column_transformer_id": "trial-churn-column-transformer-v0",
+  "linear_baseline_id": "trial-churn-linear-baseline-v0",
+  "tree_diagnostic_id": "trial-churn-tree-diagnostic-v0",
+  "tree_ensemble_id": "trial-churn-tree-ensemble-v0",
+  "cv_plan_id": "trial-churn-cv-plan-v0",
+  "score_type": "churn_risk_probability",
+  "fit_split": "train",
+  "selection_split": "validation",
+  "final_holdout_split": "test",
+  "distribution": {
+    "label_column": "churned_14d",
+    "positive_class": true,
+    "negative_class": false,
+    "warn_if_positive_rate_below": 0.4,
+    "report_by": [
+      "split",
+      "cv_role"
+    ]
+  },
+  "accuracy_trap": {
+    "baseline_model_id": "always_negative",
+    "strategy": "predict_negative_class",
+    "evaluate_splits": [
+      "validation",
+      "test"
+    ],
+    "accuracy_is_diagnostic_only": true,
+    "blocking_if_primary_metric_accuracy": true,
+    "must_report_positive_recall": true,
+    "must_report_balanced_accuracy": true
+  },
+  "class_weight_policy": {
+    "candidate_model_id": "random_forest_depth2_class_weight_balanced",
+    "source_model_id": "random_forest_depth2",
+    "class_weight": "balanced",
+    "compute_on": "fit_split_only",
+    "formula": "n_samples / (n_classes * np.bincount(y))",
+    "forbid_computing_weights_on_validation_or_test": true
+  },
+  "resampling_policy": {
+    "allowed": false,
+    "reason": "tiny profile uses class_weight only; resampling is deferred",
+    "if_enabled_fit_scope": "cv_train_or_train_only",
+    "forbid_resampling_validation_or_test": true
+  },
+  "threshold_policy": {
+    "selection_data": "validation",
+    "budget_source": "problem_spec.decision_budget.max_actions",
+    "primary_decision_rule": "rank_top_k_within_scoring_batch",
+    "fixed_threshold_role": "diagnostic_only_until_calibration",
+    "candidate_thresholds": [
+      0.3,
+      0.5,
+      0.6
+    ],
+    "tie_breaker": "score_desc_snapshot_id_asc"
+  },
+  "comparison": {
+    "primary_metric": "precision_at_budget",
+    "forbidden_primary_metrics": [
+      "accuracy",
+      "accuracy_at_0_5"
+    ],
+    "secondary_metrics": [
+      "recall_at_budget",
+      "balanced_accuracy_at_0_5",
+      "average_precision",
+      "log_loss",
+      "error_cost_at_budget"
+    ],
+    "selection_data": "validation",
+    "test_data_role": "final_once_only_evaluation"
+  },
+  "audit_policy": {
+    "require_cv_handoff": true,
+    "require_class_distribution_report": true,
+    "require_accuracy_trap_report": true,
+    "require_class_weight_fit_scope": true,
+    "require_threshold_budget_report": true,
+    "forbid_accuracy_as_primary_metric": true,
+    "forbid_resampling_validation_or_test": true,
+    "forbid_threshold_selection_on_test": true,
+    "forbid_test_selection": true
+  },
+  "output": {
+    "distribution_file": "class_distribution.csv",
+    "baseline_trap_file": "baseline_trap_report.csv",
+    "threshold_file": "imbalance_threshold_report.csv",
+    "prediction_file": "imbalance_predictions.csv",
+    "audit_file": "imbalance_policy_audit.csv",
+    "report_file": "imbalance_report.json",
+    "serialized_spec_file": "imbalance_serialized_spec.json"
+  }
+}

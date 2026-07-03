@@ -367,21 +367,21 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Постановка ML-задачи | designed |
-| 02 | Train, validation и test | designed |
-| 03 | Метрики и стоимость ошибки | designed |
-| 04 | Предобработка как часть модели | designed |
-| 05 | scikit-learn Pipeline | designed |
-| 06 | ColumnTransformer | designed |
-| 07 | Линейные baseline | designed |
-| 08 | Деревья решений | designed |
-| 09 | Ансамбли деревьев | designed |
-| 10 | Cross-validation | designed |
-| 11 | Несбалансированные классы | designed |
-| 12 | Калибровка вероятностей | designed |
-| 13 | Data leakage | designed |
-| 14 | Анализ ошибок по сегментам | designed |
-| 15 | Model card и ограничения | designed |
+| 01 | [Постановка ML-задачи](phases/15-applied-machine-learning/01-problem-framing) | complete |
+| 02 | [Train, validation и test](phases/15-applied-machine-learning/02-data-splitting) | complete |
+| 03 | [Метрики и стоимость ошибки](phases/15-applied-machine-learning/03-metrics) | complete |
+| 04 | [Предобработка как часть модели](phases/15-applied-machine-learning/04-preprocessing) | complete |
+| 05 | [scikit-learn Pipeline](phases/15-applied-machine-learning/05-pipeline) | complete |
+| 06 | [ColumnTransformer](phases/15-applied-machine-learning/06-column-transformer) | complete |
+| 07 | [Линейные baseline](phases/15-applied-machine-learning/07-linear-models) | complete |
+| 08 | [Деревья решений](phases/15-applied-machine-learning/08-trees) | complete |
+| 09 | [Ансамбли деревьев](phases/15-applied-machine-learning/09-ensembles) | complete |
+| 10 | [Cross-validation](phases/15-applied-machine-learning/10-cross-validation) | complete |
+| 11 | [Несбалансированные классы](phases/15-applied-machine-learning/11-imbalanced-data) | complete |
+| 12 | [Калибровка вероятностей](phases/15-applied-machine-learning/12-calibration) | complete |
+| 13 | [Data leakage](phases/15-applied-machine-learning/13-leakage) | complete |
+| 14 | [Анализ ошибок по сегментам](phases/15-applied-machine-learning/14-error-analysis) | complete |
+| 15 | [Model card и ограничения](phases/15-applied-machine-learning/15-model-card) | complete |
 
 ## Фаза 16: Табличный ML и интерпретация
 

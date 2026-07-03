@@ -1,0 +1,138 @@
+{
+  "problem_id": "trial-churn-risk-7d-before-end",
+  "business_decision": "Rank eligible trial users seven days before trial end so support can spend a limited retention-offer budget on users with high churn risk.",
+  "prediction_unit": {
+    "entity": "user_trial_snapshot",
+    "key": "snapshot_id",
+    "one_row_per": "user_id + prediction_time",
+    "available_at_column": "prediction_time"
+  },
+  "target_name": "churn_14d",
+  "target_definition": {
+    "label_table": "ml_labels",
+    "label_key": "snapshot_id",
+    "target_column": "churned_14d",
+    "horizon_days": 14,
+    "horizon_start": "prediction_time",
+    "label_available_column": "label_observed_at",
+    "complete_flag_column": "label_window_complete"
+  },
+  "positive_class": {
+    "value": true,
+    "meaning": "user churned within 14 days after prediction_time"
+  },
+  "negative_class": {
+    "value": false,
+    "meaning": "user did not churn within 14 days after prediction_time"
+  },
+  "prediction_time": {
+    "column": "prediction_time",
+    "relative_to_trial_end_days": 7,
+    "timezone": "Europe/Moscow"
+  },
+  "label_window": {
+    "start": "prediction_time",
+    "duration_days": 14,
+    "complete_flag_column": "label_window_complete"
+  },
+  "eligible_population": {
+    "population_id": "eligible_trial_users_7d_before_trial_end",
+    "criteria": [
+      {
+        "field": "eligible_for_offer",
+        "operator": "==",
+        "value": true
+      },
+      {
+        "field": "days_until_trial_end",
+        "operator": "==",
+        "value": 7
+      }
+    ]
+  },
+  "decision_action": "send_one_retention_offer_or_no_offer",
+  "decision_budget": {
+    "unit": "offers_per_scoring_batch",
+    "max_actions": 2
+  },
+  "business_costs": {
+    "false_positive": "offer budget spent on a user who would not churn",
+    "false_negative": "missed high-risk user who churns without intervention"
+  },
+  "allowed_feature_sources": [
+    "user_profile",
+    "subscription_snapshot",
+    "events_lookback_14d",
+    "orders_lookback_30d",
+    "support_tickets_before_prediction",
+    "calendar_trial_end"
+  ],
+  "forbidden_feature_sources": [
+    "cancellation_events_after_prediction",
+    "retention_offer_outcomes",
+    "churn_label"
+  ],
+  "split_policy": {
+    "split_type": "group_time_aware",
+    "group_key": "user_id",
+    "time_key": "prediction_time",
+    "validation_role": "model_and_threshold_selection",
+    "test_role": "final_once_only_evaluation"
+  },
+  "baseline_policy": {
+    "required_baselines": [
+      "dummy_majority",
+      "logistic_regression"
+    ],
+    "candidate_must_beat": "dummy_majority"
+  },
+  "metric_policy": {
+    "primary_metric": "precision_at_offer_budget",
+    "secondary_metrics": [
+      "recall",
+      "pr_auc",
+      "roc_auc",
+      "log_loss"
+    ],
+    "accuracy_role": "diagnostic_only",
+    "cost_weights": {
+      "false_positive": 1.0,
+      "false_negative": 5.0,
+      "unit": "relative_error_cost"
+    }
+  },
+  "threshold_policy": {
+    "selection_data": "validation",
+    "rule": "min_error_cost_under_offer_budget",
+    "budget_key": "decision_budget.max_actions"
+  },
+  "calibration_policy": {
+    "required": true,
+    "checks": [
+      "calibration_bins",
+      "brier_score",
+      "log_loss"
+    ]
+  },
+  "segment_policy": {
+    "required_slices": [
+      "segment_id",
+      "platform",
+      "country"
+    ],
+    "small_n_action": "warn_not_hide"
+  },
+  "model_card_policy": {
+    "intended_use": "prioritize support review for eligible trial users",
+    "out_of_scope_uses": [
+      "causal_effect_of_offer",
+      "automatic_account_action"
+    ],
+    "claim_boundary": "The score estimates churn risk and does not estimate the causal effect of a retention offer."
+  },
+  "known_limitations": [
+    "tiny profile is for contract validation, not production model selection",
+    "offer effectiveness requires experiment or causal design"
+  ],
+  "rerun_instructions": "Run outputs/ml_problem_spec_validator.py with problem_spec.json, snapshots, labels and feature_source_inventory.csv."
+}

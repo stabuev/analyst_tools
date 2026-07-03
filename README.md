@@ -159,7 +159,7 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-14`: 156 уроков от входной диагностики до
+завершены фазы `0-14` и уроки `15/01`–`15/11`: 167 уроков от входной диагностики до
 продуктовых экспериментов, analytics engineering, воспроизводимого multi-engine benchmark
 package и причинного анализа. Фаза `13` «Причинный анализ» завершена как 11 уроков на 15,5 часа: causal
 question/estimand, DAG/identification, backdoor adjustment, bad controls, g-formula,
@@ -181,7 +181,41 @@ forecast packager с anomaly flags, decision report и checksum manifest.
 ML problem framing, split protocol, metrics/cost policy, preprocessing, scikit-learn
 Pipeline и ColumnTransformer, baselines, trees/ensembles, cross-validation, imbalance,
 calibration, leakage audit, segment error analysis и итоговый model card package.
-Следующий шаг — разработка урока `15/01`.
+Урок `15/01` завершен как ML problem spec validator с deterministic tiny churn-risk
+profile, readiness report и no-causal-claim boundary; `15/02` завершен как ML split
+auditor с group/time split manifest, label-horizon checks и validation/test role
+boundary; `15/03` завершен как classification metric evaluator с candidate score table,
+validation-only threshold sweep, cost table, PR-oriented metrics и no-test-peeking gate;
+`15/04` завершен как preprocessing contract checker с raw feature table,
+train-fitted imputation/encoding/scaling state, transformed feature matrix,
+unknown-category bucket audit и no-fit-before-split gate.
+`15/05` завершен как scikit-learn Pipeline runner с единым fit/transform/predict
+объектом, `pipeline_spec.json`, validation/test prediction report, serialized spec,
+fit trace, unknown-category bucket audit и no-external-preprocessed-matrix gate.
+`15/06` завершен как ColumnTransformer auditor с `column_transformer_spec.json`,
+numeric/categorical/binary routes, routing table, transformed feature schema,
+validation/test predictions, serialized route state и no-silent-dropped-columns gate.
+`15/07` завершен как linear baseline trainer с `linear_baseline_spec.json`,
+dummy/logistic sklearn `Pipeline` comparison, validation-only selection, coefficient
+table, intercept/regularization report и warning, когда logistic baseline не бьет
+dummy на tiny validation.
+`15/08` завершен как tree diagnostic trainer с `tree_diagnostic_spec.json`,
+depth-limited `DecisionTreeClassifier`, upstream linear-baseline handoff,
+train-validation overfit report, readable rule export, node report и warning, когда
+дерево хуже выбранного `dummy_prior` на validation.
+`15/09` завершен как tree ensemble comparator с `tree_ensemble_spec.json`,
+`RandomForestClassifier` внутри `Pipeline(ColumnTransformer, estimator)`, comparison
+dummy/logistic/tree/ensemble, validation-only selection, seed stability report,
+MDI/permutation feature-importance warnings, validation slice metrics и small-n warnings.
+`15/10` завершен как cross-validation planner с `cv_plan_spec.json`,
+`ml_cv_fold_manifest.csv`, predeclared group/time-aware folds, no-test-peeking audit,
+scoring alignment, fold-level score report, validation-only predictions,
+serialized fit trace и warnings для tiny CV sample.
+`15/11` завершен как imbalance policy evaluator с `imbalance_policy_spec.json`,
+class distribution report, always-negative accuracy trap, `class_weight="balanced"`
+candidate, validation-only selection, threshold/budget report, predictions,
+serialized fit trace и warnings для tiny imbalance sample.
+Следующий шаг — разработка урока `15/12` «Калибровка вероятностей».
 Точная готовность указана в
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
 [`CHANGELOG.md`](CHANGELOG.md).
