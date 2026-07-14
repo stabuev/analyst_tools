@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 14/02 у нас есть регулярный daily ряд activesubscriptions. Для baseline и будущих моделей хочется добавить признаки: вчерашнее значение, среднее за 3 дня, среднее…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/time-series/rolling/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Rolling и expanding windows">
+  <meta property="og:description" content="После 14/02 у нас есть регулярный daily ряд activesubscriptions. Для baseline и будущих моделей хочется добавить признаки: вчерашнее значение, среднее за 3 дня, среднее…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/time-series/rolling/">
+  <meta name="twitter:card" content="summary">
+  <title>Rolling и expanding windows — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Rolling и expanding windows", "description": "После 14/02 у нас есть регулярный daily ряд activesubscriptions. Для baseline и будущих моделей хочется добавить признаки: вчерашнее значение, среднее за 3 дня, среднее…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/rolling/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 14: Временные ряды", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=14"}, {"@type": "ListItem", "position": 3, "name": "Rolling и expanding windows", "item": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/rolling/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 14</p><h2>Временные ряды</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-index/"><span>01</span>Временной индекс, частота и календарный grain</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/resampling/"><span>02</span>Resampling и агрегация</a><a class="lesson-sidebar-link is-active" href="../../../lessons/time-series/rolling/"><span>03</span>Rolling и expanding windows</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/trend-and-seasonality/"><span>04</span>Тренд, сезонность и календарные эффекты</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/temporal-leakage/"><span>05</span>Временная утечка</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-baselines/"><span>06</span>Наивные и сезонные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/decomposition/"><span>07</span>Декомпозиция ряда</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/ets-and-arima/"><span>08</span>ETS и ARIMA</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/backtesting/"><span>09</span>Rolling backtesting</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-metrics/"><span>10</span>Метрики прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/prediction-intervals/"><span>11</span>Интервалы прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-series-anomalies/"><span>12</span>Аномалии временных рядов и forecast package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 14 · Временные ряды</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 147 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/14-time-series/03-rolling" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой порядок действий нужен, чтобы rolling mean для даты `t` не использовал само значение `t`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Сначала сдвинуть ряд на `lag=1`, затем считать rolling window по прошлым значениям.</button><button type="button" class="quiz-option" data-choice="1">Сначала посчитать rolling mean, затем удалить первую строку.</button><button type="button" class="quiz-option" data-choice="2">Использовать `center=True`, чтобы окно было симметричным.</button><button type="button" class="quiz-option" data-choice="3">Перемешать даты и взять среднее по ближайшим строкам.</button></div><p class="quiz-feedback" hidden>Forecast feature на дату t должен использовать только даты раньше t. Поэтому сначала нужен lag/shift, а уже потом rolling или expanding summary.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему warmup rows нельзя молча удалить без отчета?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Они показывают, какие даты не имеют достаточной истории для обязательных признаков и почему не входят в training.</button><button type="button" class="quiz-option" data-choice="1">Они всегда являются ошибкой данных.</button><button type="button" class="quiz-option" data-choice="2">Они нужны только для красивого графика.</button><button type="button" class="quiz-option" data-choice="3">Они доказывают, что ряд нерегулярный.</button></div><p class="quiz-feedback" hidden>Warmup rows являются ожидаемым следствием min_periods. Их нужно видеть в audit, иначе training window незаметно сдвигается.</p></article></section>
+        <article class="lesson-article"><h1 id="rolling-и-expanding-windows">Rolling и expanding windows</h1>
+<blockquote>
+<p>Оконный признак для даты прогноза должен смотреть назад, а не случайно заглядывать в
+текущую цель или будущие наблюдения.</p>
+</blockquote>
+<ul>
+<li><strong>Тип:</strong> Build</li>
+<li><strong>Треки:</strong> Decision</li>
+<li><strong>Пререквизиты:</strong> <code>14-time-series/02-resampling</code></li>
+<li><strong>Время:</strong> ~75 минут</li>
+<li><strong>Результат:</strong> вы строите lag, rolling и expanding features только из прошлого,
+фиксируете <code>lag</code>, <code>min_periods</code>, alignment и проверяете temporal leakage.</li>
+</ul>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объяснить разницу между <code>rolling(value)</code> и <code>shift(1).rolling(value)</code>.</li>
+<li>Построить <code>lag_1</code>, rolling mean и expanding mean для каждого сегмента отдельно.</li>
+<li>Отделить warmup rows от настоящих ошибок данных.</li>
+<li>Выпустить leakage audit, где для каждого признака указаны source dates и latest source
+date.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>14/02</code> у нас есть регулярный daily ряд <code>active_subscriptions</code>. Для baseline и
+будущих моделей хочется добавить признаки: вчерашнее значение, среднее за 3 дня, среднее
+за 7 дней, expanding mean.</p>
+<p>Опасность в том, что оконные признаки выглядят безобидно:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">df[&quot;rolling_7&quot;] = df.groupby(&quot;segment_id&quot;)[&quot;value&quot;].rolling(7).mean()
+</code></pre></div><p>Но для строки <code>2026-03-09</code> такой расчет включает само значение <code>2026-03-09</code>. Если эта
+строка будет использоваться для обучения или backtest-прогноза на <code>2026-03-09</code>, признак
+уже знает target. Модель станет выглядеть умнее, чем она будет в момент реального
+forecast origin.</p>
+<p>Урок строит feature builder, который требует <code>lag &gt;= 1</code>, запрещает centered windows и
+показывает, какие даты вошли в каждый признак.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Для forecast feature есть две даты:</p>
+<table>
+<thead>
+<tr>
+<th>Дата</th>
+<th>Смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feature_date</code></td>
+<td>Дата, для которой строка признаков будет использована.</td>
+</tr>
+<tr>
+<td><code>source_date</code></td>
+<td>Историческая дата, значение которой попало в признак.</td>
+</tr>
+</tbody>
+</table>
+<p>Leakage-free правило простое:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">latest(source_date) &lt; feature_date
+</code></pre></div><p>Если признак для <code>2026-03-09</code> использует rolling-7 с <code>lag=1</code>, источники должны быть:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-03-02, 2026-03-03, 2026-03-04, 2026-03-05,
+2026-03-06, 2026-03-07, 2026-03-08
+</code></pre></div><p>Текущее значение <code>2026-03-09</code> не входит в окно. Поэтому <code>rolling_7_mean_lag1</code> для
+segment <code>all</code> равен:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">(998 + 1007 + 1016 + 1025 + 1034 + 1003 + 1012) / 7 = 1013.571429
+</code></pre></div><p>Первые дни ряда не имеют достаточной истории для всех обязательных признаков. Это не
+ошибка данных, а warmup. Такие строки нужно выпускать в output, но ставить
+<code>include_in_training=false</code>, чтобы training window не сдвигался молча.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала реализуйте ручной rolling-3 для одного сегмента. Ключевой шаг - выбрать даты
+строго до <code>feature_date</code>.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">from datetime import date, timedelta
+
+values = {
+    date(2026, 3, 2): 998,
+    date(2026, 3, 3): 1007,
+    date(2026, 3, 4): 1016,
+    date(2026, 3, 5): 1025,
+}
+
+feature_date = date(2026, 3, 5)
+lag = 1
+window = 3
+end_date = feature_date - timedelta(days=lag)
+source_dates = [end_date - timedelta(days=offset) for offset in reversed(range(window))]
+rolling_3 = sum(values[day] for day in source_dates) / window
+
+assert source_dates == [date(2026, 3, 2), date(2026, 3, 3), date(2026, 3, 4)]
+assert rolling_3 == 1007
+</code></pre></div><p>Если заменить <code>lag = 0</code>, в окно попадет <code>2026-03-05</code>, то есть текущая цель. Если
+включить centered window, окно может взять будущие даты. Оба случая должны блокироваться
+до расчета.</p>
+<p>Expanding mean устроен похожим образом: для даты <code>t</code> он берет все полные наблюдения до
+<code>t - lag</code>, а не весь ряд до конца файла.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Готовый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/window_feature_builder.py
+</code></pre></div><p>Запуск из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/window_feature_builder.py \
+  --series ../02-resampling/outputs/daily_resampled.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --spec ../data/tiny/window_feature_spec.json \
+  --output-dir outputs
+</code></pre></div><p>CLI пишет три файла:</p>
+<ul>
+<li><code>outputs/window_features.csv</code> - строки признаков с <code>lag_1</code>, rolling и expanding
+features;</li>
+<li><code>outputs/leakage_audit.csv</code> - source dates для каждого признака и каждой feature date;</li>
+<li><code>outputs/window_feature_report.json</code> - blocking errors, warnings и summary.</li>
+</ul>
+<p>В baseline <code>tiny</code> отчет валиден, но содержит два предупреждения:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;warnings&quot;: [
+    &quot;warmup_rows_excluded_from_training&quot;,
+    &quot;partial_source_rows_excluded_from_training&quot;
+  ]
+}
+</code></pre></div><p>Это ожидаемо: первые семь complete rows не имеют полного rolling-7 history, а partial row
+<code>2026-03-17</code> видна в output, но не входит в training.</p>
+<p>В pandas рабочий расчет должен сохранять тот же порядок: сначала <code>shift(1)</code>, потом
+<code>rolling</code>.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">import pandas as pd
+
+df = pd.read_csv(&quot;daily_resampled.csv&quot;)
+df = df.sort_values([&quot;segment_id&quot;, &quot;observed_date&quot;])
+
+df[&quot;value_lag_1&quot;] = df.groupby(&quot;segment_id&quot;)[&quot;value&quot;].shift(1)
+df[&quot;rolling_3_mean_lag1&quot;] = (
+    df.groupby(&quot;segment_id&quot;)[&quot;value&quot;]
+    .transform(lambda series: series.shift(1).rolling(window=3, min_periods=3).mean())
+)
+</code></pre></div><p>Но pandas не знает, что <code>include_in_training=false</code> означает partial period, а
+<code>center=True</code> запрещен для forecast features. Поэтому рядом с кодом нужен spec и audit.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте пять поломок.</p>
+<ol>
+<li>Поставьте <code>lag: 0</code> у <code>value_lag_1</code> в <code>window_feature_spec.json</code>. Check
+<code>feature_rules_are_past_only</code> должен стать blocking error.</li>
+<li>Поставьте <code>center: true</code> у <code>rolling_3_mean_lag1</code>. Это тоже blocking error, потому что
+centered window может смотреть вперед.</li>
+<li>Удалите строку <code>android/2026-03-05</code> из <code>daily_resampled.csv</code>. Check
+<code>complete_history_has_no_missing_dates</code> должен упасть.</li>
+<li>Скопируйте строку <code>all/2026-03-02</code>. Check <code>source_segment_date_unique</code> должен найти
+дубликат grain.</li>
+<li>Удалите колонку <code>delta_active</code>. Check <code>source_columns_present</code> должен остановить
+feature build до расчета.</li>
+</ol>
+<p>Строгий режим:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/window_feature_builder.py \
+  --series ../02-resampling/outputs/daily_resampled.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --spec ../data/tiny/window_feature_spec.json \
+  --fail-on-warning
+</code></pre></div><p>Он вернет non-zero exit code из-за warmup и partial rows. Это полезно, если downstream
+pipeline не должен продолжать без явного review feature coverage.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/14-time-series/03-rolling/tests -v
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>воспроизводимость <code>window_feature_spec.json</code>;</li>
+<li>ручные значения <code>rolling_3_mean_lag1</code> и <code>rolling_7_mean_lag1</code>;</li>
+<li>первый training row после полного required history;</li>
+<li>исключение warmup и partial rows из training;</li>
+<li>блокировку <code>lag=0</code>, <code>center=true</code>, missing complete date, duplicate date и missing
+input column;</li>
+<li>CLI output и режим <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Критерий интерпретации: если <code>summary.blocking_errors</code> не пустой, feature table нельзя
+использовать. Если есть warnings, feature table можно продолжить только с явным
+пониманием, какие строки не попали в training и почему.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Итоговый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/window_feature_builder.py
+</code></pre></div><p>Он принимает проверенный daily ряд из <code>14/02</code>, forecast scenario и
+<code>window_feature_spec.json</code>, затем выпускает feature table и leakage audit. <code>code/main.py</code>
+пересобирает committed outputs:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/14-time-series/03-rolling/code/main.py
+</code></pre></div><p>Следующие уроки используют эти признаки как диагностический слой: для trend/seasonality,
+temporal leakage и baseline. Ограничение: этот урок не выбирает модель и не доказывает
+точность прогноза. Он только делает временные признаки пригодными для честного
+backtesting.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте <code>rolling_5_mean_lag1</code> в <code>window_feature_spec.json</code> и объясните, с какой даты
+строки смогут входить в training, если этот признак станет required.</li>
+<li>Сделайте <code>delta_lag_7</code> и проверьте, почему он появляется позже, чем <code>delta_lag_1</code>.</li>
+<li>Добавьте nullable optional-признак и измените policy так, чтобы он не блокировал
+<code>feature_complete</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lag feature</td>
+<td>Это любое соседнее значение.</td>
+<td>Значение источника на фиксированное число периодов раньше feature date.</td>
+</tr>
+<tr>
+<td>Rolling window</td>
+<td>Среднее по текущей окрестности даты.</td>
+<td>Окно фиксированной длины; для forecast feature оно должно быть сдвинуто в прошлое.</td>
+</tr>
+<tr>
+<td>Expanding window</td>
+<td>Среднее по всему файлу.</td>
+<td>Накопительный расчет только по доступной истории до cutoff или feature date.</td>
+</tr>
+<tr>
+<td><code>min_periods</code></td>
+<td>Косметический параметр pandas.</td>
+<td>Минимальное число прошлых наблюдений, без которого признак считается неполным.</td>
+</tr>
+<tr>
+<td>Warmup rows</td>
+<td>Их можно удалить без следа.</td>
+<td>Начальные строки без достаточной истории; они должны быть видимы и исключены из training.</td>
+</tr>
+<tr>
+<td>Centered window</td>
+<td>Удобный способ сгладить ряд.</td>
+<td>Для forecasting feature это потенциальная temporal leakage, потому что окно может включить будущее.</td>
+</tr>
+<tr>
+<td>Leakage audit</td>
+<td>Лишний лог.</td>
+<td>Доказательство, что source dates каждого признака строго раньше feature date.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://pandas.pydata.org/docs/user_guide/window.html" target="_blank" rel="noopener">pandas: Windowing operations</a> — разберите rolling, expanding и <code>min_periods</code>; после урока особенно важны границы окна и поведение на начальных строках.</li>
+<li><a href="https://pandas.pydata.org/docs/user_guide/timeseries.html" target="_blank" rel="noopener">pandas: Time series / date functionality</a> — повторите indexing, shifting и time-aware operations, которые нужны для безопасного feature alignment.</li>
+<li><a href="https://otexts.com/fpp3/tscv.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Time series cross-validation</a> — посмотрите, почему признаки и validation должны уважать forecast origin.</li>
+<li><a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank" rel="noopener">scikit-learn: Common pitfalls and recommended practices</a> — прочитайте раздел про data leakage; идея та же, даже если этот урок еще не строит ML-модель.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должен сделать quality gate, если в feature spec появился `lag: 0` для обязательного признака?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Заблокировать feature set как temporal leakage.</button><button type="button" class="quiz-option" data-choice="1">Автоматически заменить `lag: 0` на `lag: 1`.</button><button type="button" class="quiz-option" data-choice="2">Оставить признак, если rolling window длиннее трех дней.</button><button type="button" class="quiz-option" data-choice="3">Разрешить признак только для aggregate segment.</button></div><p class="quiz-feedback" hidden>`lag: 0` позволяет признаку смотреть на значение целевой даты, поэтому это blocking error, а не мягкая правка.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему `center=True` опасен для rolling feature в forecasting?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Центрированное окно может включить будущие наблюдения относительно feature date.</button><button type="button" class="quiz-option" data-choice="1">Оно всегда меняет тип данных на строковый.</button><button type="button" class="quiz-option" data-choice="2">Оно работает только для monthly frequency.</button><button type="button" class="quiz-option" data-choice="3">Оно удаляет все пропущенные значения.</button></div><p class="quiz-feedback" hidden>Centered windows подходят для диагностики формы ряда, но как forecast features они могут использовать будущие точки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой смысл имеет `leakage_audit.csv` в артефакте урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он показывает source dates для каждого признака и доказывает, что latest source date раньше feature date.</button><button type="button" class="quiz-option" data-choice="1">Он заменяет тесты точности прогноза.</button><button type="button" class="quiz-option" data-choice="2">Он хранит только список сегментов без дат.</button><button type="button" class="quiz-option" data-choice="3">Он выбирает лучшую модель по минимальной ошибке.</button></div><p class="quiz-feedback" hidden>Leakage audit делает temporal contract машинно проверяемым: для каждой feature row видно, какие даты использовались.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+SOURCE_SERIES = PHASE_ROOT / &quot;02-resampling&quot; / &quot;outputs&quot; / &quot;daily_resampled.csv&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from window_feature_builder import build_window_feature_package  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    fieldnames = list(rows[0]) if rows else []
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def row_for(rows: list[dict], segment_id: str, observed_date: str) -&gt; dict:
+    return next(row for row in rows if row[&quot;segment_id&quot;] == segment_id and row[&quot;observed_date&quot;] == observed_date)
+
+
+class WindowFeatureBuilderTest(TestCase):
+    def build(self, series_path: Path = SOURCE_SERIES, root: Path = DATA_ROOT) -&gt; dict:
+        return build_window_feature_package(
+            series_path=series_path,
+            scenario_path=root / &quot;forecast_scenario.json&quot;,
+            spec_path=root / &quot;window_feature_spec.json&quot;,
+        )
+
+    def test_tiny_profile_builds_features_with_explicit_warnings(self) -&gt; None:
+        package = self.build()
+        report = package[&quot;report&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;error_count&quot;], 0)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [&quot;warmup_rows_excluded_from_training&quot;, &quot;partial_source_rows_excluded_from_training&quot;],
+        )
+        self.assertEqual(report[&quot;outputs&quot;][&quot;feature_rows&quot;], 32)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;training_feature_rows&quot;], 16)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;warmup_rows&quot;], 14)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;partial_rows&quot;], 2)
+
+    def test_data_generator_check_rebuilds_committed_window_spec(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;),
+                &quot;--check&quot;,
+                &quot;--output&quot;,
+                str(DATA_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+
+    def test_manual_rolling_values_use_only_previous_dates(self) -&gt; None:
+        package = self.build()
+        all_monday = row_for(package[&quot;feature_rows&quot;], &quot;all&quot;, &quot;2026-03-09&quot;)
+        audit_row = next(
+            row
+            for row in package[&quot;leakage_audit_rows&quot;]
+            if row[&quot;segment_id&quot;] == &quot;all&quot;
+            and row[&quot;feature_date&quot;] == &quot;2026-03-09&quot;
+            and row[&quot;feature_name&quot;] == &quot;rolling_7_mean_lag1&quot;
+        )
+
+        self.assertEqual(all_monday[&quot;value_lag_1&quot;], &quot;1012&quot;)
+        self.assertEqual(all_monday[&quot;delta_lag_1&quot;], &quot;9&quot;)
+        self.assertEqual(all_monday[&quot;rolling_3_mean_lag1&quot;], &quot;1016.333333&quot;)
+        self.assertEqual(all_monday[&quot;rolling_7_mean_lag1&quot;], &quot;1013.571429&quot;)
+        self.assertEqual(all_monday[&quot;include_in_training&quot;], &quot;true&quot;)
+        self.assertEqual(audit_row[&quot;latest_source_date_used&quot;], &quot;2026-03-08&quot;)
+        self.assertEqual(audit_row[&quot;valid&quot;], &quot;true&quot;)
+
+    def test_first_training_date_requires_full_required_history(self) -&gt; None:
+        report = self.build()[&quot;report&quot;]
+
+        self.assertEqual(
+            {row[&quot;segment_id&quot;]: row[&quot;first_training_date&quot;] for row in report[&quot;series&quot;]},
+            {&quot;all&quot;: &quot;2026-03-09&quot;, &quot;android&quot;: &quot;2026-03-09&quot;},
+        )
+
+    def test_partial_source_row_is_visible_but_not_used_for_training(self) -&gt; None:
+        package = self.build()
+        all_partial = row_for(package[&quot;feature_rows&quot;], &quot;all&quot;, &quot;2026-03-17&quot;)
+        warning = check(package[&quot;report&quot;], &quot;partial_source_rows_excluded_from_training&quot;)
+
+        self.assertEqual(all_partial[&quot;source_is_complete&quot;], &quot;false&quot;)
+        self.assertEqual(all_partial[&quot;feature_complete&quot;], &quot;true&quot;)
+        self.assertEqual(all_partial[&quot;include_in_training&quot;], &quot;false&quot;)
+        self.assertEqual(warning[&quot;severity&quot;], &quot;warning&quot;)
+
+    def test_duplicate_source_segment_date_blocks_feature_building(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series = Path(directory) / &quot;daily_resampled.csv&quot;
+            rows = read_csv(SOURCE_SERIES)
+            rows.append(rows[0].copy())
+            write_csv(series, rows)
+
+            report = self.build(series_path=series)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;source_segment_date_unique&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_complete_date_blocks_feature_building(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series = Path(directory) / &quot;daily_resampled.csv&quot;
+            rows = [
+                row
+                for row in read_csv(SOURCE_SERIES)
+                if not (row[&quot;segment_id&quot;] == &quot;android&quot; and row[&quot;observed_date&quot;] == &quot;2026-03-05&quot;)
+            ]
+            write_csv(series, rows)
+
+            report = self.build(series_path=series)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        failure = check(report, &quot;complete_history_has_no_missing_dates&quot;)
+        self.assertEqual(failure[&quot;sample&quot;][0][&quot;segment_id&quot;], &quot;android&quot;)
+        self.assertIn(&quot;2026-03-05&quot;, failure[&quot;sample&quot;][0][&quot;missing_dates&quot;])
+
+    def test_lag_zero_rule_is_rejected_as_temporal_leakage(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;window_feature_spec.json&quot;)
+            spec[&quot;rules&quot;][0][&quot;lag&quot;] = 0
+            write_json(root / &quot;window_feature_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;feature_rules_are_past_only&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+        failure = check(report, &quot;feature_rules_are_past_only&quot;)
+        self.assertEqual(failure[&quot;sample&quot;][0][&quot;field&quot;], &quot;lag&quot;)
+
+    def test_centered_rolling_rule_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;window_feature_spec.json&quot;)
+            spec[&quot;rules&quot;][2][&quot;center&quot;] = True
+            write_json(root / &quot;window_feature_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;feature_rules_are_past_only&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_feature_input_column_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series = Path(directory) / &quot;daily_resampled.csv&quot;
+            rows = read_csv(SOURCE_SERIES)
+            for row in rows:
+                row.pop(&quot;delta_active&quot;)
+            write_csv(series, rows)
+
+            report = self.build(series_path=series)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;source_columns_present&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_scenario_and_window_spec_must_align(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            scenario = read_json(root / &quot;forecast_scenario.json&quot;)
+            scenario[&quot;frequency&quot;] = &quot;W&quot;
+            write_json(root / &quot;forecast_scenario.json&quot;, scenario)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;scenario_and_window_spec_align&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_cli_writes_feature_package_and_can_fail_on_warning(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;package&quot;
+            command = [
+                sys.executable,
+                str(LESSON_ROOT / &quot;outputs&quot; / &quot;window_feature_builder.py&quot;),
+                &quot;--series&quot;,
+                str(SOURCE_SERIES),
+                &quot;--scenario&quot;,
+                str(DATA_ROOT / &quot;forecast_scenario.json&quot;),
+                &quot;--spec&quot;,
+                str(DATA_ROOT / &quot;window_feature_spec.json&quot;),
+                &quot;--output-dir&quot;,
+                str(output_dir),
+            ]
+            ok = subprocess.run(command, check=True, capture_output=True, text=True)
+            strict = subprocess.run([*command, &quot;--fail-on-warning&quot;], check=False, capture_output=True, text=True)
+            written_files = sorted(path.name for path in output_dir.iterdir())
+
+        self.assertTrue(json.loads(ok.stdout)[&quot;valid&quot;])
+        self.assertEqual(strict.returncode, 1)
+        self.assertEqual(written_files, [&quot;leakage_audit.csv&quot;, &quot;window_feature_report.json&quot;, &quot;window_features.csv&quot;])
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from window_feature_builder import build_window_feature_package, write_package  # noqa: E402
+
+
+def main() -&gt; None:
+    package = build_window_feature_package(
+        series_path=PHASE_ROOT / &quot;02-resampling&quot; / &quot;outputs&quot; / &quot;daily_resampled.csv&quot;,
+        scenario_path=DATA_ROOT / &quot;forecast_scenario.json&quot;,
+        spec_path=DATA_ROOT / &quot;window_feature_spec.json&quot;,
+    )
+    write_package(LESSON_ROOT / &quot;outputs&quot;, package)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;feature_rows&quot;: report[&quot;outputs&quot;][&quot;feature_rows&quot;],
+                &quot;training_feature_rows&quot;: report[&quot;outputs&quot;][&quot;training_feature_rows&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+    if not report[&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;window-feature-builder&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/window_feature_builder.py&quot;,
+  &quot;description&quot;: &quot;Builds leakage-safe lag, rolling, and expanding features from a complete daily forecast series, emits warmup and partial rows, and audits that every feature uses only source dates before the feature date.&quot;,
+  &quot;usage&quot;: &quot;python outputs/window_feature_builder.py --series ../02-resampling/outputs/daily_resampled.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/window_feature_spec.json --output-dir outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/leakage_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_set_id,segment_id,feature_date,feature_name,source_dates_used,latest_source_date_used,valid
+active-subscriptions-rolling-features,all,2026-03-02,value_lag_1,,,true
+active-subscriptions-rolling-features,all,2026-03-02,delta_lag_1,,,true
+active-subscriptions-rolling-features,all,2026-03-02,rolling_3_mean_lag1,,,true
+active-subscriptions-rolling-features,all,2026-03-02,rolling_7_mean_lag1,,,true
+active-subscriptions-rolling-features,all,2026-03-02,expanding_mean_lag1,,,true
+active-subscriptions-rolling-features,all,2026-03-03,value_lag_1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,all,2026-03-03,delta_lag_1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,all,2026-03-03,rolling_3_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,all,2026-03-03,rolling_7_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,all,2026-03-03,expanding_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,all,2026-03-04,value_lag_1,2026-03-03,2026-03-03,true
+active-subscriptions-rolling-features,all,2026-03-04,delta_lag_1,2026-03-03,2026-03-03,true
+active-subscriptions-rolling-features,all,2026-03-04,rolling_3_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,all,2026-03-04,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,all,2026-03-04,expanding_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,all,2026-03-05,value_lag_1,2026-03-04,2026-03-04,true
+active-subscriptions-rolling-features,all,2026-03-05,delta_lag_1,2026-03-04,2026-03-04,true
+active-subscriptions-rolling-features,all,2026-03-05,rolling_3_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,all,2026-03-05,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,all,2026-03-05,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,all,2026-03-06,value_lag_1,2026-03-05,2026-03-05,true
+active-subscriptions-rolling-features,all,2026-03-06,delta_lag_1,2026-03-05,2026-03-05,true
+active-subscriptions-rolling-features,all,2026-03-06,rolling_3_mean_lag1,&quot;2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,all,2026-03-06,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,all,2026-03-06,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,all,2026-03-07,value_lag_1,2026-03-06,2026-03-06,true
+active-subscriptions-rolling-features,all,2026-03-07,delta_lag_1,2026-03-06,2026-03-06,true
+active-subscriptions-rolling-features,all,2026-03-07,rolling_3_mean_lag1,&quot;2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,all,2026-03-07,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,all,2026-03-07,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,all,2026-03-08,value_lag_1,2026-03-07,2026-03-07,true
+active-subscriptions-rolling-features,all,2026-03-08,delta_lag_1,2026-03-07,2026-03-07,true
+active-subscriptions-rolling-features,all,2026-03-08,rolling_3_mean_lag1,&quot;2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,all,2026-03-08,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,all,2026-03-08,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,all,2026-03-09,value_lag_1,2026-03-08,2026-03-08,true
+active-subscriptions-rolling-features,all,2026-03-09,delta_lag_1,2026-03-08,2026-03-08,true
+active-subscriptions-rolling-features,all,2026-03-09,rolling_3_mean_lag1,&quot;2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,all,2026-03-09,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,all,2026-03-09,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,all,2026-03-10,value_lag_1,2026-03-09,2026-03-09,true
+active-subscriptions-rolling-features,all,2026-03-10,delta_lag_1,2026-03-09,2026-03-09,true
+active-subscriptions-rolling-features,all,2026-03-10,rolling_3_mean_lag1,&quot;2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,all,2026-03-10,rolling_7_mean_lag1,&quot;2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,all,2026-03-10,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,all,2026-03-11,value_lag_1,2026-03-10,2026-03-10,true
+active-subscriptions-rolling-features,all,2026-03-11,delta_lag_1,2026-03-10,2026-03-10,true
+active-subscriptions-rolling-features,all,2026-03-11,rolling_3_mean_lag1,&quot;2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,all,2026-03-11,rolling_7_mean_lag1,&quot;2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,all,2026-03-11,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,all,2026-03-12,value_lag_1,2026-03-11,2026-03-11,true
+active-subscriptions-rolling-features,all,2026-03-12,delta_lag_1,2026-03-11,2026-03-11,true
+active-subscriptions-rolling-features,all,2026-03-12,rolling_3_mean_lag1,&quot;2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,all,2026-03-12,rolling_7_mean_lag1,&quot;2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,all,2026-03-12,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,all,2026-03-13,value_lag_1,2026-03-12,2026-03-12,true
+active-subscriptions-rolling-features,all,2026-03-13,delta_lag_1,2026-03-12,2026-03-12,true
+active-subscriptions-rolling-features,all,2026-03-13,rolling_3_mean_lag1,&quot;2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,all,2026-03-13,rolling_7_mean_lag1,&quot;2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,all,2026-03-13,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,all,2026-03-14,value_lag_1,2026-03-13,2026-03-13,true
+active-subscriptions-rolling-features,all,2026-03-14,delta_lag_1,2026-03-13,2026-03-13,true
+active-subscriptions-rolling-features,all,2026-03-14,rolling_3_mean_lag1,&quot;2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,all,2026-03-14,rolling_7_mean_lag1,&quot;2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,all,2026-03-14,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,all,2026-03-15,value_lag_1,2026-03-14,2026-03-14,true
+active-subscriptions-rolling-features,all,2026-03-15,delta_lag_1,2026-03-14,2026-03-14,true
+active-subscriptions-rolling-features,all,2026-03-15,rolling_3_mean_lag1,&quot;2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,all,2026-03-15,rolling_7_mean_lag1,&quot;2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,all,2026-03-15,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,all,2026-03-16,value_lag_1,2026-03-15,2026-03-15,true
+active-subscriptions-rolling-features,all,2026-03-16,delta_lag_1,2026-03-15,2026-03-15,true
+active-subscriptions-rolling-features,all,2026-03-16,rolling_3_mean_lag1,&quot;2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,all,2026-03-16,rolling_7_mean_lag1,&quot;2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,all,2026-03-16,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,all,2026-03-17,value_lag_1,2026-03-16,2026-03-16,true
+active-subscriptions-rolling-features,all,2026-03-17,delta_lag_1,2026-03-16,2026-03-16,true
+active-subscriptions-rolling-features,all,2026-03-17,rolling_3_mean_lag1,&quot;2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+active-subscriptions-rolling-features,all,2026-03-17,rolling_7_mean_lag1,&quot;2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+active-subscriptions-rolling-features,all,2026-03-17,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+active-subscriptions-rolling-features,android,2026-03-02,value_lag_1,,,true
+active-subscriptions-rolling-features,android,2026-03-02,delta_lag_1,,,true
+active-subscriptions-rolling-features,android,2026-03-02,rolling_3_mean_lag1,,,true
+active-subscriptions-rolling-features,android,2026-03-02,rolling_7_mean_lag1,,,true
+active-subscriptions-rolling-features,android,2026-03-02,expanding_mean_lag1,,,true
+active-subscriptions-rolling-features,android,2026-03-03,value_lag_1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,android,2026-03-03,delta_lag_1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,android,2026-03-03,rolling_3_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,android,2026-03-03,rolling_7_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,android,2026-03-03,expanding_mean_lag1,2026-03-02,2026-03-02,true
+active-subscriptions-rolling-features,android,2026-03-04,value_lag_1,2026-03-03,2026-03-03,true
+active-subscriptions-rolling-features,android,2026-03-04,delta_lag_1,2026-03-03,2026-03-03,true
+active-subscriptions-rolling-features,android,2026-03-04,rolling_3_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,android,2026-03-04,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,android,2026-03-04,expanding_mean_lag1,&quot;2026-03-02,2026-03-03&quot;,2026-03-03,true
+active-subscriptions-rolling-features,android,2026-03-05,value_lag_1,2026-03-04,2026-03-04,true
+active-subscriptions-rolling-features,android,2026-03-05,delta_lag_1,2026-03-04,2026-03-04,true
+active-subscriptions-rolling-features,android,2026-03-05,rolling_3_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,android,2026-03-05,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,android,2026-03-05,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04&quot;,2026-03-04,true
+active-subscriptions-rolling-features,android,2026-03-06,value_lag_1,2026-03-05,2026-03-05,true
+active-subscriptions-rolling-features,android,2026-03-06,delta_lag_1,2026-03-05,2026-03-05,true
+active-subscriptions-rolling-features,android,2026-03-06,rolling_3_mean_lag1,&quot;2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,android,2026-03-06,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,android,2026-03-06,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05&quot;,2026-03-05,true
+active-subscriptions-rolling-features,android,2026-03-07,value_lag_1,2026-03-06,2026-03-06,true
+active-subscriptions-rolling-features,android,2026-03-07,delta_lag_1,2026-03-06,2026-03-06,true
+active-subscriptions-rolling-features,android,2026-03-07,rolling_3_mean_lag1,&quot;2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,android,2026-03-07,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,android,2026-03-07,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06&quot;,2026-03-06,true
+active-subscriptions-rolling-features,android,2026-03-08,value_lag_1,2026-03-07,2026-03-07,true
+active-subscriptions-rolling-features,android,2026-03-08,delta_lag_1,2026-03-07,2026-03-07,true
+active-subscriptions-rolling-features,android,2026-03-08,rolling_3_mean_lag1,&quot;2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,android,2026-03-08,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,android,2026-03-08,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07&quot;,2026-03-07,true
+active-subscriptions-rolling-features,android,2026-03-09,value_lag_1,2026-03-08,2026-03-08,true
+active-subscriptions-rolling-features,android,2026-03-09,delta_lag_1,2026-03-08,2026-03-08,true
+active-subscriptions-rolling-features,android,2026-03-09,rolling_3_mean_lag1,&quot;2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,android,2026-03-09,rolling_7_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,android,2026-03-09,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08&quot;,2026-03-08,true
+active-subscriptions-rolling-features,android,2026-03-10,value_lag_1,2026-03-09,2026-03-09,true
+active-subscriptions-rolling-features,android,2026-03-10,delta_lag_1,2026-03-09,2026-03-09,true
+active-subscriptions-rolling-features,android,2026-03-10,rolling_3_mean_lag1,&quot;2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,android,2026-03-10,rolling_7_mean_lag1,&quot;2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,android,2026-03-10,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09&quot;,2026-03-09,true
+active-subscriptions-rolling-features,android,2026-03-11,value_lag_1,2026-03-10,2026-03-10,true
+active-subscriptions-rolling-features,android,2026-03-11,delta_lag_1,2026-03-10,2026-03-10,true
+active-subscriptions-rolling-features,android,2026-03-11,rolling_3_mean_lag1,&quot;2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,android,2026-03-11,rolling_7_mean_lag1,&quot;2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,android,2026-03-11,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10&quot;,2026-03-10,true
+active-subscriptions-rolling-features,android,2026-03-12,value_lag_1,2026-03-11,2026-03-11,true
+active-subscriptions-rolling-features,android,2026-03-12,delta_lag_1,2026-03-11,2026-03-11,true
+active-subscriptions-rolling-features,android,2026-03-12,rolling_3_mean_lag1,&quot;2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,android,2026-03-12,rolling_7_mean_lag1,&quot;2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,android,2026-03-12,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11&quot;,2026-03-11,true
+active-subscriptions-rolling-features,android,2026-03-13,value_lag_1,2026-03-12,2026-03-12,true
+active-subscriptions-rolling-features,android,2026-03-13,delta_lag_1,2026-03-12,2026-03-12,true
+active-subscriptions-rolling-features,android,2026-03-13,rolling_3_mean_lag1,&quot;2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,android,2026-03-13,rolling_7_mean_lag1,&quot;2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,android,2026-03-13,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12&quot;,2026-03-12,true
+active-subscriptions-rolling-features,android,2026-03-14,value_lag_1,2026-03-13,2026-03-13,true
+active-subscriptions-rolling-features,android,2026-03-14,delta_lag_1,2026-03-13,2026-03-13,true
+active-subscriptions-rolling-features,android,2026-03-14,rolling_3_mean_lag1,&quot;2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,android,2026-03-14,rolling_7_mean_lag1,&quot;2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,android,2026-03-14,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13&quot;,2026-03-13,true
+active-subscriptions-rolling-features,android,2026-03-15,value_lag_1,2026-03-14,2026-03-14,true
+active-subscriptions-rolling-features,android,2026-03-15,delta_lag_1,2026-03-14,2026-03-14,true
+active-subscriptions-rolling-features,android,2026-03-15,rolling_3_mean_lag1,&quot;2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,android,2026-03-15,rolling_7_mean_lag1,&quot;2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,android,2026-03-15,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14&quot;,2026-03-14,true
+active-subscriptions-rolling-features,android,2026-03-16,value_lag_1,2026-03-15,2026-03-15,true
+active-subscriptions-rolling-features,android,2026-03-16,delta_lag_1,2026-03-15,2026-03-15,true
+active-subscriptions-rolling-features,android,2026-03-16,rolling_3_mean_lag1,&quot;2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,android,2026-03-16,rolling_7_mean_lag1,&quot;2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,android,2026-03-16,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15&quot;,2026-03-15,true
+active-subscriptions-rolling-features,android,2026-03-17,value_lag_1,2026-03-16,2026-03-16,true
+active-subscriptions-rolling-features,android,2026-03-17,delta_lag_1,2026-03-16,2026-03-16,true
+active-subscriptions-rolling-features,android,2026-03-17,rolling_3_mean_lag1,&quot;2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+active-subscriptions-rolling-features,android,2026-03-17,rolling_7_mean_lag1,&quot;2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+active-subscriptions-rolling-features,android,2026-03-17,expanding_mean_lag1,&quot;2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16&quot;,2026-03-16,true
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/outputs/leakage_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/window_feature_builder.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from collections import Counter, defaultdict
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+
+REQUIRED_SOURCE_COLUMNS = {
+    &quot;metric_id&quot;,
+    &quot;segment_id&quot;,
+    &quot;observed_date&quot;,
+    &quot;frequency&quot;,
+    &quot;delta_active&quot;,
+    &quot;value&quot;,
+    &quot;is_complete_period&quot;,
+    &quot;include_in_training&quot;,
+}
+REQUIRED_SCENARIO_FIELDS = {
+    &quot;forecast_id&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;complete_through&quot;,
+    &quot;forecast_origin&quot;,
+}
+REQUIRED_SPEC_FIELDS = {
+    &quot;feature_set_id&quot;,
+    &quot;source_table&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;time_column&quot;,
+    &quot;value_column&quot;,
+    &quot;delta_column&quot;,
+    &quot;complete_flag_column&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;expected_start&quot;,
+    &quot;complete_through&quot;,
+    &quot;forecast_origin&quot;,
+    &quot;feature_date_policy&quot;,
+    &quot;warmup_policy&quot;,
+    &quot;partial_period_policy&quot;,
+    &quot;rules&quot;,
+}
+SUPPORTED_RULE_KINDS = {&quot;lag&quot;, &quot;rolling_mean&quot;, &quot;expanding_mean&quot;}
+
+
+class WindowFeatureError(ValueError):
+    &quot;&quot;&quot;Raised when window feature inputs cannot be interpreted.&quot;&quot;&quot;
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    value = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(value, dict):
+        raise WindowFeatureError(f&quot;{path.name} must contain a JSON object&quot;)
+    return value
+
+
+def parse_date(value: str, field: str) -&gt; date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        raise WindowFeatureError(f&quot;{field} must be ISO date: {value}&quot;) from error
+
+
+def parse_timestamp(value: str, field: str) -&gt; datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    except ValueError as error:
+        raise WindowFeatureError(f&quot;{field} must be ISO timestamp: {value}&quot;) from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise WindowFeatureError(f&quot;{field} must be timezone-aware: {value}&quot;)
+    return parsed
+
+
+def parse_bool(value: str, field: str) -&gt; bool:
+    normalized = value.strip().lower()
+    if normalized not in {&quot;true&quot;, &quot;false&quot;}:
+        raise WindowFeatureError(f&quot;{field} must be true or false: {value}&quot;)
+    return normalized == &quot;true&quot;
+
+
+def parse_int(value: str, field: str) -&gt; int:
+    try:
+        return int(value)
+    except ValueError as error:
+        raise WindowFeatureError(f&quot;{field} must be an integer: {value}&quot;) from error
+
+
+def parse_number(value: str, field: str) -&gt; float:
+    try:
+        return float(value)
+    except ValueError as error:
+        raise WindowFeatureError(f&quot;{field} must be numeric: {value}&quot;) from error
+
+
+def daterange(start: date, end: date) -&gt; list[date]:
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: list[Any] | None = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def format_feature_value(value: float | int | None) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, int) or float(value).is_integer():
+        return str(int(value))
+    return f&quot;{value:.6f}&quot;.rstrip(&quot;0&quot;).rstrip(&quot;.&quot;)
+
+
+def normalize_spec(spec: dict[str, Any], scenario: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    checks: list[dict[str, Any]] = []
+    missing_spec = sorted(REQUIRED_SPEC_FIELDS - set(spec))
+    if missing_spec:
+        checks.append(failed(&quot;window_spec_required_fields&quot;, missing_spec, &quot;all required window feature fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;window_spec_required_fields&quot;, len(REQUIRED_SPEC_FIELDS)))
+
+    missing_scenario = sorted(REQUIRED_SCENARIO_FIELDS - set(scenario))
+    if missing_scenario:
+        checks.append(failed(&quot;scenario_required_fields&quot;, missing_scenario, &quot;all required scenario fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;scenario_required_fields&quot;, len(REQUIRED_SCENARIO_FIELDS)))
+
+    segments = spec.get(&quot;target_segments&quot;)
+    if not isinstance(segments, list) or not segments or not all(isinstance(item, str) and item for item in segments):
+        checks.append(failed(&quot;target_segments_declared&quot;, segments, &quot;non-empty list of segment ids&quot;))
+        return checks, None
+    checks.append(passed(&quot;target_segments_declared&quot;, segments))
+
+    try:
+        timezone = ZoneInfo(str(spec[&quot;timezone&quot;]))
+    except ZoneInfoNotFoundError:
+        checks.append(failed(&quot;timezone_valid&quot;, spec[&quot;timezone&quot;], &quot;IANA timezone&quot;))
+        return checks, None
+    checks.append(passed(&quot;timezone_valid&quot;, spec[&quot;timezone&quot;]))
+
+    rules = spec.get(&quot;rules&quot;)
+    if not isinstance(rules, list) or not rules:
+        checks.append(failed(&quot;feature_rules_declared&quot;, rules, &quot;non-empty list of feature rules&quot;))
+        return checks, None
+    checks.append(passed(&quot;feature_rules_declared&quot;, len(rules)))
+
+    alignment_errors = []
+    for field in (&quot;target_metric&quot;, &quot;target_segments&quot;, &quot;timezone&quot;, &quot;frequency&quot;, &quot;complete_through&quot;, &quot;forecast_origin&quot;):
+        if spec[field] != scenario[field]:
+            alignment_errors.append({&quot;field&quot;: field, &quot;spec&quot;: spec[field], &quot;scenario&quot;: scenario[field]})
+    if alignment_errors:
+        checks.append(failed(&quot;scenario_and_window_spec_align&quot;, len(alignment_errors), &quot;matching forecast setup fields&quot;, alignment_errors))
+    else:
+        checks.append(passed(&quot;scenario_and_window_spec_align&quot;, 6))
+
+    policy_errors = []
+    expected_policies = {
+        &quot;feature_date_policy&quot;: &quot;features_use_strictly_past_observations&quot;,
+        &quot;warmup_policy&quot;: &quot;emit_rows_but_exclude_from_training&quot;,
+        &quot;partial_period_policy&quot;: &quot;emit_rows_but_exclude_from_training&quot;,
+    }
+    for field, expected in expected_policies.items():
+        if spec[field] != expected:
+            policy_errors.append({&quot;field&quot;: field, &quot;observed&quot;: spec[field], &quot;expected&quot;: expected})
+    if policy_errors:
+        checks.append(failed(&quot;window_policies_supported&quot;, len(policy_errors), &quot;supported leakage-safe policies&quot;, policy_errors))
+    else:
+        checks.append(passed(&quot;window_policies_supported&quot;, expected_policies))
+
+    rule_errors = validate_rules(rules)
+    if rule_errors:
+        checks.append(failed(&quot;feature_rules_are_past_only&quot;, len(rule_errors), &quot;lag &gt;= 1 and center=false for all required rules&quot;, rule_errors))
+    else:
+        checks.append(passed(&quot;feature_rules_are_past_only&quot;, len(rules)))
+
+    normalized = {
+        &quot;feature_set_id&quot;: str(spec[&quot;feature_set_id&quot;]),
+        &quot;forecast_id&quot;: str(scenario[&quot;forecast_id&quot;]),
+        &quot;target_metric&quot;: str(spec[&quot;target_metric&quot;]),
+        &quot;target_segments&quot;: [str(segment) for segment in segments],
+        &quot;time_column&quot;: str(spec[&quot;time_column&quot;]),
+        &quot;value_column&quot;: str(spec[&quot;value_column&quot;]),
+        &quot;delta_column&quot;: str(spec[&quot;delta_column&quot;]),
+        &quot;complete_flag_column&quot;: str(spec[&quot;complete_flag_column&quot;]),
+        &quot;timezone&quot;: timezone,
+        &quot;timezone_name&quot;: str(spec[&quot;timezone&quot;]),
+        &quot;frequency&quot;: str(spec[&quot;frequency&quot;]),
+        &quot;expected_start&quot;: parse_date(str(spec[&quot;expected_start&quot;]), &quot;expected_start&quot;),
+        &quot;complete_through&quot;: parse_date(str(spec[&quot;complete_through&quot;]), &quot;complete_through&quot;),
+        &quot;forecast_origin&quot;: parse_timestamp(str(spec[&quot;forecast_origin&quot;]), &quot;forecast_origin&quot;),
+        &quot;rules&quot;: rules,
+    }
+    return checks, normalized
+
+
+def validate_rules(rules: list[Any]) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    names: list[str] = []
+    for index, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            errors.append({&quot;rule_index&quot;: index, &quot;error&quot;: &quot;rule must be an object&quot;})
+            continue
+        name = str(rule.get(&quot;name&quot;, &quot;&quot;))
+        names.append(name)
+        kind = rule.get(&quot;kind&quot;)
+        lag = int(rule.get(&quot;lag&quot;, 0))
+        if not name:
+            errors.append({&quot;rule_index&quot;: index, &quot;field&quot;: &quot;name&quot;, &quot;error&quot;: &quot;required&quot;})
+        if kind not in SUPPORTED_RULE_KINDS:
+            errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;kind&quot;, &quot;observed&quot;: kind, &quot;expected&quot;: sorted(SUPPORTED_RULE_KINDS)})
+        if lag &lt; 1:
+            errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;lag&quot;, &quot;observed&quot;: lag, &quot;expected&quot;: &quot;&gt;= 1&quot;})
+        if rule.get(&quot;center&quot;, False) is True:
+            errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;center&quot;, &quot;observed&quot;: True, &quot;expected&quot;: False})
+        if kind == &quot;rolling_mean&quot;:
+            window = int(rule.get(&quot;window&quot;, 0))
+            min_periods = int(rule.get(&quot;min_periods&quot;, 0))
+            if window &lt; 1:
+                errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;window&quot;, &quot;observed&quot;: window, &quot;expected&quot;: &quot;&gt;= 1&quot;})
+            if min_periods &lt; 1 or min_periods &gt; window:
+                errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;min_periods&quot;, &quot;observed&quot;: min_periods, &quot;expected&quot;: &quot;1..window&quot;})
+        if kind == &quot;expanding_mean&quot;:
+            min_periods = int(rule.get(&quot;min_periods&quot;, 0))
+            if min_periods &lt; 1:
+                errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;min_periods&quot;, &quot;observed&quot;: min_periods, &quot;expected&quot;: &quot;&gt;= 1&quot;})
+    duplicate_names = [name for name, count in Counter(names).items() if name and count &gt; 1]
+    for name in duplicate_names:
+        errors.append({&quot;rule&quot;: name, &quot;field&quot;: &quot;name&quot;, &quot;error&quot;: &quot;duplicate&quot;})
+    return errors
+
+
+def build_window_feature_package(
+    *,
+    series_path: Path,
+    scenario_path: Path,
+    spec_path: Path,
+) -&gt; dict[str, Any]:
+    source_rows, source_columns = read_csv(series_path)
+    scenario = read_json(scenario_path)
+    spec = read_json(spec_path)
+
+    spec_checks, normalized = normalize_spec(spec, scenario)
+    checks = list(spec_checks)
+
+    missing_source_columns = sorted(REQUIRED_SOURCE_COLUMNS - set(source_columns))
+    if missing_source_columns:
+        checks.append(failed(&quot;source_columns_present&quot;, missing_source_columns, &quot;all required daily source columns&quot;))
+    else:
+        checks.append(passed(&quot;source_columns_present&quot;, len(source_columns)))
+
+    if normalized is None or missing_source_columns:
+        report = build_report(spec, scenario, checks, [], [])
+        return {&quot;report&quot;: report, &quot;feature_rows&quot;: [], &quot;leakage_audit_rows&quot;: []}
+
+    rule_input_columns = sorted(
+        {
+            str(rule.get(&quot;input_column&quot;, &quot;&quot;))
+            for rule in normalized[&quot;rules&quot;]
+            if isinstance(rule, dict) and rule.get(&quot;input_column&quot;)
+        }
+    )
+    missing_rule_columns = sorted(set(rule_input_columns) - set(source_columns))
+    if missing_rule_columns:
+        checks.append(failed(&quot;feature_input_columns_present&quot;, missing_rule_columns, &quot;all feature input columns exist in source&quot;))
+    else:
+        checks.append(passed(&quot;feature_input_columns_present&quot;, rule_input_columns))
+
+    parsed_rows, parse_checks = parse_source_rows(source_rows, normalized)
+    checks.extend(parse_checks)
+
+    keys = [(row[&quot;segment_id&quot;], row[&quot;_date&quot;]) for row in parsed_rows]
+    duplicates = [{&quot;segment_id&quot;: segment, &quot;observed_date&quot;: day.isoformat()} for (segment, day), count in Counter(keys).items() if count &gt; 1]
+    if duplicates:
+        checks.append(failed(&quot;source_segment_date_unique&quot;, len(duplicates), &quot;0 duplicate segment/date keys&quot;, duplicates[:10]))
+    else:
+        checks.append(passed(&quot;source_segment_date_unique&quot;, len(parsed_rows)))
+
+    missing_complete = find_missing_complete_dates(parsed_rows, normalized)
+    if missing_complete:
+        checks.append(
+            failed(
+                &quot;complete_history_has_no_missing_dates&quot;,
+                len(missing_complete),
+                &quot;every target segment has every complete date&quot;,
+                missing_complete,
+            )
+        )
+    else:
+        expected_points = len(daterange(normalized[&quot;expected_start&quot;], normalized[&quot;complete_through&quot;])) * len(normalized[&quot;target_segments&quot;])
+        checks.append(passed(&quot;complete_history_has_no_missing_dates&quot;, expected_points))
+
+    if missing_rule_columns or duplicates or missing_complete:
+        report = build_report(spec, scenario, checks, [], [])
+        return {&quot;report&quot;: report, &quot;feature_rows&quot;: [], &quot;leakage_audit_rows&quot;: []}
+
+    feature_rows, leakage_audit_rows = build_feature_rows(parsed_rows, normalized)
+    leakage_failures = [
+        row
+        for row in leakage_audit_rows
+        if row[&quot;valid&quot;] == &quot;false&quot;
+    ]
+    if leakage_failures:
+        checks.append(
+            failed(
+                &quot;feature_source_dates_precede_feature_date&quot;,
+                len(leakage_failures),
+                &quot;every feature uses only dates before the feature date&quot;,
+                leakage_failures[:10],
+            )
+        )
+    else:
+        checks.append(passed(&quot;feature_source_dates_precede_feature_date&quot;, len(leakage_audit_rows)))
+
+    warmup_rows = [row for row in feature_rows if row[&quot;source_is_complete&quot;] == &quot;true&quot; and row[&quot;feature_complete&quot;] == &quot;false&quot;]
+    if warmup_rows:
+        checks.append(
+            failed(
+                &quot;warmup_rows_excluded_from_training&quot;,
+                len(warmup_rows),
+                &quot;rows without enough history are emitted but not used for training&quot;,
+                warmup_rows[:10],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;warmup_rows_excluded_from_training&quot;, 0))
+
+    partial_rows = [row for row in feature_rows if row[&quot;source_is_complete&quot;] == &quot;false&quot;]
+    if partial_rows:
+        checks.append(
+            failed(
+                &quot;partial_source_rows_excluded_from_training&quot;,
+                len(partial_rows),
+                &quot;partial source rows are emitted but not used for training&quot;,
+                partial_rows[:10],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;partial_source_rows_excluded_from_training&quot;, 0))
+
+    report = build_report(spec, scenario, checks, feature_rows, leakage_audit_rows)
+    return {&quot;report&quot;: report, &quot;feature_rows&quot;: feature_rows, &quot;leakage_audit_rows&quot;: leakage_audit_rows}
+
+
+def parse_source_rows(rows: list[dict[str, str]], spec: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    parsed: list[dict[str, Any]] = []
+    checks: list[dict[str, Any]] = []
+    parse_errors: list[dict[str, Any]] = []
+    target_segments = set(spec[&quot;target_segments&quot;])
+    for index, row in enumerate(rows, start=2):
+        if row.get(&quot;metric_id&quot;) != spec[&quot;target_metric&quot;] or row.get(&quot;segment_id&quot;) not in target_segments:
+            continue
+        try:
+            observed_date = parse_date(row.get(spec[&quot;time_column&quot;], &quot;&quot;), spec[&quot;time_column&quot;])
+            include_flag = parse_bool(row.get(spec[&quot;complete_flag_column&quot;], &quot;&quot;), spec[&quot;complete_flag_column&quot;])
+            parsed.append(
+                {
+                    **row,
+                    &quot;_row&quot;: index,
+                    &quot;_date&quot;: observed_date,
+                    &quot;_include_flag&quot;: include_flag,
+                    &quot;_value&quot;: parse_number(row.get(spec[&quot;value_column&quot;], &quot;&quot;), spec[&quot;value_column&quot;]),
+                    &quot;_delta&quot;: parse_number(row.get(spec[&quot;delta_column&quot;], &quot;&quot;), spec[&quot;delta_column&quot;]),
+                    &quot;_is_complete_period&quot;: parse_bool(row.get(&quot;is_complete_period&quot;, &quot;&quot;), &quot;is_complete_period&quot;),
+                }
+            )
+        except WindowFeatureError as error:
+            parse_errors.append({&quot;row&quot;: index, &quot;error&quot;: str(error), &quot;segment_id&quot;: row.get(&quot;segment_id&quot;)})
+    if parse_errors:
+        checks.append(failed(&quot;source_rows_parse&quot;, len(parse_errors), &quot;valid dates, booleans, and numeric inputs&quot;, parse_errors[:10]))
+    else:
+        checks.append(passed(&quot;source_rows_parse&quot;, len(parsed)))
+    return parsed, checks
+
+
+def find_missing_complete_dates(rows: list[dict[str, Any]], spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    by_segment: dict[str, set[date]] = defaultdict(set)
+    for row in rows:
+        if row[&quot;_date&quot;] &lt;= spec[&quot;complete_through&quot;] and row[&quot;_include_flag&quot;]:
+            by_segment[row[&quot;segment_id&quot;]].add(row[&quot;_date&quot;])
+    expected = set(daterange(spec[&quot;expected_start&quot;], spec[&quot;complete_through&quot;]))
+    missing: list[dict[str, Any]] = []
+    for segment_id in spec[&quot;target_segments&quot;]:
+        segment_missing = sorted(expected - by_segment.get(segment_id, set()))
+        if segment_missing:
+            missing.append({&quot;segment_id&quot;: segment_id, &quot;missing_dates&quot;: [day.isoformat() for day in segment_missing]})
+    return missing
+
+
+def build_feature_rows(
+    rows: list[dict[str, Any]],
+    spec: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    rows_by_segment_date: dict[tuple[str, date], dict[str, Any]] = {
+        (row[&quot;segment_id&quot;], row[&quot;_date&quot;]): row
+        for row in rows
+    }
+    sorted_rows = sorted(rows, key=lambda row: (row[&quot;segment_id&quot;], row[&quot;_date&quot;]))
+    feature_rows: list[dict[str, Any]] = []
+    leakage_audit_rows: list[dict[str, Any]] = []
+    rule_names = [rule[&quot;name&quot;] for rule in spec[&quot;rules&quot;]]
+
+    for row in sorted_rows:
+        feature_date = row[&quot;_date&quot;]
+        segment_id = row[&quot;segment_id&quot;]
+        history_points = sum(
+            1
+            for candidate in rows
+            if candidate[&quot;segment_id&quot;] == segment_id and candidate[&quot;_date&quot;] &lt; feature_date and candidate[&quot;_include_flag&quot;]
+        )
+        feature_values: dict[str, str] = {}
+        all_required_present = True
+        for rule in spec[&quot;rules&quot;]:
+            value, source_dates = evaluate_rule(rule, segment_id, feature_date, rows_by_segment_date)
+            feature_values[rule[&quot;name&quot;]] = format_feature_value(value)
+            if rule.get(&quot;required&quot;, True) and value is None:
+                all_required_present = False
+            latest_source_date = max(source_dates).isoformat() if source_dates else &quot;&quot;
+            valid_source_dates = all(source_date &lt; feature_date for source_date in source_dates)
+            leakage_audit_rows.append(
+                {
+                    &quot;feature_set_id&quot;: spec[&quot;feature_set_id&quot;],
+                    &quot;segment_id&quot;: segment_id,
+                    &quot;feature_date&quot;: feature_date.isoformat(),
+                    &quot;feature_name&quot;: rule[&quot;name&quot;],
+                    &quot;source_dates_used&quot;: &quot;,&quot;.join(day.isoformat() for day in source_dates),
+                    &quot;latest_source_date_used&quot;: latest_source_date,
+                    &quot;valid&quot;: str(valid_source_dates).lower(),
+                }
+            )
+
+        source_complete = row[&quot;_include_flag&quot;]
+        include_in_training = source_complete and all_required_present
+        feature_rows.append(
+            {
+                &quot;metric_id&quot;: row[&quot;metric_id&quot;],
+                &quot;segment_id&quot;: segment_id,
+                &quot;observed_date&quot;: feature_date.isoformat(),
+                &quot;frequency&quot;: row[&quot;frequency&quot;],
+                &quot;value&quot;: format_feature_value(row[&quot;_value&quot;]),
+                &quot;delta_active&quot;: format_feature_value(row[&quot;_delta&quot;]),
+                **{name: feature_values[name] for name in rule_names},
+                &quot;history_points_before&quot;: history_points,
+                &quot;source_is_complete&quot;: str(source_complete).lower(),
+                &quot;feature_complete&quot;: str(all_required_present).lower(),
+                &quot;include_in_training&quot;: str(include_in_training).lower(),
+            }
+        )
+    return feature_rows, leakage_audit_rows
+
+
+def evaluate_rule(
+    rule: dict[str, Any],
+    segment_id: str,
+    feature_date: date,
+    rows_by_segment_date: dict[tuple[str, date], dict[str, Any]],
+) -&gt; tuple[float | int | None, list[date]]:
+    kind = rule[&quot;kind&quot;]
+    input_column = rule[&quot;input_column&quot;]
+    lag = int(rule[&quot;lag&quot;])
+    end_date = feature_date - timedelta(days=lag)
+
+    if kind == &quot;lag&quot;:
+        source_row = rows_by_segment_date.get((segment_id, end_date))
+        if source_row is None or not source_row[&quot;_include_flag&quot;]:
+            return None, []
+        return parse_number(source_row[input_column], input_column), [end_date]
+
+    if kind == &quot;rolling_mean&quot;:
+        window = int(rule[&quot;window&quot;])
+        min_periods = int(rule[&quot;min_periods&quot;])
+        window_dates = daterange(end_date - timedelta(days=window - 1), end_date)
+        values: list[float] = []
+        source_dates: list[date] = []
+        for day in window_dates:
+            source_row = rows_by_segment_date.get((segment_id, day))
+            if source_row is None or not source_row[&quot;_include_flag&quot;]:
+                continue
+            values.append(parse_number(source_row[input_column], input_column))
+            source_dates.append(day)
+        if len(values) &lt; min_periods:
+            return None, source_dates
+        return sum(values) / len(values), source_dates
+
+    if kind == &quot;expanding_mean&quot;:
+        min_periods = int(rule[&quot;min_periods&quot;])
+        segment_rows = [
+            row
+            for (candidate_segment, day), row in rows_by_segment_date.items()
+            if candidate_segment == segment_id and day &lt;= end_date and row[&quot;_include_flag&quot;]
+        ]
+        ordered = sorted(segment_rows, key=lambda row: row[&quot;_date&quot;])
+        if len(ordered) &lt; min_periods:
+            return None, [row[&quot;_date&quot;] for row in ordered]
+        values = [parse_number(row[input_column], input_column) for row in ordered]
+        return sum(values) / len(values), [row[&quot;_date&quot;] for row in ordered]
+
+    raise WindowFeatureError(f&quot;unsupported feature kind: {kind}&quot;)
+
+
+def build_report(
+    spec: dict[str, Any],
+    scenario: dict[str, Any],
+    checks: list[dict[str, Any]],
+    feature_rows: list[dict[str, Any]],
+    leakage_audit_rows: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    error_failures = [check for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;]
+    warning_failures = [check for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;]
+    return {
+        &quot;audit_id&quot;: &quot;window-feature-audit&quot;,
+        &quot;feature_set_id&quot;: spec.get(&quot;feature_set_id&quot;),
+        &quot;forecast_id&quot;: scenario.get(&quot;forecast_id&quot;),
+        &quot;valid&quot;: not error_failures,
+        &quot;warning_count&quot;: len(warning_failures),
+        &quot;error_count&quot;: len(error_failures),
+        &quot;checks&quot;: checks,
+        &quot;series&quot;: summarize_series(feature_rows),
+        &quot;outputs&quot;: {
+            &quot;feature_rows&quot;: len(feature_rows),
+            &quot;leakage_audit_rows&quot;: len(leakage_audit_rows),
+            &quot;training_feature_rows&quot;: sum(1 for row in feature_rows if row.get(&quot;include_in_training&quot;) == &quot;true&quot;),
+            &quot;warmup_rows&quot;: sum(1 for row in feature_rows if row.get(&quot;source_is_complete&quot;) == &quot;true&quot; and row.get(&quot;feature_complete&quot;) == &quot;false&quot;),
+            &quot;partial_rows&quot;: sum(1 for row in feature_rows if row.get(&quot;source_is_complete&quot;) == &quot;false&quot;),
+        },
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: len(error_failures) + len(warning_failures),
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in error_failures],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in warning_failures],
+        },
+    }
+
+
+def summarize_series(feature_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for segment_id in sorted({row[&quot;segment_id&quot;] for row in feature_rows}):
+        segment_rows = [row for row in feature_rows if row[&quot;segment_id&quot;] == segment_id]
+        training_rows = [row for row in segment_rows if row[&quot;include_in_training&quot;] == &quot;true&quot;]
+        summaries.append(
+            {
+                &quot;segment_id&quot;: segment_id,
+                &quot;feature_rows&quot;: len(segment_rows),
+                &quot;training_feature_rows&quot;: len(training_rows),
+                &quot;first_training_date&quot;: training_rows[0][&quot;observed_date&quot;] if training_rows else None,
+                &quot;last_training_date&quot;: training_rows[-1][&quot;observed_date&quot;] if training_rows else None,
+            }
+        )
+    return summaries
+
+
+def write_package(output_dir: Path, package: dict[str, Any]) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    feature_rows = package[&quot;feature_rows&quot;]
+    report = package[&quot;report&quot;]
+    rule_names = []
+    if feature_rows:
+        base_fields = {
+            &quot;metric_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;observed_date&quot;,
+            &quot;frequency&quot;,
+            &quot;value&quot;,
+            &quot;delta_active&quot;,
+            &quot;history_points_before&quot;,
+            &quot;source_is_complete&quot;,
+            &quot;feature_complete&quot;,
+            &quot;include_in_training&quot;,
+        }
+        rule_names = [field for field in feature_rows[0] if field not in base_fields]
+    write_csv(
+        output_dir / &quot;window_features.csv&quot;,
+        feature_rows,
+        [
+            &quot;metric_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;observed_date&quot;,
+            &quot;frequency&quot;,
+            &quot;value&quot;,
+            &quot;delta_active&quot;,
+            *rule_names,
+            &quot;history_points_before&quot;,
+            &quot;source_is_complete&quot;,
+            &quot;feature_complete&quot;,
+            &quot;include_in_training&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;leakage_audit.csv&quot;,
+        package[&quot;leakage_audit_rows&quot;],
+        [
+            &quot;feature_set_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;feature_date&quot;,
+            &quot;feature_name&quot;,
+            &quot;source_dates_used&quot;,
+            &quot;latest_source_date_used&quot;,
+            &quot;valid&quot;,
+        ],
+    )
+    (output_dir / &quot;window_feature_report.json&quot;).write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Build lagged, rolling, and expanding features with strict temporal leakage checks.&quot;)
+    parser.add_argument(&quot;--series&quot;, type=Path, required=True, help=&quot;daily_resampled.csv from the resampling lesson&quot;)
+    parser.add_argument(&quot;--scenario&quot;, type=Path, required=True, help=&quot;forecast_scenario.json&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True, help=&quot;window_feature_spec.json&quot;)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, help=&quot;directory for feature and audit outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;, help=&quot;return non-zero when warning checks fail&quot;)
+    args = parser.parse_args()
+    try:
+        package = build_window_feature_package(
+            series_path=args.series,
+            scenario_path=args.scenario,
+            spec_path=args.spec,
+        )
+    except (OSError, WindowFeatureError) as error:
+        parser.error(str(error))
+
+    if args.output_dir:
+        write_package(args.output_dir, package)
+    print(json.dumps(package[&quot;report&quot;], ensure_ascii=False, indent=2))
+    report = package[&quot;report&quot;]
+    if not report[&quot;valid&quot;] or (args.fail_on_warning and report[&quot;warning_count&quot;]):
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/outputs/window_feature_builder.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/window_feature_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;audit_id&quot;: &quot;window-feature-audit&quot;,
+  &quot;feature_set_id&quot;: &quot;active-subscriptions-rolling-features&quot;,
+  &quot;forecast_id&quot;: &quot;active-subscriptions-4w-capacity&quot;,
+  &quot;valid&quot;: true,
+  &quot;warning_count&quot;: 2,
+  &quot;error_count&quot;: 0,
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;window_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 17,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 7,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;target_segments_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;all&quot;,
+        &quot;android&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;timezone_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;Europe/Moscow&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_rules_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_and_window_spec_align&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 6,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;window_policies_supported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_date_policy&quot;: &quot;features_use_strictly_past_observations&quot;,
+        &quot;warmup_policy&quot;: &quot;emit_rows_but_exclude_from_training&quot;,
+        &quot;partial_period_policy&quot;: &quot;emit_rows_but_exclude_from_training&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_rules_are_past_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 9,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_input_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;delta_active&quot;,
+        &quot;value&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 32,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_segment_date_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 32,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;complete_history_has_no_missing_dates&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 30,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_source_dates_precede_feature_date&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 160,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;warmup_rows_excluded_from_training&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 14,
+      &quot;expected&quot;: &quot;rows without enough history are emitted but not used for training&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-02&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;998&quot;,
+          &quot;delta_active&quot;: &quot;18&quot;,
+          &quot;value_lag_1&quot;: &quot;&quot;,
+          &quot;delta_lag_1&quot;: &quot;&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 0,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-03&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1007&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;998&quot;,
+          &quot;delta_lag_1&quot;: &quot;18&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 1,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-04&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1016&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;1007&quot;,
+          &quot;delta_lag_1&quot;: &quot;9&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 2,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-05&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1025&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;1016&quot;,
+          &quot;delta_lag_1&quot;: &quot;9&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;1007&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;1007&quot;,
+          &quot;history_points_before&quot;: 3,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-06&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1034&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;1025&quot;,
+          &quot;delta_lag_1&quot;: &quot;9&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;1016&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;1011.5&quot;,
+          &quot;history_points_before&quot;: 4,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-07&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1003&quot;,
+          &quot;delta_active&quot;: &quot;-31&quot;,
+          &quot;value_lag_1&quot;: &quot;1034&quot;,
+          &quot;delta_lag_1&quot;: &quot;9&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;1025&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;1016&quot;,
+          &quot;history_points_before&quot;: 5,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-08&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1012&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;1003&quot;,
+          &quot;delta_lag_1&quot;: &quot;-31&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;1020.666667&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;1013.833333&quot;,
+          &quot;history_points_before&quot;: 6,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;android&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-02&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;318&quot;,
+          &quot;delta_active&quot;: &quot;8&quot;,
+          &quot;value_lag_1&quot;: &quot;&quot;,
+          &quot;delta_lag_1&quot;: &quot;&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 0,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;android&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-03&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;322&quot;,
+          &quot;delta_active&quot;: &quot;4&quot;,
+          &quot;value_lag_1&quot;: &quot;318&quot;,
+          &quot;delta_lag_1&quot;: &quot;8&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 1,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;android&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-04&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;326&quot;,
+          &quot;delta_active&quot;: &quot;4&quot;,
+          &quot;value_lag_1&quot;: &quot;322&quot;,
+          &quot;delta_lag_1&quot;: &quot;4&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;&quot;,
+          &quot;history_points_before&quot;: 2,
+          &quot;source_is_complete&quot;: &quot;true&quot;,
+          &quot;feature_complete&quot;: &quot;false&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;partial_source_rows_excluded_from_training&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: &quot;partial source rows are emitted but not used for training&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-17&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;1133&quot;,
+          &quot;delta_active&quot;: &quot;9&quot;,
+          &quot;value_lag_1&quot;: &quot;1124&quot;,
+          &quot;delta_lag_1&quot;: &quot;49&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;1088.333333&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;1092.428571&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;1054.333333&quot;,
+          &quot;history_points_before&quot;: 15,
+          &quot;source_is_complete&quot;: &quot;false&quot;,
+          &quot;feature_complete&quot;: &quot;true&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        },
+        {
+          &quot;metric_id&quot;: &quot;active_subscriptions&quot;,
+          &quot;segment_id&quot;: &quot;android&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-17&quot;,
+          &quot;frequency&quot;: &quot;D&quot;,
+          &quot;value&quot;: &quot;378&quot;,
+          &quot;delta_active&quot;: &quot;4&quot;,
+          &quot;value_lag_1&quot;: &quot;374&quot;,
+          &quot;delta_lag_1&quot;: &quot;21&quot;,
+          &quot;rolling_3_mean_lag1&quot;: &quot;358.666667&quot;,
+          &quot;rolling_7_mean_lag1&quot;: &quot;357.142857&quot;,
+          &quot;expanding_mean_lag1&quot;: &quot;341.466667&quot;,
+          &quot;history_points_before&quot;: 15,
+          &quot;source_is_complete&quot;: &quot;false&quot;,
+          &quot;feature_complete&quot;: &quot;true&quot;,
+          &quot;include_in_training&quot;: &quot;false&quot;
+        }
+      ]
+    }
+  ],
+  &quot;series&quot;: [
+    {
+      &quot;segment_id&quot;: &quot;all&quot;,
+      &quot;feature_rows&quot;: 16,
+      &quot;training_feature_rows&quot;: 8,
+      &quot;first_training_date&quot;: &quot;2026-03-09&quot;,
+      &quot;last_training_date&quot;: &quot;2026-03-16&quot;
+    },
+    {
+      &quot;segment_id&quot;: &quot;android&quot;,
+      &quot;feature_rows&quot;: 16,
+      &quot;training_feature_rows&quot;: 8,
+      &quot;first_training_date&quot;: &quot;2026-03-09&quot;,
+      &quot;last_training_date&quot;: &quot;2026-03-16&quot;
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;feature_rows&quot;: 32,
+    &quot;leakage_audit_rows&quot;: 160,
+    &quot;training_feature_rows&quot;: 16,
+    &quot;warmup_rows&quot;: 14,
+    &quot;partial_rows&quot;: 2
+  },
+  &quot;summary&quot;: {
+    &quot;checks_total&quot;: 16,
+    &quot;checks_failed&quot;: 2,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;warmup_rows_excluded_from_training&quot;,
+      &quot;partial_source_rows_excluded_from_training&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/outputs/window_feature_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/window_features.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>metric_id,segment_id,observed_date,frequency,value,delta_active,value_lag_1,delta_lag_1,rolling_3_mean_lag1,rolling_7_mean_lag1,expanding_mean_lag1,history_points_before,source_is_complete,feature_complete,include_in_training
+active_subscriptions,all,2026-03-02,D,998,18,,,,,,0,true,false,false
+active_subscriptions,all,2026-03-03,D,1007,9,998,18,,,,1,true,false,false
+active_subscriptions,all,2026-03-04,D,1016,9,1007,9,,,,2,true,false,false
+active_subscriptions,all,2026-03-05,D,1025,9,1016,9,1007,,1007,3,true,false,false
+active_subscriptions,all,2026-03-06,D,1034,9,1025,9,1016,,1011.5,4,true,false,false
+active_subscriptions,all,2026-03-07,D,1003,-31,1034,9,1025,,1016,5,true,false,false
+active_subscriptions,all,2026-03-08,D,1012,9,1003,-31,1020.666667,,1013.833333,6,true,false,false
+active_subscriptions,all,2026-03-09,D,1073,61,1012,9,1016.333333,1013.571429,1013.571429,7,true,true,true
+active_subscriptions,all,2026-03-10,D,1082,9,1073,61,1029.333333,1024.285714,1021,8,true,true,true
+active_subscriptions,all,2026-03-11,D,1091,9,1082,9,1055.666667,1035,1027.777778,9,true,true,true
+active_subscriptions,all,2026-03-12,D,1100,9,1091,9,1082,1045.714286,1034.1,10,true,true,true
+active_subscriptions,all,2026-03-13,D,1109,9,1100,9,1091,1056.428571,1040.090909,11,true,true,true
+active_subscriptions,all,2026-03-14,D,1066,-43,1109,9,1100,1067.142857,1045.833333,12,true,true,true
+active_subscriptions,all,2026-03-15,D,1075,9,1066,-43,1091.666667,1076.142857,1047.384615,13,true,true,true
+active_subscriptions,all,2026-03-16,D,1124,49,1075,9,1083.333333,1085.142857,1049.357143,14,true,true,true
+active_subscriptions,all,2026-03-17,D,1133,9,1124,49,1088.333333,1092.428571,1054.333333,15,false,true,false
+active_subscriptions,android,2026-03-02,D,318,8,,,,,,0,true,false,false
+active_subscriptions,android,2026-03-03,D,322,4,318,8,,,,1,true,false,false
+active_subscriptions,android,2026-03-04,D,326,4,322,4,,,,2,true,false,false
+active_subscriptions,android,2026-03-05,D,330,4,326,4,322,,322,3,true,false,false
+active_subscriptions,android,2026-03-06,D,334,4,330,4,326,,324,4,true,false,false
+active_subscriptions,android,2026-03-07,D,321,-13,334,4,330,,326,5,true,false,false
+active_subscriptions,android,2026-03-08,D,325,4,321,-13,328.333333,,325.166667,6,true,false,false
+active_subscriptions,android,2026-03-09,D,346,21,325,4,326.666667,325.142857,325.142857,7,true,true,true
+active_subscriptions,android,2026-03-10,D,350,4,346,21,330.666667,329.142857,327.75,8,true,true,true
+active_subscriptions,android,2026-03-11,D,354,4,350,4,340.333333,333.142857,330.222222,9,true,true,true
+active_subscriptions,android,2026-03-12,D,358,4,354,4,350,337.142857,332.6,10,true,true,true
+active_subscriptions,android,2026-03-13,D,362,4,358,4,354,341.142857,334.909091,11,true,true,true
+active_subscriptions,android,2026-03-14,D,349,-13,362,4,358,345.142857,337.166667,12,true,true,true
+active_subscriptions,android,2026-03-15,D,353,4,349,-13,356.333333,349.142857,338.076923,13,true,true,true
+active_subscriptions,android,2026-03-16,D,374,21,353,4,354.666667,353.142857,339.142857,14,true,true,true
+active_subscriptions,android,2026-03-17,D,378,4,374,21,358.666667,357.142857,341.466667,15,false,true,false
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/outputs/window_features.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/03-rolling" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/time-series/resampling/"><span>← Предыдущий урок</span><strong>Resampling и агрегация</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/time-series/trend-and-seasonality/"><span>Следующий урок →</span><strong>Тренд, сезонность и календарные эффекты</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

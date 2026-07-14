@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Команда хранит недельную витрину customerrevenuehealthweekly в Parquet. В BI и batch scoring чаще всего нужен один weekstart и несколько метрик:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/parquet-pushdown/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Projection и predicate pushdown">
+  <meta property="og:description" content="Команда хранит недельную витрину customerrevenuehealthweekly в Parquet. В BI и batch scoring чаще всего нужен один weekstart и несколько метрик:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/parquet-pushdown/">
+  <meta name="twitter:card" content="summary">
+  <title>Projection и predicate pushdown — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Projection и predicate pushdown", "description": "Команда хранит недельную витрину customerrevenuehealthweekly в Parquet. В BI и batch scoring чаще всего нужен один weekstart и несколько метрик:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/parquet-pushdown/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "Projection и predicate pushdown", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/parquet-pushdown/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 126 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/04-parquet-pushdown" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает projection pushdown для Parquet-запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Движок читает только колонки, которые нужны запросу.</button><button type="button" class="quiz-option" data-choice="1">Движок заранее сортирует все строки по фильтру.</button><button type="button" class="quiz-option" data-choice="2">Движок сжимает файл сильнее перед чтением.</button><button type="button" class="quiz-option" data-choice="3">Движок кэширует результат прошлого запроса.</button></div><p class="quiz-feedback" hidden>Projection pushdown использует columnar storage: ненужные колонки не попадают в физический scan.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Когда partition pruning по `week_start` действительно помогает?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда рабочие запросы часто фильтруют по `week_start`.</button><button type="button" class="quiz-option" data-choice="1">Когда `week_start` уникален в каждой строке.</button><button type="button" class="quiz-option" data-choice="2">Когда запрос выбирает все недели сразу.</button><button type="button" class="quiz-option" data-choice="3">Когда Parquet записан без statistics.</button></div><p class="quiz-feedback" hidden>Partitioning помогает, если фильтр совпадает с partition column и может отбросить часть файлов.</p></article></section>
+        <article class="lesson-article"><h1 id="projection-и-predicate-pushdown">Projection и predicate pushdown</h1>
+<blockquote>
+<p>Parquet ускоряет запрос не магией, а тем, что вы заранее сделали чтение
+ненужных колонок, файлов и row groups необязательным.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>12-performance/03-memory-and-dtypes</code>
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> проектирует Parquet layout с row groups, partitions, statistics и
+нужными колонками, измеряет projection/predicate pushdown и подтверждает его через
+query plans.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объяснить, чем projection pushdown отличается от predicate pushdown.</li>
+<li>Спроектировать Parquet layout с partition columns, row groups и statistics.</li>
+<li>Измерить разницу между полным scan и scan с нужными колонками и фильтром.</li>
+<li>Проверить file pruning и row-group pruning по metadata.</li>
+<li>Подтвердить физический план через <code>EXPLAIN</code>, а результат - контрольным расчетом.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Команда хранит недельную витрину <code>customer_revenue_health_weekly</code> в Parquet. В BI и
+batch scoring чаще всего нужен один week_start и несколько метрик:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT platform, sum(net_revenue_cents), sum(paid_orders)
+FROM customer_revenue_health_weekly
+WHERE week_start = DATE &#x27;2026-02-02&#x27;
+GROUP BY platform;
+</code></pre></div><p>Если файл сделан как &quot;один большой dump всех колонок&quot;, движок вынужден читать широкие
+строковые payloads, все недели и row groups без отбора. Запрос все еще вернет правильное
+число, но будет платить I/O и CPU за данные, которые не участвуют в ответе.</p>
+<p>Performance-решение здесь не в том, чтобы после факта добавить еще один cache. Нужно
+сделать layout, который позволяет движку не читать лишнее, а потом доказать это планом
+запроса и metadata audit.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Parquet - columnar формат. Внутри файла данные хранятся по колонкам и row groups. Это
+дает два главных рычага.</p>
+<p>Projection pushdown - движок читает только колонки, нужные запросу. Если запросу нужны
+<code>platform</code>, <code>paid_orders</code> и <code>net_revenue_cents</code>, широкие колонки вроде <code>raw_event_json</code>
+не должны попадать в scan.</p>
+<p>Predicate pushdown - движок применяет фильтр ближе к данным:</p>
+<ol>
+<li>partition pruning отбрасывает файлы по пути, например
+<code>week_start=2026-02-02</code>;</li>
+<li>row-group pruning использует min/max statistics внутри Parquet metadata;</li>
+<li>scan возвращает только строки, которые прошли фильтр.</li>
+</ol>
+<p>Эти механизмы работают только если layout помогает движку:</p>
+<ul>
+<li>partition column соответствует частому и селективному фильтру;</li>
+<li>row groups не слишком огромные и не слишком мелкие;</li>
+<li>данные внутри row groups имеют полезную локальность;</li>
+<li>statistics записаны при создании Parquet;</li>
+<li>запрос действительно выбирает узкий набор колонок.</li>
+</ul>
+<p>Один прогон benchmark не доказывает &quot;ускорение в N раз&quot;. Он доказывает форму чтения:
+сколько колонок, файлов и row groups могло быть отброшено. Для стабильного сравнения
+скорости используйте методологию из <code>12-performance/01-benchmarking</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакт урока строит audit package для учебной витрины выручки. Он не скачивает внешние
+данные: все строки генерируются воспроизводимо.</p>
+<h3 id="шаг-1-создайте-широкий-extract">Шаг 1. Создайте широкий extract</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">frame = generate_revenue_rows(rows=4_800, seed=42)
+</code></pre></div><p>В данных есть нужные для запроса колонки:</p>
+<ul>
+<li><code>week_start</code>, <code>week_index</code>;</li>
+<li><code>platform</code>;</li>
+<li><code>paid_orders</code>, <code>net_revenue_cents</code>.</li>
+</ul>
+<p>И есть колонки, которые делают projection заметным:</p>
+<ul>
+<li><code>raw_event_json</code>;</li>
+<li><code>debug_payload</code>;</li>
+<li><code>support_notes</code>.</li>
+</ul>
+<h3 id="шаг-2-запишите-parquet-layout">Шаг 2. Запишите Parquet layout</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">dataset_dir = write_parquet_layout(frame, output_dir, row_group_size=128)
+</code></pre></div><p>Функция пишет Hive-partitioned dataset:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">dataset/
+  week_start=2026-01-05/
+    *.parquet
+  week_start=2026-01-12/
+    *.parquet
+</code></pre></div><p>Параметры записи важны:</p>
+<ul>
+<li><code>partition_cols=[&quot;week_start&quot;]</code> дает file pruning по неделе;</li>
+<li><code>row_group_size=128</code> делает несколько row groups внутри недельного файла;</li>
+<li><code>write_statistics=True</code> сохраняет min/max metadata;</li>
+<li><code>compression=&quot;zstd&quot;</code> снижает физический размер без изменения запроса.</li>
+</ul>
+<h3 id="шаг-3-прочитайте-metadata">Шаг 3. Прочитайте metadata</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">layout = inspect_layout(
+    dataset_dir,
+    target_week=&quot;2026-02-02&quot;,
+    target_week_index=4,
+    required_columns=[
+        &quot;week_start&quot;,
+        &quot;week_index&quot;,
+        &quot;platform&quot;,
+        &quot;paid_orders&quot;,
+        &quot;net_revenue_cents&quot;,
+    ],
+    row_group_size=128,
+)
+</code></pre></div><p>Audit не доверяет обещаниям. Он открывает Parquet metadata и считает:</p>
+<ul>
+<li>сколько файлов в dataset;</li>
+<li>сколько partition values найдено;</li>
+<li>какие physical columns лежат в файлах;</li>
+<li>сколько файлов остается для target week;</li>
+<li>сколько row groups остается по statistics колонки <code>week_index</code>;</li>
+<li>есть ли row groups без min/max statistics.</li>
+</ul>
+<h3 id="шаг-4-сравните-полный-scan-и-pushdown-scan">Шаг 4. Сравните полный scan и pushdown scan</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">report = arrow_scan_measurements(
+    dataset_dir,
+    target_week=&quot;2026-02-02&quot;,
+    target_week_index=4,
+    required_columns=DEFAULT_REQUIRED_COLUMNS,
+)
+</code></pre></div><p>Полный scan читает все logical columns и все строки. Pushdown scan использует PyArrow
+Dataset:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">dataset.to_table(
+    columns=required_columns,
+    filter=(
+        (ds.field(&quot;week_start&quot;) == &quot;2026-02-02&quot;)
+        &amp; (ds.field(&quot;week_index&quot;) == 4)
+    ),
+)
+</code></pre></div><p>В отчете важно смотреть не только на время:</p>
+<ul>
+<li><code>full_column_count</code> против <code>projected_column_count</code>;</li>
+<li><code>full_scan_output_bytes</code> против <code>pushed_scan_output_bytes</code>;</li>
+<li><code>full_rows</code> против <code>pushed_rows</code>;</li>
+<li>список omitted physical columns.</li>
+</ul>
+<h3 id="шаг-5-подтвердите-план-и-результат">Шаг 5. Подтвердите план и результат</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">duckdb_report = duckdb_query_and_plan(
+    dataset_dir,
+    target_week=&quot;2026-02-02&quot;,
+    target_week_index=4,
+)
+</code></pre></div><p>DuckDB читает тот же Parquet dataset через <code>read_parquet(..., hive_partitioning=true)</code>,
+строит <code>EXPLAIN</code> и выполняет aggregation. Затем результат сверяется с pandas control.</p>
+<p>Проверка считается готовой только если одновременно верны условия:</p>
+<ul>
+<li>projection оставила меньше колонок и меньше output bytes;</li>
+<li>partition pruning оставил только файлы target week;</li>
+<li>row-group statistics отбросили часть row groups;</li>
+<li><code>EXPLAIN</code> показывает Parquet scan и фильтр по <code>week_index</code>;</li>
+<li>агрегаты DuckDB совпали с pandas control;</li>
+<li>отчет явно говорит, что это scan-shape audit, а не финальный speedup claim.</li>
+</ul>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите демонстрационный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/04-parquet-pushdown/code/main.py
+</code></pre></div><p>Запустите CLI-артефакт и сохраните audit package:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/04-parquet-pushdown/outputs/parquet_pushdown_audit.py \
+  --rows 4800 \
+  --seed 42 \
+  --row-group-size 128 \
+  --target-week 2026-02-02 \
+  --output-dir /tmp/parquet-pushdown-audit
+</code></pre></div><p>В директории появятся:</p>
+<ul>
+<li><code>dataset/</code> - partitioned Parquet files;</li>
+<li><code>report.json</code> - полный отчет;</li>
+<li><code>parquet-layout.json</code> - компактный layout и pushdown audit;</li>
+<li><code>query-plan.txt</code> - DuckDB physical plan.</li>
+</ul>
+<p>Минимальная интерпретация:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">safe_to_ship = true
+</code></pre></div><p>означает только то, что layout и запрос согласованы. Для production-решения все еще
+нужны стабильные benchmark runs на реальном размере данных, лимиты по small files и
+наблюдение в целевом engine.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="уберите-projection">Уберите projection</h3>
+<p>Попросите <code>dataset.to_table()</code> без <code>columns=...</code>. Отчет должен показать, что широкие
+payload columns снова попали в output.</p>
+<h3 id="выберите-неподходящую-partition-column">Выберите неподходящую partition column</h3>
+<p>Если partition сделать по <code>platform</code>, а запрос фильтрует <code>week_start</code>, движок не сможет
+отбросить недельные файлы по пути. Это особенно больно для витрин, которые почти всегда
+читаются по периоду.</p>
+<h3 id="запишите-без-statistics">Запишите без statistics</h3>
+<p>Без min/max statistics row-group pruning превращается в догадку. Audit должен увидеть
+<code>missing_statistics_count &gt; 0</code> и запретить shipping.</p>
+<h3 id="сделайте-слишком-много-мелких-файлов">Сделайте слишком много мелких файлов</h3>
+<p>Partitioning по высококардинальной колонке создает small files. Даже если pruning
+работает, overhead на metadata и открытие файлов может съесть пользу.</p>
+<h3 id="поверьте-одному-timing">Поверьте одному timing</h3>
+<p>Если один запуск стал быстрее, это еще не доказательство. OS cache, прогрев Python,
+планировщик и соседние процессы легко меняют секунды. В этом уроке timing вторичен:
+главное доказательство - scan shape и query plan.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/04-parquet-pushdown/tests
+</code></pre></div><p>Проверка артефакта:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/04-parquet-pushdown/outputs/parquet_pushdown_audit.py \
+  --rows 1200 \
+  --output-dir /tmp/parquet-pushdown-audit
+</code></pre></div><p>Контракт отчета:</p>
+<ul>
+<li><code>projection.passed == true</code>;</li>
+<li><code>predicate_pushdown.partition_pruning.passed == true</code>;</li>
+<li><code>predicate_pushdown.row_group_statistics.passed == true</code>;</li>
+<li><code>duckdb_plan.checks.parquet_scan_present == true</code>;</li>
+<li><code>result_contract.passed == true</code>;</li>
+<li><code>interpretation.safe_to_ship == true</code>.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/parquet_pushdown_audit.py
+</code></pre></div><p>Это CLI для ревью Parquet layout. Его можно использовать вне урока как шаблон:</p>
+<ol>
+<li>замените генератор данных на свой source extract;</li>
+<li>оставьте явный список required columns;</li>
+<li>добавьте фильтры, которые реально использует ваш workload;</li>
+<li>сохраните <code>report.json</code> и <code>query-plan.txt</code> рядом с performance review.</li>
+</ol>
+<p>Для сдачи результата приложите:</p>
+<ul>
+<li>layout decision: partition columns, row-group size, compression, statistics;</li>
+<li>scan-shape evidence: columns/files/row groups до и после pushdown;</li>
+<li>query plan evidence;</li>
+<li>контрольную сверку результата;</li>
+<li>ограничения интерпретации.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Поменяйте <code>target_week</code> на другую неделю и проверьте, что candidate files и row groups
+меняются ожидаемо.</li>
+<li>Добавьте метрику <code>gross_revenue_cents</code> в required columns и объясните, как меняется
+projection.</li>
+<li>Запишите dataset с <code>row_group_size=1000</code> и сравните, насколько хуже становится
+row-group pruning.</li>
+<li>Сделайте partitioning по <code>region</code> вместо <code>week_start</code> и опишите, какой рабочий
+запрос от этого выиграет, а какой проиграет.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Projection pushdown</td>
+<td>&quot;Это просто SELECT меньшего числа колонок&quot;</td>
+<td>Физический scan читает только нужные колонки из columnar storage.</td>
+</tr>
+<tr>
+<td>Predicate pushdown</td>
+<td>&quot;Фильтр применяется после чтения файла&quot;</td>
+<td>Фильтр передается в scan и может отбросить файлы, row groups или страницы раньше.</td>
+</tr>
+<tr>
+<td>Partition pruning</td>
+<td>&quot;Partitioning всегда ускоряет&quot;</td>
+<td>Ускоряет только запросы, которые фильтруют по partition columns с достаточной селективностью.</td>
+</tr>
+<tr>
+<td>Row group</td>
+<td>&quot;Это то же самое, что файл&quot;</td>
+<td>Внутренняя группа строк внутри Parquet file, у которой есть metadata и statistics.</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td>&quot;Нужны только для оптимизатора SQL&quot;</td>
+<td>Min/max/null metadata позволяют не читать row groups, которые не могут пройти фильтр.</td>
+</tr>
+<tr>
+<td>Query plan</td>
+<td>&quot;План нужен только DBA&quot;</td>
+<td>Для performance-audit план доказывает, что engine действительно использует scan и фильтры так, как вы ожидаете.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/data/parquet/overview" target="_blank" rel="noopener">DuckDB Parquet support</a> - прочитайте про <code>read_parquet</code>, projection/filter pushdown, Hive partitioning, row groups и compression.</li>
+<li><a href="https://duckdb.org/docs/current/guides/meta/explain" target="_blank" rel="noopener">DuckDB EXPLAIN</a> - используйте для чтения physical plan и проверки, где применяются filters/projections.</li>
+<li><a href="https://arrow.apache.org/docs/python/parquet.html" target="_blank" rel="noopener">Apache Arrow Parquet</a> - посмотрите, как PyArrow читает columns, metadata и row groups.</li>
+<li><a href="https://arrow.apache.org/docs/python/dataset.html" target="_blank" rel="noopener">Apache Arrow Dataset</a> - разберите <code>to_table(columns=..., filter=...)</code> и Hive partitioning.</li>
+<li><a href="https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html" target="_blank" rel="noopener">pandas.read_parquet</a> - проверьте параметры <code>columns</code> и <code>filters</code>, если ваш pipeline читает Parquet через pandas.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем в pushdown-audit проверять min/max statistics row groups?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы доказать, что часть row groups можно не читать по фильтру.</button><button type="button" class="quiz-option" data-choice="1">Чтобы заменить контрольную сверку результата.</button><button type="button" class="quiz-option" data-choice="2">Чтобы выбрать красивое имя файла.</button><button type="button" class="quiz-option" data-choice="3">Чтобы отключить compression.</button></div><p class="quiz-feedback" hidden>Min/max statistics позволяют понять, может ли row group содержать строки, подходящие под predicate.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что должен подтвердить `EXPLAIN` в уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что запрос идет через Parquet scan и фильтр виден в плане.</button><button type="button" class="quiz-option" data-choice="1">Что pandas и DuckDB всегда имеют одинаковую скорость.</button><button type="button" class="quiz-option" data-choice="2">Что partitioning больше не нужен.</button><button type="button" class="quiz-option" data-choice="3">Что один timing доказывает ускорение на production.</button></div><p class="quiz-feedback" hidden>План запроса нужен как evidence: engine действительно строит scan по Parquet и применяет ожидаемые фильтры.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему отчет урока не должен обещать стабильное ускорение по одному запуску?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что один timing зависит от cache, прогрева и окружения; audit доказывает scan shape.</button><button type="button" class="quiz-option" data-choice="1">Потому что Parquet никогда не ускоряет запросы.</button><button type="button" class="quiz-option" data-choice="2">Потому что DuckDB не умеет читать Parquet.</button><button type="button" class="quiz-option" data-choice="3">Потому что projection pushdown работает только в pandas.</button></div><p class="quiz-feedback" hidden>Один запуск не является надежной статистикой. В этом уроке главное доказательство - меньше колонок, файлов и row groups в scan.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Какой риск появляется при partitioning по высококардинальной колонке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Появляется много small files и overhead на metadata/open file может съесть пользу.</button><button type="button" class="quiz-option" data-choice="1">Все row groups автоматически становятся крупнее.</button><button type="button" class="quiz-option" data-choice="2">Projection pushdown перестает выбирать колонки.</button><button type="button" class="quiz-option" data-choice="3">Parquet перестает хранить columnar данные.</button></div><p class="quiz-feedback" hidden>Слишком мелкие partitions создают множество файлов: pruning может работать, но общая стоимость чтения вырастет.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;parquet_pushdown_audit.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;parquet_pushdown_audit&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+PUSHDOWN_AUDIT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PUSHDOWN_AUDIT)
+
+
+class ParquetPushdownAuditTest(unittest.TestCase):
+    def test_generation_is_reproducible_and_sorted_by_week(self) -&gt; None:
+        first = PUSHDOWN_AUDIT.generate_revenue_rows(rows=80, seed=42)
+        second = PUSHDOWN_AUDIT.generate_revenue_rows(rows=80, seed=42)
+        self.assertTrue(first.equals(second))
+        self.assertEqual(first[&quot;week_index&quot;].tolist(), sorted(first[&quot;week_index&quot;].tolist()))
+        self.assertIn(&quot;raw_event_json&quot;, first.columns)
+        self.assertIn(&quot;debug_payload&quot;, first.columns)
+
+    def test_layout_writes_hive_partitions_and_row_group_statistics(self) -&gt; None:
+        frame = PUSHDOWN_AUDIT.generate_revenue_rows(rows=800, seed=42)
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset_dir = PUSHDOWN_AUDIT.write_parquet_layout(
+                frame,
+                Path(tmp),
+                row_group_size=64,
+            )
+            layout = PUSHDOWN_AUDIT.inspect_layout(
+                dataset_dir,
+                target_week=&quot;2026-02-02&quot;,
+                target_week_index=4,
+                required_columns=PUSHDOWN_AUDIT.DEFAULT_REQUIRED_COLUMNS,
+                row_group_size=64,
+            )
+        self.assertEqual(layout[&quot;partition_columns&quot;], [&quot;week_start&quot;])
+        self.assertEqual(len(layout[&quot;partitions&quot;]), 8)
+        self.assertEqual(layout[&quot;partition_pruning&quot;][&quot;candidate_file_count&quot;], 1)
+        self.assertGreater(layout[&quot;row_group_count&quot;], 8)
+        self.assertTrue(layout[&quot;row_group_statistics&quot;][&quot;passed&quot;])
+
+    def test_projection_omits_wide_columns_and_reduces_output_bytes(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = PUSHDOWN_AUDIT.build_pushdown_audit(output_dir=tmp, rows=1_600, seed=7)
+        projection = report[&quot;projection&quot;]
+        omitted = set(report[&quot;layout&quot;][&quot;omitted_physical_columns&quot;])
+        self.assertTrue(projection[&quot;passed&quot;])
+        self.assertLess(projection[&quot;projected_column_count&quot;], projection[&quot;full_column_count&quot;])
+        self.assertLess(projection[&quot;pushed_scan_output_bytes&quot;], projection[&quot;full_scan_output_bytes&quot;])
+        self.assertTrue(set(PUSHDOWN_AUDIT.WIDE_COLUMNS).issubset(omitted))
+
+    def test_predicate_prunes_files_and_row_groups(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = PUSHDOWN_AUDIT.build_pushdown_audit(output_dir=tmp, rows=1_600, seed=9)
+        predicate = report[&quot;predicate_pushdown&quot;]
+        self.assertTrue(predicate[&quot;partition_pruning&quot;][&quot;passed&quot;])
+        self.assertTrue(predicate[&quot;row_group_statistics&quot;][&quot;passed&quot;])
+        self.assertLess(
+            predicate[&quot;partition_pruning&quot;][&quot;candidate_file_count&quot;],
+            report[&quot;layout&quot;][&quot;file_count&quot;],
+        )
+        self.assertLess(
+            predicate[&quot;row_group_statistics&quot;][&quot;candidate_row_group_count&quot;],
+            report[&quot;layout&quot;][&quot;row_group_count&quot;],
+        )
+
+    def test_duckdb_plan_confirms_parquet_scan_and_result_matches_control(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = PUSHDOWN_AUDIT.build_pushdown_audit(output_dir=tmp, rows=1_600, seed=11)
+        checks = report[&quot;duckdb_plan&quot;][&quot;checks&quot;]
+        self.assertTrue(checks[&quot;parquet_scan_present&quot;])
+        self.assertTrue(checks[&quot;row_group_filter_visible&quot;])
+        self.assertTrue(report[&quot;result_contract&quot;][&quot;passed&quot;])
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;])
+
+    def test_unknown_target_week_is_rejected(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(PUSHDOWN_AUDIT.PushdownAuditError, &quot;target_week&quot;):
+                PUSHDOWN_AUDIT.build_pushdown_audit(
+                    output_dir=tmp,
+                    rows=800,
+                    target_week=&quot;2027-01-01&quot;,
+                )
+
+    def test_required_column_must_exist(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(PUSHDOWN_AUDIT.PushdownAuditError, &quot;required columns&quot;):
+                PUSHDOWN_AUDIT.build_pushdown_audit(
+                    output_dir=tmp,
+                    rows=800,
+                    required_columns=[&quot;platform&quot;, &quot;missing_metric&quot;],
+                )
+
+    def test_report_does_not_turn_one_run_into_speedup_claim(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = PUSHDOWN_AUDIT.build_pushdown_audit(output_dir=tmp, rows=1_600, seed=12)
+        notes = &quot; &quot;.join(report[&quot;interpretation&quot;][&quot;notes&quot;]).lower()
+        self.assertIn(&quot;not a statistically stable speedup claim&quot;, notes)
+        self.assertIn(&quot;scan shapes&quot;, notes)
+
+    def test_cli_writes_reusable_package(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / &quot;audit&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--rows&quot;,
+                    &quot;1200&quot;,
+                    &quot;--seed&quot;,
+                    &quot;42&quot;,
+                    &quot;--row-group-size&quot;,
+                    &quot;64&quot;,
+                    &quot;--output-dir&quot;,
+                    str(output_dir),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stdout_report = json.loads(result.stdout)
+            file_report = json.loads((output_dir / &quot;report.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+            self.assertEqual(stdout_report[&quot;scenario&quot;], file_report[&quot;scenario&quot;])
+            self.assertTrue((output_dir / &quot;parquet-layout.json&quot;).exists())
+            self.assertTrue((output_dir / &quot;query-plan.txt&quot;).exists())
+            self.assertTrue(list((output_dir / &quot;dataset&quot;).rglob(&quot;*.parquet&quot;)))
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, str(ARTIFACT), &quot;--rows&quot;, &quot;0&quot;],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;pushdown audit error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;parquet_pushdown_audit.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;parquet_pushdown_audit&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+PUSHDOWN_AUDIT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PUSHDOWN_AUDIT)
+
+
+def main() -&gt; None:
+    with tempfile.TemporaryDirectory() as tmp:
+        report = PUSHDOWN_AUDIT.build_pushdown_audit(
+            rows=2_400,
+            seed=2026,
+            row_group_size=96,
+            target_week=&quot;2026-02-02&quot;,
+            output_dir=tmp,
+        )
+    preview = {
+        &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+        &quot;files&quot;: report[&quot;layout&quot;][&quot;file_count&quot;],
+        &quot;row_groups&quot;: report[&quot;layout&quot;][&quot;row_group_count&quot;],
+        &quot;projected_columns&quot;: report[&quot;projection&quot;][&quot;projected_column_count&quot;],
+        &quot;candidate_files&quot;: report[&quot;predicate_pushdown&quot;][&quot;partition_pruning&quot;][&quot;candidate_file_count&quot;],
+        &quot;candidate_row_groups&quot;: report[&quot;predicate_pushdown&quot;][&quot;row_group_statistics&quot;][&quot;candidate_row_group_count&quot;],
+        &quot;safe_to_ship&quot;: report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;],
+    }
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;parquet-pushdown-audit&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/parquet_pushdown_audit.py&quot;,
+  &quot;description&quot;: &quot;Создает Parquet layout audit: projection, partition pruning, row-group statistics, DuckDB query plan и контрольную сверку результата.&quot;,
+  &quot;usage&quot;: &quot;python outputs/parquet_pushdown_audit.py --rows 4800 --target-week 2026-02-02 --output-dir /tmp/parquet-pushdown-audit&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/parquet_pushdown_audit.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import platform
+import shutil
+import sys
+import tempfile
+import time
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import numpy as np
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as ds
+import pyarrow.parquet as pq
+
+
+class PushdownAuditError(ValueError):
+    &quot;&quot;&quot;Raised when the Parquet pushdown audit cannot produce a valid report.&quot;&quot;&quot;
+
+
+PARTITION_COLUMN = &quot;week_start&quot;
+ROW_GROUP_STAT_COLUMN = &quot;week_index&quot;
+DEFAULT_REQUIRED_COLUMNS = [
+    &quot;week_start&quot;,
+    &quot;week_index&quot;,
+    &quot;platform&quot;,
+    &quot;paid_orders&quot;,
+    &quot;net_revenue_cents&quot;,
+]
+WIDE_COLUMNS = [&quot;raw_event_json&quot;, &quot;debug_payload&quot;, &quot;support_notes&quot;]
+
+
+def generate_revenue_rows(rows: int, seed: int) -&gt; pd.DataFrame:
+    if rows &lt;= 0:
+        raise PushdownAuditError(&quot;rows must be positive&quot;)
+
+    rng = np.random.default_rng(seed)
+    index = np.arange(rows, dtype=np.int64)
+    week_count = 8
+    week_index = index % week_count
+    base_week = pd.Timestamp(&quot;2026-01-05&quot;)
+    week_start = [
+        (base_week + pd.Timedelta(days=int(position) * 7)).date().isoformat()
+        for position in week_index
+    ]
+
+    platforms = np.array([&quot;web&quot;, &quot;ios&quot;, &quot;android&quot;], dtype=object)
+    regions = np.array([&quot;ru&quot;, &quot;kz&quot;, &quot;am&quot;, &quot;tr&quot;], dtype=object)
+    plans = np.array([&quot;trial&quot;, &quot;basic&quot;, &quot;plus&quot;, &quot;pro&quot;], dtype=object)
+    paid_orders = rng.binomial(1, 0.72, size=rows).astype(np.int64)
+    unit_price = rng.integers(399, 45_000, size=rows, dtype=np.int64)
+    quantity = rng.integers(1, 5, size=rows, dtype=np.int64)
+    gross = unit_price * quantity * paid_orders
+    refunds = np.where(
+        rng.random(rows) &lt; 0.07,
+        np.rint(gross * rng.uniform(0.1, 0.9, size=rows)).astype(np.int64),
+        0,
+    )
+    net = gross - refunds
+    payload_ids = rng.integers(100_000, 999_999, size=rows)
+
+    frame = pd.DataFrame(
+        {
+            &quot;order_id&quot;: [f&quot;O{position // 3:08d}&quot; for position in index],
+            &quot;line_number&quot;: (index % 3 + 1).astype(np.int64),
+            &quot;user_id&quot;: [
+                f&quot;U{int(value):07d}&quot;
+                for value in rng.integers(1, max(2, rows // 2), size=rows)
+            ],
+            &quot;week_start&quot;: week_start,
+            &quot;week_index&quot;: week_index.astype(np.int16),
+            &quot;platform&quot;: platforms[index % len(platforms)],
+            &quot;region&quot;: regions[rng.integers(0, len(regions), size=rows)],
+            &quot;plan&quot;: plans[rng.integers(0, len(plans), size=rows)],
+            &quot;paid_orders&quot;: paid_orders,
+            &quot;gross_revenue_cents&quot;: gross.astype(np.int64),
+            &quot;refund_amount_cents&quot;: refunds.astype(np.int64),
+            &quot;net_revenue_cents&quot;: net.astype(np.int64),
+            &quot;active_subscription_days&quot;: rng.integers(0, 8, size=rows, dtype=np.int64),
+            &quot;support_ticket_count&quot;: rng.poisson(0.18, size=rows).astype(np.int64),
+            &quot;raw_event_json&quot;: [
+                (
+                    &#x27;{&quot;source&quot;:&quot;lesson&quot;,&quot;event_id&quot;:&#x27;
+                    f&#x27;&quot;evt-{int(value)}&quot;,&quot;attributes&quot;:&quot;wide-column-for-projection&quot;}}&#x27;
+                )
+                for value in payload_ids
+            ],
+            &quot;debug_payload&quot;: [
+                &quot;trace=&quot; + str(int(value)) + &quot;;stage=checkout;experiment=pushdown-audit&quot;
+                for value in payload_ids
+            ],
+            &quot;support_notes&quot;: [
+                &quot;no ticket&quot; if value == 0 else f&quot;ticket bucket {int(value % 5)}&quot;
+                for value in rng.poisson(0.12, size=rows)
+            ],
+        }
+    )
+    return frame.sort_values([&quot;week_index&quot;, &quot;order_id&quot;, &quot;line_number&quot;]).reset_index(drop=True)
+
+
+def _available_week_indices(frame: pd.DataFrame) -&gt; dict[str, int]:
+    pairs = frame[[PARTITION_COLUMN, ROW_GROUP_STAT_COLUMN]].drop_duplicates()
+    return {str(row[PARTITION_COLUMN]): int(row[ROW_GROUP_STAT_COLUMN]) for _, row in pairs.iterrows()}
+
+
+def _validate_required_columns(frame: pd.DataFrame, required_columns: list[str]) -&gt; None:
+    missing = sorted(set(required_columns) - set(frame.columns))
+    if missing:
+        raise PushdownAuditError(f&quot;required columns are missing: {missing}&quot;)
+
+
+def write_parquet_layout(frame: pd.DataFrame, output_dir: Path, row_group_size: int) -&gt; Path:
+    if row_group_size &lt;= 0:
+        raise PushdownAuditError(&quot;row_group_size must be positive&quot;)
+
+    dataset_dir = output_dir / &quot;dataset&quot;
+    if dataset_dir.exists():
+        shutil.rmtree(dataset_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pandas(frame, preserve_index=False)
+    pq.write_to_dataset(
+        table,
+        root_path=str(dataset_dir),
+        partition_cols=[PARTITION_COLUMN],
+        row_group_size=row_group_size,
+        compression=&quot;zstd&quot;,
+        use_dictionary=True,
+        write_statistics=True,
+    )
+    return dataset_dir
+
+
+def parquet_files(dataset_dir: Path) -&gt; list[Path]:
+    files = sorted(dataset_dir.rglob(&quot;*.parquet&quot;))
+    if not files:
+        raise PushdownAuditError(f&quot;no parquet files found in {dataset_dir}&quot;)
+    return files
+
+
+def _partition_value(path: Path) -&gt; str | None:
+    for part in path.parts:
+        prefix = f&quot;{PARTITION_COLUMN}=&quot;
+        if part.startswith(prefix):
+            return part[len(prefix) :]
+    return None
+
+
+def inspect_layout(
+    dataset_dir: Path,
+    *,
+    target_week: str,
+    target_week_index: int,
+    required_columns: list[str],
+    row_group_size: int,
+) -&gt; dict[str, Any]:
+    files = parquet_files(dataset_dir)
+    partitions: dict[str, int] = {}
+    total_row_groups = 0
+    candidate_row_groups = 0
+    row_group_examples: list[dict[str, Any]] = []
+    stats_missing = 0
+    physical_columns = pq.ParquetFile(files[0]).schema_arrow.names
+    physical_required = [
+        column
+        for column in required_columns
+        if column != PARTITION_COLUMN and column in physical_columns
+    ]
+
+    for file_path in files:
+        partition = _partition_value(file_path)
+        if partition is not None:
+            partitions[partition] = partitions.get(partition, 0) + 1
+
+        parquet_file = pq.ParquetFile(file_path)
+        metadata = parquet_file.metadata
+        total_row_groups += metadata.num_row_groups
+        schema_names = list(metadata.schema.names)
+        if ROW_GROUP_STAT_COLUMN not in schema_names:
+            stats_missing += metadata.num_row_groups
+            continue
+        column_index = schema_names.index(ROW_GROUP_STAT_COLUMN)
+        for row_group_index in range(metadata.num_row_groups):
+            row_group = metadata.row_group(row_group_index)
+            column = row_group.column(column_index)
+            stats = column.statistics
+            if stats is None or not stats.has_min_max:
+                stats_missing += 1
+                continue
+            minimum = int(stats.min)
+            maximum = int(stats.max)
+            is_candidate = minimum &lt;= target_week_index &lt;= maximum
+            candidate_row_groups += int(is_candidate)
+            if len(row_group_examples) &lt; 8:
+                row_group_examples.append(
+                    {
+                        &quot;file&quot;: str(file_path.relative_to(dataset_dir)),
+                        &quot;row_group&quot;: row_group_index,
+                        &quot;rows&quot;: int(row_group.num_rows),
+                        &quot;week_index_min&quot;: minimum,
+                        &quot;week_index_max&quot;: maximum,
+                        &quot;candidate_for_target&quot;: bool(is_candidate),
+                    }
+                )
+
+    candidate_files = [
+        str(file_path.relative_to(dataset_dir))
+        for file_path in files
+        if _partition_value(file_path) == target_week
+    ]
+    omitted_physical_columns = [
+        column
+        for column in physical_columns
+        if column not in physical_required
+    ]
+
+    return {
+        &quot;dataset_dir&quot;: str(dataset_dir),
+        &quot;format&quot;: &quot;parquet&quot;,
+        &quot;compression&quot;: &quot;zstd&quot;,
+        &quot;partition_columns&quot;: [PARTITION_COLUMN],
+        &quot;row_group_stat_column&quot;: ROW_GROUP_STAT_COLUMN,
+        &quot;configured_row_group_size&quot;: int(row_group_size),
+        &quot;file_count&quot;: len(files),
+        &quot;row_group_count&quot;: int(total_row_groups),
+        &quot;partitions&quot;: dict(sorted(partitions.items())),
+        &quot;physical_columns&quot;: physical_columns,
+        &quot;physical_required_columns&quot;: physical_required,
+        &quot;omitted_physical_columns&quot;: omitted_physical_columns,
+        &quot;partition_pruning&quot;: {
+            &quot;target_week&quot;: target_week,
+            &quot;candidate_file_count&quot;: len(candidate_files),
+            &quot;pruned_file_count&quot;: len(files) - len(candidate_files),
+            &quot;candidate_files&quot;: candidate_files,
+            &quot;passed&quot;: 0 &lt; len(candidate_files) &lt; len(files),
+        },
+        &quot;row_group_statistics&quot;: {
+            &quot;target_week_index&quot;: int(target_week_index),
+            &quot;candidate_row_group_count&quot;: int(candidate_row_groups),
+            &quot;skipped_row_group_count&quot;: int(total_row_groups - candidate_row_groups),
+            &quot;missing_statistics_count&quot;: int(stats_missing),
+            &quot;examples&quot;: row_group_examples,
+            &quot;passed&quot;: (
+                stats_missing == 0
+                and 0 &lt; candidate_row_groups &lt; total_row_groups
+            ),
+        },
+    }
+
+
+def _scan_arrow(
+    dataset: ds.Dataset,
+    *,
+    columns: list[str] | None = None,
+    filter_expression: ds.Expression | None = None,
+) -&gt; tuple[pa.Table, float]:
+    started = time.perf_counter()
+    table = dataset.to_table(columns=columns, filter=filter_expression)
+    elapsed = time.perf_counter() - started
+    return table, elapsed
+
+
+def arrow_scan_measurements(
+    dataset_dir: Path,
+    *,
+    target_week: str,
+    target_week_index: int,
+    required_columns: list[str],
+) -&gt; dict[str, Any]:
+    dataset = ds.dataset(dataset_dir, format=&quot;parquet&quot;, partitioning=&quot;hive&quot;)
+    filter_expression = (
+        (ds.field(PARTITION_COLUMN) == target_week)
+        &amp; (ds.field(ROW_GROUP_STAT_COLUMN) == target_week_index)
+    )
+    full_table, full_seconds = _scan_arrow(dataset)
+    pushed_table, pushed_seconds = _scan_arrow(
+        dataset,
+        columns=required_columns,
+        filter_expression=filter_expression,
+    )
+
+    measurements = [
+        {
+            &quot;name&quot;: &quot;full_arrow_scan&quot;,
+            &quot;rows&quot;: int(full_table.num_rows),
+            &quot;columns&quot;: int(full_table.num_columns),
+            &quot;output_bytes&quot;: int(full_table.nbytes),
+            &quot;wall_seconds&quot;: float(full_seconds),
+        },
+        {
+            &quot;name&quot;: &quot;projected_filtered_arrow_scan&quot;,
+            &quot;rows&quot;: int(pushed_table.num_rows),
+            &quot;columns&quot;: int(pushed_table.num_columns),
+            &quot;output_bytes&quot;: int(pushed_table.nbytes),
+            &quot;wall_seconds&quot;: float(pushed_seconds),
+        },
+    ]
+    return {
+        &quot;measurements&quot;: measurements,
+        &quot;projection&quot;: {
+            &quot;required_columns&quot;: required_columns,
+            &quot;full_column_count&quot;: int(full_table.num_columns),
+            &quot;projected_column_count&quot;: int(pushed_table.num_columns),
+            &quot;full_scan_output_bytes&quot;: int(full_table.nbytes),
+            &quot;pushed_scan_output_bytes&quot;: int(pushed_table.nbytes),
+            &quot;passed&quot;: (
+                pushed_table.num_columns == len(required_columns)
+                and pushed_table.num_columns &lt; full_table.num_columns
+                and pushed_table.nbytes &lt; full_table.nbytes
+            ),
+        },
+        &quot;predicate&quot;: {
+            &quot;full_rows&quot;: int(full_table.num_rows),
+            &quot;pushed_rows&quot;: int(pushed_table.num_rows),
+            &quot;passed&quot;: 0 &lt; pushed_table.num_rows &lt; full_table.num_rows,
+        },
+    }
+
+
+def _sql_literal(value: str) -&gt; str:
+    return value.replace(&quot;&#x27;&quot;, &quot;&#x27;&#x27;&quot;)
+
+
+def duckdb_query_and_plan(
+    dataset_dir: Path,
+    *,
+    target_week: str,
+    target_week_index: int,
+) -&gt; dict[str, Any]:
+    glob = str(dataset_dir / &quot;**&quot; / &quot;*.parquet&quot;)
+    escaped_glob = _sql_literal(glob)
+    escaped_week = _sql_literal(target_week)
+    query = f&quot;&quot;&quot;
+SELECT
+  platform,
+  CAST(sum(net_revenue_cents) AS BIGINT) AS net_revenue_cents,
+  CAST(sum(paid_orders) AS BIGINT) AS paid_orders
+FROM read_parquet(&#x27;{escaped_glob}&#x27;, hive_partitioning = true)
+WHERE week_start = DATE &#x27;{escaped_week}&#x27;
+  AND week_index = {int(target_week_index)}
+GROUP BY platform
+ORDER BY platform
+&quot;&quot;&quot;.strip()
+
+    with duckdb.connect(database=&quot;:memory:&quot;) as connection:
+        plan_rows = connection.execute(&quot;EXPLAIN &quot; + query).fetchall()
+        plan_text = &quot;\n&quot;.join(str(row[-1]) for row in plan_rows)
+        result_rows = connection.execute(query).fetchall()
+
+    rows = [
+        {
+            &quot;platform&quot;: str(platform_name),
+            &quot;net_revenue_cents&quot;: int(net_revenue_cents),
+            &quot;paid_orders&quot;: int(paid_orders),
+        }
+        for platform_name, net_revenue_cents, paid_orders in result_rows
+    ]
+    upper_plan = plan_text.upper()
+    return {
+        &quot;query&quot;: query,
+        &quot;plan_text&quot;: plan_text,
+        &quot;rows&quot;: rows,
+        &quot;checks&quot;: {
+            &quot;parquet_scan_present&quot;: &quot;PARQUET&quot; in upper_plan,
+            &quot;partition_filter_visible&quot;: &quot;WEEK_START&quot; in upper_plan,
+            &quot;row_group_filter_visible&quot;: &quot;WEEK_INDEX&quot; in upper_plan,
+            &quot;projection_columns_visible&quot;: all(
+                column.upper() in upper_plan
+                for column in [&quot;PLATFORM&quot;, &quot;NET_REVENUE_CENTS&quot;, &quot;PAID_ORDERS&quot;]
+            ),
+        },
+    }
+
+
+def pandas_control(frame: pd.DataFrame, *, target_week: str, target_week_index: int) -&gt; list[dict[str, Any]]:
+    filtered = frame[
+        (frame[PARTITION_COLUMN] == target_week)
+        &amp; (frame[ROW_GROUP_STAT_COLUMN] == target_week_index)
+    ]
+    grouped = (
+        filtered.groupby(&quot;platform&quot;, as_index=False)[[&quot;net_revenue_cents&quot;, &quot;paid_orders&quot;]]
+        .sum()
+        .sort_values(&quot;platform&quot;)
+        .reset_index(drop=True)
+    )
+    return [
+        {
+            &quot;platform&quot;: str(row[&quot;platform&quot;]),
+            &quot;net_revenue_cents&quot;: int(row[&quot;net_revenue_cents&quot;]),
+            &quot;paid_orders&quot;: int(row[&quot;paid_orders&quot;]),
+        }
+        for _, row in grouped.iterrows()
+    ]
+
+
+def build_pushdown_audit(
+    *,
+    rows: int = 4_800,
+    seed: int = 42,
+    row_group_size: int = 128,
+    target_week: str = &quot;2026-02-02&quot;,
+    output_dir: str | Path,
+    required_columns: list[str] | None = None,
+) -&gt; dict[str, Any]:
+    required = list(required_columns or DEFAULT_REQUIRED_COLUMNS)
+    frame = generate_revenue_rows(rows=rows, seed=seed)
+    _validate_required_columns(frame, required)
+    week_indices = _available_week_indices(frame)
+    if target_week not in week_indices:
+        raise PushdownAuditError(
+            f&quot;target_week {target_week!r} is absent; available weeks: {sorted(week_indices)}&quot;
+        )
+    target_week_index = week_indices[target_week]
+
+    output_path = Path(output_dir)
+    dataset_dir = write_parquet_layout(frame, output_path, row_group_size=row_group_size)
+    layout = inspect_layout(
+        dataset_dir,
+        target_week=target_week,
+        target_week_index=target_week_index,
+        required_columns=required,
+        row_group_size=row_group_size,
+    )
+    arrow_report = arrow_scan_measurements(
+        dataset_dir,
+        target_week=target_week,
+        target_week_index=target_week_index,
+        required_columns=required,
+    )
+    duckdb_report = duckdb_query_and_plan(
+        dataset_dir,
+        target_week=target_week,
+        target_week_index=target_week_index,
+    )
+    control_rows = pandas_control(frame, target_week=target_week, target_week_index=target_week_index)
+    result_passed = duckdb_report[&quot;rows&quot;] == control_rows
+    plan_checks = duckdb_report[&quot;checks&quot;]
+
+    findings = [
+        (
+            f&quot;Projection reads {len(required)} logical columns and omits &quot;
+            f&quot;{len(layout[&#x27;omitted_physical_columns&#x27;])} physical Parquet columns.&quot;
+        ),
+        (
+            f&quot;Partition pruning keeps {layout[&#x27;partition_pruning&#x27;][&#x27;candidate_file_count&#x27;]} of &quot;
+            f&quot;{layout[&#x27;file_count&#x27;]} files for week_start={target_week}.&quot;
+        ),
+        (
+            f&quot;Row-group statistics keep {layout[&#x27;row_group_statistics&#x27;][&#x27;candidate_row_group_count&#x27;]} &quot;
+            f&quot;of {layout[&#x27;row_group_count&#x27;]} row groups for week_index={target_week_index}.&quot;
+        ),
+    ]
+    core_checks = [
+        bool(arrow_report[&quot;projection&quot;][&quot;passed&quot;]),
+        bool(arrow_report[&quot;predicate&quot;][&quot;passed&quot;]),
+        bool(layout[&quot;partition_pruning&quot;][&quot;passed&quot;]),
+        bool(layout[&quot;row_group_statistics&quot;][&quot;passed&quot;]),
+        bool(result_passed),
+        bool(plan_checks[&quot;parquet_scan_present&quot;]),
+        bool(plan_checks[&quot;row_group_filter_visible&quot;]),
+    ]
+
+    report: dict[str, Any] = {
+        &quot;scenario&quot;: {
+            &quot;scenario_id&quot;: &quot;parquet-pushdown-audit&quot;,
+            &quot;rows&quot;: int(rows),
+            &quot;seed&quot;: int(seed),
+            &quot;target_week&quot;: target_week,
+            &quot;target_week_index&quot;: int(target_week_index),
+            &quot;required_columns&quot;: required,
+            &quot;partition_columns&quot;: [PARTITION_COLUMN],
+            &quot;row_group_size&quot;: int(row_group_size),
+            &quot;engine_versions&quot;: {
+                &quot;python&quot;: platform.python_version(),
+                &quot;pandas&quot;: pd.__version__,
+                &quot;numpy&quot;: np.__version__,
+                &quot;pyarrow&quot;: pa.__version__,
+                &quot;duckdb&quot;: duckdb.__version__,
+            },
+        },
+        &quot;layout&quot;: layout,
+        &quot;projection&quot;: arrow_report[&quot;projection&quot;],
+        &quot;predicate_pushdown&quot;: {
+            &quot;arrow_filter&quot;: f&quot;{PARTITION_COLUMN} = {target_week} AND {ROW_GROUP_STAT_COLUMN} = {target_week_index}&quot;,
+            &quot;arrow_predicate&quot;: arrow_report[&quot;predicate&quot;],
+            &quot;partition_pruning&quot;: layout[&quot;partition_pruning&quot;],
+            &quot;row_group_statistics&quot;: layout[&quot;row_group_statistics&quot;],
+        },
+        &quot;measurements&quot;: arrow_report[&quot;measurements&quot;],
+        &quot;duckdb_plan&quot;: duckdb_report,
+        &quot;result_contract&quot;: {
+            &quot;grain&quot;: &quot;platform for one week_start/week_index&quot;,
+            &quot;duckdb_rows&quot;: duckdb_report[&quot;rows&quot;],
+            &quot;pandas_rows&quot;: control_rows,
+            &quot;passed&quot;: bool(result_passed),
+        },
+        &quot;findings&quot;: findings,
+        &quot;interpretation&quot;: {
+            &quot;safe_to_ship&quot;: all(core_checks),
+            &quot;notes&quot;: [
+                &quot;The benchmark compares scan shapes, not a statistically stable speedup claim.&quot;,
+                &quot;Ship only when projection, predicate pruning, query plan and control totals agree.&quot;,
+            ],
+        },
+    }
+    return report
+
+
+def write_audit_package(report: dict[str, Any], output_dir: Path) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / &quot;report.json&quot;).write_text(
+        json.dumps(report, ensure_ascii=False, indent=2),
+        encoding=&quot;utf-8&quot;,
+    )
+    layout_subset = {
+        &quot;scenario&quot;: report[&quot;scenario&quot;],
+        &quot;layout&quot;: report[&quot;layout&quot;],
+        &quot;projection&quot;: report[&quot;projection&quot;],
+        &quot;predicate_pushdown&quot;: report[&quot;predicate_pushdown&quot;],
+    }
+    (output_dir / &quot;parquet-layout.json&quot;).write_text(
+        json.dumps(layout_subset, ensure_ascii=False, indent=2),
+        encoding=&quot;utf-8&quot;,
+    )
+    (output_dir / &quot;query-plan.txt&quot;).write_text(
+        report[&quot;duckdb_plan&quot;][&quot;plan_text&quot;],
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def parse_args(argv: list[str]) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Build a Parquet projection/predicate pushdown audit&quot;)
+    parser.add_argument(&quot;--rows&quot;, type=int, default=4_800)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42)
+    parser.add_argument(&quot;--row-group-size&quot;, type=int, default=128)
+    parser.add_argument(&quot;--target-week&quot;, default=&quot;2026-02-02&quot;)
+    parser.add_argument(
+        &quot;--output-dir&quot;,
+        type=Path,
+        default=None,
+        help=&quot;Directory for dataset/, report.json, parquet-layout.json and query-plan.txt&quot;,
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv or sys.argv[1:])
+    try:
+        if args.output_dir is None:
+            with tempfile.TemporaryDirectory() as tmp:
+                report = build_pushdown_audit(
+                    rows=args.rows,
+                    seed=args.seed,
+                    row_group_size=args.row_group_size,
+                    target_week=args.target_week,
+                    output_dir=tmp,
+                )
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            report = build_pushdown_audit(
+                rows=args.rows,
+                seed=args.seed,
+                row_group_size=args.row_group_size,
+                target_week=args.target_week,
+                output_dir=args.output_dir,
+            )
+            write_audit_package(report, args.output_dir)
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+    except PushdownAuditError as error:
+        print(f&quot;pushdown audit error: {error}&quot;, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/outputs/parquet_pushdown_audit.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/04-parquet-pushdown" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/performance/memory-and-dtypes/"><span>← Предыдущий урок</span><strong>Память и типы данных</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/performance/arrow-memory/"><span>Следующий урок →</span><strong>Arrow memory model</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

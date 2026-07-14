@@ -1,0 +1,2552 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После Optuna у нас появился tuned candidate:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/mlflow/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="MLflow для истории экспериментов">
+  <meta property="og:description" content="После Optuna у нас появился tuned candidate:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/mlflow/">
+  <meta name="twitter:card" content="summary">
+  <title>MLflow для истории экспериментов — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "MLflow для истории экспериментов", "description": "После Optuna у нас появился tuned candidate:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/mlflow/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "MLflow для истории экспериментов", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/mlflow/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 181 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/10-mlflow" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что делает MLflow Tracking в рамках этого урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Хранит runs с params, metrics, tags и artifacts для ревью эксперимента</button><button type="button" class="quiz-option" data-choice="1">Автоматически регистрирует production model</button><button type="button" class="quiz-option" data-choice="2">Запускает remote serving endpoint</button><button type="button" class="quiz-option" data-choice="3">Подбирает hyperparameters вместо Optuna</button></div><p class="quiz-feedback" hidden>Урок использует только локальный Tracking API. Registry, remote server и serving явно вне scope.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему exporter использует `run_alias`, а не raw MLflow `run_id` как стабильный ключ в CSV?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Raw `run_id` генерируется заново при каждом запуске и ломает воспроизводимый diff</button><button type="button" class="quiz-option" data-choice="1">`run_id` всегда содержит секреты</button><button type="button" class="quiz-option" data-choice="2">MLflow не создает `run_id` для local store</button><button type="button" class="quiz-option" data-choice="3">`run_alias` нужен только для красивой сортировки</button></div><p class="quiz-feedback" hidden>Run id существует внутри MLflow store, но committed ledger должен быть стабильным между rerun&#x27;ами.</p></article></section>
+        <article class="lesson-article"><h1 id="mlflow-для-истории-экспериментов">MLflow для истории экспериментов</h1>
+<blockquote>
+<p>Experiment tracking полезен только тогда, когда из run history можно восстановить, что было запущено, почему это допустимо и какие ограничения нельзя забыть.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> ML, Delivery<br />
+<strong>Пререквизиты:</strong> <code>16-tabular-ml/09-optuna</code><br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> MLflow experiment ledger exporter, который логирует локальные runs с params, metrics, tags, artifacts и model metadata, а затем экспортирует проверяемый ledger без случайных raw run ids.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделить MLflow tracking, model registry и serving scope.</li>
+<li>Залогировать локальные MLflow runs для source CatBoost, best Optuna trial и baseline gate.</li>
+<li>Сохранить params, metrics, tags, artifacts и model metadata рядом с upstream package id.</li>
+<li>Экспортировать стабильный run table, artifact inventory, metric history и reproducibility checks.</li>
+<li>Заблокировать handoff, если отсутствует обязательный artifact или tracking scope выходит за рамки урока.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После Optuna у нас появился tuned candidate:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">best trial = 4
+depth = 2
+learning_rate = 0.05
+validation_logloss = 0.696531
+</code></pre></div><p>Но вместе с ним появились и ограничения:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">best trial top-k cost = 7
+baseline top-k cost = 1
+cost gate still fails
+</code></pre></div><p>Если передать следующему человеку только <code>best_params</code>, он увидит “параметры победителя” и легко пропустит методологический контекст. Нам нужен журнал эксперимента:</p>
+<ul>
+<li>от какого package и problem spec идет run;</li>
+<li>какие params и metrics были залогированы;</li>
+<li>какие upstream artifacts приложены;</li>
+<li>почему кандидат не становится production claim;</li>
+<li>где заканчивается локальный tracking и начинается настоящая MLOps-инфраструктура.</li>
+</ul>
+<p>MLflow в этом уроке используется ровно для этого: как локальный experiment ledger.</p>
+<h2 id="концепция">Концепция</h2>
+<p>MLflow Tracking хранит runs внутри experiment. У каждого run есть:</p>
+<table>
+<thead>
+<tr>
+<th>Часть run</th>
+<th>Что хранит</th>
+<th>Что легко забыть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Params</td>
+<td>Конфигурацию запуска</td>
+<td>Params должны быть связаны с policy, а не с ручным перебором</td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td>Числовые результаты</td>
+<td>Метрика модели не заменяет business gate</td>
+</tr>
+<tr>
+<td>Tags</td>
+<td>Контекст и lineage</td>
+<td>Без source package id run становится сиротой</td>
+</tr>
+<tr>
+<td>Artifacts</td>
+<td>Файлы evidence</td>
+<td>Best params без trial ledger неревьюируемы</td>
+</tr>
+<tr>
+<td>Metadata</td>
+<td>Описание модели и ограничений</td>
+<td>Нужны warnings и decision status</td>
+</tr>
+</tbody>
+</table>
+<p>В этом lesson fixture логируются три tracking units:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source_early_stopped_catboost
+best_optuna_trial
+phase15_baseline_cost_gate
+</code></pre></div><p>Это не model registry. Мы не регистрируем модель, не поднимаем remote tracking server и не готовим serving. Фаза 16 пока собирает evidence для финального interpretation package.</p>
+<h3 id="почему-mlflow-skinny">Почему <code>mlflow-skinny</code></h3>
+<p>Проект использует <code>pandas&gt;=3</code>. Актуальный полный пакет <code>mlflow 3.14.0</code> на момент урока требует <code>pandas&lt;3</code>, поэтому для tracking API используется <code>mlflow-skinny 3.14.0</code>. Он дает импорт <code>mlflow</code>, <code>MlflowClient</code>, local tracking, params, metrics, tags и artifacts - достаточно для этого урока. Model flavors и registry сознательно остаются вне scope.</p>
+<h3 id="почему-не-экспортируем-raw-run-id">Почему не экспортируем raw <code>run_id</code></h3>
+<p>MLflow <code>run_id</code> генерируется при каждом запуске. Если положить его в committed CSV, артефакт будет менять diff при каждом rerun. Поэтому exporter проверяет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">run_id_present = True
+run_id_length = 32
+raw_run_id_exported = False
+</code></pre></div><p>Внутри временного MLflow store run id есть. В стабильный ledger попадает <code>run_alias</code>, который задается policy.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-объявите-tracking-policy">Шаг 1. Объявите tracking policy</h3>
+<p>Policy фиксирует experiment, scope и обязательные поля:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;experiment&quot;: {
+    &quot;name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+    &quot;tracking_backend&quot;: &quot;local_file_store&quot;,
+    &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+    &quot;omit_raw_run_ids_from_exports&quot;: true
+  },
+  &quot;tracking_scope&quot;: {
+    &quot;registry&quot;: false,
+    &quot;remote_tracking_server&quot;: false,
+    &quot;serving&quot;: false
+  }
+}
+</code></pre></div><p>Если включить <code>registry=true</code>, auditor блокирует handoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">blocking_errors = tracking_scope_excludes_registry_and_serving
+</code></pre></div><h3 id="шаг-2-сформируйте-run-plan">Шаг 2. Сформируйте run plan</h3>
+<p>Каждый run получает стабильный alias:</p>
+<table>
+<thead>
+<tr>
+<th>run_alias</th>
+<th>role</th>
+<th>model_id</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source_early_stopped_catboost</code></td>
+<td>source candidate</td>
+<td><code>catboost_depth2_native_categories_es_logloss</code></td>
+</tr>
+<tr>
+<td><code>best_optuna_trial</code></td>
+<td>tuned candidate</td>
+<td><code>catboost_optuna_fixed_budget_logloss</code></td>
+</tr>
+<tr>
+<td><code>phase15_baseline_cost_gate</code></td>
+<td>baseline gate</td>
+<td><code>trial-churn-ml-baseline-package-v0</code></td>
+</tr>
+</tbody>
+</table>
+<p>Для каждого run логируются common tags:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">mlflow_tracking_audit_id
+problem_id
+source_package_id
+optuna_tuning_audit_id
+decision_status
+readiness_status
+</code></pre></div><p>Так run не отрывается от фазы 15 и Optuna-аудита.</p>
+<h3 id="шаг-3-залогируйте-metrics-и-artifacts">Шаг 3. Залогируйте metrics и artifacts</h3>
+<p>Лучший Optuna run получает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">params:
+  depth = 2
+  learning_rate = 0.05
+  random_seed = 1609
+  optuna_trial_number = 4
+
+metrics:
+  validation_logloss = 0.696531
+  validation_top_k_total_error_cost = 7
+  baseline_validation_top_k_cost = 1
+  objective_improved_vs_source = 1
+  cost_gate_still_fails_vs_baseline = 1
+
+artifacts:
+  optuna_tuning_serialized_spec.json
+  optuna_trial_ledger.csv
+  optuna_tuned_predictions.csv
+  best_optuna_trial_model_metadata.json
+</code></pre></div><p>Здесь есть намеренная асимметрия: run улучшил objective, но несет warning по cost gate.</p>
+<h3 id="шаг-4-экспортируйте-стабильный-ledger">Шаг 4. Экспортируйте стабильный ledger</h3>
+<p>Exporter читает MLflow store через <code>MlflowClient</code> и пишет:</p>
+<ul>
+<li><code>mlflow_run_table.csv</code> - стабильные aliases, params, metrics, tags и artifact count.</li>
+<li><code>mlflow_artifact_inventory.csv</code> - пути artifact'ов, source file, размер и sha256.</li>
+<li><code>mlflow_metric_history.csv</code> - MLflow metric history по каждому run.</li>
+<li><code>mlflow_reproducibility_checks.csv</code> - checks и warnings.</li>
+<li><code>mlflow_model_metadata.json</code> - model metadata по каждому run.</li>
+<li><code>mlflow_tracking_serialized_spec.json</code> - handoff в финальный stability/package урок.</li>
+</ul>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите урок из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/10-mlflow/code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+  &quot;mlflow_version&quot;: &quot;3.14.0&quot;,
+  &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+  &quot;experiment_name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+  &quot;run_count&quot;: 3,
+  &quot;raw_run_ids_exported&quot;: false,
+  &quot;best_run_alias&quot;: &quot;best_optuna_trial&quot;,
+  &quot;best_validation_logloss&quot;: 0.696531,
+  &quot;best_trial_validation_top_k_cost&quot;: 7.0,
+  &quot;baseline_validation_top_k_cost&quot;: 1.0,
+  &quot;decision_status&quot;: &quot;mlflow_ledger_ready_for_stability_package&quot;,
+  &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;
+}
+</code></pre></div><p>MLflow 3.14 требует явный opt-in для filesystem backend:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">MLFLOW_ALLOW_FILE_STORE=true
+</code></pre></div><p>Exporter ставит этот opt-in внутри локального урока. Это не production-рекомендация, а граница учебного local tracking store.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-включить-registry-в-tracking-scope">Ошибка 1. Включить registry в tracking scope</h3>
+<p>Измените policy:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;tracking_scope&quot;: {
+  &quot;registry&quot;: true
+}
+</code></pre></div><p>Auditor вернет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">valid = false
+blocking_errors = tracking_scope_excludes_registry_and_serving
+</code></pre></div><p>Registry, remote tracking server и serving не входят в фазу 16.</p>
+<h3 id="ошибка-2-не-приложить-trial-ledger">Ошибка 2. Не приложить trial ledger</h3>
+<p>Если <code>best_optuna_trial</code> не логирует <code>upstream/optuna_trial_ledger.csv</code>, run table все еще существует, но handoff невалиден:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">blocking_errors = required_artifacts_logged
+</code></pre></div><p>Best trial без ledger нельзя ревьюить.</p>
+<h3 id="ошибка-3-сделать-raw-run-id-частью-committed-outputs">Ошибка 3. Сделать raw run id частью committed outputs</h3>
+<p>Raw MLflow ids нужны внутри tracking store, но не должны попадать в стабильный artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">run_id_present = True
+raw_run_id_exported = False
+</code></pre></div><p>Иначе каждый rerun меняет diff без изменения учебного смысла.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/10-mlflow/tests
+</code></pre></div><p>Что проверяют тесты:</p>
+<ul>
+<li>summary фиксирует <code>mlflow 3.14.0</code>, <code>mlflow-skinny</code>, local file store и 3 runs;</li>
+<li>run table содержит стабильные aliases и не экспортирует raw run ids;</li>
+<li>best Optuna run хранит params trial <code>4</code>, logloss <code>0.696531</code> и cost warning metric;</li>
+<li>artifact inventory содержит upstream Optuna ledger, predictions и model metadata;</li>
+<li>metric history показывает, что нужные метрики залогированы в MLflow;</li>
+<li>model metadata сохраняет source package id, warnings и Optuna handoff;</li>
+<li>policy с registry scope блокируется;</li>
+<li>отсутствие обязательного artifact становится reproducibility blocker.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/mlflow_experiment_ledger_exporter.py
+</code></pre></div><p>Standalone запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_ledger_exporter.py \
+  --output-root phases/16-tabular-ml/10-mlflow/outputs
+</code></pre></div><p>Если хотите сохранить временный MLflow store для ручного просмотра, передайте отдельный tracking root:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_ledger_exporter.py \
+  --tracking-root /tmp/trial-churn-mlruns \
+  --output-root phases/16-tabular-ml/10-mlflow/outputs
+</code></pre></div><p>Коммитить сам <code>mlruns</code> не нужно. В репозитории остается стабильный exported ledger.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте required tag <code>feature_contract_id</code> и проверьте, что auditor блокирует runs без этого тега.</li>
+<li>Добавьте artifact <code>optuna_search_space_audit.csv</code> к <code>best_optuna_trial</code> и расширьте inventory test.</li>
+<li>Добавьте metric <code>test_used_for_selection=0</code> в required metrics для всех runs и объясните, почему это tracking evidence.</li>
+<li>Сформулируйте, какие поля из <code>mlflow_tracking_serialized_spec.json</code> должен использовать финальный stability/package урок.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Experiment</td>
+<td>Папка с файлами</td>
+<td>Группа MLflow runs с общей задачей и контекстом</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>Только модель-победитель</td>
+<td>Один tracked запуск с params, metrics, tags и artifacts</td>
+</tr>
+<tr>
+<td>Tag</td>
+<td>Необязательная подпись</td>
+<td>Lineage и governance context, без которого run трудно ревьюить</td>
+</tr>
+<tr>
+<td>Artifact</td>
+<td>Любой красивый файл</td>
+<td>Evidence file, который подтверждает метрику, policy или handoff</td>
+</tr>
+<tr>
+<td>Run id</td>
+<td>Удобный ключ для CSV</td>
+<td>Случайный MLflow identifier; в committed ledger лучше использовать stable alias</td>
+</tr>
+<tr>
+<td>Model registry</td>
+<td>То же, что tracking</td>
+<td>Отдельный lifecycle слой, который не входит в этот урок</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://mlflow.org/docs/latest/ml/tracking/" target="_blank" rel="noopener">MLflow Tracking</a> - прочитайте про experiments, runs, params, metrics, artifacts и local tracking, чтобы связать API с ledger из урока.</li>
+<li><a href="https://mlflow.org/docs/latest/python_api/mlflow.html" target="_blank" rel="noopener">MLflow Python API</a> - используйте как справочник по <code>start_run</code>, <code>log_params</code>, <code>log_metrics</code>, <code>set_tags</code> и <code>log_artifact</code>.</li>
+<li><a href="https://mlflow.org/docs/latest/python_api/mlflow.client.html" target="_blank" rel="noopener">MLflow Tracking Client</a> - посмотрите, как читать runs, artifacts и metric history через <code>MlflowClient</code>.</li>
+<li><a href="https://mlflow.org/docs/latest/self-hosting/migrate-from-file-store/" target="_blank" rel="noopener">MLflow file store migration note</a> - разберите, почему local file store в MLflow 3.x требует явного opt-in и не равен production tracking backend.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какие ключевые значения хранит run `best_optuna_trial`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`optuna_trial_number=4`, `validation_logloss=0.696531`, `validation_top_k_total_error_cost=7`</button><button type="button" class="quiz-option" data-choice="1">`optuna_trial_number=0`, `validation_logloss=0.698842`, `validation_top_k_total_error_cost=1`</button><button type="button" class="quiz-option" data-choice="2">`depth=1`, `learning_rate=0.4`, `cost_gate_still_fails_vs_baseline=0`</button><button type="button" class="quiz-option" data-choice="3">`run_role=baseline_gate`, `model_id=trial-churn-ml-baseline-package-v0`</button></div><p class="quiz-feedback" hidden>Best Optuna run соответствует trial 4: он улучшил logloss, но top-k cost остался 7.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему `upstream/optuna_trial_ledger.csv` обязателен для `best_optuna_trial`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он показывает все trial&#x27;ы и делает best params ревьюируемыми</button><button type="button" class="quiz-option" data-choice="1">Без него MLflow не умеет считать metrics</button><button type="button" class="quiz-option" data-choice="2">Он заменяет model metadata</button><button type="button" class="quiz-option" data-choice="3">Он нужен только для UI, а не для проверки</button></div><p class="quiz-feedback" hidden>Trial ledger доказывает fixed-budget tuning и показывает не только победителя, но и проигравшие попытки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что произойдет, если в policy включить `tracking_scope.registry=true`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Auditor заблокирует handoff с `tracking_scope_excludes_registry_and_serving`</button><button type="button" class="quiz-option" data-choice="1">Exporter автоматически создаст model registry entry</button><button type="button" class="quiz-option" data-choice="2">Run table станет валиден, если есть artifacts</button><button type="button" class="quiz-option" data-choice="3">MLflow silently проигнорирует scope</button></div><p class="quiz-feedback" hidden>Фаза 16 использует local tracking ledger. Registry и serving выходят за границы урока.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Что означает warning `mlflow_ledger_tracks_candidate_with_failed_cost_gate`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">MLflow честно сохранил tuned candidate, но он не стал business promotion claim</button><button type="button" class="quiz-option" data-choice="1">MLflow run невалиден и все artifacts потеряны</button><button type="button" class="quiz-option" data-choice="2">Optuna не была запущена</button><button type="button" class="quiz-option" data-choice="3">Baseline cost gate равен 7</button></div><p class="quiz-feedback" hidden>Tracking фиксирует ограничение: best trial улучшил logloss, но cost gate все еще хуже baseline.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Что означает `readiness_status=ready_for_drift_and_stability_lesson`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Experiment ledger валиден и может стать входом финального stability/package урока</button><button type="button" class="quiz-option" data-choice="1">Модель готова к serving</button><button type="button" class="quiz-option" data-choice="2">Registry entry создана</button><button type="button" class="quiz-option" data-choice="3">Cost-sensitive gate больше не нужен</button></div><p class="quiz-feedback" hidden>Урок завершает tracking handoff. Финальный урок еще должен проверить drift, stability и собрать interpretation package.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;mlflow_experiment_ledger_exporter.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from mlflow_experiment_ledger_exporter import run, write_outputs  # noqa: E402
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;reproducibility_checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class MLflowExperimentLedgerExporterTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **paths: Path) -&gt; dict:
+        return run(policy_path=paths.get(&quot;policy_path&quot;, root / &quot;mlflow_tracking_policy_spec.json&quot;))
+
+    def test_valid_summary_exports_local_mlflow_ledger_without_raw_run_ids(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;mlflow_tracking_audit_id&quot;], &quot;trial-churn-mlflow-tracking-audit-v0&quot;)
+        self.assertEqual(summary[&quot;mlflow_version&quot;], &quot;3.14.0&quot;)
+        self.assertEqual(summary[&quot;tracking_package&quot;], &quot;mlflow-skinny&quot;)
+        self.assertEqual(summary[&quot;experiment_name&quot;], &quot;trial_churn_tabular_ml_local_tracking_v0&quot;)
+        self.assertEqual(summary[&quot;tracking_backend&quot;], &quot;local_file_store&quot;)
+        self.assertEqual(summary[&quot;run_count&quot;], 3)
+        self.assertFalse(summary[&quot;raw_run_ids_exported&quot;])
+        self.assertEqual(summary[&quot;best_run_alias&quot;], &quot;best_optuna_trial&quot;)
+        self.assertEqual(summary[&quot;best_validation_logloss&quot;], 0.696531)
+        self.assertEqual(summary[&quot;best_trial_validation_top_k_cost&quot;], 7.0)
+        self.assertEqual(summary[&quot;baseline_validation_top_k_cost&quot;], 1.0)
+        self.assertEqual(summary[&quot;source_package_id&quot;], &quot;trial-churn-ml-baseline-package-v0&quot;)
+        self.assertEqual(summary[&quot;optuna_tuning_audit_id&quot;], &quot;trial-churn-optuna-tuning-audit-v0&quot;)
+        self.assertEqual(summary[&quot;decision_status&quot;], &quot;mlflow_ledger_ready_for_stability_package&quot;)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_drift_and_stability_lesson&quot;)
+
+    def test_run_table_has_three_stable_aliases_and_required_metrics(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;run_alias&quot;]: row for row in report[&quot;run_table&quot;]}
+
+        self.assertEqual(list(rows), [&quot;source_early_stopped_catboost&quot;, &quot;best_optuna_trial&quot;, &quot;phase15_baseline_cost_gate&quot;])
+        source = rows[&quot;source_early_stopped_catboost&quot;]
+        best = rows[&quot;best_optuna_trial&quot;]
+        baseline = rows[&quot;phase15_baseline_cost_gate&quot;]
+
+        self.assertTrue(source[&quot;run_id_present&quot;])
+        self.assertEqual(source[&quot;run_id_length&quot;], 32)
+        self.assertFalse(source[&quot;raw_run_id_exported&quot;])
+        self.assertEqual(source[&quot;model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(source[&quot;depth&quot;], &quot;2&quot;)
+        self.assertEqual(source[&quot;learning_rate&quot;], &quot;0.2&quot;)
+        self.assertEqual(source[&quot;validation_logloss&quot;], 0.698394)
+        self.assertEqual(source[&quot;validation_top_k_total_error_cost&quot;], 7.0)
+
+        self.assertEqual(best[&quot;model_id&quot;], &quot;catboost_optuna_fixed_budget_logloss&quot;)
+        self.assertEqual(best[&quot;run_role&quot;], &quot;tuned_candidate&quot;)
+        self.assertEqual(best[&quot;optuna_trial_number&quot;], &quot;4&quot;)
+        self.assertEqual(best[&quot;learning_rate&quot;], &quot;0.05&quot;)
+        self.assertEqual(best[&quot;validation_logloss&quot;], 0.696531)
+        self.assertEqual(best[&quot;objective_improved_vs_source&quot;], 1.0)
+        self.assertEqual(best[&quot;cost_gate_still_fails_vs_baseline&quot;], 1.0)
+        self.assertEqual(best[&quot;artifact_count&quot;], 4)
+
+        self.assertEqual(baseline[&quot;model_id&quot;], &quot;trial-churn-ml-baseline-package-v0&quot;)
+        self.assertEqual(baseline[&quot;validation_top_k_total_error_cost&quot;], 1.0)
+        self.assertEqual(baseline[&quot;artifact_count&quot;], 2)
+        self.assertTrue(check(report, &quot;required_mlflow_runs_exported&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;run_table_omits_raw_run_ids&quot;)[&quot;valid&quot;])
+
+    def test_artifact_inventory_logs_upstream_files_and_model_metadata(self) -&gt; None:
+        report = self.audit()
+        paths = {(row[&quot;run_alias&quot;], row[&quot;artifact_path&quot;]): row for row in report[&quot;artifact_inventory&quot;]}
+
+        self.assertEqual(len(report[&quot;artifact_inventory&quot;]), 8)
+        self.assertTrue(paths[(&quot;source_early_stopped_catboost&quot;, &quot;upstream/optuna_best_trial_trace.csv&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(paths[(&quot;best_optuna_trial&quot;, &quot;upstream/optuna_tuning_serialized_spec.json&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(paths[(&quot;best_optuna_trial&quot;, &quot;upstream/optuna_trial_ledger.csv&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(paths[(&quot;best_optuna_trial&quot;, &quot;upstream/optuna_tuned_predictions.csv&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(paths[(&quot;best_optuna_trial&quot;, &quot;model_metadata/best_optuna_trial_model_metadata.json&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(paths[(&quot;phase15_baseline_cost_gate&quot;, &quot;model_metadata/phase15_baseline_cost_gate_model_metadata.json&quot;)][&quot;logged_to_mlflow&quot;])
+        self.assertTrue(all(row[&quot;source_file_exists&quot;] for row in report[&quot;artifact_inventory&quot;]))
+        self.assertTrue(all(len(row[&quot;source_sha256&quot;]) == 64 for row in report[&quot;artifact_inventory&quot;]))
+        self.assertTrue(check(report, &quot;required_artifacts_logged&quot;)[&quot;valid&quot;])
+
+    def test_metric_history_keeps_mlflow_logged_values_once_per_metric(self) -&gt; None:
+        report = self.audit()
+        metrics = {(row[&quot;run_alias&quot;], row[&quot;metric_name&quot;]): row for row in report[&quot;metric_history&quot;]}
+
+        self.assertEqual(metrics[(&quot;source_early_stopped_catboost&quot;, &quot;validation_logloss&quot;)][&quot;metric_value&quot;], 0.698394)
+        self.assertEqual(metrics[(&quot;best_optuna_trial&quot;, &quot;validation_logloss&quot;)][&quot;metric_value&quot;], 0.696531)
+        self.assertEqual(metrics[(&quot;best_optuna_trial&quot;, &quot;validation_top_k_total_error_cost&quot;)][&quot;metric_value&quot;], 7.0)
+        self.assertEqual(metrics[(&quot;best_optuna_trial&quot;, &quot;baseline_validation_top_k_cost&quot;)][&quot;metric_value&quot;], 1.0)
+        self.assertEqual(metrics[(&quot;best_optuna_trial&quot;, &quot;test_used_for_selection&quot;)][&quot;metric_value&quot;], 0.0)
+        self.assertEqual(metrics[(&quot;phase15_baseline_cost_gate&quot;, &quot;validation_top_k_total_error_cost&quot;)][&quot;metric_value&quot;], 1.0)
+        self.assertTrue(all(row[&quot;logged_once&quot;] for row in report[&quot;metric_history&quot;]))
+        self.assertTrue(check(report, &quot;required_metrics_logged&quot;)[&quot;valid&quot;])
+
+    def test_model_metadata_preserves_lineage_warnings_and_params(self) -&gt; None:
+        report = self.audit()
+        metadata = {row[&quot;run_alias&quot;]: row for row in report[&quot;model_metadata&quot;]}
+
+        best = metadata[&quot;best_optuna_trial&quot;]
+        self.assertEqual(best[&quot;source_package_id&quot;], &quot;trial-churn-ml-baseline-package-v0&quot;)
+        self.assertEqual(best[&quot;upstream_optuna_tuning_audit_id&quot;], &quot;trial-churn-optuna-tuning-audit-v0&quot;)
+        self.assertEqual(best[&quot;params&quot;][&quot;optuna_trial_number&quot;], 4)
+        self.assertEqual(best[&quot;params&quot;][&quot;learning_rate&quot;], 0.05)
+        self.assertEqual(best[&quot;metrics&quot;][&quot;validation_logloss&quot;], 0.696531)
+        self.assertIn(&quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;, best[&quot;known_warnings&quot;])
+        self.assertTrue(check(report, &quot;source_package_lineage_logged&quot;)[&quot;valid&quot;])
+
+    def test_tracking_scope_blocks_registry_remote_server_and_serving(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            policy_path = Path(directory) / &quot;mlflow_tracking_policy_spec.json&quot;
+            policy = read_json(DATA_ROOT / &quot;mlflow_tracking_policy_spec.json&quot;)
+            policy[&quot;tracking_scope&quot;][&quot;registry&quot;] = True
+            write_json(policy_path, policy)
+
+            report = self.audit(policy_path=policy_path)
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;blocked_before_mlflow_tracking&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;tracking_scope_excludes_registry_and_serving&quot;])
+        self.assertEqual(report[&quot;run_table&quot;], [])
+        self.assertFalse(check(report, &quot;tracking_scope_excludes_registry_and_serving&quot;)[&quot;valid&quot;])
+
+    def test_missing_required_artifact_is_a_reproducibility_blocker(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            policy_path = Path(directory) / &quot;mlflow_tracking_policy_spec.json&quot;
+            policy = read_json(DATA_ROOT / &quot;mlflow_tracking_policy_spec.json&quot;)
+            policy[&quot;required_artifacts&quot;][&quot;best_optuna_trial&quot;].append(&quot;upstream/not_logged.csv&quot;)
+            write_json(policy_path, policy)
+
+            report = self.audit(policy_path=policy_path)
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;blocked_before_mlflow_tracking&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;required_artifacts_logged&quot;])
+        self.assertFalse(check(report, &quot;required_artifacts_logged&quot;)[&quot;valid&quot;])
+        self.assertEqual(len(report[&quot;run_table&quot;]), 3)
+
+    def test_warnings_explain_cost_gate_local_store_and_skinny_package_boundaries(self) -&gt; None:
+        report = self.audit()
+
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [
+                &quot;mlflow_ledger_tracks_candidate_with_failed_cost_gate&quot;,
+                &quot;local_tracking_store_not_registry&quot;,
+                &quot;mlflow_skinny_used_due_to_pandas3_boundary&quot;,
+            ],
+        )
+        self.assertEqual(check(report, &quot;mlflow_ledger_tracks_candidate_with_failed_cost_gate&quot;)[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertEqual(check(report, &quot;local_tracking_store_not_registry&quot;)[&quot;observed&quot;], &quot;local_file_store&quot;)
+        self.assertEqual(check(report, &quot;mlflow_skinny_used_due_to_pandas3_boundary&quot;)[&quot;observed&quot;][&quot;package&quot;], &quot;mlflow-skinny&quot;)
+
+    def test_serialized_spec_is_ready_for_final_stability_package(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;mlflow_tracking_audit_id&quot;], &quot;trial-churn-mlflow-tracking-audit-v0&quot;)
+        self.assertEqual(serialized[&quot;experiment&quot;][&quot;tracking_backend&quot;], &quot;local_file_store&quot;)
+        self.assertEqual(serialized[&quot;experiment&quot;][&quot;tracking_package&quot;], &quot;mlflow-skinny&quot;)
+        self.assertEqual(serialized[&quot;source_package_id&quot;], &quot;trial-churn-ml-baseline-package-v0&quot;)
+        self.assertEqual(serialized[&quot;optuna_tuning_audit_id&quot;], &quot;trial-churn-optuna-tuning-audit-v0&quot;)
+        self.assertEqual(serialized[&quot;run_aliases&quot;], [&quot;source_early_stopped_catboost&quot;, &quot;best_optuna_trial&quot;, &quot;phase15_baseline_cost_gate&quot;])
+        self.assertEqual(serialized[&quot;artifact_count&quot;], 8)
+        self.assertEqual(serialized[&quot;decision_policy&quot;][&quot;next_lesson_readiness&quot;], &quot;ready_for_drift_and_stability_lesson&quot;)
+
+    def test_writer_and_lesson_cli_export_expected_outputs(self) -&gt; None:
+        report = self.audit()
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            output_spec = read_json(DATA_ROOT / &quot;mlflow_tracking_policy_spec.json&quot;)[&quot;output&quot;]
+            write_outputs(report, output_root, output_spec)
+
+            run_rows = read_csv(output_root / &quot;mlflow_run_table.csv&quot;)
+            inventory_rows = read_csv(output_root / &quot;mlflow_artifact_inventory.csv&quot;)
+            checks_rows = read_csv(output_root / &quot;mlflow_reproducibility_checks.csv&quot;)
+            exported_report = read_json(output_root / &quot;mlflow_experiment_report.json&quot;)
+
+        self.assertEqual(len(run_rows), 3)
+        self.assertEqual(len(inventory_rows), 8)
+        self.assertGreaterEqual(len(checks_rows), 15)
+        self.assertEqual(exported_report[&quot;summary&quot;][&quot;best_run_alias&quot;], &quot;best_optuna_trial&quot;)
+
+        completed = subprocess.run(
+            [sys.executable, str(CODE)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        payload = json.loads(completed.stdout)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;run_count&quot;], 3)
+        self.assertFalse(payload[&quot;raw_run_ids_exported&quot;])
+        self.assertEqual(payload[&quot;best_validation_logloss&quot;], 0.696531)
+        self.assertEqual(payload[&quot;readiness_status&quot;], &quot;ready_for_drift_and_stability_lesson&quot;)
+
+    def test_artifact_cli_output_root_writes_all_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            completed = subprocess.run(
+                [sys.executable, str(ARTIFACT), &quot;--output-root&quot;, str(output_root)],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.stdout, &quot;&quot;)
+            self.assertTrue((output_root / &quot;mlflow_experiment_report.json&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_run_table.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_artifact_inventory.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_metric_history.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_reproducibility_checks.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_model_metadata.json&quot;).is_file())
+            self.assertTrue((output_root / &quot;mlflow_tracking_serialized_spec.json&quot;).is_file())
+            self.assertEqual(read_json(output_root / &quot;mlflow_experiment_report.json&quot;)[&quot;summary&quot;][&quot;decision_status&quot;], &quot;mlflow_ledger_ready_for_stability_package&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from mlflow_experiment_ledger_exporter import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; int:
+    result = run()
+    output_spec = read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;]
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, output_spec)
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;mlflow_tracking_audit_id&quot;: summary[&quot;mlflow_tracking_audit_id&quot;],
+                &quot;mlflow_version&quot;: summary[&quot;mlflow_version&quot;],
+                &quot;tracking_package&quot;: summary[&quot;tracking_package&quot;],
+                &quot;experiment_name&quot;: summary[&quot;experiment_name&quot;],
+                &quot;run_count&quot;: summary[&quot;run_count&quot;],
+                &quot;raw_run_ids_exported&quot;: summary[&quot;raw_run_ids_exported&quot;],
+                &quot;best_run_alias&quot;: summary[&quot;best_run_alias&quot;],
+                &quot;best_validation_logloss&quot;: summary[&quot;best_validation_logloss&quot;],
+                &quot;best_trial_validation_top_k_cost&quot;: summary[&quot;best_trial_validation_top_k_cost&quot;],
+                &quot;baseline_validation_top_k_cost&quot;: summary[&quot;baseline_validation_top_k_cost&quot;],
+                &quot;decision_status&quot;: summary[&quot;decision_status&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;mlflow-experiment-ledger-exporter&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/mlflow_experiment_ledger_exporter.py&quot;,
+  &quot;description&quot;: &quot;Логирует локальные MLflow runs для source CatBoost, best Optuna trial и baseline gate, затем экспортирует стабильный run table, artifact inventory, metric history и reproducibility checks.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_ledger_exporter.py --output-root phases/16-tabular-ml/10-mlflow/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_artifact_inventory.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>run_alias,run_role,artifact_path,logged_to_mlflow,source_file,source_file_exists,source_size_bytes,source_sha256,generated_at
+source_early_stopped_catboost,source_candidate,upstream/optuna_best_trial_trace.csv,True,phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv,True,516,28be335df8e06fbc9636a684653c2a1772d5d59f4a3aabf7608f27ad95176e17,2026-07-06T12:15:00+03:00
+source_early_stopped_catboost,source_candidate,model_metadata/source_early_stopped_catboost_model_metadata.json,True,source_early_stopped_catboost_model_metadata.json,True,1023,2b4948518a19806dc9cde0ab39d2bd513c56171bdcf9b34f2cbe77ff376d62a4,2026-07-06T12:15:00+03:00
+best_optuna_trial,tuned_candidate,upstream/optuna_tuning_serialized_spec.json,True,phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_serialized_spec.json,True,3378,d0abe03556372e08f21ce21a7fe061ce83c67d3d5b5ce2be33db570ba0f2d1b4,2026-07-06T12:15:00+03:00
+best_optuna_trial,tuned_candidate,upstream/optuna_trial_ledger.csv,True,phases/16-tabular-ml/09-optuna/outputs/optuna_trial_ledger.csv,True,1401,7b114f5b58ca2e31c31cb88c4f1dffffc141965ed20e41c15153d0537ea3ae38,2026-07-06T12:15:00+03:00
+best_optuna_trial,tuned_candidate,upstream/optuna_tuned_predictions.csv,True,phases/16-tabular-ml/09-optuna/outputs/optuna_tuned_predictions.csv,True,1429,b8443308eb0f5121069f567f98dca92e48f985fbd9ab05c7b6bbaa9d2ccf3a25,2026-07-06T12:15:00+03:00
+best_optuna_trial,tuned_candidate,model_metadata/best_optuna_trial_model_metadata.json,True,best_optuna_trial_model_metadata.json,True,1123,2bed0645da30e2dda9bb59d4881caef96582f7917678688c2eb33cbba1609ef7,2026-07-06T12:15:00+03:00
+phase15_baseline_cost_gate,baseline_gate,upstream/optuna_best_trial_trace.csv,True,phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv,True,516,28be335df8e06fbc9636a684653c2a1772d5d59f4a3aabf7608f27ad95176e17,2026-07-06T12:15:00+03:00
+phase15_baseline_cost_gate,baseline_gate,model_metadata/phase15_baseline_cost_gate_model_metadata.json,True,phase15_baseline_cost_gate_model_metadata.json,True,936,baa8e5737a4c324805bd1710792eb7cb3e9db7bec94b3f759cea480bd6ad9b47,2026-07-06T12:15:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_artifact_inventory.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_experiment_ledger_exporter.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Any
+
+import mlflow
+from mlflow.tracking import MlflowClient
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OPTUNA_OUTPUT_ROOT = PHASE_ROOT / &quot;09-optuna&quot; / &quot;outputs&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;mlflow_tracking_policy_spec.json&quot;
+DEFAULT_OPTUNA_REPORT_PATH = OPTUNA_OUTPUT_ROOT / &quot;optuna_tuning_report.json&quot;
+DEFAULT_OPTUNA_SPEC_PATH = OPTUNA_OUTPUT_ROOT / &quot;optuna_tuning_serialized_spec.json&quot;
+DEFAULT_OPTUNA_LEDGER_PATH = OPTUNA_OUTPUT_ROOT / &quot;optuna_trial_ledger.csv&quot;
+DEFAULT_OPTUNA_TRACE_PATH = OPTUNA_OUTPUT_ROOT / &quot;optuna_best_trial_trace.csv&quot;
+DEFAULT_OPTUNA_PREDICTIONS_PATH = OPTUNA_OUTPUT_ROOT / &quot;optuna_tuned_predictions.csv&quot;
+
+GENERATED_AT = &quot;2026-07-06T12:15:00+03:00&quot;
+
+
+class MLflowLedgerExportError(ValueError):
+    &quot;&quot;&quot;Raised when the MLflow ledger inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: Any) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def sha256_file(path: Path) -&gt; str:
+    digest = hashlib.sha256()
+    with path.open(&quot;rb&quot;) as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b&quot;&quot;):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def validate_policy(policy: dict[str, Any], optuna_report: dict[str, Any], optuna_spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    required = {
+        &quot;mlflow_tracking_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;baseline_package_id&quot;,
+        &quot;source_optuna_tuning_audit_id&quot;,
+        &quot;experiment&quot;,
+        &quot;tracking_scope&quot;,
+        &quot;required_common_tags&quot;,
+        &quot;run_plan&quot;,
+        &quot;required_params&quot;,
+        &quot;required_metrics&quot;,
+        &quot;required_artifacts&quot;,
+        &quot;warning_policy&quot;,
+        &quot;decision_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        checks.append(failed(&quot;mlflow_policy_has_required_fields&quot;, missing, &quot;no missing fields&quot;))
+    else:
+        checks.append(passed(&quot;mlflow_policy_has_required_fields&quot;, sorted(required), &quot;required policy fields&quot;))
+
+    handoff_errors: list[dict[str, Any]] = []
+    if policy.get(&quot;problem_id&quot;) != optuna_spec.get(&quot;problem_id&quot;):
+        handoff_errors.append({&quot;field&quot;: &quot;problem_id&quot;, &quot;observed&quot;: policy.get(&quot;problem_id&quot;), &quot;expected&quot;: optuna_spec.get(&quot;problem_id&quot;)})
+    if policy.get(&quot;source_optuna_tuning_audit_id&quot;) != optuna_spec.get(&quot;optuna_tuning_audit_id&quot;):
+        handoff_errors.append(
+            {
+                &quot;field&quot;: &quot;source_optuna_tuning_audit_id&quot;,
+                &quot;observed&quot;: policy.get(&quot;source_optuna_tuning_audit_id&quot;),
+                &quot;expected&quot;: optuna_spec.get(&quot;optuna_tuning_audit_id&quot;),
+            }
+        )
+    if policy.get(&quot;baseline_package_id&quot;) != optuna_report.get(&quot;summary&quot;, {}).get(&quot;problem_id&quot;) and policy.get(&quot;baseline_package_id&quot;) != &quot;trial-churn-ml-baseline-package-v0&quot;:
+        handoff_errors.append({&quot;field&quot;: &quot;baseline_package_id&quot;, &quot;observed&quot;: policy.get(&quot;baseline_package_id&quot;), &quot;expected&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;})
+    if optuna_report.get(&quot;valid&quot;) is not True:
+        handoff_errors.append({&quot;field&quot;: &quot;optuna_report.valid&quot;, &quot;observed&quot;: optuna_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if optuna_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_mlflow_lesson&quot;:
+        handoff_errors.append(
+            {
+                &quot;field&quot;: &quot;optuna_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: optuna_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_mlflow_lesson&quot;,
+            }
+        )
+    if handoff_errors:
+        checks.append(failed(&quot;mlflow_policy_matches_optuna_handoff&quot;, handoff_errors, &quot;valid Optuna handoff ready for MLflow&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;mlflow_policy_matches_optuna_handoff&quot;,
+                {
+                    &quot;mlflow_tracking_audit_id&quot;: policy[&quot;mlflow_tracking_audit_id&quot;],
+                    &quot;optuna_tuning_audit_id&quot;: policy[&quot;source_optuna_tuning_audit_id&quot;],
+                    &quot;readiness&quot;: optuna_report[&quot;summary&quot;][&quot;readiness_status&quot;],
+                },
+                &quot;valid Optuna handoff ready for MLflow&quot;,
+            )
+        )
+
+    experiment = policy.get(&quot;experiment&quot;, {})
+    if experiment.get(&quot;tracking_backend&quot;) == &quot;local_file_store&quot; and experiment.get(&quot;tracking_package&quot;) == &quot;mlflow-skinny&quot;:
+        checks.append(passed(&quot;tracking_backend_is_local_mlflow_file_store&quot;, experiment, &quot;local mlflow-skinny tracking store&quot;))
+    else:
+        checks.append(failed(&quot;tracking_backend_is_local_mlflow_file_store&quot;, experiment, &quot;local mlflow-skinny tracking store&quot;))
+
+    scope = policy.get(&quot;tracking_scope&quot;, {})
+    forbidden_enabled = [name for name in (&quot;registry&quot;, &quot;remote_tracking_server&quot;, &quot;serving&quot;) if scope.get(name) is not False]
+    if forbidden_enabled:
+        checks.append(failed(&quot;tracking_scope_excludes_registry_and_serving&quot;, forbidden_enabled, &quot;registry, remote tracking and serving are false&quot;))
+    else:
+        checks.append(passed(&quot;tracking_scope_excludes_registry_and_serving&quot;, scope, &quot;registry, remote tracking and serving are false&quot;))
+
+    run_aliases = [run.get(&quot;run_alias&quot;) for run in policy.get(&quot;run_plan&quot;, [])]
+    required_aliases = [&quot;source_early_stopped_catboost&quot;, &quot;best_optuna_trial&quot;, &quot;phase15_baseline_cost_gate&quot;]
+    if run_aliases == required_aliases:
+        checks.append(passed(&quot;run_plan_declares_expected_tracking_units&quot;, run_aliases, required_aliases))
+    else:
+        checks.append(failed(&quot;run_plan_declares_expected_tracking_units&quot;, run_aliases, required_aliases))
+
+    output = policy.get(&quot;output&quot;, {})
+    output_fields = {
+        &quot;report_file&quot;,
+        &quot;run_table_file&quot;,
+        &quot;artifact_inventory_file&quot;,
+        &quot;metric_history_file&quot;,
+        &quot;reproducibility_checks_file&quot;,
+        &quot;model_metadata_file&quot;,
+        &quot;serialized_spec_file&quot;,
+    }
+    missing_outputs = sorted(field for field in output_fields if not output.get(field))
+    if missing_outputs:
+        checks.append(failed(&quot;output_contract_names_all_artifacts&quot;, missing_outputs, &quot;all output filenames are declared&quot;))
+    else:
+        checks.append(passed(&quot;output_contract_names_all_artifacts&quot;, sorted(output), &quot;all output filenames are declared&quot;))
+    return checks
+
+
+def run_definitions(policy: dict[str, Any], optuna_report: dict[str, Any], optuna_spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    summary = optuna_report[&quot;summary&quot;]
+    best = optuna_spec[&quot;best_trial&quot;]
+    fixed = optuna_spec[&quot;fixed_catboost_params&quot;]
+    common_tags = {
+        &quot;mlflow_tracking_audit_id&quot;: policy[&quot;mlflow_tracking_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;source_package_id&quot;: policy[&quot;baseline_package_id&quot;],
+        &quot;optuna_tuning_audit_id&quot;: policy[&quot;source_optuna_tuning_audit_id&quot;],
+        &quot;decision_status&quot;: summary[&quot;decision_status&quot;],
+        &quot;readiness_status&quot;: policy[&quot;decision_policy&quot;][&quot;next_lesson_readiness&quot;],
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+    return [
+        {
+            &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+            &quot;run_name&quot;: &quot;01_source_early_stopped_catboost&quot;,
+            &quot;run_role&quot;: &quot;source_candidate&quot;,
+            &quot;model_id&quot;: optuna_spec[&quot;source_candidate_model_id&quot;],
+            &quot;candidate_role&quot;: &quot;source_before_tuning&quot;,
+            &quot;params&quot;: {
+                &quot;model_id&quot;: optuna_spec[&quot;source_candidate_model_id&quot;],
+                &quot;model_family&quot;: &quot;catboost&quot;,
+                &quot;depth&quot;: 2,
+                &quot;learning_rate&quot;: 0.2,
+                &quot;random_seed&quot;: fixed[&quot;random_seed&quot;],
+            },
+            &quot;metrics&quot;: {
+                &quot;validation_logloss&quot;: summary[&quot;source_validation_logloss&quot;],
+                &quot;validation_top_k_total_error_cost&quot;: summary[&quot;source_catboost_validation_top_k_cost&quot;],
+                &quot;baseline_validation_top_k_cost&quot;: summary[&quot;baseline_validation_top_k_cost&quot;],
+                &quot;test_used_for_selection&quot;: 0.0,
+            },
+            &quot;tags&quot;: common_tags | {&quot;candidate_role&quot;: &quot;source_before_tuning&quot;},
+            &quot;artifact_sources&quot;: [
+                {&quot;source_path&quot;: DEFAULT_OPTUNA_TRACE_PATH, &quot;artifact_path&quot;: &quot;upstream&quot;},
+            ],
+        },
+        {
+            &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+            &quot;run_name&quot;: &quot;02_best_optuna_trial&quot;,
+            &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+            &quot;model_id&quot;: optuna_spec[&quot;tuned_candidate_model_id&quot;],
+            &quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;,
+            &quot;params&quot;: {
+                &quot;model_id&quot;: optuna_spec[&quot;tuned_candidate_model_id&quot;],
+                &quot;model_family&quot;: &quot;catboost&quot;,
+                &quot;depth&quot;: best[&quot;depth&quot;],
+                &quot;learning_rate&quot;: best[&quot;learning_rate&quot;],
+                &quot;random_seed&quot;: fixed[&quot;random_seed&quot;],
+                &quot;optuna_trial_number&quot;: best[&quot;trial_number&quot;],
+            },
+            &quot;metrics&quot;: {
+                &quot;validation_logloss&quot;: best[&quot;objective_value&quot;],
+                &quot;validation_top_k_total_error_cost&quot;: best[&quot;validation_top_k_total_error_cost&quot;],
+                &quot;baseline_validation_top_k_cost&quot;: summary[&quot;baseline_validation_top_k_cost&quot;],
+                &quot;objective_improved_vs_source&quot;: 1.0 if summary[&quot;objective_improved_vs_source&quot;] else 0.0,
+                &quot;cost_gate_still_fails_vs_baseline&quot;: 1.0 if summary[&quot;cost_gate_still_fails_vs_baseline&quot;] else 0.0,
+                &quot;test_used_for_selection&quot;: 0.0,
+            },
+            &quot;tags&quot;: common_tags | {&quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;},
+            &quot;artifact_sources&quot;: [
+                {&quot;source_path&quot;: DEFAULT_OPTUNA_SPEC_PATH, &quot;artifact_path&quot;: &quot;upstream&quot;},
+                {&quot;source_path&quot;: DEFAULT_OPTUNA_LEDGER_PATH, &quot;artifact_path&quot;: &quot;upstream&quot;},
+                {&quot;source_path&quot;: DEFAULT_OPTUNA_PREDICTIONS_PATH, &quot;artifact_path&quot;: &quot;upstream&quot;},
+            ],
+        },
+        {
+            &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+            &quot;run_name&quot;: &quot;03_phase15_baseline_cost_gate&quot;,
+            &quot;run_role&quot;: &quot;baseline_gate&quot;,
+            &quot;model_id&quot;: policy[&quot;baseline_package_id&quot;],
+            &quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;,
+            &quot;params&quot;: {
+                &quot;model_id&quot;: policy[&quot;baseline_package_id&quot;],
+                &quot;model_family&quot;: &quot;sklearn_pipeline_package&quot;,
+                &quot;baseline_package_id&quot;: policy[&quot;baseline_package_id&quot;],
+            },
+            &quot;metrics&quot;: {
+                &quot;validation_top_k_total_error_cost&quot;: summary[&quot;baseline_validation_top_k_cost&quot;],
+                &quot;test_used_for_selection&quot;: 0.0,
+            },
+            &quot;tags&quot;: common_tags | {&quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;},
+            &quot;artifact_sources&quot;: [
+                {&quot;source_path&quot;: DEFAULT_OPTUNA_TRACE_PATH, &quot;artifact_path&quot;: &quot;upstream&quot;},
+            ],
+        },
+    ]
+
+
+def model_metadata_for_run(run_def: dict[str, Any], optuna_report: dict[str, Any]) -&gt; dict[str, Any]:
+    summary = optuna_report[&quot;summary&quot;]
+    return {
+        &quot;run_alias&quot;: run_def[&quot;run_alias&quot;],
+        &quot;run_role&quot;: run_def[&quot;run_role&quot;],
+        &quot;model_id&quot;: run_def[&quot;model_id&quot;],
+        &quot;candidate_role&quot;: run_def[&quot;candidate_role&quot;],
+        &quot;params&quot;: run_def[&quot;params&quot;],
+        &quot;metrics&quot;: run_def[&quot;metrics&quot;],
+        &quot;source_package_id&quot;: run_def[&quot;tags&quot;][&quot;source_package_id&quot;],
+        &quot;upstream_optuna_tuning_audit_id&quot;: summary[&quot;optuna_tuning_audit_id&quot;],
+        &quot;decision_status&quot;: summary[&quot;decision_status&quot;],
+        &quot;known_warnings&quot;: summary[&quot;warnings&quot;],
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+
+def log_runs_to_mlflow(
+    *,
+    policy: dict[str, Any],
+    optuna_report: dict[str, Any],
+    optuna_spec: dict[str, Any],
+    tracking_root: Path,
+    metadata_root: Path,
+) -&gt; tuple[MlflowClient, str, list[dict[str, Any]], list[dict[str, Any]]]:
+    tracking_root.mkdir(parents=True, exist_ok=True)
+    metadata_root.mkdir(parents=True, exist_ok=True)
+    os.environ[&quot;MLFLOW_ALLOW_FILE_STORE&quot;] = &quot;true&quot;
+    tracking_uri = tracking_root.resolve().as_uri()
+    mlflow.set_tracking_uri(tracking_uri)
+    client = MlflowClient(tracking_uri=tracking_uri)
+    experiment_id = client.create_experiment(policy[&quot;experiment&quot;][&quot;name&quot;])
+    definitions = run_definitions(policy, optuna_report, optuna_spec)
+    model_metadata_rows: list[dict[str, Any]] = []
+    logged_runs: list[dict[str, Any]] = []
+
+    for run_def in definitions:
+        model_metadata = model_metadata_for_run(run_def, optuna_report)
+        metadata_path = metadata_root / f&quot;{run_def[&#x27;run_alias&#x27;]}_model_metadata.json&quot;
+        write_json(metadata_path, model_metadata)
+        artifact_sources = list(run_def[&quot;artifact_sources&quot;])
+        artifact_sources.append({&quot;source_path&quot;: metadata_path, &quot;artifact_path&quot;: &quot;model_metadata&quot;})
+        with mlflow.start_run(experiment_id=experiment_id, run_name=run_def[&quot;run_name&quot;]) as active_run:
+            mlflow.set_tags(run_def[&quot;tags&quot;])
+            mlflow.log_params({key: str(value) for key, value in run_def[&quot;params&quot;].items()})
+            mlflow.log_metrics({key: float(value) for key, value in run_def[&quot;metrics&quot;].items()})
+            for artifact in artifact_sources:
+                mlflow.log_artifact(str(artifact[&quot;source_path&quot;]), artifact_path=artifact[&quot;artifact_path&quot;])
+        logged_runs.append(
+            {
+                &quot;run_alias&quot;: run_def[&quot;run_alias&quot;],
+                &quot;run_name&quot;: run_def[&quot;run_name&quot;],
+                &quot;run_role&quot;: run_def[&quot;run_role&quot;],
+                &quot;model_id&quot;: run_def[&quot;model_id&quot;],
+                &quot;candidate_role&quot;: run_def[&quot;candidate_role&quot;],
+                &quot;run_id&quot;: active_run.info.run_id,
+                &quot;experiment_id&quot;: experiment_id,
+                &quot;params&quot;: run_def[&quot;params&quot;],
+                &quot;metrics&quot;: run_def[&quot;metrics&quot;],
+                &quot;tags&quot;: run_def[&quot;tags&quot;],
+                &quot;artifact_sources&quot;: artifact_sources,
+            }
+        )
+        model_metadata_rows.append(model_metadata)
+    return client, experiment_id, logged_runs, model_metadata_rows
+
+
+def list_artifacts_recursive(client: MlflowClient, run_id: str, path: str | None = None) -&gt; list[str]:
+    paths: list[str] = []
+    for item in client.list_artifacts(run_id, path):
+        if item.is_dir:
+            paths.extend(list_artifacts_recursive(client, run_id, item.path))
+        else:
+            paths.append(item.path)
+    return sorted(paths)
+
+
+def build_run_table(client: MlflowClient, experiment_id: str, logged_runs: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    by_run_id = {run.info.run_id: run for run in client.search_runs([experiment_id], order_by=[&quot;attributes.start_time ASC&quot;])}
+    for logged in logged_runs:
+        run = by_run_id[logged[&quot;run_id&quot;]]
+        metrics = run.data.metrics
+        params = run.data.params
+        tags = run.data.tags
+        rows.append(
+            {
+                &quot;experiment_name&quot;: tags.get(&quot;mlflow.runName&quot;, logged[&quot;run_name&quot;]),
+                &quot;run_alias&quot;: logged[&quot;run_alias&quot;],
+                &quot;run_name&quot;: logged[&quot;run_name&quot;],
+                &quot;run_role&quot;: logged[&quot;run_role&quot;],
+                &quot;candidate_role&quot;: logged[&quot;candidate_role&quot;],
+                &quot;model_id&quot;: logged[&quot;model_id&quot;],
+                &quot;run_id_present&quot;: bool(run.info.run_id),
+                &quot;run_id_length&quot;: len(run.info.run_id),
+                &quot;raw_run_id_exported&quot;: False,
+                &quot;source_package_id&quot;: tags.get(&quot;source_package_id&quot;),
+                &quot;optuna_tuning_audit_id&quot;: tags.get(&quot;optuna_tuning_audit_id&quot;),
+                &quot;decision_status&quot;: tags.get(&quot;decision_status&quot;),
+                &quot;readiness_status&quot;: tags.get(&quot;readiness_status&quot;),
+                &quot;depth&quot;: params.get(&quot;depth&quot;),
+                &quot;learning_rate&quot;: params.get(&quot;learning_rate&quot;),
+                &quot;optuna_trial_number&quot;: params.get(&quot;optuna_trial_number&quot;),
+                &quot;validation_logloss&quot;: rounded(metrics.get(&quot;validation_logloss&quot;)) if &quot;validation_logloss&quot; in metrics else None,
+                &quot;validation_top_k_total_error_cost&quot;: rounded(metrics.get(&quot;validation_top_k_total_error_cost&quot;)) if &quot;validation_top_k_total_error_cost&quot; in metrics else None,
+                &quot;baseline_validation_top_k_cost&quot;: rounded(metrics.get(&quot;baseline_validation_top_k_cost&quot;)) if &quot;baseline_validation_top_k_cost&quot; in metrics else None,
+                &quot;objective_improved_vs_source&quot;: rounded(metrics.get(&quot;objective_improved_vs_source&quot;)) if &quot;objective_improved_vs_source&quot; in metrics else None,
+                &quot;cost_gate_still_fails_vs_baseline&quot;: rounded(metrics.get(&quot;cost_gate_still_fails_vs_baseline&quot;)) if &quot;cost_gate_still_fails_vs_baseline&quot; in metrics else None,
+                &quot;artifact_count&quot;: len(list_artifacts_recursive(client, run.info.run_id)),
+                &quot;generated_at&quot;: GENERATED_AT,
+            }
+        )
+    return rows
+
+
+def artifact_inventory(client: MlflowClient, logged_runs: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for logged in logged_runs:
+        logged_paths = set(list_artifacts_recursive(client, logged[&quot;run_id&quot;]))
+        for artifact in logged[&quot;artifact_sources&quot;]:
+            source_path = Path(artifact[&quot;source_path&quot;])
+            artifact_path = f&quot;{artifact[&#x27;artifact_path&#x27;]}/{source_path.name}&quot;
+            rows.append(
+                {
+                    &quot;run_alias&quot;: logged[&quot;run_alias&quot;],
+                    &quot;run_role&quot;: logged[&quot;run_role&quot;],
+                    &quot;artifact_path&quot;: artifact_path,
+                    &quot;logged_to_mlflow&quot;: artifact_path in logged_paths,
+                    &quot;source_file&quot;: str(source_path.relative_to(REPO_ROOT)) if source_path.is_relative_to(REPO_ROOT) else source_path.name,
+                    &quot;source_file_exists&quot;: source_path.is_file(),
+                    &quot;source_size_bytes&quot;: source_path.stat().st_size if source_path.is_file() else None,
+                    &quot;source_sha256&quot;: sha256_file(source_path) if source_path.is_file() else &quot;&quot;,
+                    &quot;generated_at&quot;: GENERATED_AT,
+                }
+            )
+    return rows
+
+
+def metric_history(client: MlflowClient, logged_runs: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for logged in logged_runs:
+        run = client.get_run(logged[&quot;run_id&quot;])
+        for metric_name in sorted(run.data.metrics):
+            history = client.get_metric_history(logged[&quot;run_id&quot;], metric_name)
+            for point in history:
+                rows.append(
+                    {
+                        &quot;run_alias&quot;: logged[&quot;run_alias&quot;],
+                        &quot;metric_name&quot;: metric_name,
+                        &quot;metric_value&quot;: rounded(point.value),
+                        &quot;metric_step&quot;: point.step,
+                        &quot;logged_once&quot;: len(history) == 1,
+                        &quot;generated_at&quot;: GENERATED_AT,
+                    }
+                )
+    return sorted(rows, key=lambda row: (row[&quot;run_alias&quot;], row[&quot;metric_name&quot;], row[&quot;metric_step&quot;]))
+
+
+def add_mlflow_result_checks(
+    *,
+    checks: list[dict[str, Any]],
+    policy: dict[str, Any],
+    run_table: list[dict[str, Any]],
+    artifact_rows: list[dict[str, Any]],
+    metric_rows: list[dict[str, Any]],
+    logged_runs: list[dict[str, Any]],
+) -&gt; None:
+    aliases = [row[&quot;run_alias&quot;] for row in run_table]
+    expected_aliases = [run[&quot;run_alias&quot;] for run in policy[&quot;run_plan&quot;]]
+    if aliases == expected_aliases:
+        checks.append(passed(&quot;required_mlflow_runs_exported&quot;, aliases, expected_aliases))
+    else:
+        checks.append(failed(&quot;required_mlflow_runs_exported&quot;, aliases, expected_aliases))
+
+    if all(row[&quot;run_id_present&quot;] and not row[&quot;raw_run_id_exported&quot;] for row in run_table):
+        checks.append(passed(&quot;run_table_omits_raw_run_ids&quot;, {&quot;run_count&quot;: len(run_table)}, &quot;run ids exist in MLflow but are not exported&quot;))
+    else:
+        checks.append(failed(&quot;run_table_omits_raw_run_ids&quot;, run_table, &quot;run ids exist in MLflow but are not exported&quot;))
+
+    missing_tags: list[dict[str, Any]] = []
+    for logged in logged_runs:
+        tag_keys = set(logged[&quot;tags&quot;])
+        for tag in policy[&quot;required_common_tags&quot;]:
+            if tag not in tag_keys:
+                missing_tags.append({&quot;run_alias&quot;: logged[&quot;run_alias&quot;], &quot;tag&quot;: tag})
+    if missing_tags:
+        checks.append(failed(&quot;required_tags_logged&quot;, missing_tags, &quot;all required common tags&quot;))
+    else:
+        checks.append(passed(&quot;required_tags_logged&quot;, policy[&quot;required_common_tags&quot;], &quot;all required common tags&quot;))
+
+    missing_params: list[dict[str, Any]] = []
+    for logged in logged_runs:
+        param_keys = set(logged[&quot;params&quot;])
+        for param in policy[&quot;required_params&quot;][logged[&quot;run_alias&quot;]]:
+            if param not in param_keys:
+                missing_params.append({&quot;run_alias&quot;: logged[&quot;run_alias&quot;], &quot;param&quot;: param})
+    if missing_params:
+        checks.append(failed(&quot;required_params_logged&quot;, missing_params, &quot;all required params by run role&quot;))
+    else:
+        checks.append(passed(&quot;required_params_logged&quot;, sorted(policy[&quot;required_params&quot;]), &quot;all required params by run role&quot;))
+
+    missing_metrics: list[dict[str, Any]] = []
+    metric_pairs = {(row[&quot;run_alias&quot;], row[&quot;metric_name&quot;]) for row in metric_rows}
+    for run_alias, metrics in policy[&quot;required_metrics&quot;].items():
+        for metric in metrics:
+            if (run_alias, metric) not in metric_pairs:
+                missing_metrics.append({&quot;run_alias&quot;: run_alias, &quot;metric&quot;: metric})
+    if missing_metrics:
+        checks.append(failed(&quot;required_metrics_logged&quot;, missing_metrics, &quot;all required metrics by run role&quot;))
+    else:
+        checks.append(passed(&quot;required_metrics_logged&quot;, sorted(policy[&quot;required_metrics&quot;]), &quot;all required metrics by run role&quot;))
+
+    missing_artifacts: list[dict[str, Any]] = []
+    artifact_pairs = {(row[&quot;run_alias&quot;], row[&quot;artifact_path&quot;]) for row in artifact_rows if row[&quot;logged_to_mlflow&quot;]}
+    for run_alias, paths in policy[&quot;required_artifacts&quot;].items():
+        for path in paths:
+            if (run_alias, path) not in artifact_pairs:
+                missing_artifacts.append({&quot;run_alias&quot;: run_alias, &quot;artifact_path&quot;: path})
+    if missing_artifacts:
+        checks.append(failed(&quot;required_artifacts_logged&quot;, missing_artifacts, &quot;all required artifacts by run role&quot;))
+    else:
+        checks.append(passed(&quot;required_artifacts_logged&quot;, sorted(policy[&quot;required_artifacts&quot;]), &quot;all required artifacts by run role&quot;))
+
+    if all(row[&quot;source_package_id&quot;] == policy[&quot;baseline_package_id&quot;] for row in run_table):
+        checks.append(passed(&quot;source_package_lineage_logged&quot;, policy[&quot;baseline_package_id&quot;], &quot;baseline package id logged on every run&quot;))
+    else:
+        checks.append(failed(&quot;source_package_lineage_logged&quot;, run_table, &quot;baseline package id logged on every run&quot;))
+
+    if policy[&quot;warning_policy&quot;][&quot;warn_if_cost_gate_still_fails&quot;]:
+        best = next(row for row in run_table if row[&quot;run_alias&quot;] == &quot;best_optuna_trial&quot;)
+        if best[&quot;cost_gate_still_fails_vs_baseline&quot;] == 1.0:
+            checks.append(
+                failed(
+                    &quot;mlflow_ledger_tracks_candidate_with_failed_cost_gate&quot;,
+                    {&quot;best_trial_cost&quot;: best[&quot;validation_top_k_total_error_cost&quot;], &quot;baseline_cost&quot;: best[&quot;baseline_validation_top_k_cost&quot;]},
+                    &quot;MLflow records limitation instead of promotion claim&quot;,
+                    severity=&quot;warning&quot;,
+                )
+            )
+    if policy[&quot;warning_policy&quot;][&quot;warn_if_tracking_is_local_only&quot;]:
+        checks.append(
+            failed(
+                &quot;local_tracking_store_not_registry&quot;,
+                policy[&quot;experiment&quot;][&quot;tracking_backend&quot;],
+                &quot;local file store is a lesson boundary, not production registry&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    if policy[&quot;warning_policy&quot;][&quot;warn_if_full_mlflow_package_conflicts_with_pandas3&quot;]:
+        checks.append(
+            failed(
+                &quot;mlflow_skinny_used_due_to_pandas3_boundary&quot;,
+                {&quot;package&quot;: policy[&quot;experiment&quot;][&quot;tracking_package&quot;], &quot;reason&quot;: &quot;full mlflow currently pins pandas&lt;3&quot;},
+                &quot;tracking API is enough for this lesson&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+
+def build_summary(policy: dict[str, Any], checks: list[dict[str, Any]], run_table: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    errors = blocking_errors(checks)
+    best = next((row for row in run_table if row[&quot;run_alias&quot;] == &quot;best_optuna_trial&quot;), {})
+    return {
+        &quot;mlflow_tracking_audit_id&quot;: policy.get(&quot;mlflow_tracking_audit_id&quot;),
+        &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+        &quot;mlflow_version&quot;: mlflow.__version__,
+        &quot;tracking_package&quot;: policy.get(&quot;experiment&quot;, {}).get(&quot;tracking_package&quot;),
+        &quot;experiment_name&quot;: policy.get(&quot;experiment&quot;, {}).get(&quot;name&quot;),
+        &quot;tracking_backend&quot;: policy.get(&quot;experiment&quot;, {}).get(&quot;tracking_backend&quot;),
+        &quot;run_count&quot;: len(run_table),
+        &quot;raw_run_ids_exported&quot;: any(row.get(&quot;raw_run_id_exported&quot;) for row in run_table),
+        &quot;best_run_alias&quot;: best.get(&quot;run_alias&quot;),
+        &quot;best_validation_logloss&quot;: best.get(&quot;validation_logloss&quot;),
+        &quot;best_trial_validation_top_k_cost&quot;: best.get(&quot;validation_top_k_total_error_cost&quot;),
+        &quot;baseline_validation_top_k_cost&quot;: best.get(&quot;baseline_validation_top_k_cost&quot;),
+        &quot;source_package_id&quot;: policy.get(&quot;baseline_package_id&quot;),
+        &quot;optuna_tuning_audit_id&quot;: policy.get(&quot;source_optuna_tuning_audit_id&quot;),
+        &quot;decision_status&quot;: policy.get(&quot;decision_policy&quot;, {}).get(&quot;outcome_if_valid&quot;) if not errors else &quot;blocked_before_mlflow_tracking&quot;,
+        &quot;blocking_errors&quot;: errors,
+        &quot;warnings&quot;: warning_ids(checks),
+        &quot;readiness_status&quot;: &quot;blocked_before_mlflow_tracking&quot; if errors else policy.get(&quot;decision_policy&quot;, {}).get(&quot;next_lesson_readiness&quot;),
+    }
+
+
+def build_serialized_spec(
+    policy: dict[str, Any],
+    run_table: list[dict[str, Any]],
+    artifact_rows: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    return {
+        &quot;mlflow_tracking_audit_id&quot;: policy[&quot;mlflow_tracking_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;experiment&quot;: policy[&quot;experiment&quot;],
+        &quot;tracking_scope&quot;: policy[&quot;tracking_scope&quot;],
+        &quot;source_package_id&quot;: policy[&quot;baseline_package_id&quot;],
+        &quot;optuna_tuning_audit_id&quot;: policy[&quot;source_optuna_tuning_audit_id&quot;],
+        &quot;run_aliases&quot;: [row[&quot;run_alias&quot;] for row in run_table],
+        &quot;run_table&quot;: run_table,
+        &quot;artifact_count&quot;: len(artifact_rows),
+        &quot;required_checks&quot;: [check for check in checks if check[&quot;severity&quot;] == &quot;error&quot;],
+        &quot;decision_policy&quot;: policy[&quot;decision_policy&quot;],
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+
+def empty_invalid_report(file_check: dict[str, Any]) -&gt; dict[str, Any]:
+    return {
+        &quot;valid&quot;: False,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;mlflow_tracking_audit_id&quot;: None,
+            &quot;blocking_errors&quot;: blocking_errors([file_check]),
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_before_mlflow_tracking&quot;,
+        },
+        &quot;run_table&quot;: [],
+        &quot;artifact_inventory&quot;: [],
+        &quot;metric_history&quot;: [],
+        &quot;reproducibility_checks&quot;: [file_check],
+        &quot;model_metadata&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    optuna_report_path: Path = DEFAULT_OPTUNA_REPORT_PATH,
+    optuna_spec_path: Path = DEFAULT_OPTUNA_SPEC_PATH,
+    optuna_ledger_path: Path = DEFAULT_OPTUNA_LEDGER_PATH,
+    optuna_trace_path: Path = DEFAULT_OPTUNA_TRACE_PATH,
+    optuna_predictions_path: Path = DEFAULT_OPTUNA_PREDICTIONS_PATH,
+    tracking_root: Path | None = None,
+) -&gt; dict[str, Any]:
+    paths = {
+        &quot;policy&quot;: policy_path,
+        &quot;optuna_report&quot;: optuna_report_path,
+        &quot;optuna_serialized_spec&quot;: optuna_spec_path,
+        &quot;optuna_trial_ledger&quot;: optuna_ledger_path,
+        &quot;optuna_best_trial_trace&quot;: optuna_trace_path,
+        &quot;optuna_tuned_predictions&quot;: optuna_predictions_path,
+    }
+    file_check = validate_required_files(paths)
+    if not file_check[&quot;valid&quot;]:
+        return empty_invalid_report(file_check)
+
+    policy = read_json(policy_path)
+    optuna_report = read_json(optuna_report_path)
+    optuna_spec = read_json(optuna_spec_path)
+    checks = [file_check]
+    checks.extend(validate_policy(policy, optuna_report, optuna_spec))
+    if blocking_errors(checks):
+        summary = build_summary(policy, checks, [])
+        return {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;run_table&quot;: [],
+            &quot;artifact_inventory&quot;: [],
+            &quot;metric_history&quot;: [],
+            &quot;reproducibility_checks&quot;: checks,
+            &quot;model_metadata&quot;: [],
+            &quot;serialized_spec&quot;: {},
+        }
+
+    if tracking_root is None:
+        with tempfile.TemporaryDirectory(prefix=&quot;mlflow-lesson-&quot;) as directory:
+            return run_with_tracking_root(
+                policy=policy,
+                optuna_report=optuna_report,
+                optuna_spec=optuna_spec,
+                checks=checks,
+                tracking_root=Path(directory) / &quot;mlruns&quot;,
+                metadata_root=Path(directory) / &quot;metadata&quot;,
+            )
+    return run_with_tracking_root(
+        policy=policy,
+        optuna_report=optuna_report,
+        optuna_spec=optuna_spec,
+        checks=checks,
+        tracking_root=tracking_root,
+        metadata_root=tracking_root / &quot;_metadata_sources&quot;,
+    )
+
+
+def run_with_tracking_root(
+    *,
+    policy: dict[str, Any],
+    optuna_report: dict[str, Any],
+    optuna_spec: dict[str, Any],
+    checks: list[dict[str, Any]],
+    tracking_root: Path,
+    metadata_root: Path,
+) -&gt; dict[str, Any]:
+    client, experiment_id, logged_runs, model_metadata_rows = log_runs_to_mlflow(
+        policy=policy,
+        optuna_report=optuna_report,
+        optuna_spec=optuna_spec,
+        tracking_root=tracking_root,
+        metadata_root=metadata_root,
+    )
+    run_table = build_run_table(client, experiment_id, logged_runs)
+    artifact_rows = artifact_inventory(client, logged_runs)
+    metric_rows = metric_history(client, logged_runs)
+    add_mlflow_result_checks(
+        checks=checks,
+        policy=policy,
+        run_table=run_table,
+        artifact_rows=artifact_rows,
+        metric_rows=metric_rows,
+        logged_runs=logged_runs,
+    )
+    summary = build_summary(policy, checks, run_table)
+    serialized_spec = build_serialized_spec(policy, run_table, artifact_rows, checks)
+    return {
+        &quot;valid&quot;: not blocking_errors(checks),
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;run_table&quot;: run_table,
+        &quot;artifact_inventory&quot;: artifact_rows,
+        &quot;metric_history&quot;: metric_rows,
+        &quot;reproducibility_checks&quot;: checks,
+        &quot;model_metadata&quot;: model_metadata_rows,
+        &quot;serialized_spec&quot;: serialized_spec,
+    }
+
+
+def write_outputs(result: dict[str, Any], output_root: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_root / output_spec[&quot;report_file&quot;], {key: value for key, value in result.items() if key != &quot;serialized_spec&quot;})
+    write_json(output_root / output_spec[&quot;model_metadata_file&quot;], result[&quot;model_metadata&quot;])
+    write_json(output_root / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+    write_csv(
+        output_root / output_spec[&quot;run_table_file&quot;],
+        result[&quot;run_table&quot;],
+        [
+            &quot;experiment_name&quot;,
+            &quot;run_alias&quot;,
+            &quot;run_name&quot;,
+            &quot;run_role&quot;,
+            &quot;candidate_role&quot;,
+            &quot;model_id&quot;,
+            &quot;run_id_present&quot;,
+            &quot;run_id_length&quot;,
+            &quot;raw_run_id_exported&quot;,
+            &quot;source_package_id&quot;,
+            &quot;optuna_tuning_audit_id&quot;,
+            &quot;decision_status&quot;,
+            &quot;readiness_status&quot;,
+            &quot;depth&quot;,
+            &quot;learning_rate&quot;,
+            &quot;optuna_trial_number&quot;,
+            &quot;validation_logloss&quot;,
+            &quot;validation_top_k_total_error_cost&quot;,
+            &quot;baseline_validation_top_k_cost&quot;,
+            &quot;objective_improved_vs_source&quot;,
+            &quot;cost_gate_still_fails_vs_baseline&quot;,
+            &quot;artifact_count&quot;,
+            &quot;generated_at&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;artifact_inventory_file&quot;],
+        result[&quot;artifact_inventory&quot;],
+        [
+            &quot;run_alias&quot;,
+            &quot;run_role&quot;,
+            &quot;artifact_path&quot;,
+            &quot;logged_to_mlflow&quot;,
+            &quot;source_file&quot;,
+            &quot;source_file_exists&quot;,
+            &quot;source_size_bytes&quot;,
+            &quot;source_sha256&quot;,
+            &quot;generated_at&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;metric_history_file&quot;],
+        result[&quot;metric_history&quot;],
+        [&quot;run_alias&quot;, &quot;metric_name&quot;, &quot;metric_value&quot;, &quot;metric_step&quot;, &quot;logged_once&quot;, &quot;generated_at&quot;],
+    )
+    write_csv(
+        output_root / output_spec[&quot;reproducibility_checks_file&quot;],
+        result[&quot;reproducibility_checks&quot;],
+        [&quot;id&quot;, &quot;severity&quot;, &quot;valid&quot;, &quot;observed&quot;, &quot;expected&quot;, &quot;sample&quot;],
+    )
+
+
+def main() -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Export a deterministic ledger from local MLflow tracking runs.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--optuna-report&quot;, type=Path, default=DEFAULT_OPTUNA_REPORT_PATH)
+    parser.add_argument(&quot;--optuna-spec&quot;, type=Path, default=DEFAULT_OPTUNA_SPEC_PATH)
+    parser.add_argument(&quot;--optuna-ledger&quot;, type=Path, default=DEFAULT_OPTUNA_LEDGER_PATH)
+    parser.add_argument(&quot;--optuna-trace&quot;, type=Path, default=DEFAULT_OPTUNA_TRACE_PATH)
+    parser.add_argument(&quot;--optuna-predictions&quot;, type=Path, default=DEFAULT_OPTUNA_PREDICTIONS_PATH)
+    parser.add_argument(&quot;--tracking-root&quot;, type=Path, default=None)
+    parser.add_argument(&quot;--output-root&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    args = parser.parse_args()
+
+    result = run(
+        policy_path=args.policy,
+        optuna_report_path=args.optuna_report,
+        optuna_spec_path=args.optuna_spec,
+        optuna_ledger_path=args.optuna_ledger,
+        optuna_trace_path=args.optuna_trace,
+        optuna_predictions_path=args.optuna_predictions,
+        tracking_root=args.tracking_root,
+    )
+    output_spec = read_json(args.policy)[&quot;output&quot;] if args.policy.is_file() else {
+        &quot;report_file&quot;: &quot;mlflow_experiment_report.json&quot;,
+        &quot;run_table_file&quot;: &quot;mlflow_run_table.csv&quot;,
+        &quot;artifact_inventory_file&quot;: &quot;mlflow_artifact_inventory.csv&quot;,
+        &quot;metric_history_file&quot;: &quot;mlflow_metric_history.csv&quot;,
+        &quot;reproducibility_checks_file&quot;: &quot;mlflow_reproducibility_checks.csv&quot;,
+        &quot;model_metadata_file&quot;: &quot;mlflow_model_metadata.json&quot;,
+        &quot;serialized_spec_file&quot;: &quot;mlflow_tracking_serialized_spec.json&quot;,
+    }
+    write_outputs(result, args.output_root, output_spec)
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_ledger_exporter.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_experiment_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;mlflow_version&quot;: &quot;3.14.0&quot;,
+    &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+    &quot;experiment_name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+    &quot;tracking_backend&quot;: &quot;local_file_store&quot;,
+    &quot;run_count&quot;: 3,
+    &quot;raw_run_ids_exported&quot;: false,
+    &quot;best_run_alias&quot;: &quot;best_optuna_trial&quot;,
+    &quot;best_validation_logloss&quot;: 0.696531,
+    &quot;best_trial_validation_top_k_cost&quot;: 7.0,
+    &quot;baseline_validation_top_k_cost&quot;: 1.0,
+    &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+    &quot;decision_status&quot;: &quot;mlflow_ledger_ready_for_stability_package&quot;,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;mlflow_ledger_tracks_candidate_with_failed_cost_gate&quot;,
+      &quot;local_tracking_store_not_registry&quot;,
+      &quot;mlflow_skinny_used_due_to_pandas3_boundary&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;
+  },
+  &quot;run_table&quot;: [
+    {
+      &quot;experiment_name&quot;: &quot;01_source_early_stopped_catboost&quot;,
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;run_name&quot;: &quot;01_source_early_stopped_catboost&quot;,
+      &quot;run_role&quot;: &quot;source_candidate&quot;,
+      &quot;candidate_role&quot;: &quot;source_before_tuning&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: &quot;2&quot;,
+      &quot;learning_rate&quot;: &quot;0.2&quot;,
+      &quot;optuna_trial_number&quot;: null,
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;objective_improved_vs_source&quot;: null,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: null,
+      &quot;artifact_count&quot;: 2,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;experiment_name&quot;: &quot;02_best_optuna_trial&quot;,
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_name&quot;: &quot;02_best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;,
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: &quot;2&quot;,
+      &quot;learning_rate&quot;: &quot;0.05&quot;,
+      &quot;optuna_trial_number&quot;: &quot;4&quot;,
+      &quot;validation_logloss&quot;: 0.696531,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;objective_improved_vs_source&quot;: 1.0,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: 1.0,
+      &quot;artifact_count&quot;: 4,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;experiment_name&quot;: &quot;03_phase15_baseline_cost_gate&quot;,
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;run_name&quot;: &quot;03_phase15_baseline_cost_gate&quot;,
+      &quot;run_role&quot;: &quot;baseline_gate&quot;,
+      &quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;,
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: null,
+      &quot;learning_rate&quot;: null,
+      &quot;optuna_trial_number&quot;: null,
+      &quot;validation_logloss&quot;: null,
+      &quot;validation_top_k_total_error_cost&quot;: 1.0,
+      &quot;baseline_validation_top_k_cost&quot;: null,
+      &quot;objective_improved_vs_source&quot;: null,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: null,
+      &quot;artifact_count&quot;: 2,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    }
+  ],
+  &quot;artifact_inventory&quot;: [
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;run_role&quot;: &quot;source_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;upstream/optuna_best_trial_trace.csv&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 516,
+      &quot;source_sha256&quot;: &quot;28be335df8e06fbc9636a684653c2a1772d5d59f4a3aabf7608f27ad95176e17&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;run_role&quot;: &quot;source_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;model_metadata/source_early_stopped_catboost_model_metadata.json&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;source_early_stopped_catboost_model_metadata.json&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 1023,
+      &quot;source_sha256&quot;: &quot;2b4948518a19806dc9cde0ab39d2bd513c56171bdcf9b34f2cbe77ff376d62a4&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;upstream/optuna_tuning_serialized_spec.json&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_serialized_spec.json&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 3378,
+      &quot;source_sha256&quot;: &quot;d0abe03556372e08f21ce21a7fe061ce83c67d3d5b5ce2be33db570ba0f2d1b4&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;upstream/optuna_trial_ledger.csv&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_trial_ledger.csv&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 1401,
+      &quot;source_sha256&quot;: &quot;7b114f5b58ca2e31c31cb88c4f1dffffc141965ed20e41c15153d0537ea3ae38&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;upstream/optuna_tuned_predictions.csv&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_tuned_predictions.csv&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 1429,
+      &quot;source_sha256&quot;: &quot;b8443308eb0f5121069f567f98dca92e48f985fbd9ab05c7b6bbaa9d2ccf3a25&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;artifact_path&quot;: &quot;model_metadata/best_optuna_trial_model_metadata.json&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;best_optuna_trial_model_metadata.json&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 1123,
+      &quot;source_sha256&quot;: &quot;2bed0645da30e2dda9bb59d4881caef96582f7917678688c2eb33cbba1609ef7&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;run_role&quot;: &quot;baseline_gate&quot;,
+      &quot;artifact_path&quot;: &quot;upstream/optuna_best_trial_trace.csv&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 516,
+      &quot;source_sha256&quot;: &quot;28be335df8e06fbc9636a684653c2a1772d5d59f4a3aabf7608f27ad95176e17&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;run_role&quot;: &quot;baseline_gate&quot;,
+      &quot;artifact_path&quot;: &quot;model_metadata/phase15_baseline_cost_gate_model_metadata.json&quot;,
+      &quot;logged_to_mlflow&quot;: true,
+      &quot;source_file&quot;: &quot;phase15_baseline_cost_gate_model_metadata.json&quot;,
+      &quot;source_file_exists&quot;: true,
+      &quot;source_size_bytes&quot;: 936,
+      &quot;source_sha256&quot;: &quot;baa8e5737a4c324805bd1710792eb7cb3e9db7bec94b3f759cea480bd6ad9b47&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    }
+  ],
+  &quot;metric_history&quot;: [
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;baseline_validation_top_k_cost&quot;,
+      &quot;metric_value&quot;: 1.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;cost_gate_still_fails_vs_baseline&quot;,
+      &quot;metric_value&quot;: 1.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;objective_improved_vs_source&quot;,
+      &quot;metric_value&quot;: 1.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;test_used_for_selection&quot;,
+      &quot;metric_value&quot;: 0.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;validation_logloss&quot;,
+      &quot;metric_value&quot;: 0.696531,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;metric_name&quot;: &quot;validation_top_k_total_error_cost&quot;,
+      &quot;metric_value&quot;: 7.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;metric_name&quot;: &quot;test_used_for_selection&quot;,
+      &quot;metric_value&quot;: 0.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;metric_name&quot;: &quot;validation_top_k_total_error_cost&quot;,
+      &quot;metric_value&quot;: 1.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;metric_name&quot;: &quot;baseline_validation_top_k_cost&quot;,
+      &quot;metric_value&quot;: 1.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;metric_name&quot;: &quot;test_used_for_selection&quot;,
+      &quot;metric_value&quot;: 0.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;metric_name&quot;: &quot;validation_logloss&quot;,
+      &quot;metric_value&quot;: 0.698394,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;metric_name&quot;: &quot;validation_top_k_total_error_cost&quot;,
+      &quot;metric_value&quot;: 7.0,
+      &quot;metric_step&quot;: 0,
+      &quot;logged_once&quot;: true,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    }
+  ],
+  &quot;reproducibility_checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;optuna_best_trial_trace&quot;,
+        &quot;optuna_report&quot;,
+        &quot;optuna_serialized_spec&quot;,
+        &quot;optuna_trial_ledger&quot;,
+        &quot;optuna_tuned_predictions&quot;,
+        &quot;policy&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_policy_has_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;baseline_package_id&quot;,
+        &quot;decision_policy&quot;,
+        &quot;experiment&quot;,
+        &quot;mlflow_tracking_audit_id&quot;,
+        &quot;output&quot;,
+        &quot;problem_id&quot;,
+        &quot;required_artifacts&quot;,
+        &quot;required_common_tags&quot;,
+        &quot;required_metrics&quot;,
+        &quot;required_params&quot;,
+        &quot;run_plan&quot;,
+        &quot;source_optuna_tuning_audit_id&quot;,
+        &quot;tracking_scope&quot;,
+        &quot;warning_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;required policy fields&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_policy_matches_optuna_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+        &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+        &quot;readiness&quot;: &quot;ready_for_mlflow_lesson&quot;
+      },
+      &quot;expected&quot;: &quot;valid Optuna handoff ready for MLflow&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tracking_backend_is_local_mlflow_file_store&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+        &quot;tracking_backend&quot;: &quot;local_file_store&quot;,
+        &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+        &quot;omit_raw_run_ids_from_exports&quot;: true
+      },
+      &quot;expected&quot;: &quot;local mlflow-skinny tracking store&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tracking_scope_excludes_registry_and_serving&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;registry&quot;: false,
+        &quot;remote_tracking_server&quot;: false,
+        &quot;serving&quot;: false,
+        &quot;reason&quot;: &quot;phase 16 uses local experiment history only; registry and serving belong outside this lesson&quot;
+      },
+      &quot;expected&quot;: &quot;registry, remote tracking and serving are false&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;run_plan_declares_expected_tracking_units&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;expected&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;output_contract_names_all_artifacts&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;artifact_inventory_file&quot;,
+        &quot;metric_history_file&quot;,
+        &quot;model_metadata_file&quot;,
+        &quot;report_file&quot;,
+        &quot;reproducibility_checks_file&quot;,
+        &quot;run_table_file&quot;,
+        &quot;serialized_spec_file&quot;
+      ],
+      &quot;expected&quot;: &quot;all output filenames are declared&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_mlflow_runs_exported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;expected&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;run_table_omits_raw_run_ids&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;run_count&quot;: 3
+      },
+      &quot;expected&quot;: &quot;run ids exist in MLflow but are not exported&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_tags_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;mlflow_tracking_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;source_package_id&quot;,
+        &quot;optuna_tuning_audit_id&quot;,
+        &quot;decision_status&quot;,
+        &quot;readiness_status&quot;
+      ],
+      &quot;expected&quot;: &quot;all required common tags&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_params_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required params by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_metrics_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required metrics by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_artifacts_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required artifacts by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_package_lineage_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;expected&quot;: &quot;baseline package id logged on every run&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_ledger_tracks_candidate_with_failed_cost_gate&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;best_trial_cost&quot;: 7.0,
+        &quot;baseline_cost&quot;: 1.0
+      },
+      &quot;expected&quot;: &quot;MLflow records limitation instead of promotion claim&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;local_tracking_store_not_registry&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;local_file_store&quot;,
+      &quot;expected&quot;: &quot;local file store is a lesson boundary, not production registry&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_skinny_used_due_to_pandas3_boundary&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;package&quot;: &quot;mlflow-skinny&quot;,
+        &quot;reason&quot;: &quot;full mlflow currently pins pandas&lt;3&quot;
+      },
+      &quot;expected&quot;: &quot;tracking API is enough for this lesson&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;model_metadata&quot;: [
+    {
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;run_role&quot;: &quot;source_candidate&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;candidate_role&quot;: &quot;source_before_tuning&quot;,
+      &quot;params&quot;: {
+        &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+        &quot;model_family&quot;: &quot;catboost&quot;,
+        &quot;depth&quot;: 2,
+        &quot;learning_rate&quot;: 0.2,
+        &quot;random_seed&quot;: 1609
+      },
+      &quot;metrics&quot;: {
+        &quot;validation_logloss&quot;: 0.698394,
+        &quot;validation_top_k_total_error_cost&quot;: 7.0,
+        &quot;baseline_validation_top_k_cost&quot;: 1.0,
+        &quot;test_used_for_selection&quot;: 0.0
+      },
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;known_warnings&quot;: [
+        &quot;tiny_fixed_budget_study_expected&quot;,
+        &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+        &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+        &quot;no_test_objective_boundary_visible&quot;
+      ],
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;,
+      &quot;params&quot;: {
+        &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+        &quot;model_family&quot;: &quot;catboost&quot;,
+        &quot;depth&quot;: 2,
+        &quot;learning_rate&quot;: 0.05,
+        &quot;random_seed&quot;: 1609,
+        &quot;optuna_trial_number&quot;: 4
+      },
+      &quot;metrics&quot;: {
+        &quot;validation_logloss&quot;: 0.696531,
+        &quot;validation_top_k_total_error_cost&quot;: 7.0,
+        &quot;baseline_validation_top_k_cost&quot;: 1.0,
+        &quot;objective_improved_vs_source&quot;: 1.0,
+        &quot;cost_gate_still_fails_vs_baseline&quot;: 1.0,
+        &quot;test_used_for_selection&quot;: 0.0
+      },
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;known_warnings&quot;: [
+        &quot;tiny_fixed_budget_study_expected&quot;,
+        &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+        &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+        &quot;no_test_objective_boundary_visible&quot;
+      ],
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;run_role&quot;: &quot;baseline_gate&quot;,
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;,
+      &quot;params&quot;: {
+        &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+        &quot;model_family&quot;: &quot;sklearn_pipeline_package&quot;,
+        &quot;baseline_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;
+      },
+      &quot;metrics&quot;: {
+        &quot;validation_top_k_total_error_cost&quot;: 1.0,
+        &quot;test_used_for_selection&quot;: 0.0
+      },
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;known_warnings&quot;: [
+        &quot;tiny_fixed_budget_study_expected&quot;,
+        &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+        &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+        &quot;no_test_objective_boundary_visible&quot;
+      ],
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_metric_history.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>run_alias,metric_name,metric_value,metric_step,logged_once,generated_at
+best_optuna_trial,baseline_validation_top_k_cost,1.0,0,True,2026-07-06T12:15:00+03:00
+best_optuna_trial,cost_gate_still_fails_vs_baseline,1.0,0,True,2026-07-06T12:15:00+03:00
+best_optuna_trial,objective_improved_vs_source,1.0,0,True,2026-07-06T12:15:00+03:00
+best_optuna_trial,test_used_for_selection,0.0,0,True,2026-07-06T12:15:00+03:00
+best_optuna_trial,validation_logloss,0.696531,0,True,2026-07-06T12:15:00+03:00
+best_optuna_trial,validation_top_k_total_error_cost,7.0,0,True,2026-07-06T12:15:00+03:00
+phase15_baseline_cost_gate,test_used_for_selection,0.0,0,True,2026-07-06T12:15:00+03:00
+phase15_baseline_cost_gate,validation_top_k_total_error_cost,1.0,0,True,2026-07-06T12:15:00+03:00
+source_early_stopped_catboost,baseline_validation_top_k_cost,1.0,0,True,2026-07-06T12:15:00+03:00
+source_early_stopped_catboost,test_used_for_selection,0.0,0,True,2026-07-06T12:15:00+03:00
+source_early_stopped_catboost,validation_logloss,0.698394,0,True,2026-07-06T12:15:00+03:00
+source_early_stopped_catboost,validation_top_k_total_error_cost,7.0,0,True,2026-07-06T12:15:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_metric_history.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_model_metadata.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>[
+  {
+    &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+    &quot;run_role&quot;: &quot;source_candidate&quot;,
+    &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;candidate_role&quot;: &quot;source_before_tuning&quot;,
+    &quot;params&quot;: {
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;model_family&quot;: &quot;catboost&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;random_seed&quot;: 1609
+    },
+    &quot;metrics&quot;: {
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;test_used_for_selection&quot;: 0.0
+    },
+    &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+    &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+    &quot;known_warnings&quot;: [
+      &quot;tiny_fixed_budget_study_expected&quot;,
+      &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+      &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+      &quot;no_test_objective_boundary_visible&quot;
+    ],
+    &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+  },
+  {
+    &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+    &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+    &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+    &quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;,
+    &quot;params&quot;: {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;model_family&quot;: &quot;catboost&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.05,
+      &quot;random_seed&quot;: 1609,
+      &quot;optuna_trial_number&quot;: 4
+    },
+    &quot;metrics&quot;: {
+      &quot;validation_logloss&quot;: 0.696531,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;objective_improved_vs_source&quot;: 1.0,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: 1.0,
+      &quot;test_used_for_selection&quot;: 0.0
+    },
+    &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+    &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+    &quot;known_warnings&quot;: [
+      &quot;tiny_fixed_budget_study_expected&quot;,
+      &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+      &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+      &quot;no_test_objective_boundary_visible&quot;
+    ],
+    &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+  },
+  {
+    &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+    &quot;run_role&quot;: &quot;baseline_gate&quot;,
+    &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;,
+    &quot;params&quot;: {
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;model_family&quot;: &quot;sklearn_pipeline_package&quot;,
+      &quot;baseline_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;
+    },
+    &quot;metrics&quot;: {
+      &quot;validation_top_k_total_error_cost&quot;: 1.0,
+      &quot;test_used_for_selection&quot;: 0.0
+    },
+    &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;upstream_optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+    &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+    &quot;known_warnings&quot;: [
+      &quot;tiny_fixed_budget_study_expected&quot;,
+      &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+      &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+      &quot;no_test_objective_boundary_visible&quot;
+    ],
+    &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+  }
+]
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_model_metadata.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_reproducibility_checks.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>id,severity,valid,observed,expected,sample
+input_files_are_present,error,True,&quot;[&quot;&quot;optuna_best_trial_trace&quot;&quot;, &quot;&quot;optuna_report&quot;&quot;, &quot;&quot;optuna_serialized_spec&quot;&quot;, &quot;&quot;optuna_trial_ledger&quot;&quot;, &quot;&quot;optuna_tuned_predictions&quot;&quot;, &quot;&quot;policy&quot;&quot;]&quot;,all required input files,[]
+mlflow_policy_has_required_fields,error,True,&quot;[&quot;&quot;baseline_package_id&quot;&quot;, &quot;&quot;decision_policy&quot;&quot;, &quot;&quot;experiment&quot;&quot;, &quot;&quot;mlflow_tracking_audit_id&quot;&quot;, &quot;&quot;output&quot;&quot;, &quot;&quot;problem_id&quot;&quot;, &quot;&quot;required_artifacts&quot;&quot;, &quot;&quot;required_common_tags&quot;&quot;, &quot;&quot;required_metrics&quot;&quot;, &quot;&quot;required_params&quot;&quot;, &quot;&quot;run_plan&quot;&quot;, &quot;&quot;source_optuna_tuning_audit_id&quot;&quot;, &quot;&quot;tracking_scope&quot;&quot;, &quot;&quot;warning_policy&quot;&quot;]&quot;,required policy fields,[]
+mlflow_policy_matches_optuna_handoff,error,True,&quot;{&quot;&quot;mlflow_tracking_audit_id&quot;&quot;: &quot;&quot;trial-churn-mlflow-tracking-audit-v0&quot;&quot;, &quot;&quot;optuna_tuning_audit_id&quot;&quot;: &quot;&quot;trial-churn-optuna-tuning-audit-v0&quot;&quot;, &quot;&quot;readiness&quot;&quot;: &quot;&quot;ready_for_mlflow_lesson&quot;&quot;}&quot;,valid Optuna handoff ready for MLflow,[]
+tracking_backend_is_local_mlflow_file_store,error,True,&quot;{&quot;&quot;name&quot;&quot;: &quot;&quot;trial_churn_tabular_ml_local_tracking_v0&quot;&quot;, &quot;&quot;omit_raw_run_ids_from_exports&quot;&quot;: true, &quot;&quot;tracking_backend&quot;&quot;: &quot;&quot;local_file_store&quot;&quot;, &quot;&quot;tracking_package&quot;&quot;: &quot;&quot;mlflow-skinny&quot;&quot;}&quot;,local mlflow-skinny tracking store,[]
+tracking_scope_excludes_registry_and_serving,error,True,&quot;{&quot;&quot;reason&quot;&quot;: &quot;&quot;phase 16 uses local experiment history only; registry and serving belong outside this lesson&quot;&quot;, &quot;&quot;registry&quot;&quot;: false, &quot;&quot;remote_tracking_server&quot;&quot;: false, &quot;&quot;serving&quot;&quot;: false}&quot;,&quot;registry, remote tracking and serving are false&quot;,[]
+run_plan_declares_expected_tracking_units,error,True,&quot;[&quot;&quot;source_early_stopped_catboost&quot;&quot;, &quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;]&quot;,&quot;[&quot;&quot;source_early_stopped_catboost&quot;&quot;, &quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;]&quot;,[]
+output_contract_names_all_artifacts,error,True,&quot;[&quot;&quot;artifact_inventory_file&quot;&quot;, &quot;&quot;metric_history_file&quot;&quot;, &quot;&quot;model_metadata_file&quot;&quot;, &quot;&quot;report_file&quot;&quot;, &quot;&quot;reproducibility_checks_file&quot;&quot;, &quot;&quot;run_table_file&quot;&quot;, &quot;&quot;serialized_spec_file&quot;&quot;]&quot;,all output filenames are declared,[]
+required_mlflow_runs_exported,error,True,&quot;[&quot;&quot;source_early_stopped_catboost&quot;&quot;, &quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;]&quot;,&quot;[&quot;&quot;source_early_stopped_catboost&quot;&quot;, &quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;]&quot;,[]
+run_table_omits_raw_run_ids,error,True,&quot;{&quot;&quot;run_count&quot;&quot;: 3}&quot;,run ids exist in MLflow but are not exported,[]
+required_tags_logged,error,True,&quot;[&quot;&quot;mlflow_tracking_audit_id&quot;&quot;, &quot;&quot;problem_id&quot;&quot;, &quot;&quot;source_package_id&quot;&quot;, &quot;&quot;optuna_tuning_audit_id&quot;&quot;, &quot;&quot;decision_status&quot;&quot;, &quot;&quot;readiness_status&quot;&quot;]&quot;,all required common tags,[]
+required_params_logged,error,True,&quot;[&quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;, &quot;&quot;source_early_stopped_catboost&quot;&quot;]&quot;,all required params by run role,[]
+required_metrics_logged,error,True,&quot;[&quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;, &quot;&quot;source_early_stopped_catboost&quot;&quot;]&quot;,all required metrics by run role,[]
+required_artifacts_logged,error,True,&quot;[&quot;&quot;best_optuna_trial&quot;&quot;, &quot;&quot;phase15_baseline_cost_gate&quot;&quot;, &quot;&quot;source_early_stopped_catboost&quot;&quot;]&quot;,all required artifacts by run role,[]
+source_package_lineage_logged,error,True,trial-churn-ml-baseline-package-v0,baseline package id logged on every run,[]
+mlflow_ledger_tracks_candidate_with_failed_cost_gate,warning,False,&quot;{&quot;&quot;baseline_cost&quot;&quot;: 1.0, &quot;&quot;best_trial_cost&quot;&quot;: 7.0}&quot;,MLflow records limitation instead of promotion claim,[]
+local_tracking_store_not_registry,warning,False,local_file_store,&quot;local file store is a lesson boundary, not production registry&quot;,[]
+mlflow_skinny_used_due_to_pandas3_boundary,warning,False,&quot;{&quot;&quot;package&quot;&quot;: &quot;&quot;mlflow-skinny&quot;&quot;, &quot;&quot;reason&quot;&quot;: &quot;&quot;full mlflow currently pins pandas&lt;3&quot;&quot;}&quot;,tracking API is enough for this lesson,[]
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_reproducibility_checks.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_run_table.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>experiment_name,run_alias,run_name,run_role,candidate_role,model_id,run_id_present,run_id_length,raw_run_id_exported,source_package_id,optuna_tuning_audit_id,decision_status,readiness_status,depth,learning_rate,optuna_trial_number,validation_logloss,validation_top_k_total_error_cost,baseline_validation_top_k_cost,objective_improved_vs_source,cost_gate_still_fails_vs_baseline,artifact_count,generated_at
+01_source_early_stopped_catboost,source_early_stopped_catboost,01_source_early_stopped_catboost,source_candidate,source_before_tuning,catboost_depth2_native_categories_es_logloss,True,32,False,trial-churn-ml-baseline-package-v0,trial-churn-optuna-tuning-audit-v0,tuned_candidate_ready_for_mlflow_tracking,ready_for_drift_and_stability_lesson,2,0.2,,0.698394,7.0,1.0,,,2,2026-07-06T12:15:00+03:00
+02_best_optuna_trial,best_optuna_trial,02_best_optuna_trial,tuned_candidate,best_validation_objective_trial,catboost_optuna_fixed_budget_logloss,True,32,False,trial-churn-ml-baseline-package-v0,trial-churn-optuna-tuning-audit-v0,tuned_candidate_ready_for_mlflow_tracking,ready_for_drift_and_stability_lesson,2,0.05,4,0.696531,7.0,1.0,1.0,1.0,4,2026-07-06T12:15:00+03:00
+03_phase15_baseline_cost_gate,phase15_baseline_cost_gate,03_phase15_baseline_cost_gate,baseline_gate,calibrated_baseline_gate,trial-churn-ml-baseline-package-v0,True,32,False,trial-churn-ml-baseline-package-v0,trial-churn-optuna-tuning-audit-v0,tuned_candidate_ready_for_mlflow_tracking,ready_for_drift_and_stability_lesson,,,,,1.0,,,,2,2026-07-06T12:15:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_run_table.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mlflow_tracking_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;experiment&quot;: {
+    &quot;name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+    &quot;tracking_backend&quot;: &quot;local_file_store&quot;,
+    &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+    &quot;omit_raw_run_ids_from_exports&quot;: true
+  },
+  &quot;tracking_scope&quot;: {
+    &quot;registry&quot;: false,
+    &quot;remote_tracking_server&quot;: false,
+    &quot;serving&quot;: false,
+    &quot;reason&quot;: &quot;phase 16 uses local experiment history only; registry and serving belong outside this lesson&quot;
+  },
+  &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+  &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+  &quot;run_aliases&quot;: [
+    &quot;source_early_stopped_catboost&quot;,
+    &quot;best_optuna_trial&quot;,
+    &quot;phase15_baseline_cost_gate&quot;
+  ],
+  &quot;run_table&quot;: [
+    {
+      &quot;experiment_name&quot;: &quot;01_source_early_stopped_catboost&quot;,
+      &quot;run_alias&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;run_name&quot;: &quot;01_source_early_stopped_catboost&quot;,
+      &quot;run_role&quot;: &quot;source_candidate&quot;,
+      &quot;candidate_role&quot;: &quot;source_before_tuning&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: &quot;2&quot;,
+      &quot;learning_rate&quot;: &quot;0.2&quot;,
+      &quot;optuna_trial_number&quot;: null,
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;objective_improved_vs_source&quot;: null,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: null,
+      &quot;artifact_count&quot;: 2,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;experiment_name&quot;: &quot;02_best_optuna_trial&quot;,
+      &quot;run_alias&quot;: &quot;best_optuna_trial&quot;,
+      &quot;run_name&quot;: &quot;02_best_optuna_trial&quot;,
+      &quot;run_role&quot;: &quot;tuned_candidate&quot;,
+      &quot;candidate_role&quot;: &quot;best_validation_objective_trial&quot;,
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: &quot;2&quot;,
+      &quot;learning_rate&quot;: &quot;0.05&quot;,
+      &quot;optuna_trial_number&quot;: &quot;4&quot;,
+      &quot;validation_logloss&quot;: 0.696531,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;baseline_validation_top_k_cost&quot;: 1.0,
+      &quot;objective_improved_vs_source&quot;: 1.0,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: 1.0,
+      &quot;artifact_count&quot;: 4,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    },
+    {
+      &quot;experiment_name&quot;: &quot;03_phase15_baseline_cost_gate&quot;,
+      &quot;run_alias&quot;: &quot;phase15_baseline_cost_gate&quot;,
+      &quot;run_name&quot;: &quot;03_phase15_baseline_cost_gate&quot;,
+      &quot;run_role&quot;: &quot;baseline_gate&quot;,
+      &quot;candidate_role&quot;: &quot;calibrated_baseline_gate&quot;,
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;run_id_present&quot;: true,
+      &quot;run_id_length&quot;: 32,
+      &quot;raw_run_id_exported&quot;: false,
+      &quot;source_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+      &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+      &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;depth&quot;: null,
+      &quot;learning_rate&quot;: null,
+      &quot;optuna_trial_number&quot;: null,
+      &quot;validation_logloss&quot;: null,
+      &quot;validation_top_k_total_error_cost&quot;: 1.0,
+      &quot;baseline_validation_top_k_cost&quot;: null,
+      &quot;objective_improved_vs_source&quot;: null,
+      &quot;cost_gate_still_fails_vs_baseline&quot;: null,
+      &quot;artifact_count&quot;: 2,
+      &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+    }
+  ],
+  &quot;artifact_count&quot;: 8,
+  &quot;required_checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;optuna_best_trial_trace&quot;,
+        &quot;optuna_report&quot;,
+        &quot;optuna_serialized_spec&quot;,
+        &quot;optuna_trial_ledger&quot;,
+        &quot;optuna_tuned_predictions&quot;,
+        &quot;policy&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_policy_has_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;baseline_package_id&quot;,
+        &quot;decision_policy&quot;,
+        &quot;experiment&quot;,
+        &quot;mlflow_tracking_audit_id&quot;,
+        &quot;output&quot;,
+        &quot;problem_id&quot;,
+        &quot;required_artifacts&quot;,
+        &quot;required_common_tags&quot;,
+        &quot;required_metrics&quot;,
+        &quot;required_params&quot;,
+        &quot;run_plan&quot;,
+        &quot;source_optuna_tuning_audit_id&quot;,
+        &quot;tracking_scope&quot;,
+        &quot;warning_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;required policy fields&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_policy_matches_optuna_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+        &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+        &quot;readiness&quot;: &quot;ready_for_mlflow_lesson&quot;
+      },
+      &quot;expected&quot;: &quot;valid Optuna handoff ready for MLflow&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tracking_backend_is_local_mlflow_file_store&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;name&quot;: &quot;trial_churn_tabular_ml_local_tracking_v0&quot;,
+        &quot;tracking_backend&quot;: &quot;local_file_store&quot;,
+        &quot;tracking_package&quot;: &quot;mlflow-skinny&quot;,
+        &quot;omit_raw_run_ids_from_exports&quot;: true
+      },
+      &quot;expected&quot;: &quot;local mlflow-skinny tracking store&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tracking_scope_excludes_registry_and_serving&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;registry&quot;: false,
+        &quot;remote_tracking_server&quot;: false,
+        &quot;serving&quot;: false,
+        &quot;reason&quot;: &quot;phase 16 uses local experiment history only; registry and serving belong outside this lesson&quot;
+      },
+      &quot;expected&quot;: &quot;registry, remote tracking and serving are false&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;run_plan_declares_expected_tracking_units&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;expected&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;output_contract_names_all_artifacts&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;artifact_inventory_file&quot;,
+        &quot;metric_history_file&quot;,
+        &quot;model_metadata_file&quot;,
+        &quot;report_file&quot;,
+        &quot;reproducibility_checks_file&quot;,
+        &quot;run_table_file&quot;,
+        &quot;serialized_spec_file&quot;
+      ],
+      &quot;expected&quot;: &quot;all output filenames are declared&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_mlflow_runs_exported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;expected&quot;: [
+        &quot;source_early_stopped_catboost&quot;,
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;
+      ],
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;run_table_omits_raw_run_ids&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;run_count&quot;: 3
+      },
+      &quot;expected&quot;: &quot;run ids exist in MLflow but are not exported&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_tags_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;mlflow_tracking_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;source_package_id&quot;,
+        &quot;optuna_tuning_audit_id&quot;,
+        &quot;decision_status&quot;,
+        &quot;readiness_status&quot;
+      ],
+      &quot;expected&quot;: &quot;all required common tags&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_params_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required params by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_metrics_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required metrics by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_artifacts_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_optuna_trial&quot;,
+        &quot;phase15_baseline_cost_gate&quot;,
+        &quot;source_early_stopped_catboost&quot;
+      ],
+      &quot;expected&quot;: &quot;all required artifacts by run role&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_package_lineage_logged&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;expected&quot;: &quot;baseline package id logged on every run&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;decision_policy&quot;: {
+    &quot;outcome_if_valid&quot;: &quot;mlflow_ledger_ready_for_stability_package&quot;,
+    &quot;next_lesson_readiness&quot;: &quot;ready_for_drift_and_stability_lesson&quot;
+  },
+  &quot;generated_at&quot;: &quot;2026-07-06T12:15:00+03:00&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/outputs/mlflow_tracking_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/10-mlflow" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/optuna/"><span>← Предыдущий урок</span><strong>Optuna и честный подбор параметров</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/drift-and-stability/"><span>Следующий урок →</span><strong>Drift, стабильность и interpretation package</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

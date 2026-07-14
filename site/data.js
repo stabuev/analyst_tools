@@ -639,6 +639,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/01-profession-map",
           "available": true,
+          "site_url": "lessons/entry-and-tools/profession-map/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/01-profession-map",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/01-profession-map/docs/ru.md"
         },
@@ -656,6 +657,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/02-python-and-sql-diagnostic",
           "available": true,
+          "site_url": "lessons/entry-and-tools/python-and-sql-diagnostic/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/02-python-and-sql-diagnostic",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/02-python-and-sql-diagnostic/docs/ru.md"
         },
@@ -673,6 +675,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/03-terminal-and-filesystem",
           "available": true,
+          "site_url": "lessons/entry-and-tools/terminal-and-filesystem/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-terminal-and-filesystem",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-terminal-and-filesystem/docs/ru.md"
         },
@@ -690,6 +693,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/04-git-foundations",
           "available": true,
+          "site_url": "lessons/entry-and-tools/git-foundations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-git-foundations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-git-foundations/docs/ru.md"
         },
@@ -707,6 +711,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/05-branches-and-review",
           "available": true,
+          "site_url": "lessons/entry-and-tools/branches-and-review/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/05-branches-and-review",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/05-branches-and-review/docs/ru.md"
         },
@@ -724,6 +729,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/00-entry-and-tools/06-secrets-and-sensitive-data",
           "available": true,
+          "site_url": "lessons/entry-and-tools/secrets-and-sensitive-data/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data/docs/ru.md"
         }
@@ -763,6 +769,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/01-python-versions",
           "available": true,
+          "site_url": "lessons/reproducible-project/python-versions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/01-python-versions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/01-python-versions/docs/ru.md"
         },
@@ -780,6 +787,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/02-uv-environments",
           "available": true,
+          "site_url": "lessons/reproducible-project/uv-environments/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/02-uv-environments",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/02-uv-environments/docs/ru.md"
         },
@@ -797,6 +805,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/03-pyproject",
           "available": true,
+          "site_url": "lessons/reproducible-project/pyproject/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/03-pyproject",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/03-pyproject/docs/ru.md"
         },
@@ -814,6 +823,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/04-jupyter-kernels",
           "available": true,
+          "site_url": "lessons/reproducible-project/jupyter-kernels/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/04-jupyter-kernels",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/04-jupyter-kernels/docs/ru.md"
         },
@@ -831,6 +841,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/05-notebook-reproducibility",
           "available": true,
+          "site_url": "lessons/reproducible-project/notebook-reproducibility/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/05-notebook-reproducibility",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/05-notebook-reproducibility/docs/ru.md"
         },
@@ -848,6 +859,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/06-modules-and-scripts",
           "available": true,
+          "site_url": "lessons/reproducible-project/modules-and-scripts/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/06-modules-and-scripts",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/06-modules-and-scripts/docs/ru.md"
         },
@@ -865,6 +877,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/07-ruff",
           "available": true,
+          "site_url": "lessons/reproducible-project/ruff/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/07-ruff",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/07-ruff/docs/ru.md"
         },
@@ -882,6 +895,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/08-pytest",
           "available": true,
+          "site_url": "lessons/reproducible-project/pytest/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/08-pytest",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/08-pytest/docs/ru.md"
         },
@@ -899,6 +913,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/01-reproducible-project/09-continuous-integration",
           "available": true,
+          "site_url": "lessons/reproducible-project/continuous-integration/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/09-continuous-integration",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/09-continuous-integration/docs/ru.md"
         }
@@ -938,6 +953,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/01-arrays",
           "available": true,
+          "site_url": "lessons/numpy/arrays/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/01-arrays",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/01-arrays/docs/ru.md"
         },
@@ -955,6 +971,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/02-shape-and-axes",
           "available": true,
+          "site_url": "lessons/numpy/shape-and-axes/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/02-shape-and-axes",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/02-shape-and-axes/docs/ru.md"
         },
@@ -972,6 +989,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/03-dtypes",
           "available": true,
+          "site_url": "lessons/numpy/dtypes/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/03-dtypes",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/03-dtypes/docs/ru.md"
         },
@@ -989,6 +1007,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/04-indexing-and-masks",
           "available": true,
+          "site_url": "lessons/numpy/indexing-and-masks/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/04-indexing-and-masks",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/04-indexing-and-masks/docs/ru.md"
         },
@@ -1006,6 +1025,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/05-broadcasting",
           "available": true,
+          "site_url": "lessons/numpy/broadcasting/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-broadcasting",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-broadcasting/docs/ru.md"
         },
@@ -1023,6 +1043,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/06-aggregations",
           "available": true,
+          "site_url": "lessons/numpy/aggregations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-aggregations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-aggregations/docs/ru.md"
         },
@@ -1040,6 +1061,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/07-random-simulations",
           "available": true,
+          "site_url": "lessons/numpy/random-simulations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/07-random-simulations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/07-random-simulations/docs/ru.md"
         },
@@ -1057,6 +1079,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/08-vectorization",
           "available": true,
+          "site_url": "lessons/numpy/vectorization/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/08-vectorization",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/08-vectorization/docs/ru.md"
         },
@@ -1074,6 +1097,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/02-numpy/09-numerical-precision",
           "available": true,
+          "site_url": "lessons/numpy/numerical-precision/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/09-numerical-precision",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/09-numerical-precision/docs/ru.md"
         }
@@ -1113,6 +1137,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/01-dataframe-and-series",
           "available": true,
+          "site_url": "lessons/pandas/dataframe-and-series/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/01-dataframe-and-series",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/01-dataframe-and-series/docs/ru.md"
         },
@@ -1130,6 +1155,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/02-types-and-missing-values",
           "available": true,
+          "site_url": "lessons/pandas/types-and-missing-values/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/02-types-and-missing-values",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/02-types-and-missing-values/docs/ru.md"
         },
@@ -1147,6 +1173,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/03-selection-and-filtering",
           "available": true,
+          "site_url": "lessons/pandas/selection-and-filtering/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/03-selection-and-filtering",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/03-selection-and-filtering/docs/ru.md"
         },
@@ -1164,6 +1191,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/04-transformations",
           "available": true,
+          "site_url": "lessons/pandas/transformations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/04-transformations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/04-transformations/docs/ru.md"
         },
@@ -1181,6 +1209,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/05-groupby",
           "available": true,
+          "site_url": "lessons/pandas/groupby/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/05-groupby",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/05-groupby/docs/ru.md"
         },
@@ -1198,6 +1227,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/06-joins-and-cardinality",
           "available": true,
+          "site_url": "lessons/pandas/joins-and-cardinality/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/06-joins-and-cardinality",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/06-joins-and-cardinality/docs/ru.md"
         },
@@ -1215,6 +1245,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/07-reshape",
           "available": true,
+          "site_url": "lessons/pandas/reshape/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/07-reshape",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/07-reshape/docs/ru.md"
         },
@@ -1232,6 +1263,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/08-dates-and-timezones",
           "available": true,
+          "site_url": "lessons/pandas/dates-and-timezones/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/08-dates-and-timezones",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/08-dates-and-timezones/docs/ru.md"
         },
@@ -1249,6 +1281,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/09-strings-and-categories",
           "available": true,
+          "site_url": "lessons/pandas/strings-and-categories/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/09-strings-and-categories",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/09-strings-and-categories/docs/ru.md"
         },
@@ -1266,6 +1299,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/10-method-chaining",
           "available": true,
+          "site_url": "lessons/pandas/method-chaining/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/10-method-chaining",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/10-method-chaining/docs/ru.md"
         },
@@ -1283,6 +1317,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/03-pandas/11-export-and-handoff",
           "available": true,
+          "site_url": "lessons/pandas/export-and-handoff/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/11-export-and-handoff",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/11-export-and-handoff/docs/ru.md"
         }
@@ -1322,6 +1357,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/01-grain-keys-relations",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/grain-keys-relations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/01-grain-keys-relations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/docs/ru.md"
         },
@@ -1339,6 +1375,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/02-select-and-expressions",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/select-and-expressions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/02-select-and-expressions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/02-select-and-expressions/docs/ru.md"
         },
@@ -1356,6 +1393,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/03-null-semantics",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/null-semantics/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/03-null-semantics",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/docs/ru.md"
         },
@@ -1373,6 +1411,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/04-aggregations",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/aggregations/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/04-aggregations",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/docs/ru.md"
         },
@@ -1390,6 +1429,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/05-joins",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/joins/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/05-joins",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/docs/ru.md"
         },
@@ -1407,6 +1447,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/06-cte-and-subqueries",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/cte-and-subqueries/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/06-cte-and-subqueries",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/docs/ru.md"
         },
@@ -1424,6 +1465,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/07-window-functions",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/window-functions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/07-window-functions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/docs/ru.md"
         },
@@ -1441,6 +1483,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/08-dates",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/dates/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/08-dates",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-dates/docs/ru.md"
         },
@@ -1458,6 +1501,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/09-cohorts",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/cohorts/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/09-cohorts",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-cohorts/docs/ru.md"
         },
@@ -1475,6 +1519,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/10-duckdb-python",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/duckdb-python/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/10-duckdb-python",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/10-duckdb-python/docs/ru.md"
         },
@@ -1492,6 +1537,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/11-query-plans",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/query-plans/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/11-query-plans",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/11-query-plans/docs/ru.md"
         },
@@ -1509,6 +1555,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/04-sql-and-duckdb/12-sql-vs-dataframes",
           "available": true,
+          "site_url": "lessons/sql-and-duckdb/sql-vs-dataframes/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/docs/ru.md"
         }
@@ -1548,6 +1595,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/01-csv",
           "available": true,
+          "site_url": "lessons/sources-and-formats/csv/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/01-csv",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/docs/ru.md"
         },
@@ -1565,6 +1613,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/02-excel",
           "available": true,
+          "site_url": "lessons/sources-and-formats/excel/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/02-excel",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/02-excel/docs/ru.md"
         },
@@ -1582,6 +1631,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/03-json",
           "available": true,
+          "site_url": "lessons/sources-and-formats/json/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/03-json",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/03-json/docs/ru.md"
         },
@@ -1599,6 +1649,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/04-http-requests",
           "available": true,
+          "site_url": "lessons/sources-and-formats/http-requests/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/04-http-requests",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/04-http-requests/docs/ru.md"
         },
@@ -1616,6 +1667,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/05-pagination-retries",
           "available": true,
+          "site_url": "lessons/sources-and-formats/pagination-retries/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/05-pagination-retries",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/docs/ru.md"
         },
@@ -1633,6 +1685,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/06-html-parsing",
           "available": true,
+          "site_url": "lessons/sources-and-formats/html-parsing/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/06-html-parsing",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/06-html-parsing/docs/ru.md"
         },
@@ -1650,6 +1703,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/07-sqlalchemy",
           "available": true,
+          "site_url": "lessons/sources-and-formats/sqlalchemy/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/07-sqlalchemy",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/docs/ru.md"
         },
@@ -1667,6 +1721,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/08-parquet",
           "available": true,
+          "site_url": "lessons/sources-and-formats/parquet/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/08-parquet",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/docs/ru.md"
         },
@@ -1684,6 +1739,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/09-arrow",
           "available": true,
+          "site_url": "lessons/sources-and-formats/arrow/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/09-arrow",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/docs/ru.md"
         },
@@ -1701,6 +1757,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/10-partitioning",
           "available": true,
+          "site_url": "lessons/sources-and-formats/partitioning/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/10-partitioning",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/docs/ru.md"
         },
@@ -1718,6 +1775,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/05-sources-and-formats/11-caching-and-checksums",
           "available": true,
+          "site_url": "lessons/sources-and-formats/caching-and-checksums/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/11-caching-and-checksums",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/docs/ru.md"
         }
@@ -1757,6 +1815,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/01-question-before-chart",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/question-before-chart/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/01-question-before-chart",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/01-question-before-chart/docs/ru.md"
         },
@@ -1774,6 +1833,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/02-data-audit",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/data-audit/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/02-data-audit",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/02-data-audit/docs/ru.md"
         },
@@ -1791,6 +1851,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/03-matplotlib-oo",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/matplotlib-oo/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/03-matplotlib-oo",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/03-matplotlib-oo/docs/ru.md"
         },
@@ -1808,6 +1869,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/04-distributions",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/distributions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/04-distributions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/04-distributions/docs/ru.md"
         },
@@ -1825,6 +1887,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/05-relationships",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/relationships/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/05-relationships",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/05-relationships/docs/ru.md"
         },
@@ -1842,6 +1905,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/06-uncertainty",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/uncertainty/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/06-uncertainty",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/06-uncertainty/docs/ru.md"
         },
@@ -1859,6 +1923,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/07-seaborn",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/seaborn/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/07-seaborn",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/07-seaborn/docs/ru.md"
         },
@@ -1876,6 +1941,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/08-plotly",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/plotly/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/08-plotly",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/08-plotly/docs/ru.md"
         },
@@ -1893,6 +1959,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/09-altair",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/altair/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/09-altair",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/09-altair/docs/ru.md"
         },
@@ -1910,6 +1977,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/10-design-and-accessibility",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/design-and-accessibility/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/10-design-and-accessibility",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/10-design-and-accessibility/docs/ru.md"
         },
@@ -1927,6 +1995,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/06-eda-and-visualization/11-analytical-conclusion",
           "available": true,
+          "site_url": "lessons/eda-and-visualization/analytical-conclusion/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/06-eda-and-visualization/11-analytical-conclusion",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/11-analytical-conclusion/docs/ru.md"
         }
@@ -1966,6 +2035,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/01-invariants",
           "available": true,
+          "site_url": "lessons/reliable-analytics/invariants/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/01-invariants",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/01-invariants/docs/ru.md"
         },
@@ -1983,6 +2053,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/02-unit-tests",
           "available": true,
+          "site_url": "lessons/reliable-analytics/unit-tests/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/02-unit-tests",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/02-unit-tests/docs/ru.md"
         },
@@ -2000,6 +2071,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/03-defect-matrix",
           "available": true,
+          "site_url": "lessons/reliable-analytics/defect-matrix/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/03-defect-matrix",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/03-defect-matrix/docs/ru.md"
         },
@@ -2017,6 +2089,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/04-property-based-testing",
           "available": true,
+          "site_url": "lessons/reliable-analytics/property-based-testing/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/04-property-based-testing",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/04-property-based-testing/docs/ru.md"
         },
@@ -2034,6 +2107,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/05-pandera",
           "available": true,
+          "site_url": "lessons/reliable-analytics/pandera/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/05-pandera",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/docs/ru.md"
         },
@@ -2051,6 +2125,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/06-pydantic",
           "available": true,
+          "site_url": "lessons/reliable-analytics/pydantic/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/06-pydantic",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/06-pydantic/docs/ru.md"
         },
@@ -2068,6 +2143,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/07-sql-checks",
           "available": true,
+          "site_url": "lessons/reliable-analytics/sql-checks/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/07-sql-checks",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/docs/ru.md"
         },
@@ -2085,6 +2161,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/08-golden-datasets",
           "available": true,
+          "site_url": "lessons/reliable-analytics/golden-datasets/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/08-golden-datasets",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/docs/ru.md"
         },
@@ -2102,6 +2179,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/09-observability",
           "available": true,
+          "site_url": "lessons/reliable-analytics/observability/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/09-observability",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/09-observability/docs/ru.md"
         },
@@ -2119,6 +2197,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/07-reliable-analytics/10-quality-gates",
           "available": true,
+          "site_url": "lessons/reliable-analytics/quality-gates/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/10-quality-gates",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/10-quality-gates/docs/ru.md"
         }
@@ -2158,6 +2237,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/01-metric-tree",
           "available": true,
+          "site_url": "lessons/product-analytics/metric-tree/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/01-metric-tree",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/01-metric-tree/docs/ru.md"
         },
@@ -2175,6 +2255,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/02-event-model",
           "available": true,
+          "site_url": "lessons/product-analytics/event-model/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/02-event-model",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/02-event-model/docs/ru.md"
         },
@@ -2192,6 +2273,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/03-activity",
           "available": true,
+          "site_url": "lessons/product-analytics/activity/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/03-activity",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/03-activity/docs/ru.md"
         },
@@ -2209,6 +2291,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/04-funnels",
           "available": true,
+          "site_url": "lessons/product-analytics/funnels/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/04-funnels",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/04-funnels/docs/ru.md"
         },
@@ -2226,6 +2309,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/05-cohorts",
           "available": true,
+          "site_url": "lessons/product-analytics/cohorts/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/05-cohorts",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/05-cohorts/docs/ru.md"
         },
@@ -2243,6 +2327,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/06-retention",
           "available": true,
+          "site_url": "lessons/product-analytics/retention/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/06-retention",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/06-retention/docs/ru.md"
         },
@@ -2260,6 +2345,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/07-monetization",
           "available": true,
+          "site_url": "lessons/product-analytics/monetization/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/07-monetization",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/07-monetization/docs/ru.md"
         },
@@ -2277,6 +2363,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/08-segmentation",
           "available": true,
+          "site_url": "lessons/product-analytics/segmentation/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/08-segmentation",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/08-segmentation/docs/ru.md"
         },
@@ -2294,6 +2381,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/09-guardrails",
           "available": true,
+          "site_url": "lessons/product-analytics/guardrails/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/09-guardrails",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/09-guardrails/docs/ru.md"
         },
@@ -2311,6 +2399,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/10-anomalies",
           "available": true,
+          "site_url": "lessons/product-analytics/anomalies/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/10-anomalies",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/10-anomalies/docs/ru.md"
         },
@@ -2328,6 +2417,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/08-product-analytics/11-business-conclusion",
           "available": true,
+          "site_url": "lessons/product-analytics/business-conclusion/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/08-product-analytics/11-business-conclusion",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/08-product-analytics/11-business-conclusion/docs/ru.md"
         }
@@ -2369,6 +2459,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/01-population-and-sample",
           "available": true,
+          "site_url": "lessons/applied-statistics/population-and-sample/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/01-population-and-sample",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/01-population-and-sample/docs/ru.md"
         },
@@ -2387,6 +2478,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/02-distributions",
           "available": true,
+          "site_url": "lessons/applied-statistics/distributions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/02-distributions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/02-distributions/docs/ru.md"
         },
@@ -2405,6 +2497,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/03-estimators",
           "available": true,
+          "site_url": "lessons/applied-statistics/estimators/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/03-estimators",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/03-estimators/docs/ru.md"
         },
@@ -2423,6 +2516,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/04-bias-and-variance",
           "available": true,
+          "site_url": "lessons/applied-statistics/bias-and-variance/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/04-bias-and-variance",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/04-bias-and-variance/docs/ru.md"
         },
@@ -2441,6 +2535,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/05-confidence-intervals",
           "available": true,
+          "site_url": "lessons/applied-statistics/confidence-intervals/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/05-confidence-intervals",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/05-confidence-intervals/docs/ru.md"
         },
@@ -2459,6 +2554,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/06-bootstrap",
           "available": true,
+          "site_url": "lessons/applied-statistics/bootstrap/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/06-bootstrap",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/06-bootstrap/docs/ru.md"
         },
@@ -2477,6 +2573,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/07-correlation",
           "available": true,
+          "site_url": "lessons/applied-statistics/correlation/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/07-correlation",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/07-correlation/docs/ru.md"
         },
@@ -2495,6 +2592,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/08-linear-regression",
           "available": true,
+          "site_url": "lessons/applied-statistics/linear-regression/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/08-linear-regression",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/08-linear-regression/docs/ru.md"
         },
@@ -2513,6 +2611,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/09-regression-diagnostics",
           "available": true,
+          "site_url": "lessons/applied-statistics/regression-diagnostics/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/09-regression-diagnostics",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/09-regression-diagnostics/docs/ru.md"
         },
@@ -2531,6 +2630,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/09-applied-statistics/10-robust-methods",
           "available": true,
+          "site_url": "lessons/applied-statistics/robust-methods/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/09-applied-statistics/10-robust-methods",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/09-applied-statistics/10-robust-methods/docs/ru.md"
         }
@@ -2571,6 +2671,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/01-hypothesis-and-metric",
           "available": true,
+          "site_url": "lessons/experiments/hypothesis-and-metric/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/01-hypothesis-and-metric",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/01-hypothesis-and-metric/docs/ru.md"
         },
@@ -2588,6 +2689,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/02-randomization-unit",
           "available": true,
+          "site_url": "lessons/experiments/randomization-unit/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/02-randomization-unit",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/02-randomization-unit/docs/ru.md"
         },
@@ -2605,6 +2707,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/03-aa-and-srm",
           "available": true,
+          "site_url": "lessons/experiments/aa-and-srm/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/03-aa-and-srm",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/docs/ru.md"
         },
@@ -2622,6 +2725,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/04-mde-and-power",
           "available": true,
+          "site_url": "lessons/experiments/mde-and-power/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/04-mde-and-power",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/04-mde-and-power/docs/ru.md"
         },
@@ -2639,6 +2743,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/05-means-and-proportions",
           "available": true,
+          "site_url": "lessons/experiments/means-and-proportions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/05-means-and-proportions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/05-means-and-proportions/docs/ru.md"
         },
@@ -2656,6 +2761,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/06-bootstrap",
           "available": true,
+          "site_url": "lessons/experiments/bootstrap/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/06-bootstrap",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/06-bootstrap/docs/ru.md"
         },
@@ -2673,6 +2779,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/07-cuped",
           "available": true,
+          "site_url": "lessons/experiments/cuped/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/07-cuped",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/07-cuped/docs/ru.md"
         },
@@ -2690,6 +2797,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/08-multiple-testing",
           "available": true,
+          "site_url": "lessons/experiments/multiple-testing/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/08-multiple-testing",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/08-multiple-testing/docs/ru.md"
         },
@@ -2707,6 +2815,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/09-peeking",
           "available": true,
+          "site_url": "lessons/experiments/peeking/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/09-peeking",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/09-peeking/docs/ru.md"
         },
@@ -2724,6 +2833,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/10-heterogeneous-effects",
           "available": true,
+          "site_url": "lessons/experiments/heterogeneous-effects/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/10-heterogeneous-effects",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/10-heterogeneous-effects/docs/ru.md"
         },
@@ -2741,6 +2851,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/10-experiments/11-decision-protocol",
           "available": true,
+          "site_url": "lessons/experiments/decision-protocol/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/11-decision-protocol",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/11-decision-protocol/docs/ru.md"
         }
@@ -2780,6 +2891,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/01-data-layers",
           "available": true,
+          "site_url": "lessons/analytics-engineering/data-layers/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/01-data-layers",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/01-data-layers/docs/ru.md"
         },
@@ -2797,6 +2909,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/02-dbt-project",
           "available": true,
+          "site_url": "lessons/analytics-engineering/dbt-project/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/02-dbt-project",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/02-dbt-project/docs/ru.md"
         },
@@ -2814,6 +2927,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/03-sources-and-refs",
           "available": true,
+          "site_url": "lessons/analytics-engineering/sources-and-refs/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/03-sources-and-refs",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/docs/ru.md"
         },
@@ -2831,6 +2945,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/04-models",
           "available": true,
+          "site_url": "lessons/analytics-engineering/models/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/04-models",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/docs/ru.md"
         },
@@ -2848,6 +2963,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/05-data-tests",
           "available": true,
+          "site_url": "lessons/analytics-engineering/data-tests/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/05-data-tests",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/05-data-tests/docs/ru.md"
         },
@@ -2865,6 +2981,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/06-macros",
           "available": true,
+          "site_url": "lessons/analytics-engineering/macros/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/06-macros",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/06-macros/docs/ru.md"
         },
@@ -2882,6 +2999,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/07-incremental-models",
           "available": true,
+          "site_url": "lessons/analytics-engineering/incremental-models/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/07-incremental-models",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/docs/ru.md"
         },
@@ -2899,6 +3017,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/08-snapshots",
           "available": true,
+          "site_url": "lessons/analytics-engineering/snapshots/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/08-snapshots",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/08-snapshots/docs/ru.md"
         },
@@ -2916,6 +3035,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/09-documentation-and-lineage",
           "available": true,
+          "site_url": "lessons/analytics-engineering/documentation-and-lineage/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/09-documentation-and-lineage",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/09-documentation-and-lineage/docs/ru.md"
         },
@@ -2933,6 +3053,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/10-sqlfluff",
           "available": true,
+          "site_url": "lessons/analytics-engineering/sqlfluff/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/10-sqlfluff",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/10-sqlfluff/docs/ru.md"
         },
@@ -2950,6 +3071,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/11-analytics-engineering/11-dbt-duckdb-project",
           "available": true,
+          "site_url": "lessons/analytics-engineering/dbt-duckdb-project/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/11-dbt-duckdb-project",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/11-dbt-duckdb-project/docs/ru.md"
         }
@@ -2991,6 +3113,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/01-benchmarking",
           "available": true,
+          "site_url": "lessons/performance/benchmarking/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/01-benchmarking",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/docs/ru.md"
         },
@@ -3009,6 +3132,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/02-profiling",
           "available": true,
+          "site_url": "lessons/performance/profiling/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/02-profiling",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/02-profiling/docs/ru.md"
         },
@@ -3027,6 +3151,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/03-memory-and-dtypes",
           "available": true,
+          "site_url": "lessons/performance/memory-and-dtypes/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/03-memory-and-dtypes",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/03-memory-and-dtypes/docs/ru.md"
         },
@@ -3045,6 +3170,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/04-parquet-pushdown",
           "available": true,
+          "site_url": "lessons/performance/parquet-pushdown/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/04-parquet-pushdown",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/04-parquet-pushdown/docs/ru.md"
         },
@@ -3063,6 +3189,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/05-arrow-memory",
           "available": true,
+          "site_url": "lessons/performance/arrow-memory/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/05-arrow-memory",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/docs/ru.md"
         },
@@ -3081,6 +3208,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/06-duckdb-out-of-core",
           "available": true,
+          "site_url": "lessons/performance/duckdb-out-of-core/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/06-duckdb-out-of-core",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/docs/ru.md"
         },
@@ -3099,6 +3227,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/07-polars-expressions",
           "available": true,
+          "site_url": "lessons/performance/polars-expressions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/07-polars-expressions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/07-polars-expressions/docs/ru.md"
         },
@@ -3117,6 +3246,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/08-lazy-execution",
           "available": true,
+          "site_url": "lessons/performance/lazy-execution/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/08-lazy-execution",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/08-lazy-execution/docs/ru.md"
         },
@@ -3135,6 +3265,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/09-streaming",
           "available": true,
+          "site_url": "lessons/performance/streaming/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/09-streaming",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/09-streaming/docs/ru.md"
         },
@@ -3153,6 +3284,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/10-interoperability",
           "available": true,
+          "site_url": "lessons/performance/interoperability/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/10-interoperability",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/docs/ru.md"
         },
@@ -3171,6 +3303,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/12-performance/11-ibis",
           "available": true,
+          "site_url": "lessons/performance/ibis/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/11-ibis",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/docs/ru.md"
         }
@@ -3213,6 +3346,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/01-causal-question-and-estimand",
           "available": true,
+          "site_url": "lessons/causal-analysis/causal-question-and-estimand/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/01-causal-question-and-estimand",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/01-causal-question-and-estimand/docs/ru.md"
         },
@@ -3231,6 +3365,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/02-causal-dags",
           "available": true,
+          "site_url": "lessons/causal-analysis/causal-dags/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/02-causal-dags",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/02-causal-dags/docs/ru.md"
         },
@@ -3249,6 +3384,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/03-confounders",
           "available": true,
+          "site_url": "lessons/causal-analysis/confounders/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/03-confounders",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/docs/ru.md"
         },
@@ -3267,6 +3403,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/04-colliders",
           "available": true,
+          "site_url": "lessons/causal-analysis/colliders/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/04-colliders",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/04-colliders/docs/ru.md"
         },
@@ -3285,6 +3422,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/05-regression-adjustment",
           "available": true,
+          "site_url": "lessons/causal-analysis/regression-adjustment/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/05-regression-adjustment",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/05-regression-adjustment/docs/ru.md"
         },
@@ -3303,6 +3441,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/06-matching",
           "available": true,
+          "site_url": "lessons/causal-analysis/matching/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/06-matching",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/docs/ru.md"
         },
@@ -3321,6 +3460,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/07-weighting-and-doubly-robust",
           "available": true,
+          "site_url": "lessons/causal-analysis/weighting-and-doubly-robust/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/07-weighting-and-doubly-robust",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/docs/ru.md"
         },
@@ -3339,6 +3479,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/08-difference-in-differences",
           "available": true,
+          "site_url": "lessons/causal-analysis/difference-in-differences/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/08-difference-in-differences",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/08-difference-in-differences/docs/ru.md"
         },
@@ -3357,6 +3498,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/09-quasi-experiments",
           "available": true,
+          "site_url": "lessons/causal-analysis/quasi-experiments/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/09-quasi-experiments",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/docs/ru.md"
         },
@@ -3375,6 +3517,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/10-sensitivity",
           "available": true,
+          "site_url": "lessons/causal-analysis/sensitivity/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/10-sensitivity",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/10-sensitivity/docs/ru.md"
         },
@@ -3393,6 +3536,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/13-causal-analysis/11-causal-workflow",
           "available": true,
+          "site_url": "lessons/causal-analysis/causal-workflow/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/11-causal-workflow",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/11-causal-workflow/docs/ru.md"
         }
@@ -3433,6 +3577,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/01-time-index",
           "available": true,
+          "site_url": "lessons/time-series/time-index/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/01-time-index",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/01-time-index/docs/ru.md"
         },
@@ -3450,6 +3595,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/02-resampling",
           "available": true,
+          "site_url": "lessons/time-series/resampling/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/02-resampling",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/02-resampling/docs/ru.md"
         },
@@ -3467,6 +3613,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/03-rolling",
           "available": true,
+          "site_url": "lessons/time-series/rolling/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/03-rolling",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/03-rolling/docs/ru.md"
         },
@@ -3484,6 +3631,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/04-trend-and-seasonality",
           "available": true,
+          "site_url": "lessons/time-series/trend-and-seasonality/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/04-trend-and-seasonality",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/docs/ru.md"
         },
@@ -3501,6 +3649,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/05-temporal-leakage",
           "available": true,
+          "site_url": "lessons/time-series/temporal-leakage/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/05-temporal-leakage",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/05-temporal-leakage/docs/ru.md"
         },
@@ -3518,6 +3667,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/06-forecast-baselines",
           "available": true,
+          "site_url": "lessons/time-series/forecast-baselines/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/06-forecast-baselines",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/06-forecast-baselines/docs/ru.md"
         },
@@ -3535,6 +3685,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/07-decomposition",
           "available": true,
+          "site_url": "lessons/time-series/decomposition/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/07-decomposition",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/07-decomposition/docs/ru.md"
         },
@@ -3552,6 +3703,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/08-ets-and-arima",
           "available": true,
+          "site_url": "lessons/time-series/ets-and-arima/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/08-ets-and-arima",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/08-ets-and-arima/docs/ru.md"
         },
@@ -3569,6 +3721,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/09-backtesting",
           "available": true,
+          "site_url": "lessons/time-series/backtesting/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/09-backtesting",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/docs/ru.md"
         },
@@ -3586,6 +3739,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/10-forecast-metrics",
           "available": true,
+          "site_url": "lessons/time-series/forecast-metrics/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/10-forecast-metrics",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/docs/ru.md"
         },
@@ -3603,6 +3757,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/11-prediction-intervals",
           "available": true,
+          "site_url": "lessons/time-series/prediction-intervals/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/11-prediction-intervals",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/11-prediction-intervals/docs/ru.md"
         },
@@ -3621,6 +3776,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/14-time-series/12-time-series-anomalies",
           "available": true,
+          "site_url": "lessons/time-series/time-series-anomalies/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/12-time-series-anomalies",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/12-time-series-anomalies/docs/ru.md"
         }
@@ -3661,6 +3817,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/01-problem-framing",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/problem-framing/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/01-problem-framing",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/01-problem-framing/docs/ru.md"
         },
@@ -3678,6 +3835,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/02-data-splitting",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/data-splitting/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/02-data-splitting",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/02-data-splitting/docs/ru.md"
         },
@@ -3695,6 +3853,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/03-metrics",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/metrics/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/03-metrics",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/03-metrics/docs/ru.md"
         },
@@ -3712,6 +3871,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/04-preprocessing",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/preprocessing/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/04-preprocessing",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/04-preprocessing/docs/ru.md"
         },
@@ -3729,6 +3889,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/05-pipeline",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/pipeline/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/05-pipeline",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/docs/ru.md"
         },
@@ -3746,6 +3907,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/06-column-transformer",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/column-transformer/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/06-column-transformer",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/06-column-transformer/docs/ru.md"
         },
@@ -3763,6 +3925,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/07-linear-models",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/linear-models/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/07-linear-models",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/07-linear-models/docs/ru.md"
         },
@@ -3780,6 +3943,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/08-trees",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/trees/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/08-trees",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/docs/ru.md"
         },
@@ -3797,6 +3961,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/09-ensembles",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/ensembles/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/09-ensembles",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/09-ensembles/docs/ru.md"
         },
@@ -3814,6 +3979,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/10-cross-validation",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/cross-validation/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/10-cross-validation",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/docs/ru.md"
         },
@@ -3831,6 +3997,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/11-imbalanced-data",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/imbalanced-data/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/11-imbalanced-data",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/11-imbalanced-data/docs/ru.md"
         },
@@ -3848,6 +4015,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/12-calibration",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/calibration/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/12-calibration",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/docs/ru.md"
         },
@@ -3865,6 +4033,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/13-leakage",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/leakage/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/13-leakage",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/13-leakage/docs/ru.md"
         },
@@ -3882,6 +4051,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/14-error-analysis",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/error-analysis/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/14-error-analysis",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/14-error-analysis/docs/ru.md"
         },
@@ -3899,6 +4069,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/15-applied-machine-learning/15-model-card",
           "available": true,
+          "site_url": "lessons/applied-machine-learning/model-card/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/15-model-card",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/15-model-card/docs/ru.md"
         }
@@ -3938,6 +4109,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/01-catboost",
           "available": true,
+          "site_url": "lessons/tabular-ml/catboost/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/01-catboost",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/docs/ru.md"
         },
@@ -3955,6 +4127,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/02-categorical-features",
           "available": true,
+          "site_url": "lessons/tabular-ml/categorical-features/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/02-categorical-features",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/docs/ru.md"
         },
@@ -3972,6 +4145,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/03-early-stopping",
           "available": true,
+          "site_url": "lessons/tabular-ml/early-stopping/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/03-early-stopping",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/docs/ru.md"
         },
@@ -3989,6 +4163,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/04-feature-importance",
           "available": true,
+          "site_url": "lessons/tabular-ml/feature-importance/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/04-feature-importance",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/docs/ru.md"
         },
@@ -4006,6 +4181,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/05-permutation-importance",
           "available": true,
+          "site_url": "lessons/tabular-ml/permutation-importance/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/05-permutation-importance",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/docs/ru.md"
         },
@@ -4023,6 +4199,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/06-shap",
           "available": true,
+          "site_url": "lessons/tabular-ml/shap/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/06-shap",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/docs/ru.md"
         },
@@ -4040,6 +4217,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/07-segment-analysis",
           "available": true,
+          "site_url": "lessons/tabular-ml/segment-analysis/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/07-segment-analysis",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/07-segment-analysis/docs/ru.md"
         },
@@ -4058,6 +4236,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/08-cost-sensitive-decisions",
           "available": true,
+          "site_url": "lessons/tabular-ml/cost-sensitive-decisions/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/08-cost-sensitive-decisions",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/docs/ru.md"
         },
@@ -4077,6 +4256,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/09-optuna",
           "available": true,
+          "site_url": "lessons/tabular-ml/optuna/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/09-optuna",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/docs/ru.md"
         },
@@ -4095,6 +4275,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/10-mlflow",
           "available": true,
+          "site_url": "lessons/tabular-ml/mlflow/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/10-mlflow",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/docs/ru.md"
         },
@@ -4113,6 +4294,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/16-tabular-ml/11-drift-and-stability",
           "available": true,
+          "site_url": "lessons/tabular-ml/drift-and-stability/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/11-drift-and-stability",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/docs/ru.md"
         }
@@ -4152,6 +4334,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/01-analytical-memo",
           "available": true,
+          "site_url": "lessons/delivery/analytical-memo/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/01-analytical-memo",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/01-analytical-memo/docs/ru.md"
         },
@@ -4169,6 +4352,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/02-excel-xlsxwriter",
           "available": true,
+          "site_url": "lessons/delivery/excel-xlsxwriter/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/02-excel-xlsxwriter",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/02-excel-xlsxwriter/docs/ru.md"
         },
@@ -4186,6 +4370,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/03-quarto",
           "available": true,
+          "site_url": "lessons/delivery/quarto/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/03-quarto",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/03-quarto/docs/ru.md"
         },
@@ -4203,6 +4388,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/04-document-formats",
           "available": true,
+          "site_url": "lessons/delivery/document-formats/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/04-document-formats",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/04-document-formats/docs/ru.md"
         },
@@ -4220,6 +4406,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/05-interactive-plotly",
           "available": true,
+          "site_url": "lessons/delivery/interactive-plotly/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/05-interactive-plotly",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/05-interactive-plotly/docs/ru.md"
         },
@@ -4237,6 +4424,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/06-streamlit",
           "available": true,
+          "site_url": "lessons/delivery/streamlit/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/06-streamlit",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/06-streamlit/docs/ru.md"
         },
@@ -4254,6 +4442,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/07-caching-and-state",
           "available": true,
+          "site_url": "lessons/delivery/caching-and-state/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/07-caching-and-state",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/docs/ru.md"
         },
@@ -4271,6 +4460,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/08-cli",
           "available": true,
+          "site_url": "lessons/delivery/cli/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/08-cli",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/08-cli/docs/ru.md"
         },
@@ -4288,6 +4478,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/09-scheduled-runs",
           "available": true,
+          "site_url": "lessons/delivery/scheduled-runs/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/09-scheduled-runs",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/09-scheduled-runs/docs/ru.md"
         },
@@ -4305,6 +4496,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/10-fastapi",
           "available": true,
+          "site_url": "lessons/delivery/fastapi/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/10-fastapi",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/10-fastapi/docs/ru.md"
         },
@@ -4322,6 +4514,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/11-docker",
           "available": true,
+          "site_url": "lessons/delivery/docker/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/11-docker",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/11-docker/docs/ru.md"
         },
@@ -4339,6 +4532,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/17-delivery/12-handoff",
           "available": true,
+          "site_url": "lessons/delivery/handoff/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/12-handoff",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/12-handoff/docs/ru.md"
         }
@@ -4388,6 +4582,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/01-problem-selection",
           "available": true,
+          "site_url": "lessons/capstones/problem-selection/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/01-problem-selection",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/01-problem-selection/docs/ru.md"
         },
@@ -4410,6 +4605,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/02-data-contract",
           "available": true,
+          "site_url": "lessons/capstones/data-contract/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/02-data-contract",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/02-data-contract/docs/ru.md"
         },
@@ -4432,6 +4628,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/03-baseline",
           "available": true,
+          "site_url": "lessons/capstones/baseline/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/03-baseline",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/03-baseline/docs/ru.md"
         },
@@ -4454,6 +4651,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/04-implementation",
           "available": true,
+          "site_url": "lessons/capstones/implementation/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/04-implementation",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/04-implementation/docs/ru.md"
         },
@@ -4476,6 +4674,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/05-verification",
           "available": true,
+          "site_url": "lessons/capstones/verification/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/05-verification",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/05-verification/docs/ru.md"
         },
@@ -4498,6 +4697,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/06-peer-review",
           "available": true,
+          "site_url": "lessons/capstones/peer-review/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/06-peer-review",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/06-peer-review/docs/ru.md"
         },
@@ -4520,6 +4720,7 @@ window.COURSE_DATA = {
           ],
           "path": "phases/18-capstones/07-defense",
           "available": true,
+          "site_url": "lessons/capstones/defense/",
           "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/07-defense",
           "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/07-defense/docs/ru.md"
         }

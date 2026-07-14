@@ -1,0 +1,2846 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В предыдущих уроках мы обучили CatBoost-кандидата и нашли важный неприятный факт: на tiny validation split он меняет top-2 action set не в лучшую сторону. Baseline…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/cost-sensitive-decisions/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Порог и стоимость решения для сильной модели">
+  <meta property="og:description" content="В предыдущих уроках мы обучили CatBoost-кандидата и нашли важный неприятный факт: на tiny validation split он меняет top-2 action set не в лучшую сторону. Baseline…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/cost-sensitive-decisions/">
+  <meta name="twitter:card" content="summary">
+  <title>Порог и стоимость решения для сильной модели — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Порог и стоимость решения для сильной модели", "description": "В предыдущих уроках мы обучили CatBoost-кандидата и нашли важный неприятный факт: на tiny validation split он меняет top-2 action set не в лучшую сторону. Baseline…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/cost-sensitive-decisions/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Порог и стоимость решения для сильной модели", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/cost-sensitive-decisions/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 179 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/08-cost-sensitive-decisions" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему нельзя считать model score готовым бизнес-действием?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что действие появляется только после threshold, бюджета и стоимости ошибок</button><button type="button" class="quiz-option" data-choice="1">Потому что score всегда хуже class label</button><button type="button" class="quiz-option" data-choice="2">Потому что threshold можно выбирать на test split</button><button type="button" class="quiz-option" data-choice="3">Потому что CatBoost не умеет выдавать вероятности</button></div><p class="quiz-feedback" hidden>Score ранжирует или оценивает риск. Решение требует отдельной политики: порог, top-k budget, FP/FN cost и guardrails.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>На каком split policy разрешает выбирать threshold в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">На validation split; final holdout test остается закрытым для финальной проверки</button><button type="button" class="quiz-option" data-choice="1">На test split; threshold всегда выбирают по лучшему финальному результату</button><button type="button" class="quiz-option" data-choice="2">На train split; там больше строк и меньше шума</button><button type="button" class="quiz-option" data-choice="3">На всех split сразу; это уменьшает variance</button></div><p class="quiz-feedback" hidden>Problem spec и policy фиксируют `selection_data=validation`. Test не используется для выбора threshold.</p></article></section>
+        <article class="lesson-article"><h1 id="порог-и-стоимость-решения-для-сильной-модели">Порог и стоимость решения для сильной модели</h1>
+<blockquote>
+<p>Сильная модель полезна только тогда, когда улучшает действие при заданном бюджете, стоимости ошибок и честной калибровке.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML, Decision<br />
+<strong>Пререквизиты:</strong> <code>16-tabular-ml/07-segment-analysis</code><br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> cost-sensitive decision evaluator, который выбирает validation threshold, сравнивает top-k budget и блокирует promotion CatBoost-кандидата, если бизнес-стоимость решения хуже baseline.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделить score модели, threshold decision и бизнес-действие.</li>
+<li>Посчитать стоимость FP/FN под ограничением <code>max_actions=2</code>.</li>
+<li>Выбрать threshold на validation split и не трогать final holdout.</li>
+<li>Сравнить selected threshold, fixed threshold <code>0.5</code> и top-k budget.</li>
+<li>Оформить decision gate, который не делает causal claim про retention offer.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В предыдущих уроках мы обучили CatBoost-кандидата и нашли важный неприятный факт: на tiny validation split он меняет top-2 action set не в лучшую сторону. Baseline выбирает <code>S007,S006</code>, CatBoost выбирает <code>S007,S005</code>, а настоящий positive <code>S006</code> выпадает из действия.</p>
+<p>Но бизнес-задача не звучит как “получить красивый ROC AUC”. Она звучит так:</p>
+<ul>
+<li>есть пакет eligible trial users;</li>
+<li>команда поддержки может отправить максимум два retention offer;</li>
+<li>false positive тратит бюджет на пользователя, который не churned;</li>
+<li>false negative пропускает high-risk пользователя, который churned;</li>
+<li>по problem spec FN стоит в 5 раз дороже FP.</li>
+</ul>
+<p>Значит, следующий вопрос: меняет ли CatBoost бизнес-решение в лучшую сторону, если считать стоимость ошибок, threshold и бюджет? Ответ в этом fixture: нет.</p>
+<h2 id="концепция">Концепция</h2>
+<p>У бинарной модели есть минимум три разных слоя:</p>
+<table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Что отвечает</th>
+<th>Где легко ошибиться</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Score</td>
+<td>Насколько объект похож на positive class</td>
+<td>Принять score за готовое действие</td>
+</tr>
+<tr>
+<td>Threshold</td>
+<td>С какого score делать действие</td>
+<td>Подобрать порог на test или на train</td>
+</tr>
+<tr>
+<td>Budget</td>
+<td>Сколько действий вообще можно сделать</td>
+<td>Сравнить модели при разных action count</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Что дороже: FP или FN</td>
+<td>Оптимизировать precision без учета FN</td>
+</tr>
+</tbody>
+</table>
+<p>В этом уроке baseline получает калиброванный score из фазы 15:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">S006: 0.555556, actual=1
+S005: 0.222222, actual=0
+S007: 0.222222, actual=0
+</code></pre></div><p>CatBoost-кандидат получает declared raw probability из сегментного анализа:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">S007: 0.507692, actual=0
+S005: 0.492308, actual=0
+S006: 0.492308, actual=1
+</code></pre></div><p>Это специально несимметрично. Baseline уже прошел calibration handoff, а CatBoost еще нет. Поэтому gate проверяет не только стоимость, но и статус калибровки.</p>
+<h3 id="формула-стоимости">Формула стоимости</h3>
+<p>Для каждого threshold:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">total_error_cost = FP * false_positive_cost + FN * false_negative_cost
+</code></pre></div><p>В нашем problem spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">false_positive_cost = 1
+false_negative_cost = 5
+max_actions = 2
+</code></pre></div><p>Threshold eligible только если он выбирает не больше двух строк. Если threshold выбирает три строки, он может иметь низкую стоимость ошибок на validation, но нарушает операционный бюджет.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-соберите-decision-rows">Шаг 1. Соберите decision rows</h3>
+<p>Минимальная таблица для решения не должна тащить весь feature matrix. Нужны только:</p>
+<ul>
+<li><code>snapshot_id</code>;</li>
+<li><code>actual_label</code>;</li>
+<li><code>score</code>;</li>
+<li><code>model_role</code>;</li>
+<li><code>score_source</code>;</li>
+<li><code>calibration_status</code>.</li>
+</ul>
+<p>Baseline берется из <code>calibrated_predictions.csv</code>, CatBoost - из <code>strong_model_segment_report.json</code>.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">rows = [
+    {&quot;model_role&quot;: &quot;baseline&quot;, &quot;snapshot_id&quot;: &quot;S006&quot;, &quot;score&quot;: 0.555556, &quot;actual_label&quot;: 1},
+    {&quot;model_role&quot;: &quot;baseline&quot;, &quot;snapshot_id&quot;: &quot;S005&quot;, &quot;score&quot;: 0.222222, &quot;actual_label&quot;: 0},
+    {&quot;model_role&quot;: &quot;baseline&quot;, &quot;snapshot_id&quot;: &quot;S007&quot;, &quot;score&quot;: 0.222222, &quot;actual_label&quot;: 0},
+    {&quot;model_role&quot;: &quot;catboost&quot;, &quot;snapshot_id&quot;: &quot;S007&quot;, &quot;score&quot;: 0.507692, &quot;actual_label&quot;: 0},
+    {&quot;model_role&quot;: &quot;catboost&quot;, &quot;snapshot_id&quot;: &quot;S005&quot;, &quot;score&quot;: 0.492308, &quot;actual_label&quot;: 0},
+    {&quot;model_role&quot;: &quot;catboost&quot;, &quot;snapshot_id&quot;: &quot;S006&quot;, &quot;score&quot;: 0.492308, &quot;actual_label&quot;: 1},
+]
+</code></pre></div><p>Важно: обе модели сравниваются на одном и том же validation population: <code>S005,S006,S007</code>.</p>
+<h3 id="шаг-2-посчитайте-threshold-table">Шаг 2. Посчитайте threshold table</h3>
+<p>Для каждого threshold из policy:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">1.0, 0.6, 0.5, 0.492308, 0.3
+</code></pre></div><p>делаем action, если <code>score &gt;= threshold</code>, затем считаем TP/FP/TN/FN и стоимость.</p>
+<p>Ключевой момент: threshold <code>0.492308</code> для CatBoost включает и <code>S005</code>, и <code>S006</code>, потому что сравнение inclusive. Это дает меньшую стоимость ошибок, но выбирает три строки:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">selected_ids = S007,S005,S006
+total_error_cost = 2
+budget_status = over_budget
+</code></pre></div><p>Такой threshold нельзя выбрать, потому что лимит действий равен двум.</p>
+<h3 id="шаг-3-выберите-лучший-threshold">Шаг 3. Выберите лучший threshold</h3>
+<p>Tie-breaker в policy:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">min_total_error_cost -&gt; max_recall -&gt; min_action_count -&gt; threshold_desc
+</code></pre></div><p>На validation:</p>
+<ul>
+<li>baseline выбирает threshold <code>0.5</code>, action <code>S006</code>, cost <code>0</code>;</li>
+<li>CatBoost выбирает threshold <code>1.0</code>, action set пустой, cost <code>5</code>.</li>
+</ul>
+<p>Пустой action set - не победа. Это лучший eligible threshold для CatBoost только потому, что остальные eligible варианты еще хуже или равны по стоимости.</p>
+<h3 id="шаг-4-сравните-top-k-budget">Шаг 4. Сравните top-k budget</h3>
+<p>Top-k policy имитирует реальный рабочий режим: взять два highest score.</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">baseline top-2: S006,S005 -&gt; TP=1, FP=1, FN=0, cost=1
+catboost top-2: S007,S005 -&gt; TP=0, FP=2, FN=1, cost=7
+</code></pre></div><p>Здесь видно, почему средний score или ranking “на глаз” опасны. CatBoost поставил настоящего churn user <code>S006</code> ниже двух negative строк.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите урок из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/08-cost-sensitive-decisions/code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;baseline_selected_threshold&quot;: 0.5,
+  &quot;catboost_selected_threshold&quot;: 1.0,
+  &quot;baseline_best_total_error_cost&quot;: 0.0,
+  &quot;catboost_best_total_error_cost&quot;: 5.0,
+  &quot;baseline_top_k_total_error_cost&quot;: 1.0,
+  &quot;catboost_top_k_total_error_cost&quot;: 7.0,
+  &quot;decision_status&quot;: &quot;do_not_promote_catboost_candidate&quot;,
+  &quot;readiness_status&quot;: &quot;ready_for_optuna_lesson&quot;
+}
+</code></pre></div><p>Основные файлы:</p>
+<ul>
+<li><code>outputs/cost_sensitive_decision_rows.csv</code> - одинаковые validation rows и score sources.</li>
+<li><code>outputs/threshold_comparison.csv</code> - cost по каждому threshold.</li>
+<li><code>outputs/budget_impact.csv</code> - selected threshold, top-k и fixed threshold <code>0.5</code>.</li>
+<li><code>outputs/decision_gate.csv</code> - причины, почему CatBoost не продвигается.</li>
+<li><code>outputs/cost_sensitive_decision_report.json</code> - полный отчет для handoff.</li>
+</ul>
+<p>Decision gate специально разделяет два вывода:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">CatBoost не продвигается в бизнес-решение.
+CatBoost можно продолжать улучшать в следующем уроке через Optuna.
+</code></pre></div><p>Это разные решения. Не продвигать текущего кандидата не значит прекращать исследование.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-подобрать-threshold-на-test">Ошибка 1. Подобрать threshold на test</h3>
+<p>Измените policy:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;threshold_policy&quot;: {
+  &quot;selection_data&quot;: &quot;test&quot;
+}
+</code></pre></div><p>Evaluator вернет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">valid = false
+blocking_errors = threshold_selection_uses_validation_only
+readiness_status = blocked_before_cost_sensitive_decision
+</code></pre></div><p>Threshold выбирается на validation. Test остается финальной проверкой, а не местом для подбора решения.</p>
+<h3 id="ошибка-2-игнорировать-calibration-status">Ошибка 2. Игнорировать calibration status</h3>
+<p>CatBoost score в этом уроке - declared probability, но не approved calibrated probability. Поэтому даже если бы cost был лучше, promotion gate все равно потребовал бы отдельный calibration handoff.</p>
+<h3 id="ошибка-3-считать-causal-effect-offer">Ошибка 3. Считать causal effect offer</h3>
+<p>Этот отчет говорит только о ranking decision: кому команда поддержки отправит предложение. Он не доказывает, что offer снижает churn. Для этого нужен experiment или causal design.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/08-cost-sensitive-decisions/tests
+</code></pre></div><p>Что проверяют тесты:</p>
+<ul>
+<li>baseline и CatBoost сравниваются на тех же <code>S005,S006,S007</code>;</li>
+<li>baseline score помечен как calibrated, CatBoost - как not approved;</li>
+<li>threshold <code>0.5</code> для baseline дает cost <code>0</code>;</li>
+<li>threshold <code>0.492308</code> для CatBoost over-budget;</li>
+<li>top-k CatBoost дает cost <code>7</code>;</li>
+<li>decision gate блокирует promotion по cost, calibration и segment warnings;</li>
+<li>попытка выбрать threshold на test становится blocking error.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/cost_sensitive_decision_evaluator.py
+</code></pre></div><p>Standalone запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_evaluator.py \
+  --output-root phases/16-tabular-ml/08-cost-sensitive-decisions/outputs
+</code></pre></div><p>Артефакт можно переиспользовать как audit step перед model promotion:</p>
+<ol>
+<li>Подайте policy с cost, budget и threshold candidates.</li>
+<li>Подайте калиброванные baseline predictions.</li>
+<li>Подайте segment report кандидата.</li>
+<li>Проверьте <code>decision_status</code> и <code>failed_promotion_gates</code>.</li>
+</ol>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Уберите threshold <code>1.0</code> из policy и объясните, какой threshold выберет CatBoost и почему.</li>
+<li>Поменяйте <code>false_negative_cost</code> с <code>5</code> на <code>2</code> и пересчитайте decision gate.</li>
+<li>Добавьте gate, который запрещает promotion, если fixed threshold <code>0.5</code> ухудшает cost относительно baseline.</li>
+<li>Сформулируйте, какой эксперимент нужен, чтобы перейти от “кому отправить offer” к “offer действительно снижает churn”.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision threshold</td>
+<td><code>0.5</code> всегда нормальный порог</td>
+<td>Порог зависит от стоимости ошибок, бюджета и цели действия</td>
+</tr>
+<tr>
+<td>Top-k budget</td>
+<td>Это то же самое, что threshold</td>
+<td>Top-k фиксирует число действий, threshold фиксирует минимальный score</td>
+</tr>
+<tr>
+<td>False positive cost</td>
+<td>Можно игнорировать, если recall высокий</td>
+<td>FP тратит ограниченный операционный бюджет</td>
+</tr>
+<tr>
+<td>False negative cost</td>
+<td>Это просто missed label</td>
+<td>FN может быть главным бизнес-риском, если пропущенный positive дорог</td>
+</tr>
+<tr>
+<td>Calibration handoff</td>
+<td>Нужен только для красивого графика</td>
+<td>Нужен, чтобы score можно было честно использовать как probability в decision layer</td>
+</tr>
+<tr>
+<td>Causal effect boundary</td>
+<td>Если score хороший, offer работает</td>
+<td>Risk score не оценивает эффект интервенции</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/classification_threshold.html" target="_blank" rel="noopener">scikit-learn: Tuning the decision threshold for class prediction</a> - прочитайте разделы про разделение probability estimation и decision problem, а также пример cost-sensitive threshold tuning.</li>
+<li><a href="https://scikit-learn.org/stable/modules/calibration.html" target="_blank" rel="noopener">scikit-learn: Probability calibration</a> - повторите, почему некалиброванный score опасно превращать в бизнес-порог.</li>
+<li><a href="https://scikit-learn.org/stable/modules/model_evaluation.html#precision-recall-f-measure-metrics" target="_blank" rel="noopener">scikit-learn: Precision, recall and F-measure metrics</a> - используйте как справочник для связи precision/recall с FP/FN.</li>
+<li><a href="https://arxiv.org/abs/1810.03993" target="_blank" rel="noopener">Model Cards for Model Reporting</a> - первичный источник про intended use, limitations и disaggregated performance, которые нужны рядом с promotion gate.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой threshold выбирает evaluator для калиброванного baseline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`0.5`, потому что он выбирает `S006` и получает total_error_cost `0`</button><button type="button" class="quiz-option" data-choice="1">`1.0`, потому что no-action всегда дешевле</button><button type="button" class="quiz-option" data-choice="2">`0.492308`, потому что это score CatBoost</button><button type="button" class="quiz-option" data-choice="3">`0.3`, потому что самый низкий threshold всегда дает лучший recall</button></div><p class="quiz-feedback" hidden>При threshold `0.5` baseline выбирает единственный positive `S006`, не делает FP и не пропускает FN.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему CatBoost threshold `0.492308` не становится selected threshold, хотя его total_error_cost равен `2`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он выбирает три строки `S007,S005,S006`, нарушая budget `max_actions=2`</button><button type="button" class="quiz-option" data-choice="1">Он использует train split</button><button type="button" class="quiz-option" data-choice="2">Он выбирает только false negatives</button><button type="button" class="quiz-option" data-choice="3">Он совпадает с threshold baseline и поэтому запрещен</button></div><p class="quiz-feedback" hidden>Threshold eligible только если action_count не превышает budget. Inclusive сравнение `score &gt;= threshold` выбирает все три строки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что показывает top-k budget comparison?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Baseline top-2 имеет cost `1`, CatBoost top-2 имеет cost `7`, поэтому candidate ухудшает action decision</button><button type="button" class="quiz-option" data-choice="1">CatBoost top-2 имеет cost `0`, поэтому его можно продвигать</button><button type="button" class="quiz-option" data-choice="2">Top-k comparison не нужен, если есть threshold table</button><button type="button" class="quiz-option" data-choice="3">Baseline и CatBoost выбирают один и тот же action set</button></div><p class="quiz-feedback" hidden>Top-k имитирует лимит двух retention offers. CatBoost выбирает два negative и пропускает positive `S006`.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Что означает `decision_status=do_not_promote_catboost_candidate`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Текущий CatBoost нельзя продвигать в бизнес-решение, но его можно улучшать дальше в Optuna-уроке</button><button type="button" class="quiz-option" data-choice="1">CatBoost надо удалить из репозитория</button><button type="button" class="quiz-option" data-choice="2">Baseline production-ready без дополнительных проверок</button><button type="button" class="quiz-option" data-choice="3">Retention offer causal effect доказан</button></div><p class="quiz-feedback" hidden>Gate блокирует promotion текущего кандидата из-за cost, calibration и segment warnings. Это не запрещает дальнейшую оптимизацию модели.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Какой claim запрещен для этого artifact?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что retention offer причинно снижает churn</button><button type="button" class="quiz-option" data-choice="1">Что baseline threshold `0.5` имеет cost `0` на validation fixture</button><button type="button" class="quiz-option" data-choice="2">Что CatBoost score в уроке не имеет approved candidate calibration</button><button type="button" class="quiz-option" data-choice="3">Что top-k budget ограничивает число действий</button></div><p class="quiz-feedback" hidden>Artifact оценивает risk-ranking decision, а не эффект интервенции. Causal effect требует эксперимента или causal design.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;cost_sensitive_decision_evaluator.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from cost_sensitive_decision_evaluator import run, write_outputs  # noqa: E402
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class CostSensitiveDecisionEvaluatorTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **paths: Path) -&gt; dict:
+        return run(
+            policy_path=paths.get(&quot;policy_path&quot;, root / &quot;cost_sensitive_decision_policy_spec.json&quot;),
+        )
+
+    def test_valid_report_keeps_threshold_choice_on_validation(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;cost_sensitive_decision_audit_id&quot;], &quot;trial-churn-cost-sensitive-decision-audit-v0&quot;)
+        self.assertEqual(summary[&quot;analysis_split&quot;], &quot;validation&quot;)
+        self.assertEqual(summary[&quot;final_holdout_split&quot;], &quot;test&quot;)
+        self.assertEqual(summary[&quot;false_positive_cost&quot;], 1.0)
+        self.assertEqual(summary[&quot;false_negative_cost&quot;], 5.0)
+        self.assertEqual(summary[&quot;budget_max_actions&quot;], 2)
+        self.assertEqual(summary[&quot;baseline_selected_threshold&quot;], 0.5)
+        self.assertEqual(summary[&quot;catboost_selected_threshold&quot;], 1.0)
+        self.assertEqual(summary[&quot;baseline_best_total_error_cost&quot;], 0.0)
+        self.assertEqual(summary[&quot;catboost_best_total_error_cost&quot;], 5.0)
+        self.assertEqual(summary[&quot;candidate_cost_delta_vs_baseline&quot;], 5.0)
+        self.assertEqual(summary[&quot;baseline_top_k_total_error_cost&quot;], 1.0)
+        self.assertEqual(summary[&quot;catboost_top_k_total_error_cost&quot;], 7.0)
+        self.assertEqual(summary[&quot;candidate_top_k_cost_delta_vs_baseline&quot;], 6.0)
+        self.assertEqual(summary[&quot;decision_status&quot;], &quot;do_not_promote_catboost_candidate&quot;)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_optuna_lesson&quot;)
+
+    def test_decision_rows_compare_same_population_and_expose_calibration_status(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;model_role&quot;], row[&quot;snapshot_id&quot;]): row for row in report[&quot;decision_rows&quot;]}
+
+        self.assertEqual({snapshot_id for _, snapshot_id in rows}, {&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;})
+        self.assertEqual(rows[(&quot;baseline&quot;, &quot;S006&quot;)][&quot;score&quot;], 0.555556)
+        self.assertEqual(rows[(&quot;baseline&quot;, &quot;S006&quot;)][&quot;score_source&quot;], &quot;calibrated_score&quot;)
+        self.assertEqual(rows[(&quot;baseline&quot;, &quot;S006&quot;)][&quot;calibration_status&quot;], &quot;approved_phase15_validation_bin_map&quot;)
+        self.assertEqual(rows[(&quot;baseline&quot;, &quot;S005&quot;)][&quot;score_rank&quot;], 2)
+        self.assertEqual(rows[(&quot;baseline&quot;, &quot;S007&quot;)][&quot;score_rank&quot;], 3)
+        self.assertEqual(rows[(&quot;catboost&quot;, &quot;S007&quot;)][&quot;score&quot;], 0.507692)
+        self.assertEqual(rows[(&quot;catboost&quot;, &quot;S006&quot;)][&quot;score&quot;], 0.492308)
+        self.assertEqual(rows[(&quot;catboost&quot;, &quot;S006&quot;)][&quot;calibration_status&quot;], &quot;not_approved_for_candidate&quot;)
+        self.assertFalse(rows[(&quot;catboost&quot;, &quot;S006&quot;)][&quot;upstream_selected_at_budget&quot;])
+        population_check = check(report, &quot;decision_rows_cover_same_validation_population&quot;)
+        self.assertTrue(population_check[&quot;valid&quot;])
+        self.assertEqual(list(population_check[&quot;observed&quot;]), [&quot;baseline&quot;, &quot;catboost&quot;])
+
+    def test_threshold_table_shows_under_budget_and_over_budget_options(self) -&gt; None:
+        report = self.audit()
+        rows = {
+            (row[&quot;model_role&quot;], row[&quot;threshold&quot;]): row
+            for row in report[&quot;threshold_comparison&quot;]
+        }
+
+        baseline = rows[(&quot;baseline&quot;, 0.5)]
+        self.assertTrue(baseline[&quot;threshold_selected&quot;])
+        self.assertEqual(baseline[&quot;selected_ids&quot;], &quot;S006&quot;)
+        self.assertEqual(baseline[&quot;tp&quot;], 1)
+        self.assertEqual(baseline[&quot;fp&quot;], 0)
+        self.assertEqual(baseline[&quot;fn&quot;], 0)
+        self.assertEqual(baseline[&quot;total_error_cost&quot;], 0.0)
+
+        fixed_catboost = rows[(&quot;catboost&quot;, 0.5)]
+        self.assertFalse(fixed_catboost[&quot;threshold_selected&quot;])
+        self.assertEqual(fixed_catboost[&quot;selected_ids&quot;], &quot;S007&quot;)
+        self.assertEqual(fixed_catboost[&quot;false_positive_ids&quot;], &quot;S007&quot;)
+        self.assertEqual(fixed_catboost[&quot;false_negative_ids&quot;], &quot;S006&quot;)
+        self.assertEqual(fixed_catboost[&quot;total_error_cost&quot;], 6.0)
+
+        inclusive_tie = rows[(&quot;catboost&quot;, 0.492308)]
+        self.assertEqual(inclusive_tie[&quot;selected_ids&quot;], &quot;S007,S005,S006&quot;)
+        self.assertEqual(inclusive_tie[&quot;budget_status&quot;], &quot;over_budget&quot;)
+        self.assertFalse(inclusive_tie[&quot;threshold_is_budget_eligible&quot;])
+        self.assertEqual(inclusive_tie[&quot;total_error_cost&quot;], 2.0)
+
+        no_action = rows[(&quot;catboost&quot;, 1.0)]
+        self.assertTrue(no_action[&quot;threshold_selected&quot;])
+        self.assertEqual(no_action[&quot;action_count&quot;], 0)
+        self.assertEqual(no_action[&quot;false_negative_ids&quot;], &quot;S006&quot;)
+        self.assertEqual(no_action[&quot;total_error_cost&quot;], 5.0)
+
+    def test_budget_impact_and_gate_block_candidate_promotion(self) -&gt; None:
+        report = self.audit()
+        impact = {
+            (row[&quot;model_role&quot;], row[&quot;decision_rule&quot;]): row
+            for row in report[&quot;budget_impact&quot;]
+        }
+        gates = {row[&quot;gate_id&quot;]: row for row in report[&quot;decision_gate&quot;]}
+
+        self.assertEqual(impact[(&quot;baseline&quot;, &quot;top_k_budget_policy&quot;)][&quot;selected_ids&quot;], &quot;S006,S005&quot;)
+        self.assertEqual(impact[(&quot;baseline&quot;, &quot;top_k_budget_policy&quot;)][&quot;total_error_cost&quot;], 1.0)
+        self.assertEqual(impact[(&quot;catboost&quot;, &quot;top_k_budget_policy&quot;)][&quot;selected_ids&quot;], &quot;S007,S005&quot;)
+        self.assertEqual(impact[(&quot;catboost&quot;, &quot;top_k_budget_policy&quot;)][&quot;false_negative_ids&quot;], &quot;S006&quot;)
+        self.assertEqual(impact[(&quot;catboost&quot;, &quot;top_k_budget_policy&quot;)][&quot;total_error_cost&quot;], 7.0)
+        self.assertEqual(impact[(&quot;catboost&quot;, &quot;fixed_threshold_0_5_diagnostic&quot;)][&quot;total_error_cost&quot;], 6.0)
+
+        self.assertTrue(gates[&quot;final_holdout_excluded_from_threshold_selection&quot;][&quot;passed&quot;])
+        self.assertFalse(gates[&quot;candidate_threshold_cost_lte_baseline_best&quot;][&quot;passed&quot;])
+        self.assertFalse(gates[&quot;candidate_top_k_cost_lte_baseline_top_k&quot;][&quot;passed&quot;])
+        self.assertFalse(gates[&quot;candidate_has_approved_calibration&quot;][&quot;passed&quot;])
+        self.assertFalse(gates[&quot;segment_hidden_failures_absent&quot;][&quot;passed&quot;])
+        self.assertTrue(gates[&quot;no_causal_offer_effect_claim&quot;][&quot;passed&quot;])
+        self.assertFalse(gates[&quot;promotion_requires_all_gates&quot;][&quot;passed&quot;])
+
+    def test_warnings_name_cost_calibration_segment_and_causal_boundaries(self) -&gt; None:
+        report = self.audit()
+
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [
+                &quot;candidate_not_promoted_due_to_decision_gate&quot;,
+                &quot;candidate_score_is_not_calibrated&quot;,
+                &quot;catboost_threshold_cost_worse_than_baseline&quot;,
+                &quot;catboost_top_k_budget_cost_worse_than_baseline&quot;,
+                &quot;segment_warnings_propagated_to_decision_gate&quot;,
+                &quot;no_causal_offer_effect_boundary_visible&quot;,
+            ],
+        )
+        self.assertEqual(check(report, &quot;candidate_score_is_not_calibrated&quot;)[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertEqual(check(report, &quot;catboost_top_k_budget_cost_worse_than_baseline&quot;)[&quot;observed&quot;][&quot;candidate_top_k_total_error_cost&quot;], 7.0)
+        self.assertIn(&quot;candidate_worse_than_baseline_on_validation&quot;, check(report, &quot;segment_warnings_propagated_to_decision_gate&quot;)[&quot;observed&quot;])
+
+    def test_serialized_spec_keeps_selection_summary_and_upstream_handoff(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;analysis_split&quot;], &quot;validation&quot;)
+        self.assertEqual(serialized[&quot;threshold_policy&quot;][&quot;selection_data&quot;], &quot;validation&quot;)
+        self.assertEqual(serialized[&quot;selection_summary&quot;][&quot;baseline_selected_threshold&quot;], 0.5)
+        self.assertEqual(serialized[&quot;selection_summary&quot;][&quot;catboost_selected_threshold&quot;], 1.0)
+        self.assertEqual(serialized[&quot;selection_summary&quot;][&quot;baseline_threshold_selected_ids&quot;], [&quot;S006&quot;])
+        self.assertEqual(serialized[&quot;selection_summary&quot;][&quot;catboost_threshold_selected_ids&quot;], [])
+        self.assertEqual(serialized[&quot;selection_summary&quot;][&quot;catboost_top_k_selected_ids&quot;], [&quot;S007&quot;, &quot;S005&quot;])
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;calibration_readiness_status&quot;], &quot;ready_for_leakage_lesson&quot;)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;segment_readiness_status&quot;], &quot;ready_for_cost_sensitive_decision_lesson&quot;)
+
+    def test_policy_blocks_threshold_selection_on_final_holdout(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            policy_path = Path(directory) / &quot;cost_sensitive_decision_policy_spec.json&quot;
+            policy = read_json(DATA_ROOT / &quot;cost_sensitive_decision_policy_spec.json&quot;)
+            policy[&quot;threshold_policy&quot;][&quot;selection_data&quot;] = &quot;test&quot;
+            write_json(policy_path, policy)
+
+            report = self.audit(policy_path=policy_path)
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;blocked_before_cost_sensitive_decision&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;threshold_selection_uses_validation_only&quot;])
+        self.assertFalse(check(report, &quot;threshold_selection_uses_validation_only&quot;)[&quot;valid&quot;])
+
+    def test_writer_and_lesson_cli_export_expected_outputs(self) -&gt; None:
+        report = self.audit()
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            output_spec = read_json(DATA_ROOT / &quot;cost_sensitive_decision_policy_spec.json&quot;)[&quot;output&quot;]
+            write_outputs(report, output_root, output_spec)
+
+            threshold_rows = read_csv(output_root / &quot;threshold_comparison.csv&quot;)
+            gate_rows = read_csv(output_root / &quot;decision_gate.csv&quot;)
+
+        self.assertEqual(len(threshold_rows), 10)
+        self.assertEqual(len(gate_rows), 7)
+
+        completed = subprocess.run(
+            [sys.executable, str(CODE)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        payload = json.loads(completed.stdout)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;catboost_top_k_total_error_cost&quot;], 7.0)
+        self.assertEqual(payload[&quot;decision_status&quot;], &quot;do_not_promote_catboost_candidate&quot;)
+        self.assertEqual(payload[&quot;readiness_status&quot;], &quot;ready_for_optuna_lesson&quot;)
+
+    def test_artifact_cli_output_root_writes_all_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            completed = subprocess.run(
+                [sys.executable, str(ARTIFACT), &quot;--output-root&quot;, str(output_root)],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.stdout, &quot;&quot;)
+            self.assertTrue((output_root / &quot;cost_sensitive_decision_report.json&quot;).is_file())
+            self.assertTrue((output_root / &quot;cost_sensitive_decision_rows.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;threshold_comparison.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;budget_impact.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;decision_gate.csv&quot;).is_file())
+            self.assertEqual(read_json(output_root / &quot;cost_sensitive_decision_report.json&quot;)[&quot;summary&quot;][&quot;catboost_best_total_error_cost&quot;], 5.0)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from cost_sensitive_decision_evaluator import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; int:
+    result = run()
+    output_spec = read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;]
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, output_spec)
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;cost_sensitive_decision_audit_id&quot;: summary[&quot;cost_sensitive_decision_audit_id&quot;],
+                &quot;analysis_split&quot;: summary[&quot;analysis_split&quot;],
+                &quot;baseline_selected_threshold&quot;: summary[&quot;baseline_selected_threshold&quot;],
+                &quot;catboost_selected_threshold&quot;: summary[&quot;catboost_selected_threshold&quot;],
+                &quot;baseline_best_total_error_cost&quot;: summary[&quot;baseline_best_total_error_cost&quot;],
+                &quot;catboost_best_total_error_cost&quot;: summary[&quot;catboost_best_total_error_cost&quot;],
+                &quot;candidate_cost_delta_vs_baseline&quot;: summary[&quot;candidate_cost_delta_vs_baseline&quot;],
+                &quot;baseline_top_k_total_error_cost&quot;: summary[&quot;baseline_top_k_total_error_cost&quot;],
+                &quot;catboost_top_k_total_error_cost&quot;: summary[&quot;catboost_top_k_total_error_cost&quot;],
+                &quot;candidate_top_k_cost_delta_vs_baseline&quot;: summary[&quot;candidate_top_k_cost_delta_vs_baseline&quot;],
+                &quot;decision_status&quot;: summary[&quot;decision_status&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;cost-sensitive-decision-evaluator&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/cost_sensitive_decision_evaluator.py&quot;,
+  &quot;description&quot;: &quot;Сравнивает калиброванный phase-15 baseline и CatBoost-кандидат на validation split: выбирает threshold под FP/FN cost и offer budget, считает top-k impact и пишет decision-status gate.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_evaluator.py --output-root phases/16-tabular-ml/08-cost-sensitive-decisions/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/budget_impact.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>model_role,model_id,decision_rule,threshold,k,budget_max_actions,budget_status,action_count,tp,fp,tn,fn,precision,recall,false_positive_rate,false_negative_rate,total_error_cost,average_error_cost,selected_ids,true_positive_ids,false_positive_ids,false_negative_ids
+baseline,random_forest_depth2_class_weight_balanced,selected_threshold_policy,0.5,,2,within_budget,1,1,0,2,0,1.0,1.0,0.0,0.0,0.0,0.0,S006,S006,,
+baseline,random_forest_depth2_class_weight_balanced,top_k_budget_policy,,2,2,within_budget,2,1,1,1,0,0.5,1.0,0.5,0.0,1.0,0.333333,&quot;S006,S005&quot;,S006,S005,
+baseline,random_forest_depth2_class_weight_balanced,fixed_threshold_0_5_diagnostic,0.5,,2,within_budget,1,1,0,2,0,1.0,1.0,0.0,0.0,0.0,0.0,S006,S006,,
+catboost,catboost_depth2_native_categories_es_logloss,selected_threshold_policy,1.0,,2,within_budget,0,0,0,2,1,,0.0,0.0,1.0,5.0,1.666667,,,,S006
+catboost,catboost_depth2_native_categories_es_logloss,top_k_budget_policy,,2,2,within_budget,2,0,2,0,1,0.0,0.0,1.0,1.0,7.0,2.333333,&quot;S007,S005&quot;,,&quot;S007,S005&quot;,S006
+catboost,catboost_depth2_native_categories_es_logloss,fixed_threshold_0_5_diagnostic,0.5,,2,within_budget,1,0,1,1,1,0.0,0.0,0.5,1.0,6.0,2.0,S007,,S007,S006
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/budget_impact.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cost_sensitive_decision_evaluator.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;cost_sensitive_decision_policy_spec.json&quot;
+DEFAULT_PROBLEM_SPEC_PATH = UPSTREAM_DATA_ROOT / &quot;problem_spec.json&quot;
+DEFAULT_CALIBRATION_REPORT_PATH = (
+    PHASE_15_ROOT / &quot;12-calibration&quot; / &quot;outputs&quot; / &quot;calibration_report.json&quot;
+)
+DEFAULT_CALIBRATED_PREDICTIONS_PATH = (
+    PHASE_15_ROOT / &quot;12-calibration&quot; / &quot;outputs&quot; / &quot;calibrated_predictions.csv&quot;
+)
+DEFAULT_SEGMENT_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;07-segment-analysis&quot; / &quot;outputs&quot; / &quot;strong_model_segment_report.json&quot;
+)
+DEFAULT_SEGMENT_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;07-segment-analysis&quot; / &quot;outputs&quot; / &quot;strong_model_segment_serialized_spec.json&quot;
+)
+
+GENERATED_AT = &quot;2026-07-05T12:30:00+03:00&quot;
+
+
+class CostSensitiveDecisionError(ValueError):
+    &quot;&quot;&quot;Raised when cost-sensitive decision inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def read_csv_rows(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int) and value in (0, 1):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise CostSensitiveDecisionError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def parse_bool(value: Any) -&gt; bool:
+    return bool(bool_label(value))
+
+
+def safe_rate(numerator: int | float, denominator: int | float) -&gt; float | None:
+    if denominator == 0:
+        return None
+    return rounded(float(numerator) / float(denominator))
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def validate_policy(
+    *,
+    policy: dict[str, Any],
+    problem_spec: dict[str, Any],
+    calibration_report: dict[str, Any],
+    segment_report: dict[str, Any],
+    segment_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    required = {
+        &quot;cost_sensitive_decision_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;baseline_package_id&quot;,
+        &quot;baseline_model_id&quot;,
+        &quot;candidate_model_id&quot;,
+        &quot;segment_analysis_audit_id&quot;,
+        &quot;calibration_policy_id&quot;,
+        &quot;analysis_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;score_sources&quot;,
+        &quot;cost_policy&quot;,
+        &quot;budget_policy&quot;,
+        &quot;threshold_policy&quot;,
+        &quot;decision_policy&quot;,
+        &quot;interpretation_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        checks.append(failed(&quot;cost_sensitive_policy_has_required_fields&quot;, missing, &quot;no missing fields&quot;))
+    else:
+        checks.append(passed(&quot;cost_sensitive_policy_has_required_fields&quot;, sorted(required), &quot;required policy fields&quot;))
+
+    errors: list[dict[str, Any]] = []
+    if policy.get(&quot;problem_id&quot;) != problem_spec.get(&quot;problem_id&quot;):
+        errors.append({&quot;field&quot;: &quot;problem_id&quot;, &quot;observed&quot;: policy.get(&quot;problem_id&quot;), &quot;expected&quot;: problem_spec.get(&quot;problem_id&quot;)})
+
+    summary = calibration_report.get(&quot;summary&quot;, {})
+    if calibration_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;calibration_report.valid&quot;, &quot;observed&quot;: calibration_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if summary.get(&quot;calibration_policy_id&quot;) != policy.get(&quot;calibration_policy_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;calibration_report.summary.calibration_policy_id&quot;,
+                &quot;observed&quot;: summary.get(&quot;calibration_policy_id&quot;),
+                &quot;expected&quot;: policy.get(&quot;calibration_policy_id&quot;),
+            }
+        )
+    if summary.get(&quot;source_model_id&quot;) != policy.get(&quot;baseline_model_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;calibration_report.summary.source_model_id&quot;,
+                &quot;observed&quot;: summary.get(&quot;source_model_id&quot;),
+                &quot;expected&quot;: policy.get(&quot;baseline_model_id&quot;),
+            }
+        )
+    if summary.get(&quot;readiness_status&quot;) != &quot;ready_for_leakage_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;calibration_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: summary.get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_leakage_lesson&quot;,
+            }
+        )
+
+    segment_summary = segment_report.get(&quot;summary&quot;, {})
+    if segment_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;segment_report.valid&quot;, &quot;observed&quot;: segment_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    expected_segment = {
+        &quot;segment_analysis_audit_id&quot;: policy.get(&quot;segment_analysis_audit_id&quot;),
+        &quot;baseline_model_id&quot;: policy.get(&quot;baseline_model_id&quot;),
+        &quot;early_stopping_model_id&quot;: policy.get(&quot;candidate_model_id&quot;),
+        &quot;analysis_split&quot;: policy.get(&quot;analysis_split&quot;),
+        &quot;final_holdout_split&quot;: policy.get(&quot;final_holdout_split&quot;),
+    }
+    for field, expected in expected_segment.items():
+        if segment_summary.get(field) != expected:
+            errors.append({&quot;field&quot;: f&quot;segment_report.summary.{field}&quot;, &quot;observed&quot;: segment_summary.get(field), &quot;expected&quot;: expected})
+    if segment_summary.get(&quot;readiness_status&quot;) != &quot;ready_for_cost_sensitive_decision_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;segment_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: segment_summary.get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_cost_sensitive_decision_lesson&quot;,
+            }
+        )
+    if segment_spec.get(&quot;segment_analysis_audit_id&quot;) != policy.get(&quot;segment_analysis_audit_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;segment_spec.segment_analysis_audit_id&quot;,
+                &quot;observed&quot;: segment_spec.get(&quot;segment_analysis_audit_id&quot;),
+                &quot;expected&quot;: policy.get(&quot;segment_analysis_audit_id&quot;),
+            }
+        )
+
+    if errors:
+        checks.append(failed(&quot;cost_policy_matches_upstream_handoff&quot;, errors, &quot;same problem, calibration and segment handoffs&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;cost_policy_matches_upstream_handoff&quot;,
+                {
+                    &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+                    &quot;baseline_model_id&quot;: policy[&quot;baseline_model_id&quot;],
+                    &quot;candidate_model_id&quot;: policy[&quot;candidate_model_id&quot;],
+                    &quot;analysis_split&quot;: policy[&quot;analysis_split&quot;],
+                },
+                &quot;policy matches upstream handoffs&quot;,
+            )
+        )
+
+    cost_errors: list[dict[str, Any]] = []
+    cost_policy = policy.get(&quot;cost_policy&quot;, {})
+    problem_costs = problem_spec.get(&quot;metric_policy&quot;, {}).get(&quot;cost_weights&quot;, {})
+    for field, policy_field in (
+        (&quot;false_positive&quot;, &quot;false_positive_cost&quot;),
+        (&quot;false_negative&quot;, &quot;false_negative_cost&quot;),
+    ):
+        if float(cost_policy.get(policy_field, -1)) != float(problem_costs.get(field, -2)):
+            cost_errors.append(
+                {
+                    &quot;field&quot;: f&quot;cost_policy.{policy_field}&quot;,
+                    &quot;observed&quot;: cost_policy.get(policy_field),
+                    &quot;expected&quot;: problem_costs.get(field),
+                }
+            )
+    if cost_policy.get(&quot;unit&quot;) != problem_costs.get(&quot;unit&quot;):
+        cost_errors.append({&quot;field&quot;: &quot;cost_policy.unit&quot;, &quot;observed&quot;: cost_policy.get(&quot;unit&quot;), &quot;expected&quot;: problem_costs.get(&quot;unit&quot;)})
+    max_actions = policy.get(&quot;budget_policy&quot;, {}).get(&quot;max_actions&quot;)
+    if max_actions != problem_spec.get(&quot;decision_budget&quot;, {}).get(&quot;max_actions&quot;):
+        cost_errors.append(
+            {
+                &quot;field&quot;: &quot;budget_policy.max_actions&quot;,
+                &quot;observed&quot;: max_actions,
+                &quot;expected&quot;: problem_spec.get(&quot;decision_budget&quot;, {}).get(&quot;max_actions&quot;),
+            }
+        )
+    if cost_errors:
+        checks.append(failed(&quot;business_cost_and_budget_match_problem_spec&quot;, cost_errors, &quot;problem spec cost weights and budget&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;business_cost_and_budget_match_problem_spec&quot;,
+                {
+                    &quot;false_positive_cost&quot;: cost_policy[&quot;false_positive_cost&quot;],
+                    &quot;false_negative_cost&quot;: cost_policy[&quot;false_negative_cost&quot;],
+                    &quot;max_actions&quot;: max_actions,
+                },
+                &quot;problem spec cost weights and budget&quot;,
+            )
+        )
+
+    threshold_errors: list[dict[str, Any]] = []
+    threshold_policy = policy.get(&quot;threshold_policy&quot;, {})
+    if threshold_policy.get(&quot;selection_data&quot;) != policy.get(&quot;analysis_split&quot;):
+        threshold_errors.append(
+            {
+                &quot;field&quot;: &quot;threshold_policy.selection_data&quot;,
+                &quot;observed&quot;: threshold_policy.get(&quot;selection_data&quot;),
+                &quot;expected&quot;: policy.get(&quot;analysis_split&quot;),
+            }
+        )
+    if threshold_policy.get(&quot;forbid_threshold_selection_on_test&quot;) is not True:
+        threshold_errors.append(
+            {
+                &quot;field&quot;: &quot;threshold_policy.forbid_threshold_selection_on_test&quot;,
+                &quot;observed&quot;: threshold_policy.get(&quot;forbid_threshold_selection_on_test&quot;),
+                &quot;expected&quot;: True,
+            }
+        )
+    if threshold_policy.get(&quot;selection_data&quot;) == policy.get(&quot;final_holdout_split&quot;):
+        threshold_errors.append(
+            {
+                &quot;field&quot;: &quot;threshold_policy.selection_data&quot;,
+                &quot;observed&quot;: threshold_policy.get(&quot;selection_data&quot;),
+                &quot;expected&quot;: f&quot;not {policy.get(&#x27;final_holdout_split&#x27;)}&quot;,
+            }
+        )
+    if not isinstance(threshold_policy.get(&quot;candidate_thresholds&quot;), list) or not threshold_policy.get(&quot;candidate_thresholds&quot;):
+        threshold_errors.append({&quot;field&quot;: &quot;threshold_policy.candidate_thresholds&quot;, &quot;observed&quot;: threshold_policy.get(&quot;candidate_thresholds&quot;), &quot;expected&quot;: &quot;non-empty list&quot;})
+    if threshold_errors:
+        checks.append(failed(&quot;threshold_selection_uses_validation_only&quot;, threshold_errors, &quot;validation split only, test excluded&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;threshold_selection_uses_validation_only&quot;,
+                {
+                    &quot;selection_data&quot;: threshold_policy[&quot;selection_data&quot;],
+                    &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+                    &quot;candidate_threshold_count&quot;: len(threshold_policy[&quot;candidate_thresholds&quot;]),
+                },
+                &quot;validation split only, test excluded&quot;,
+            )
+        )
+
+    output = policy.get(&quot;output&quot;, {})
+    output_missing = [
+        field
+        for field in (
+            &quot;report_file&quot;,
+            &quot;decision_row_file&quot;,
+            &quot;threshold_comparison_file&quot;,
+            &quot;budget_impact_file&quot;,
+            &quot;decision_gate_file&quot;,
+            &quot;audit_file&quot;,
+            &quot;serialized_spec_file&quot;,
+        )
+        if not output.get(field)
+    ]
+    if output_missing:
+        checks.append(failed(&quot;output_contract_names_all_artifacts&quot;, output_missing, &quot;all output filenames are declared&quot;))
+    else:
+        checks.append(passed(&quot;output_contract_names_all_artifacts&quot;, sorted(output), &quot;all output filenames are declared&quot;))
+    return checks
+
+
+def make_decision_rows(
+    *,
+    policy: dict[str, Any],
+    calibrated_predictions_path: Path,
+    segment_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    split = policy[&quot;analysis_split&quot;]
+    score_sources = policy[&quot;score_sources&quot;]
+    calibrated_rows = [
+        row
+        for row in read_csv_rows(calibrated_predictions_path)
+        if row[&quot;split&quot;] == split and row[&quot;model_id&quot;] == policy[&quot;baseline_model_id&quot;]
+    ]
+    if not calibrated_rows:
+        raise CostSensitiveDecisionError(&quot;calibrated baseline rows are empty for the analysis split&quot;)
+
+    baseline_rows: list[dict[str, Any]] = []
+    for row in calibrated_rows:
+        score = rounded(float(row[score_sources[&quot;baseline&quot;][&quot;score_column&quot;]]))
+        baseline_rows.append(
+            {
+                &quot;analysis_split&quot;: split,
+                &quot;model_role&quot;: &quot;baseline&quot;,
+                &quot;model_id&quot;: row[&quot;model_id&quot;],
+                &quot;score_source&quot;: score_sources[&quot;baseline&quot;][&quot;score_column&quot;],
+                &quot;score_type&quot;: score_sources[&quot;baseline&quot;][&quot;score_type&quot;],
+                &quot;calibration_status&quot;: score_sources[&quot;baseline&quot;][&quot;calibration_status&quot;],
+                &quot;split&quot;: row[&quot;split&quot;],
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;score&quot;: score,
+                &quot;actual_label&quot;: bool_label(row[&quot;actual_label&quot;]),
+                &quot;upstream_selected_at_budget&quot;: parse_bool(row[&quot;selected_at_budget_calibrated&quot;]),
+                &quot;trained_on_split&quot;: row[&quot;trained_on_split&quot;],
+                &quot;generated_at&quot;: GENERATED_AT,
+            }
+        )
+
+    segment_rows = [
+        row
+        for row in segment_report.get(&quot;confusion_rows&quot;, [])
+        if row.get(&quot;split&quot;) == split and row.get(&quot;model_role&quot;) == &quot;catboost&quot;
+    ]
+    if not segment_rows:
+        raise CostSensitiveDecisionError(&quot;catboost segment rows are empty for the analysis split&quot;)
+
+    candidate_rows: list[dict[str, Any]] = []
+    for row in segment_rows:
+        candidate_rows.append(
+            {
+                &quot;analysis_split&quot;: split,
+                &quot;model_role&quot;: &quot;catboost&quot;,
+                &quot;model_id&quot;: policy[&quot;candidate_model_id&quot;],
+                &quot;score_source&quot;: score_sources[&quot;catboost&quot;][&quot;score_column&quot;],
+                &quot;score_type&quot;: score_sources[&quot;catboost&quot;][&quot;score_type&quot;],
+                &quot;calibration_status&quot;: score_sources[&quot;catboost&quot;][&quot;calibration_status&quot;],
+                &quot;split&quot;: row[&quot;split&quot;],
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;score&quot;: rounded(float(row[&quot;score&quot;])),
+                &quot;actual_label&quot;: bool_label(row[&quot;actual_label&quot;]),
+                &quot;upstream_selected_at_budget&quot;: bool(row[&quot;selected_for_action&quot;]),
+                &quot;trained_on_split&quot;: &quot;train&quot;,
+                &quot;generated_at&quot;: GENERATED_AT,
+            }
+        )
+
+    rows = baseline_rows + candidate_rows
+    for model_role in (&quot;baseline&quot;, &quot;catboost&quot;):
+        model_rows = sorted(
+            [row for row in rows if row[&quot;model_role&quot;] == model_role],
+            key=lambda row: (-float(row[&quot;score&quot;]), row[&quot;snapshot_id&quot;]),
+        )
+        for rank, row in enumerate(model_rows, start=1):
+            row[&quot;score_rank&quot;] = rank
+    return sorted(rows, key=lambda row: (row[&quot;model_role&quot;], int(row[&quot;score_rank&quot;]), row[&quot;snapshot_id&quot;]))
+
+
+def confusion_label(selected: bool, actual: int) -&gt; str:
+    if selected and actual == 1:
+        return &quot;tp&quot;
+    if selected and actual == 0:
+        return &quot;fp&quot;
+    if not selected and actual == 1:
+        return &quot;fn&quot;
+    return &quot;tn&quot;
+
+
+def evaluate_selection(
+    *,
+    rows: list[dict[str, Any]],
+    selected_ids: set[str],
+    false_positive_cost: float,
+    false_negative_cost: float,
+) -&gt; dict[str, Any]:
+    tp = fp = tn = fn = 0
+    true_positive_ids: list[str] = []
+    false_positive_ids: list[str] = []
+    false_negative_ids: list[str] = []
+    selected_ordered: list[str] = []
+    for row in sorted(rows, key=lambda item: (int(item[&quot;score_rank&quot;]), item[&quot;snapshot_id&quot;])):
+        snapshot_id = row[&quot;snapshot_id&quot;]
+        selected = snapshot_id in selected_ids
+        actual = int(row[&quot;actual_label&quot;])
+        if selected:
+            selected_ordered.append(snapshot_id)
+        label = confusion_label(selected, actual)
+        if label == &quot;tp&quot;:
+            tp += 1
+            true_positive_ids.append(snapshot_id)
+        elif label == &quot;fp&quot;:
+            fp += 1
+            false_positive_ids.append(snapshot_id)
+        elif label == &quot;fn&quot;:
+            fn += 1
+            false_negative_ids.append(snapshot_id)
+        else:
+            tn += 1
+    action_count = len(selected_ordered)
+    total_error_cost = rounded(fp * false_positive_cost + fn * false_negative_cost)
+    return {
+        &quot;action_count&quot;: action_count,
+        &quot;tp&quot;: tp,
+        &quot;fp&quot;: fp,
+        &quot;tn&quot;: tn,
+        &quot;fn&quot;: fn,
+        &quot;precision&quot;: safe_rate(tp, tp + fp),
+        &quot;recall&quot;: safe_rate(tp, tp + fn),
+        &quot;false_positive_rate&quot;: safe_rate(fp, fp + tn),
+        &quot;false_negative_rate&quot;: safe_rate(fn, tp + fn),
+        &quot;total_error_cost&quot;: total_error_cost,
+        &quot;average_error_cost&quot;: safe_rate(total_error_cost or 0.0, len(rows)),
+        &quot;selected_ids&quot;: &quot;,&quot;.join(selected_ordered),
+        &quot;true_positive_ids&quot;: &quot;,&quot;.join(true_positive_ids),
+        &quot;false_positive_ids&quot;: &quot;,&quot;.join(false_positive_ids),
+        &quot;false_negative_ids&quot;: &quot;,&quot;.join(false_negative_ids),
+    }
+
+
+def threshold_rows_for_model(
+    *,
+    model_rows: list[dict[str, Any]],
+    thresholds: list[float],
+    budget: int,
+    false_positive_cost: float,
+    false_negative_cost: float,
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    model_role = model_rows[0][&quot;model_role&quot;]
+    model_id = model_rows[0][&quot;model_id&quot;]
+    score_source = model_rows[0][&quot;score_source&quot;]
+    calibration_status = model_rows[0][&quot;calibration_status&quot;]
+    for threshold in thresholds:
+        selected_ids = {row[&quot;snapshot_id&quot;] for row in model_rows if float(row[&quot;score&quot;]) &gt;= float(threshold)}
+        metrics = evaluate_selection(
+            rows=model_rows,
+            selected_ids=selected_ids,
+            false_positive_cost=false_positive_cost,
+            false_negative_cost=false_negative_cost,
+        )
+        rows.append(
+            {
+                &quot;model_role&quot;: model_role,
+                &quot;model_id&quot;: model_id,
+                &quot;score_source&quot;: score_source,
+                &quot;calibration_status&quot;: calibration_status,
+                &quot;threshold&quot;: rounded(float(threshold)),
+                &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+                &quot;budget_max_actions&quot;: budget,
+                &quot;budget_status&quot;: &quot;within_budget&quot; if metrics[&quot;action_count&quot;] &lt;= budget else &quot;over_budget&quot;,
+                &quot;threshold_is_budget_eligible&quot;: metrics[&quot;action_count&quot;] &lt;= budget,
+                &quot;threshold_selected&quot;: False,
+                **metrics,
+            }
+        )
+    selected = select_best_threshold(rows)
+    for row in rows:
+        row[&quot;threshold_selected&quot;] = row is selected
+    return rows
+
+
+def select_best_threshold(rows: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    eligible = [row for row in rows if row[&quot;threshold_is_budget_eligible&quot;]]
+    if not eligible:
+        raise CostSensitiveDecisionError(&quot;no threshold is eligible under the configured action budget&quot;)
+    return sorted(
+        eligible,
+        key=lambda row: (
+            float(row[&quot;total_error_cost&quot;]),
+            -(row[&quot;recall&quot;] if row[&quot;recall&quot;] is not None else -1.0),
+            int(row[&quot;action_count&quot;]),
+            -float(row[&quot;threshold&quot;]),
+        ),
+    )[0]
+
+
+def build_threshold_comparison(policy: dict[str, Any], decision_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    cost_policy = policy[&quot;cost_policy&quot;]
+    budget = int(policy[&quot;budget_policy&quot;][&quot;max_actions&quot;])
+    thresholds = [float(value) for value in policy[&quot;threshold_policy&quot;][&quot;candidate_thresholds&quot;]]
+    rows: list[dict[str, Any]] = []
+    for model_role in (&quot;baseline&quot;, &quot;catboost&quot;):
+        model_rows = [row for row in decision_rows if row[&quot;model_role&quot;] == model_role]
+        rows.extend(
+            threshold_rows_for_model(
+                model_rows=model_rows,
+                thresholds=thresholds,
+                budget=budget,
+                false_positive_cost=float(cost_policy[&quot;false_positive_cost&quot;]),
+                false_negative_cost=float(cost_policy[&quot;false_negative_cost&quot;]),
+            )
+        )
+    return rows
+
+
+def selected_threshold_row(threshold_comparison: list[dict[str, Any]], model_role: str) -&gt; dict[str, Any]:
+    return next(row for row in threshold_comparison if row[&quot;model_role&quot;] == model_role and row[&quot;threshold_selected&quot;])
+
+
+def top_k_ids(model_rows: list[dict[str, Any]], k: int) -&gt; set[str]:
+    return {
+        row[&quot;snapshot_id&quot;]
+        for row in sorted(model_rows, key=lambda item: (-float(item[&quot;score&quot;]), item[&quot;snapshot_id&quot;]))[:k]
+    }
+
+
+def build_budget_impact(
+    *,
+    policy: dict[str, Any],
+    decision_rows: list[dict[str, Any]],
+    threshold_comparison: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    cost_policy = policy[&quot;cost_policy&quot;]
+    budget = int(policy[&quot;budget_policy&quot;][&quot;max_actions&quot;])
+    false_positive_cost = float(cost_policy[&quot;false_positive_cost&quot;])
+    false_negative_cost = float(cost_policy[&quot;false_negative_cost&quot;])
+    rows: list[dict[str, Any]] = []
+    for model_role in (&quot;baseline&quot;, &quot;catboost&quot;):
+        model_rows = [row for row in decision_rows if row[&quot;model_role&quot;] == model_role]
+        selected = selected_threshold_row(threshold_comparison, model_role)
+        rows.append(
+            {
+                &quot;model_role&quot;: model_role,
+                &quot;model_id&quot;: selected[&quot;model_id&quot;],
+                &quot;decision_rule&quot;: &quot;selected_threshold_policy&quot;,
+                &quot;threshold&quot;: selected[&quot;threshold&quot;],
+                &quot;k&quot;: &quot;&quot;,
+                &quot;budget_max_actions&quot;: budget,
+                &quot;budget_status&quot;: selected[&quot;budget_status&quot;],
+                **{field: selected[field] for field in selection_metric_fields()},
+            }
+        )
+
+        ids = top_k_ids(model_rows, budget)
+        metrics = evaluate_selection(
+            rows=model_rows,
+            selected_ids=ids,
+            false_positive_cost=false_positive_cost,
+            false_negative_cost=false_negative_cost,
+        )
+        rows.append(
+            {
+                &quot;model_role&quot;: model_role,
+                &quot;model_id&quot;: model_rows[0][&quot;model_id&quot;],
+                &quot;decision_rule&quot;: &quot;top_k_budget_policy&quot;,
+                &quot;threshold&quot;: &quot;&quot;,
+                &quot;k&quot;: budget,
+                &quot;budget_max_actions&quot;: budget,
+                &quot;budget_status&quot;: &quot;within_budget&quot;,
+                **metrics,
+            }
+        )
+
+        fixed_ids = {row[&quot;snapshot_id&quot;] for row in model_rows if float(row[&quot;score&quot;]) &gt;= 0.5}
+        fixed = evaluate_selection(
+            rows=model_rows,
+            selected_ids=fixed_ids,
+            false_positive_cost=false_positive_cost,
+            false_negative_cost=false_negative_cost,
+        )
+        rows.append(
+            {
+                &quot;model_role&quot;: model_role,
+                &quot;model_id&quot;: model_rows[0][&quot;model_id&quot;],
+                &quot;decision_rule&quot;: &quot;fixed_threshold_0_5_diagnostic&quot;,
+                &quot;threshold&quot;: 0.5,
+                &quot;k&quot;: &quot;&quot;,
+                &quot;budget_max_actions&quot;: budget,
+                &quot;budget_status&quot;: &quot;within_budget&quot; if fixed[&quot;action_count&quot;] &lt;= budget else &quot;over_budget&quot;,
+                **fixed,
+            }
+        )
+    return rows
+
+
+def selection_metric_fields() -&gt; list[str]:
+    return [
+        &quot;action_count&quot;,
+        &quot;tp&quot;,
+        &quot;fp&quot;,
+        &quot;tn&quot;,
+        &quot;fn&quot;,
+        &quot;precision&quot;,
+        &quot;recall&quot;,
+        &quot;false_positive_rate&quot;,
+        &quot;false_negative_rate&quot;,
+        &quot;total_error_cost&quot;,
+        &quot;average_error_cost&quot;,
+        &quot;selected_ids&quot;,
+        &quot;true_positive_ids&quot;,
+        &quot;false_positive_ids&quot;,
+        &quot;false_negative_ids&quot;,
+    ]
+
+
+def budget_row(budget_impact: list[dict[str, Any]], model_role: str, decision_rule: str) -&gt; dict[str, Any]:
+    return next(row for row in budget_impact if row[&quot;model_role&quot;] == model_role and row[&quot;decision_rule&quot;] == decision_rule)
+
+
+def build_decision_gate(
+    *,
+    policy: dict[str, Any],
+    threshold_comparison: list[dict[str, Any]],
+    budget_impact: list[dict[str, Any]],
+    segment_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    baseline_threshold = selected_threshold_row(threshold_comparison, &quot;baseline&quot;)
+    candidate_threshold = selected_threshold_row(threshold_comparison, &quot;catboost&quot;)
+    baseline_top_k = budget_row(budget_impact, &quot;baseline&quot;, &quot;top_k_budget_policy&quot;)
+    candidate_top_k = budget_row(budget_impact, &quot;catboost&quot;, &quot;top_k_budget_policy&quot;)
+    segment_summary = segment_report[&quot;summary&quot;]
+    candidate_calibration_status = policy[&quot;score_sources&quot;][&quot;catboost&quot;][&quot;calibration_status&quot;]
+    candidate_calibrated = candidate_calibration_status.startswith(&quot;approved&quot;)
+    hidden_failure_count = int(segment_summary.get(&quot;hidden_failure_slice_count&quot;, 0))
+    segment_warning_count = len(segment_summary.get(&quot;warnings&quot;, []))
+
+    gates: list[dict[str, Any]] = []
+
+    def add_gate(
+        gate_id: str,
+        passed_gate: bool,
+        observed: Any,
+        expected: Any,
+        *,
+        required_for_promotion: bool = True,
+        severity: str = &quot;blocking_for_promotion&quot;,
+    ) -&gt; None:
+        gates.append(
+            {
+                &quot;gate_id&quot;: gate_id,
+                &quot;passed&quot;: passed_gate,
+                &quot;required_for_promotion&quot;: required_for_promotion,
+                &quot;severity&quot;: severity,
+                &quot;observed&quot;: observed,
+                &quot;expected&quot;: expected,
+            }
+        )
+
+    add_gate(
+        &quot;final_holdout_excluded_from_threshold_selection&quot;,
+        policy[&quot;threshold_policy&quot;][&quot;selection_data&quot;] != policy[&quot;final_holdout_split&quot;],
+        policy[&quot;threshold_policy&quot;][&quot;selection_data&quot;],
+        f&quot;not {policy[&#x27;final_holdout_split&#x27;]}&quot;,
+        severity=&quot;method_guardrail&quot;,
+    )
+    add_gate(
+        &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+        float(candidate_threshold[&quot;total_error_cost&quot;]) &lt;= float(baseline_threshold[&quot;total_error_cost&quot;]),
+        {
+            &quot;candidate_total_error_cost&quot;: candidate_threshold[&quot;total_error_cost&quot;],
+            &quot;baseline_total_error_cost&quot;: baseline_threshold[&quot;total_error_cost&quot;],
+        },
+        &quot;candidate cost &lt;= baseline cost&quot;,
+    )
+    add_gate(
+        &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+        float(candidate_top_k[&quot;total_error_cost&quot;]) &lt;= float(baseline_top_k[&quot;total_error_cost&quot;]),
+        {
+            &quot;candidate_top_k_total_error_cost&quot;: candidate_top_k[&quot;total_error_cost&quot;],
+            &quot;baseline_top_k_total_error_cost&quot;: baseline_top_k[&quot;total_error_cost&quot;],
+        },
+        &quot;candidate top-k cost &lt;= baseline top-k cost&quot;,
+    )
+    add_gate(
+        &quot;candidate_has_approved_calibration&quot;,
+        candidate_calibrated,
+        candidate_calibration_status,
+        &quot;approved candidate calibration&quot;,
+    )
+    add_gate(
+        &quot;segment_hidden_failures_absent&quot;,
+        hidden_failure_count == 0 and segment_warning_count == 0,
+        {
+            &quot;hidden_failure_slice_count&quot;: hidden_failure_count,
+            &quot;segment_warning_count&quot;: segment_warning_count,
+        },
+        &quot;no unresolved segment warnings&quot;,
+    )
+    add_gate(
+        &quot;no_causal_offer_effect_claim&quot;,
+        &quot;does not estimate the causal effect&quot; in policy[&quot;interpretation_policy&quot;][&quot;claim&quot;],
+        policy[&quot;interpretation_policy&quot;][&quot;claim&quot;],
+        &quot;decision artifact states that retention-offer effect is out of scope&quot;,
+        required_for_promotion=False,
+        severity=&quot;claim_boundary&quot;,
+    )
+    promotion_passed = all(row[&quot;passed&quot;] for row in gates if row[&quot;required_for_promotion&quot;])
+    gates.append(
+        {
+            &quot;gate_id&quot;: &quot;promotion_requires_all_gates&quot;,
+            &quot;passed&quot;: promotion_passed,
+            &quot;required_for_promotion&quot;: False,
+            &quot;severity&quot;: &quot;decision_status&quot;,
+            &quot;observed&quot;: &quot;all required gates passed&quot; if promotion_passed else &quot;one or more required gates failed&quot;,
+            &quot;expected&quot;: &quot;all required gates passed before promotion&quot;,
+        }
+    )
+    return gates
+
+
+def add_table_checks(
+    *,
+    checks: list[dict[str, Any]],
+    policy: dict[str, Any],
+    decision_rows: list[dict[str, Any]],
+    threshold_comparison: list[dict[str, Any]],
+    budget_impact: list[dict[str, Any]],
+    decision_gate: list[dict[str, Any]],
+    segment_report: dict[str, Any],
+) -&gt; None:
+    roles = sorted({row[&quot;model_role&quot;] for row in decision_rows})
+    snapshot_sets = {
+        role: {row[&quot;snapshot_id&quot;] for row in decision_rows if row[&quot;model_role&quot;] == role}
+        for role in roles
+    }
+    if set(roles) == {&quot;baseline&quot;, &quot;catboost&quot;} and len(set(map(tuple, [sorted(value) for value in snapshot_sets.values()]))) == 1:
+        checks.append(passed(&quot;decision_rows_cover_same_validation_population&quot;, {role: sorted(ids) for role, ids in snapshot_sets.items()}, &quot;same snapshot ids for both models&quot;))
+    else:
+        checks.append(failed(&quot;decision_rows_cover_same_validation_population&quot;, {role: sorted(ids) for role, ids in snapshot_sets.items()}, &quot;same snapshot ids for both models&quot;))
+
+    expected_threshold_rows = len(policy[&quot;threshold_policy&quot;][&quot;candidate_thresholds&quot;]) * 2
+    selected_count = len([row for row in threshold_comparison if row[&quot;threshold_selected&quot;]])
+    if len(threshold_comparison) == expected_threshold_rows and selected_count == 2:
+        checks.append(passed(&quot;threshold_comparison_complete&quot;, {&quot;row_count&quot;: len(threshold_comparison), &quot;selected_threshold_count&quot;: selected_count}, {&quot;row_count&quot;: expected_threshold_rows, &quot;selected_threshold_count&quot;: 2}))
+    else:
+        checks.append(failed(&quot;threshold_comparison_complete&quot;, {&quot;row_count&quot;: len(threshold_comparison), &quot;selected_threshold_count&quot;: selected_count}, {&quot;row_count&quot;: expected_threshold_rows, &quot;selected_threshold_count&quot;: 2}))
+
+    if len(budget_impact) == 6 and {&quot;selected_threshold_policy&quot;, &quot;top_k_budget_policy&quot;, &quot;fixed_threshold_0_5_diagnostic&quot;} == {row[&quot;decision_rule&quot;] for row in budget_impact}:
+        checks.append(passed(&quot;budget_impact_complete&quot;, {&quot;row_count&quot;: len(budget_impact)}, &quot;three decision rules per model&quot;))
+    else:
+        checks.append(failed(&quot;budget_impact_complete&quot;, {&quot;row_count&quot;: len(budget_impact)}, &quot;three decision rules per model&quot;))
+
+    failed_required_gates = [row[&quot;gate_id&quot;] for row in decision_gate if row[&quot;required_for_promotion&quot;] and not row[&quot;passed&quot;]]
+    if failed_required_gates:
+        checks.append(
+            failed(
+                &quot;candidate_not_promoted_due_to_decision_gate&quot;,
+                failed_required_gates,
+                &quot;all promotion gates pass&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;candidate_not_promoted_due_to_decision_gate&quot;, [], &quot;no failed promotion gates&quot;))
+
+    candidate_status = policy[&quot;score_sources&quot;][&quot;catboost&quot;][&quot;calibration_status&quot;]
+    if policy[&quot;warning_policy&quot;][&quot;require_calibration_warning_for_candidate&quot;] and not candidate_status.startswith(&quot;approved&quot;):
+        checks.append(
+            failed(
+                &quot;candidate_score_is_not_calibrated&quot;,
+                candidate_status,
+                &quot;approved candidate calibration&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    baseline_best = selected_threshold_row(threshold_comparison, &quot;baseline&quot;)
+    candidate_best = selected_threshold_row(threshold_comparison, &quot;catboost&quot;)
+    if float(candidate_best[&quot;total_error_cost&quot;]) &gt; float(baseline_best[&quot;total_error_cost&quot;]):
+        checks.append(
+            failed(
+                &quot;catboost_threshold_cost_worse_than_baseline&quot;,
+                {
+                    &quot;candidate_total_error_cost&quot;: candidate_best[&quot;total_error_cost&quot;],
+                    &quot;baseline_total_error_cost&quot;: baseline_best[&quot;total_error_cost&quot;],
+                },
+                &quot;candidate cost &lt;= baseline cost&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    baseline_top_k = budget_row(budget_impact, &quot;baseline&quot;, &quot;top_k_budget_policy&quot;)
+    candidate_top_k = budget_row(budget_impact, &quot;catboost&quot;, &quot;top_k_budget_policy&quot;)
+    if float(candidate_top_k[&quot;total_error_cost&quot;]) &gt; float(baseline_top_k[&quot;total_error_cost&quot;]):
+        checks.append(
+            failed(
+                &quot;catboost_top_k_budget_cost_worse_than_baseline&quot;,
+                {
+                    &quot;candidate_top_k_total_error_cost&quot;: candidate_top_k[&quot;total_error_cost&quot;],
+                    &quot;baseline_top_k_total_error_cost&quot;: baseline_top_k[&quot;total_error_cost&quot;],
+                },
+                &quot;candidate top-k cost &lt;= baseline top-k cost&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    if policy[&quot;warning_policy&quot;][&quot;require_segment_warning_propagation&quot;] and segment_report[&quot;summary&quot;].get(&quot;warnings&quot;):
+        checks.append(
+            failed(
+                &quot;segment_warnings_propagated_to_decision_gate&quot;,
+                segment_report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;segment warnings must be visible in the decision gate&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    if policy[&quot;warning_policy&quot;][&quot;require_no_causal_effect_boundary&quot;]:
+        checks.append(
+            failed(
+                &quot;no_causal_offer_effect_boundary_visible&quot;,
+                policy[&quot;interpretation_policy&quot;][&quot;claim&quot;],
+                &quot;the report must not claim causal offer effect&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+
+def decision_status(policy: dict[str, Any], decision_gate: list[dict[str, Any]]) -&gt; str:
+    promotion_passed = next(row for row in decision_gate if row[&quot;gate_id&quot;] == &quot;promotion_requires_all_gates&quot;)[&quot;passed&quot;]
+    if promotion_passed:
+        return policy[&quot;decision_policy&quot;][&quot;outcome_if_passed&quot;]
+    return policy[&quot;decision_policy&quot;][&quot;outcome_if_failed&quot;]
+
+
+def build_serialized_spec(
+    *,
+    policy: dict[str, Any],
+    threshold_comparison: list[dict[str, Any]],
+    budget_impact: list[dict[str, Any]],
+    decision_gate: list[dict[str, Any]],
+    calibration_report: dict[str, Any],
+    segment_report: dict[str, Any],
+) -&gt; dict[str, Any]:
+    baseline_threshold = selected_threshold_row(threshold_comparison, &quot;baseline&quot;)
+    candidate_threshold = selected_threshold_row(threshold_comparison, &quot;catboost&quot;)
+    baseline_top_k = budget_row(budget_impact, &quot;baseline&quot;, &quot;top_k_budget_policy&quot;)
+    candidate_top_k = budget_row(budget_impact, &quot;catboost&quot;, &quot;top_k_budget_policy&quot;)
+    return {
+        &quot;cost_sensitive_decision_audit_id&quot;: policy[&quot;cost_sensitive_decision_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;baseline_model_id&quot;: policy[&quot;baseline_model_id&quot;],
+        &quot;candidate_model_id&quot;: policy[&quot;candidate_model_id&quot;],
+        &quot;analysis_split&quot;: policy[&quot;analysis_split&quot;],
+        &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+        &quot;score_sources&quot;: policy[&quot;score_sources&quot;],
+        &quot;cost_policy&quot;: policy[&quot;cost_policy&quot;],
+        &quot;budget_policy&quot;: policy[&quot;budget_policy&quot;],
+        &quot;threshold_policy&quot;: policy[&quot;threshold_policy&quot;],
+        &quot;selection_summary&quot;: {
+            &quot;baseline_selected_threshold&quot;: baseline_threshold[&quot;threshold&quot;],
+            &quot;catboost_selected_threshold&quot;: candidate_threshold[&quot;threshold&quot;],
+            &quot;baseline_threshold_selected_ids&quot;: baseline_threshold[&quot;selected_ids&quot;].split(&quot;,&quot;) if baseline_threshold[&quot;selected_ids&quot;] else [],
+            &quot;catboost_threshold_selected_ids&quot;: candidate_threshold[&quot;selected_ids&quot;].split(&quot;,&quot;) if candidate_threshold[&quot;selected_ids&quot;] else [],
+            &quot;baseline_top_k_selected_ids&quot;: baseline_top_k[&quot;selected_ids&quot;].split(&quot;,&quot;) if baseline_top_k[&quot;selected_ids&quot;] else [],
+            &quot;catboost_top_k_selected_ids&quot;: candidate_top_k[&quot;selected_ids&quot;].split(&quot;,&quot;) if candidate_top_k[&quot;selected_ids&quot;] else [],
+            &quot;baseline_best_total_error_cost&quot;: baseline_threshold[&quot;total_error_cost&quot;],
+            &quot;catboost_best_total_error_cost&quot;: candidate_threshold[&quot;total_error_cost&quot;],
+            &quot;baseline_top_k_total_error_cost&quot;: baseline_top_k[&quot;total_error_cost&quot;],
+            &quot;catboost_top_k_total_error_cost&quot;: candidate_top_k[&quot;total_error_cost&quot;],
+        },
+        &quot;decision_gate&quot;: decision_gate,
+        &quot;upstream_handoff&quot;: {
+            &quot;calibration_policy_id&quot;: calibration_report[&quot;summary&quot;][&quot;calibration_policy_id&quot;],
+            &quot;calibration_readiness_status&quot;: calibration_report[&quot;summary&quot;][&quot;readiness_status&quot;],
+            &quot;segment_analysis_audit_id&quot;: segment_report[&quot;summary&quot;][&quot;segment_analysis_audit_id&quot;],
+            &quot;segment_readiness_status&quot;: segment_report[&quot;summary&quot;][&quot;readiness_status&quot;],
+            &quot;segment_warnings&quot;: segment_report[&quot;summary&quot;][&quot;warnings&quot;],
+        },
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+
+def build_summary(
+    *,
+    policy: dict[str, Any],
+    threshold_comparison: list[dict[str, Any]],
+    budget_impact: list[dict[str, Any]],
+    decision_gate: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    baseline_threshold = selected_threshold_row(threshold_comparison, &quot;baseline&quot;)
+    candidate_threshold = selected_threshold_row(threshold_comparison, &quot;catboost&quot;)
+    baseline_top_k = budget_row(budget_impact, &quot;baseline&quot;, &quot;top_k_budget_policy&quot;)
+    candidate_top_k = budget_row(budget_impact, &quot;catboost&quot;, &quot;top_k_budget_policy&quot;)
+    errors = blocking_errors(checks)
+    status = decision_status(policy, decision_gate)
+    return {
+        &quot;cost_sensitive_decision_audit_id&quot;: policy[&quot;cost_sensitive_decision_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;baseline_model_id&quot;: policy[&quot;baseline_model_id&quot;],
+        &quot;candidate_model_id&quot;: policy[&quot;candidate_model_id&quot;],
+        &quot;analysis_split&quot;: policy[&quot;analysis_split&quot;],
+        &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+        &quot;false_positive_cost&quot;: policy[&quot;cost_policy&quot;][&quot;false_positive_cost&quot;],
+        &quot;false_negative_cost&quot;: policy[&quot;cost_policy&quot;][&quot;false_negative_cost&quot;],
+        &quot;budget_max_actions&quot;: policy[&quot;budget_policy&quot;][&quot;max_actions&quot;],
+        &quot;baseline_selected_threshold&quot;: baseline_threshold[&quot;threshold&quot;],
+        &quot;catboost_selected_threshold&quot;: candidate_threshold[&quot;threshold&quot;],
+        &quot;baseline_best_total_error_cost&quot;: baseline_threshold[&quot;total_error_cost&quot;],
+        &quot;catboost_best_total_error_cost&quot;: candidate_threshold[&quot;total_error_cost&quot;],
+        &quot;candidate_cost_delta_vs_baseline&quot;: rounded(float(candidate_threshold[&quot;total_error_cost&quot;]) - float(baseline_threshold[&quot;total_error_cost&quot;])),
+        &quot;baseline_top_k_total_error_cost&quot;: baseline_top_k[&quot;total_error_cost&quot;],
+        &quot;catboost_top_k_total_error_cost&quot;: candidate_top_k[&quot;total_error_cost&quot;],
+        &quot;candidate_top_k_cost_delta_vs_baseline&quot;: rounded(float(candidate_top_k[&quot;total_error_cost&quot;]) - float(baseline_top_k[&quot;total_error_cost&quot;])),
+        &quot;baseline_threshold_selected_ids&quot;: baseline_threshold[&quot;selected_ids&quot;],
+        &quot;catboost_threshold_selected_ids&quot;: candidate_threshold[&quot;selected_ids&quot;],
+        &quot;baseline_top_k_selected_ids&quot;: baseline_top_k[&quot;selected_ids&quot;],
+        &quot;catboost_top_k_selected_ids&quot;: candidate_top_k[&quot;selected_ids&quot;],
+        &quot;candidate_has_approved_calibration&quot;: policy[&quot;score_sources&quot;][&quot;catboost&quot;][&quot;calibration_status&quot;].startswith(&quot;approved&quot;),
+        &quot;failed_promotion_gates&quot;: [
+            row[&quot;gate_id&quot;] for row in decision_gate if row[&quot;required_for_promotion&quot;] and not row[&quot;passed&quot;]
+        ],
+        &quot;decision_status&quot;: status,
+        &quot;blocking_errors&quot;: errors,
+        &quot;warnings&quot;: warning_ids(checks),
+        &quot;readiness_status&quot;: &quot;blocked_before_cost_sensitive_decision&quot; if errors else policy[&quot;decision_policy&quot;][&quot;next_lesson_readiness&quot;],
+    }
+
+
+def empty_invalid_report(file_check: dict[str, Any]) -&gt; dict[str, Any]:
+    return {
+        &quot;valid&quot;: False,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;cost_sensitive_decision_audit_id&quot;: None,
+            &quot;blocking_errors&quot;: blocking_errors([file_check]),
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_before_cost_sensitive_decision&quot;,
+        },
+        &quot;decision_rows&quot;: [],
+        &quot;threshold_comparison&quot;: [],
+        &quot;budget_impact&quot;: [],
+        &quot;decision_gate&quot;: [],
+        &quot;checks&quot;: [file_check],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    problem_spec_path: Path = DEFAULT_PROBLEM_SPEC_PATH,
+    calibration_report_path: Path = DEFAULT_CALIBRATION_REPORT_PATH,
+    calibrated_predictions_path: Path = DEFAULT_CALIBRATED_PREDICTIONS_PATH,
+    segment_report_path: Path = DEFAULT_SEGMENT_REPORT_PATH,
+    segment_spec_path: Path = DEFAULT_SEGMENT_SPEC_PATH,
+) -&gt; dict[str, Any]:
+    paths = {
+        &quot;policy&quot;: policy_path,
+        &quot;problem_spec&quot;: problem_spec_path,
+        &quot;calibration_report&quot;: calibration_report_path,
+        &quot;calibrated_predictions&quot;: calibrated_predictions_path,
+        &quot;segment_report&quot;: segment_report_path,
+        &quot;segment_spec&quot;: segment_spec_path,
+    }
+    file_check = validate_required_files(paths)
+    if not file_check[&quot;valid&quot;]:
+        return empty_invalid_report(file_check)
+
+    policy = read_json(policy_path)
+    problem_spec = read_json(problem_spec_path)
+    calibration_report = read_json(calibration_report_path)
+    segment_report = read_json(segment_report_path)
+    segment_spec = read_json(segment_spec_path)
+    checks = [file_check]
+    checks.extend(
+        validate_policy(
+            policy=policy,
+            problem_spec=problem_spec,
+            calibration_report=calibration_report,
+            segment_report=segment_report,
+            segment_spec=segment_spec,
+        )
+    )
+    decision_rows = make_decision_rows(
+        policy=policy,
+        calibrated_predictions_path=calibrated_predictions_path,
+        segment_report=segment_report,
+    )
+    threshold_comparison = build_threshold_comparison(policy, decision_rows)
+    budget_impact = build_budget_impact(
+        policy=policy,
+        decision_rows=decision_rows,
+        threshold_comparison=threshold_comparison,
+    )
+    decision_gate = build_decision_gate(
+        policy=policy,
+        threshold_comparison=threshold_comparison,
+        budget_impact=budget_impact,
+        segment_report=segment_report,
+    )
+    add_table_checks(
+        checks=checks,
+        policy=policy,
+        decision_rows=decision_rows,
+        threshold_comparison=threshold_comparison,
+        budget_impact=budget_impact,
+        decision_gate=decision_gate,
+        segment_report=segment_report,
+    )
+    serialized_spec = build_serialized_spec(
+        policy=policy,
+        threshold_comparison=threshold_comparison,
+        budget_impact=budget_impact,
+        decision_gate=decision_gate,
+        calibration_report=calibration_report,
+        segment_report=segment_report,
+    )
+    summary = build_summary(
+        policy=policy,
+        threshold_comparison=threshold_comparison,
+        budget_impact=budget_impact,
+        decision_gate=decision_gate,
+        checks=checks,
+    )
+    return {
+        &quot;valid&quot;: not blocking_errors(checks),
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;decision_rows&quot;: decision_rows,
+        &quot;threshold_comparison&quot;: threshold_comparison,
+        &quot;budget_impact&quot;: budget_impact,
+        &quot;decision_gate&quot;: decision_gate,
+        &quot;checks&quot;: checks,
+        &quot;serialized_spec&quot;: serialized_spec,
+    }
+
+
+def write_outputs(result: dict[str, Any], output_root: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_root / output_spec[&quot;report_file&quot;], {key: value for key, value in result.items() if key != &quot;serialized_spec&quot;})
+    write_json(output_root / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+    write_csv(
+        output_root / output_spec[&quot;decision_row_file&quot;],
+        result[&quot;decision_rows&quot;],
+        [
+            &quot;analysis_split&quot;,
+            &quot;model_role&quot;,
+            &quot;model_id&quot;,
+            &quot;score_source&quot;,
+            &quot;score_type&quot;,
+            &quot;calibration_status&quot;,
+            &quot;split&quot;,
+            &quot;snapshot_id&quot;,
+            &quot;score&quot;,
+            &quot;score_rank&quot;,
+            &quot;actual_label&quot;,
+            &quot;upstream_selected_at_budget&quot;,
+            &quot;trained_on_split&quot;,
+            &quot;generated_at&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;threshold_comparison_file&quot;],
+        result[&quot;threshold_comparison&quot;],
+        [
+            &quot;model_role&quot;,
+            &quot;model_id&quot;,
+            &quot;score_source&quot;,
+            &quot;calibration_status&quot;,
+            &quot;threshold&quot;,
+            &quot;decision_rule&quot;,
+            &quot;budget_max_actions&quot;,
+            &quot;budget_status&quot;,
+            &quot;threshold_is_budget_eligible&quot;,
+            &quot;threshold_selected&quot;,
+            *selection_metric_fields(),
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;budget_impact_file&quot;],
+        result[&quot;budget_impact&quot;],
+        [
+            &quot;model_role&quot;,
+            &quot;model_id&quot;,
+            &quot;decision_rule&quot;,
+            &quot;threshold&quot;,
+            &quot;k&quot;,
+            &quot;budget_max_actions&quot;,
+            &quot;budget_status&quot;,
+            *selection_metric_fields(),
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;decision_gate_file&quot;],
+        result[&quot;decision_gate&quot;],
+        [&quot;gate_id&quot;, &quot;passed&quot;, &quot;required_for_promotion&quot;, &quot;severity&quot;, &quot;observed&quot;, &quot;expected&quot;],
+    )
+    write_csv(
+        output_root / output_spec[&quot;audit_file&quot;],
+        result[&quot;checks&quot;],
+        [&quot;id&quot;, &quot;severity&quot;, &quot;valid&quot;, &quot;observed&quot;, &quot;expected&quot;, &quot;sample&quot;],
+    )
+
+
+def main() -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Evaluate threshold, cost and top-k decisions for the strong model candidate.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--problem-spec&quot;, type=Path, default=DEFAULT_PROBLEM_SPEC_PATH)
+    parser.add_argument(&quot;--calibration-report&quot;, type=Path, default=DEFAULT_CALIBRATION_REPORT_PATH)
+    parser.add_argument(&quot;--calibrated-predictions&quot;, type=Path, default=DEFAULT_CALIBRATED_PREDICTIONS_PATH)
+    parser.add_argument(&quot;--segment-report&quot;, type=Path, default=DEFAULT_SEGMENT_REPORT_PATH)
+    parser.add_argument(&quot;--segment-spec&quot;, type=Path, default=DEFAULT_SEGMENT_SPEC_PATH)
+    parser.add_argument(&quot;--output-root&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    args = parser.parse_args()
+
+    result = run(
+        policy_path=args.policy,
+        problem_spec_path=args.problem_spec,
+        calibration_report_path=args.calibration_report,
+        calibrated_predictions_path=args.calibrated_predictions,
+        segment_report_path=args.segment_report,
+        segment_spec_path=args.segment_spec,
+    )
+    output_spec = read_json(args.policy)[&quot;output&quot;] if args.policy.is_file() else {
+        &quot;report_file&quot;: &quot;cost_sensitive_decision_report.json&quot;,
+        &quot;decision_row_file&quot;: &quot;cost_sensitive_decision_rows.csv&quot;,
+        &quot;threshold_comparison_file&quot;: &quot;threshold_comparison.csv&quot;,
+        &quot;budget_impact_file&quot;: &quot;budget_impact.csv&quot;,
+        &quot;decision_gate_file&quot;: &quot;decision_gate.csv&quot;,
+        &quot;audit_file&quot;: &quot;cost_sensitive_decision_policy_audit.csv&quot;,
+        &quot;serialized_spec_file&quot;: &quot;cost_sensitive_decision_serialized_spec.json&quot;,
+    }
+    write_outputs(result, args.output_root, output_spec)
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_evaluator.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cost_sensitive_decision_policy_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>id,severity,valid,observed,expected,sample
+input_files_are_present,error,True,&quot;[&quot;&quot;calibrated_predictions&quot;&quot;, &quot;&quot;calibration_report&quot;&quot;, &quot;&quot;policy&quot;&quot;, &quot;&quot;problem_spec&quot;&quot;, &quot;&quot;segment_report&quot;&quot;, &quot;&quot;segment_spec&quot;&quot;]&quot;,all required input files,[]
+cost_sensitive_policy_has_required_fields,error,True,&quot;[&quot;&quot;analysis_split&quot;&quot;, &quot;&quot;baseline_model_id&quot;&quot;, &quot;&quot;baseline_package_id&quot;&quot;, &quot;&quot;budget_policy&quot;&quot;, &quot;&quot;calibration_policy_id&quot;&quot;, &quot;&quot;candidate_model_id&quot;&quot;, &quot;&quot;cost_policy&quot;&quot;, &quot;&quot;cost_sensitive_decision_audit_id&quot;&quot;, &quot;&quot;decision_policy&quot;&quot;, &quot;&quot;final_holdout_split&quot;&quot;, &quot;&quot;interpretation_policy&quot;&quot;, &quot;&quot;output&quot;&quot;, &quot;&quot;problem_id&quot;&quot;, &quot;&quot;score_sources&quot;&quot;, &quot;&quot;segment_analysis_audit_id&quot;&quot;, &quot;&quot;threshold_policy&quot;&quot;, &quot;&quot;warning_policy&quot;&quot;]&quot;,required policy fields,[]
+cost_policy_matches_upstream_handoff,error,True,&quot;{&quot;&quot;analysis_split&quot;&quot;: &quot;&quot;validation&quot;&quot;, &quot;&quot;baseline_model_id&quot;&quot;: &quot;&quot;random_forest_depth2_class_weight_balanced&quot;&quot;, &quot;&quot;candidate_model_id&quot;&quot;: &quot;&quot;catboost_depth2_native_categories_es_logloss&quot;&quot;, &quot;&quot;problem_id&quot;&quot;: &quot;&quot;trial-churn-risk-7d-before-end&quot;&quot;}&quot;,policy matches upstream handoffs,[]
+business_cost_and_budget_match_problem_spec,error,True,&quot;{&quot;&quot;false_negative_cost&quot;&quot;: 5.0, &quot;&quot;false_positive_cost&quot;&quot;: 1.0, &quot;&quot;max_actions&quot;&quot;: 2}&quot;,problem spec cost weights and budget,[]
+threshold_selection_uses_validation_only,error,True,&quot;{&quot;&quot;candidate_threshold_count&quot;&quot;: 5, &quot;&quot;final_holdout_split&quot;&quot;: &quot;&quot;test&quot;&quot;, &quot;&quot;selection_data&quot;&quot;: &quot;&quot;validation&quot;&quot;}&quot;,&quot;validation split only, test excluded&quot;,[]
+output_contract_names_all_artifacts,error,True,&quot;[&quot;&quot;audit_file&quot;&quot;, &quot;&quot;budget_impact_file&quot;&quot;, &quot;&quot;decision_gate_file&quot;&quot;, &quot;&quot;decision_row_file&quot;&quot;, &quot;&quot;report_file&quot;&quot;, &quot;&quot;serialized_spec_file&quot;&quot;, &quot;&quot;threshold_comparison_file&quot;&quot;]&quot;,all output filenames are declared,[]
+decision_rows_cover_same_validation_population,error,True,&quot;{&quot;&quot;baseline&quot;&quot;: [&quot;&quot;S005&quot;&quot;, &quot;&quot;S006&quot;&quot;, &quot;&quot;S007&quot;&quot;], &quot;&quot;catboost&quot;&quot;: [&quot;&quot;S005&quot;&quot;, &quot;&quot;S006&quot;&quot;, &quot;&quot;S007&quot;&quot;]}&quot;,same snapshot ids for both models,[]
+threshold_comparison_complete,error,True,&quot;{&quot;&quot;row_count&quot;&quot;: 10, &quot;&quot;selected_threshold_count&quot;&quot;: 2}&quot;,&quot;{&quot;&quot;row_count&quot;&quot;: 10, &quot;&quot;selected_threshold_count&quot;&quot;: 2}&quot;,[]
+budget_impact_complete,error,True,&quot;{&quot;&quot;row_count&quot;&quot;: 6}&quot;,three decision rules per model,[]
+candidate_not_promoted_due_to_decision_gate,warning,False,&quot;[&quot;&quot;candidate_threshold_cost_lte_baseline_best&quot;&quot;, &quot;&quot;candidate_top_k_cost_lte_baseline_top_k&quot;&quot;, &quot;&quot;candidate_has_approved_calibration&quot;&quot;, &quot;&quot;segment_hidden_failures_absent&quot;&quot;]&quot;,all promotion gates pass,[]
+candidate_score_is_not_calibrated,warning,False,not_approved_for_candidate,approved candidate calibration,[]
+catboost_threshold_cost_worse_than_baseline,warning,False,&quot;{&quot;&quot;baseline_total_error_cost&quot;&quot;: 0.0, &quot;&quot;candidate_total_error_cost&quot;&quot;: 5.0}&quot;,candidate cost &lt;= baseline cost,[]
+catboost_top_k_budget_cost_worse_than_baseline,warning,False,&quot;{&quot;&quot;baseline_top_k_total_error_cost&quot;&quot;: 1.0, &quot;&quot;candidate_top_k_total_error_cost&quot;&quot;: 7.0}&quot;,candidate top-k cost &lt;= baseline top-k cost,[]
+segment_warnings_propagated_to_decision_gate,warning,False,&quot;[&quot;&quot;strong_model_small_n_slices_visible&quot;&quot;, &quot;&quot;strong_model_hidden_failure_slices_visible&quot;&quot;, &quot;&quot;candidate_worse_than_baseline_on_validation&quot;&quot;, &quot;&quot;score_band_membership_differs_between_models&quot;&quot;, &quot;&quot;candidate_not_promoted_without_segment_gain&quot;&quot;]&quot;,segment warnings must be visible in the decision gate,[]
+no_causal_offer_effect_boundary_visible,warning,False,&quot;This artifact compares risk-ranking decisions under a fixed threshold, a learned validation threshold and a top-k budget. It does not estimate the causal effect of a retention offer.&quot;,the report must not claim causal offer effect,[]
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_policy_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cost_sensitive_decision_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;cost_sensitive_decision_audit_id&quot;: &quot;trial-churn-cost-sensitive-decision-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;candidate_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;analysis_split&quot;: &quot;validation&quot;,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;false_positive_cost&quot;: 1.0,
+    &quot;false_negative_cost&quot;: 5.0,
+    &quot;budget_max_actions&quot;: 2,
+    &quot;baseline_selected_threshold&quot;: 0.5,
+    &quot;catboost_selected_threshold&quot;: 1.0,
+    &quot;baseline_best_total_error_cost&quot;: 0.0,
+    &quot;catboost_best_total_error_cost&quot;: 5.0,
+    &quot;candidate_cost_delta_vs_baseline&quot;: 5.0,
+    &quot;baseline_top_k_total_error_cost&quot;: 1.0,
+    &quot;catboost_top_k_total_error_cost&quot;: 7.0,
+    &quot;candidate_top_k_cost_delta_vs_baseline&quot;: 6.0,
+    &quot;baseline_threshold_selected_ids&quot;: &quot;S006&quot;,
+    &quot;catboost_threshold_selected_ids&quot;: &quot;&quot;,
+    &quot;baseline_top_k_selected_ids&quot;: &quot;S006,S005&quot;,
+    &quot;catboost_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+    &quot;candidate_has_approved_calibration&quot;: false,
+    &quot;failed_promotion_gates&quot;: [
+      &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+      &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+      &quot;candidate_has_approved_calibration&quot;,
+      &quot;segment_hidden_failures_absent&quot;
+    ],
+    &quot;decision_status&quot;: &quot;do_not_promote_catboost_candidate&quot;,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;candidate_not_promoted_due_to_decision_gate&quot;,
+      &quot;candidate_score_is_not_calibrated&quot;,
+      &quot;catboost_threshold_cost_worse_than_baseline&quot;,
+      &quot;catboost_top_k_budget_cost_worse_than_baseline&quot;,
+      &quot;segment_warnings_propagated_to_decision_gate&quot;,
+      &quot;no_causal_offer_effect_boundary_visible&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_optuna_lesson&quot;
+  },
+  &quot;decision_rows&quot;: [
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;score&quot;: 0.555556,
+      &quot;actual_label&quot;: 1,
+      &quot;upstream_selected_at_budget&quot;: true,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 1
+    },
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;upstream_selected_at_budget&quot;: true,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 2
+    },
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;upstream_selected_at_budget&quot;: false,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 3
+    },
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;score_type&quot;: &quot;declared_uncalibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;score&quot;: 0.507692,
+      &quot;actual_label&quot;: 0,
+      &quot;upstream_selected_at_budget&quot;: true,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 1
+    },
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;score_type&quot;: &quot;declared_uncalibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;score&quot;: 0.492308,
+      &quot;actual_label&quot;: 0,
+      &quot;upstream_selected_at_budget&quot;: true,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 2
+    },
+    {
+      &quot;analysis_split&quot;: &quot;validation&quot;,
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;score_type&quot;: &quot;declared_uncalibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;score&quot;: 0.492308,
+      &quot;actual_label&quot;: 1,
+      &quot;upstream_selected_at_budget&quot;: false,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;,
+      &quot;score_rank&quot;: 3
+    }
+  ],
+  &quot;threshold_comparison&quot;: [
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;threshold&quot;: 1.0,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: null,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 5.0,
+      &quot;average_error_cost&quot;: 1.666667,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: null,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 5.0,
+      &quot;average_error_cost&quot;: 1.666667,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: true,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 0.0,
+      &quot;average_error_cost&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;threshold&quot;: 0.492308,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 0.0,
+      &quot;average_error_cost&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_source&quot;: &quot;calibrated_score&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 0.0,
+      &quot;average_error_cost&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;threshold&quot;: 1.0,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: true,
+      &quot;action_count&quot;: 0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: null,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 5.0,
+      &quot;average_error_cost&quot;: 1.666667,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: null,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 5.0,
+      &quot;average_error_cost&quot;: 1.666667,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: true,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 1,
+      &quot;tn&quot;: 1,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: 0.0,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.5,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 6.0,
+      &quot;average_error_cost&quot;: 2.0,
+      &quot;selected_ids&quot;: &quot;S007&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;S007&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;threshold&quot;: 0.492308,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;over_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: false,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 3,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 2,
+      &quot;tn&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 0.333333,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 1.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 2.0,
+      &quot;average_error_cost&quot;: 0.666667,
+      &quot;selected_ids&quot;: &quot;S007,S005,S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;S007,S005&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;score_source&quot;: &quot;score&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;decision_rule&quot;: &quot;threshold_policy&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;over_budget&quot;,
+      &quot;threshold_is_budget_eligible&quot;: false,
+      &quot;threshold_selected&quot;: false,
+      &quot;action_count&quot;: 3,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 2,
+      &quot;tn&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 0.333333,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 1.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 2.0,
+      &quot;average_error_cost&quot;: 0.666667,
+      &quot;selected_ids&quot;: &quot;S007,S005,S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;S007,S005&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    }
+  ],
+  &quot;budget_impact&quot;: [
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;decision_rule&quot;: &quot;selected_threshold_policy&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;k&quot;: &quot;&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 0.0,
+      &quot;average_error_cost&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;decision_rule&quot;: &quot;top_k_budget_policy&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;k&quot;: 2,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 2,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 1,
+      &quot;tn&quot;: 1,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 0.5,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.5,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 1.0,
+      &quot;average_error_cost&quot;: 0.333333,
+      &quot;selected_ids&quot;: &quot;S006,S005&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;S005&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;baseline&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold_0_5_diagnostic&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;k&quot;: &quot;&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;precision&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 0.0,
+      &quot;total_error_cost&quot;: 0.0,
+      &quot;average_error_cost&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;true_positive_ids&quot;: &quot;S006&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;decision_rule&quot;: &quot;selected_threshold_policy&quot;,
+      &quot;threshold&quot;: 1.0,
+      &quot;k&quot;: &quot;&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: null,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 5.0,
+      &quot;average_error_cost&quot;: 1.666667,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;decision_rule&quot;: &quot;top_k_budget_policy&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;k&quot;: 2,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 2,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 2,
+      &quot;tn&quot;: 0,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: 0.0,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 1.0,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 7.0,
+      &quot;average_error_cost&quot;: 2.333333,
+      &quot;selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;S007,S005&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    },
+    {
+      &quot;model_role&quot;: &quot;catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold_0_5_diagnostic&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;k&quot;: &quot;&quot;,
+      &quot;budget_max_actions&quot;: 2,
+      &quot;budget_status&quot;: &quot;within_budget&quot;,
+      &quot;action_count&quot;: 1,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 1,
+      &quot;tn&quot;: 1,
+      &quot;fn&quot;: 1,
+      &quot;precision&quot;: 0.0,
+      &quot;recall&quot;: 0.0,
+      &quot;false_positive_rate&quot;: 0.5,
+      &quot;false_negative_rate&quot;: 1.0,
+      &quot;total_error_cost&quot;: 6.0,
+      &quot;average_error_cost&quot;: 2.0,
+      &quot;selected_ids&quot;: &quot;S007&quot;,
+      &quot;true_positive_ids&quot;: &quot;&quot;,
+      &quot;false_positive_ids&quot;: &quot;S007&quot;,
+      &quot;false_negative_ids&quot;: &quot;S006&quot;
+    }
+  ],
+  &quot;decision_gate&quot;: [
+    {
+      &quot;gate_id&quot;: &quot;final_holdout_excluded_from_threshold_selection&quot;,
+      &quot;passed&quot;: true,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;method_guardrail&quot;,
+      &quot;observed&quot;: &quot;validation&quot;,
+      &quot;expected&quot;: &quot;not test&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;candidate_total_error_cost&quot;: 5.0,
+        &quot;baseline_total_error_cost&quot;: 0.0
+      },
+      &quot;expected&quot;: &quot;candidate cost &lt;= baseline cost&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;candidate_top_k_total_error_cost&quot;: 7.0,
+        &quot;baseline_top_k_total_error_cost&quot;: 1.0
+      },
+      &quot;expected&quot;: &quot;candidate top-k cost &lt;= baseline top-k cost&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_has_approved_calibration&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;expected&quot;: &quot;approved candidate calibration&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;segment_hidden_failures_absent&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;hidden_failure_slice_count&quot;: 13,
+        &quot;segment_warning_count&quot;: 5
+      },
+      &quot;expected&quot;: &quot;no unresolved segment warnings&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;no_causal_offer_effect_claim&quot;,
+      &quot;passed&quot;: true,
+      &quot;required_for_promotion&quot;: false,
+      &quot;severity&quot;: &quot;claim_boundary&quot;,
+      &quot;observed&quot;: &quot;This artifact compares risk-ranking decisions under a fixed threshold, a learned validation threshold and a top-k budget. It does not estimate the causal effect of a retention offer.&quot;,
+      &quot;expected&quot;: &quot;decision artifact states that retention-offer effect is out of scope&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;promotion_requires_all_gates&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: false,
+      &quot;severity&quot;: &quot;decision_status&quot;,
+      &quot;observed&quot;: &quot;one or more required gates failed&quot;,
+      &quot;expected&quot;: &quot;all required gates passed before promotion&quot;
+    }
+  ],
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;calibrated_predictions&quot;,
+        &quot;calibration_report&quot;,
+        &quot;policy&quot;,
+        &quot;problem_spec&quot;,
+        &quot;segment_report&quot;,
+        &quot;segment_spec&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cost_sensitive_policy_has_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;analysis_split&quot;,
+        &quot;baseline_model_id&quot;,
+        &quot;baseline_package_id&quot;,
+        &quot;budget_policy&quot;,
+        &quot;calibration_policy_id&quot;,
+        &quot;candidate_model_id&quot;,
+        &quot;cost_policy&quot;,
+        &quot;cost_sensitive_decision_audit_id&quot;,
+        &quot;decision_policy&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;interpretation_policy&quot;,
+        &quot;output&quot;,
+        &quot;problem_id&quot;,
+        &quot;score_sources&quot;,
+        &quot;segment_analysis_audit_id&quot;,
+        &quot;threshold_policy&quot;,
+        &quot;warning_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;required policy fields&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cost_policy_matches_upstream_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+        &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+        &quot;candidate_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+        &quot;analysis_split&quot;: &quot;validation&quot;
+      },
+      &quot;expected&quot;: &quot;policy matches upstream handoffs&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;business_cost_and_budget_match_problem_spec&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;false_positive_cost&quot;: 1.0,
+        &quot;false_negative_cost&quot;: 5.0,
+        &quot;max_actions&quot;: 2
+      },
+      &quot;expected&quot;: &quot;problem spec cost weights and budget&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;threshold_selection_uses_validation_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;selection_data&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;candidate_threshold_count&quot;: 5
+      },
+      &quot;expected&quot;: &quot;validation split only, test excluded&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;output_contract_names_all_artifacts&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;audit_file&quot;,
+        &quot;budget_impact_file&quot;,
+        &quot;decision_gate_file&quot;,
+        &quot;decision_row_file&quot;,
+        &quot;report_file&quot;,
+        &quot;serialized_spec_file&quot;,
+        &quot;threshold_comparison_file&quot;
+      ],
+      &quot;expected&quot;: &quot;all output filenames are declared&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;decision_rows_cover_same_validation_population&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;baseline&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;catboost&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;same snapshot ids for both models&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;threshold_comparison_complete&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;row_count&quot;: 10,
+        &quot;selected_threshold_count&quot;: 2
+      },
+      &quot;expected&quot;: {
+        &quot;row_count&quot;: 10,
+        &quot;selected_threshold_count&quot;: 2
+      },
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;budget_impact_complete&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;row_count&quot;: 6
+      },
+      &quot;expected&quot;: &quot;three decision rules per model&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_not_promoted_due_to_decision_gate&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+        &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+        &quot;candidate_has_approved_calibration&quot;,
+        &quot;segment_hidden_failures_absent&quot;
+      ],
+      &quot;expected&quot;: &quot;all promotion gates pass&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_score_is_not_calibrated&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;expected&quot;: &quot;approved candidate calibration&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;catboost_threshold_cost_worse_than_baseline&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;candidate_total_error_cost&quot;: 5.0,
+        &quot;baseline_total_error_cost&quot;: 0.0
+      },
+      &quot;expected&quot;: &quot;candidate cost &lt;= baseline cost&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;catboost_top_k_budget_cost_worse_than_baseline&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;candidate_top_k_total_error_cost&quot;: 7.0,
+        &quot;baseline_top_k_total_error_cost&quot;: 1.0
+      },
+      &quot;expected&quot;: &quot;candidate top-k cost &lt;= baseline top-k cost&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;segment_warnings_propagated_to_decision_gate&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;strong_model_small_n_slices_visible&quot;,
+        &quot;strong_model_hidden_failure_slices_visible&quot;,
+        &quot;candidate_worse_than_baseline_on_validation&quot;,
+        &quot;score_band_membership_differs_between_models&quot;,
+        &quot;candidate_not_promoted_without_segment_gain&quot;
+      ],
+      &quot;expected&quot;: &quot;segment warnings must be visible in the decision gate&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;no_causal_offer_effect_boundary_visible&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;This artifact compares risk-ranking decisions under a fixed threshold, a learned validation threshold and a top-k budget. It does not estimate the causal effect of a retention offer.&quot;,
+      &quot;expected&quot;: &quot;the report must not claim causal offer effect&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cost_sensitive_decision_rows.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>analysis_split,model_role,model_id,score_source,score_type,calibration_status,split,snapshot_id,score,score_rank,actual_label,upstream_selected_at_budget,trained_on_split,generated_at
+validation,baseline,random_forest_depth2_class_weight_balanced,calibrated_score,calibrated_churn_probability,approved_phase15_validation_bin_map,validation,S006,0.555556,1,1,True,train,2026-07-05T12:30:00+03:00
+validation,baseline,random_forest_depth2_class_weight_balanced,calibrated_score,calibrated_churn_probability,approved_phase15_validation_bin_map,validation,S005,0.222222,2,0,True,train,2026-07-05T12:30:00+03:00
+validation,baseline,random_forest_depth2_class_weight_balanced,calibrated_score,calibrated_churn_probability,approved_phase15_validation_bin_map,validation,S007,0.222222,3,0,False,train,2026-07-05T12:30:00+03:00
+validation,catboost,catboost_depth2_native_categories_es_logloss,score,declared_uncalibrated_churn_probability,not_approved_for_candidate,validation,S007,0.507692,1,0,True,train,2026-07-05T12:30:00+03:00
+validation,catboost,catboost_depth2_native_categories_es_logloss,score,declared_uncalibrated_churn_probability,not_approved_for_candidate,validation,S005,0.492308,2,0,True,train,2026-07-05T12:30:00+03:00
+validation,catboost,catboost_depth2_native_categories_es_logloss,score,declared_uncalibrated_churn_probability,not_approved_for_candidate,validation,S006,0.492308,3,1,False,train,2026-07-05T12:30:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_rows.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cost_sensitive_decision_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;cost_sensitive_decision_audit_id&quot;: &quot;trial-churn-cost-sensitive-decision-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+  &quot;candidate_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;analysis_split&quot;: &quot;validation&quot;,
+  &quot;final_holdout_split&quot;: &quot;test&quot;,
+  &quot;score_sources&quot;: {
+    &quot;baseline&quot;: {
+      &quot;score_column&quot;: &quot;calibrated_score&quot;,
+      &quot;score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;approved_phase15_validation_bin_map&quot;
+    },
+    &quot;catboost&quot;: {
+      &quot;score_column&quot;: &quot;score&quot;,
+      &quot;score_type&quot;: &quot;declared_uncalibrated_churn_probability&quot;,
+      &quot;calibration_status&quot;: &quot;not_approved_for_candidate&quot;
+    }
+  },
+  &quot;cost_policy&quot;: {
+    &quot;false_positive_cost&quot;: 1.0,
+    &quot;false_negative_cost&quot;: 5.0,
+    &quot;unit&quot;: &quot;relative_error_cost&quot;
+  },
+  &quot;budget_policy&quot;: {
+    &quot;max_actions&quot;: 2,
+    &quot;selection_unit&quot;: &quot;snapshot_id&quot;,
+    &quot;top_k_tie_breaker&quot;: [
+      &quot;score_desc&quot;,
+      &quot;snapshot_id_asc&quot;
+    ],
+    &quot;threshold_tie_breaker&quot;: [
+      &quot;min_total_error_cost&quot;,
+      &quot;max_recall&quot;,
+      &quot;min_action_count&quot;,
+      &quot;threshold_desc&quot;
+    ]
+  },
+  &quot;threshold_policy&quot;: {
+    &quot;selection_data&quot;: &quot;validation&quot;,
+    &quot;candidate_thresholds&quot;: [
+      1.0,
+      0.6,
+      0.5,
+      0.492308,
+      0.3
+    ],
+    &quot;allow_under_budget&quot;: true,
+    &quot;forbid_threshold_selection_on_test&quot;: true,
+    &quot;fixed_threshold_role&quot;: &quot;diagnostic&quot;
+  },
+  &quot;selection_summary&quot;: {
+    &quot;baseline_selected_threshold&quot;: 0.5,
+    &quot;catboost_selected_threshold&quot;: 1.0,
+    &quot;baseline_threshold_selected_ids&quot;: [
+      &quot;S006&quot;
+    ],
+    &quot;catboost_threshold_selected_ids&quot;: [],
+    &quot;baseline_top_k_selected_ids&quot;: [
+      &quot;S006&quot;,
+      &quot;S005&quot;
+    ],
+    &quot;catboost_top_k_selected_ids&quot;: [
+      &quot;S007&quot;,
+      &quot;S005&quot;
+    ],
+    &quot;baseline_best_total_error_cost&quot;: 0.0,
+    &quot;catboost_best_total_error_cost&quot;: 5.0,
+    &quot;baseline_top_k_total_error_cost&quot;: 1.0,
+    &quot;catboost_top_k_total_error_cost&quot;: 7.0
+  },
+  &quot;decision_gate&quot;: [
+    {
+      &quot;gate_id&quot;: &quot;final_holdout_excluded_from_threshold_selection&quot;,
+      &quot;passed&quot;: true,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;method_guardrail&quot;,
+      &quot;observed&quot;: &quot;validation&quot;,
+      &quot;expected&quot;: &quot;not test&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;candidate_total_error_cost&quot;: 5.0,
+        &quot;baseline_total_error_cost&quot;: 0.0
+      },
+      &quot;expected&quot;: &quot;candidate cost &lt;= baseline cost&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;candidate_top_k_total_error_cost&quot;: 7.0,
+        &quot;baseline_top_k_total_error_cost&quot;: 1.0
+      },
+      &quot;expected&quot;: &quot;candidate top-k cost &lt;= baseline top-k cost&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;candidate_has_approved_calibration&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: &quot;not_approved_for_candidate&quot;,
+      &quot;expected&quot;: &quot;approved candidate calibration&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;segment_hidden_failures_absent&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: true,
+      &quot;severity&quot;: &quot;blocking_for_promotion&quot;,
+      &quot;observed&quot;: {
+        &quot;hidden_failure_slice_count&quot;: 13,
+        &quot;segment_warning_count&quot;: 5
+      },
+      &quot;expected&quot;: &quot;no unresolved segment warnings&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;no_causal_offer_effect_claim&quot;,
+      &quot;passed&quot;: true,
+      &quot;required_for_promotion&quot;: false,
+      &quot;severity&quot;: &quot;claim_boundary&quot;,
+      &quot;observed&quot;: &quot;This artifact compares risk-ranking decisions under a fixed threshold, a learned validation threshold and a top-k budget. It does not estimate the causal effect of a retention offer.&quot;,
+      &quot;expected&quot;: &quot;decision artifact states that retention-offer effect is out of scope&quot;
+    },
+    {
+      &quot;gate_id&quot;: &quot;promotion_requires_all_gates&quot;,
+      &quot;passed&quot;: false,
+      &quot;required_for_promotion&quot;: false,
+      &quot;severity&quot;: &quot;decision_status&quot;,
+      &quot;observed&quot;: &quot;one or more required gates failed&quot;,
+      &quot;expected&quot;: &quot;all required gates passed before promotion&quot;
+    }
+  ],
+  &quot;upstream_handoff&quot;: {
+    &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+    &quot;calibration_readiness_status&quot;: &quot;ready_for_leakage_lesson&quot;,
+    &quot;segment_analysis_audit_id&quot;: &quot;trial-churn-strong-model-segment-audit-v0&quot;,
+    &quot;segment_readiness_status&quot;: &quot;ready_for_cost_sensitive_decision_lesson&quot;,
+    &quot;segment_warnings&quot;: [
+      &quot;strong_model_small_n_slices_visible&quot;,
+      &quot;strong_model_hidden_failure_slices_visible&quot;,
+      &quot;candidate_worse_than_baseline_on_validation&quot;,
+      &quot;score_band_membership_differs_between_models&quot;,
+      &quot;candidate_not_promoted_without_segment_gain&quot;
+    ]
+  },
+  &quot;generated_at&quot;: &quot;2026-07-05T12:30:00+03:00&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/decision_gate.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>gate_id,passed,required_for_promotion,severity,observed,expected
+final_holdout_excluded_from_threshold_selection,True,True,method_guardrail,validation,not test
+candidate_threshold_cost_lte_baseline_best,False,True,blocking_for_promotion,&quot;{&quot;&quot;baseline_total_error_cost&quot;&quot;: 0.0, &quot;&quot;candidate_total_error_cost&quot;&quot;: 5.0}&quot;,candidate cost &lt;= baseline cost
+candidate_top_k_cost_lte_baseline_top_k,False,True,blocking_for_promotion,&quot;{&quot;&quot;baseline_top_k_total_error_cost&quot;&quot;: 1.0, &quot;&quot;candidate_top_k_total_error_cost&quot;&quot;: 7.0}&quot;,candidate top-k cost &lt;= baseline top-k cost
+candidate_has_approved_calibration,False,True,blocking_for_promotion,not_approved_for_candidate,approved candidate calibration
+segment_hidden_failures_absent,False,True,blocking_for_promotion,&quot;{&quot;&quot;hidden_failure_slice_count&quot;&quot;: 13, &quot;&quot;segment_warning_count&quot;&quot;: 5}&quot;,no unresolved segment warnings
+no_causal_offer_effect_claim,True,False,claim_boundary,&quot;This artifact compares risk-ranking decisions under a fixed threshold, a learned validation threshold and a top-k budget. It does not estimate the causal effect of a retention offer.&quot;,decision artifact states that retention-offer effect is out of scope
+promotion_requires_all_gates,False,False,decision_status,one or more required gates failed,all required gates passed before promotion
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/decision_gate.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/threshold_comparison.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>model_role,model_id,score_source,calibration_status,threshold,decision_rule,budget_max_actions,budget_status,threshold_is_budget_eligible,threshold_selected,action_count,tp,fp,tn,fn,precision,recall,false_positive_rate,false_negative_rate,total_error_cost,average_error_cost,selected_ids,true_positive_ids,false_positive_ids,false_negative_ids
+baseline,random_forest_depth2_class_weight_balanced,calibrated_score,approved_phase15_validation_bin_map,1.0,threshold_policy,2,within_budget,True,False,0,0,0,2,1,,0.0,0.0,1.0,5.0,1.666667,,,,S006
+baseline,random_forest_depth2_class_weight_balanced,calibrated_score,approved_phase15_validation_bin_map,0.6,threshold_policy,2,within_budget,True,False,0,0,0,2,1,,0.0,0.0,1.0,5.0,1.666667,,,,S006
+baseline,random_forest_depth2_class_weight_balanced,calibrated_score,approved_phase15_validation_bin_map,0.5,threshold_policy,2,within_budget,True,True,1,1,0,2,0,1.0,1.0,0.0,0.0,0.0,0.0,S006,S006,,
+baseline,random_forest_depth2_class_weight_balanced,calibrated_score,approved_phase15_validation_bin_map,0.492308,threshold_policy,2,within_budget,True,False,1,1,0,2,0,1.0,1.0,0.0,0.0,0.0,0.0,S006,S006,,
+baseline,random_forest_depth2_class_weight_balanced,calibrated_score,approved_phase15_validation_bin_map,0.3,threshold_policy,2,within_budget,True,False,1,1,0,2,0,1.0,1.0,0.0,0.0,0.0,0.0,S006,S006,,
+catboost,catboost_depth2_native_categories_es_logloss,score,not_approved_for_candidate,1.0,threshold_policy,2,within_budget,True,True,0,0,0,2,1,,0.0,0.0,1.0,5.0,1.666667,,,,S006
+catboost,catboost_depth2_native_categories_es_logloss,score,not_approved_for_candidate,0.6,threshold_policy,2,within_budget,True,False,0,0,0,2,1,,0.0,0.0,1.0,5.0,1.666667,,,,S006
+catboost,catboost_depth2_native_categories_es_logloss,score,not_approved_for_candidate,0.5,threshold_policy,2,within_budget,True,False,1,0,1,1,1,0.0,0.0,0.5,1.0,6.0,2.0,S007,,S007,S006
+catboost,catboost_depth2_native_categories_es_logloss,score,not_approved_for_candidate,0.492308,threshold_policy,2,over_budget,False,False,3,1,2,0,0,0.333333,1.0,1.0,0.0,2.0,0.666667,&quot;S007,S005,S006&quot;,S006,&quot;S007,S005&quot;,
+catboost,catboost_depth2_native_categories_es_logloss,score,not_approved_for_candidate,0.3,threshold_policy,2,over_budget,False,False,3,1,2,0,0,0.333333,1.0,1.0,0.0,2.0,0.666667,&quot;S007,S005,S006&quot;,S006,&quot;S007,S005&quot;,
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/threshold_comparison.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/08-cost-sensitive-decisions" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/segment-analysis/"><span>← Предыдущий урок</span><strong>Сегментный анализ сильной модели</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/optuna/"><span>Следующий урок →</span><strong>Optuna и честный подбор параметров</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

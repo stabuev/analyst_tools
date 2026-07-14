@@ -1,0 +1,2192 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В данных фазы есть два квази-экспериментальных намёка:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/quasi-experiments/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="RDD и instrumental variables: дизайн до оценки">
+  <meta property="og:description" content="В данных фазы есть два квази-экспериментальных намёка:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/quasi-experiments/">
+  <meta name="twitter:card" content="summary">
+  <title>RDD и instrumental variables: дизайн до оценки — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "RDD и instrumental variables: дизайн до оценки", "description": "В данных фазы есть два квази-экспериментальных намёка:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/quasi-experiments/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 13: Причинный анализ", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=13"}, {"@type": "ListItem", "position": 3, "name": "RDD и instrumental variables: дизайн до оценки", "item": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/quasi-experiments/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 13</p><h2>Причинный анализ</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-question-and-estimand/"><span>01</span>Причинный вопрос и estimand</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-dags/"><span>02</span>Причинные DAG и идентификация</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/confounders/"><span>03</span>Confounders и backdoor adjustment</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/colliders/"><span>04</span>Colliders, mediators и selection bias</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/regression-adjustment/"><span>05</span>Regression adjustment и g-formula</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/matching/"><span>06</span>Matching и баланс ковариат</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/weighting-and-doubly-robust/"><span>07</span>Propensity weighting и doubly robust оценка</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/difference-in-differences/"><span>08</span>Difference-in-Differences</a><a class="lesson-sidebar-link is-active" href="../../../lessons/causal-analysis/quasi-experiments/"><span>09</span>RDD и instrumental variables: дизайн до оценки</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/sensitivity/"><span>10</span>Sensitivity analysis и falsification checks</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-workflow/"><span>11</span>Causal workflow и границы автоматизации</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 13 · Причинный анализ</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 142 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/13-causal-analysis/09-quasi-experiments" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что RDD обычно позволяет интерпретировать при credible design?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Локальный эффект около cutoff</button><button type="button" class="quiz-option" data-choice="1">ATE для всей популяции</button><button type="button" class="quiz-option" data-choice="2">Эффект для всех пользователей выше cutoff</button><button type="button" class="quiz-option" data-choice="3">Любую before/after разницу</button></div><p class="quiz-feedback" hidden>RDD строит сравнение около cutoff; без дополнительных допущений это локальный estimand, а не population ATE.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает IV relevance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Instrument заметно меняет вероятность treatment</button><button type="button" class="quiz-option" data-choice="1">Instrument не коррелирует ни с одной baseline-переменной вообще</button><button type="button" class="quiz-option" data-choice="2">Treatment случайно назначен всем пользователям</button><button type="button" class="quiz-option" data-choice="3">Outcome измерен без шума</button></div><p class="quiz-feedback" hidden>Relevance — это first stage: instrument должен двигать treatment take-up, иначе Wald/IV оценка неинформативна.</p></article></section>
+        <article class="lesson-article"><h1 id="rdd-и-instrumental-variables-дизайн-до-оценки">RDD и instrumental variables: дизайн до оценки</h1>
+<blockquote>
+<p>Quasi-experiment начинается не с регрессии, а с вопроса: почему именно здесь
+counterfactual стал правдоподобнее, чем в обычном observational comparison?</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> Decision, Product<br />
+<strong>Пререквизиты:</strong> 13/08 — Difference-in-Differences<br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> проверяет применимость RDD и IV, формулирует локальный estimand,
+continuity/relevance/exclusion/monotonicity assumptions и обнаруживает manipulation at
+cutoff, weak instrument и неверное обобщение LATE на ATE.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать quasi-experimental design от «ещё одной регрессии с красивым названием».</li>
+<li>Формулировать local estimand для regression discontinuity design.</li>
+<li>Проверять running variable, cutoff, bandwidth, manipulation и continuity diagnostics.</li>
+<li>Различать sharp RDD и fuzzy RDD.</li>
+<li>Считать first stage, reduced form и Wald diagnostic в fuzzy RDD.</li>
+<li>Формулировать IV assumptions: relevance, independence, exclusion, monotonicity.</li>
+<li>Считать IV first stage, reduced form и Wald LATE.</li>
+<li>Не превращать local RDD effect или IV LATE в population ATE.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В данных фазы есть два квази-экспериментальных намёка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">onboarding_assistance.csv
+encouragement_assignments.csv
+</code></pre></div><p>Первый намёк — cutoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">friction_score &gt;= 60  -&gt;  user is eligible for assistance offer
+</code></pre></div><p>Наивная мысль:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">сравним пользователей с friction_score 61 и 59, почти одинаковые же
+</code></pre></div><p>Это похоже на RDD, но только если running variable нельзя манипулировать, около cutoff
+достаточно наблюдений, baseline-поведение меняется непрерывно, а эффект интерпретируется
+локально около <code>60</code>, а не для всех пользователей.</p>
+<p>Второй намёк — encouragement:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">capacity_lottery_v1 encouraged some users before time zero
+</code></pre></div><p>Наивная мысль:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">encouragement случайный, значит можно оценить эффект assistance
+</code></pre></div><p>Это похоже на IV, но только если encouragement действительно влияет на treatment take-up
+и не влияет на activation напрямую, кроме как через получение assistance. Даже тогда
+результат — LATE для compliers, а не ATE для всей population.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="rdd-локальный-counterfactual-у-cutoff">RDD: локальный counterfactual у cutoff</h3>
+<p>Regression discontinuity design использует правило:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">running_variable &gt;= cutoff
+</code></pre></div><p>Идея: пользователи чуть ниже и чуть выше cutoff похожи, кроме резкого изменения
+вероятности treatment. В уроке:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">running variable = friction_score
+cutoff           = 60
+bandwidth        = 8
+treatment        = offered_assistance
+outcome          = activation_14d
+</code></pre></div><p>Локальное окно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">52 &lt;= friction_score &lt;= 68
+</code></pre></div><p>Важно: RDD не говорит «эффект для всех пользователей». Он говорит:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">local effect near friction_score = 60
+</code></pre></div><p>Если бизнес просит вывод про всех пользователей с friction score от 40 до 90, RDD сам по
+себе этого не даёт.</p>
+<h3 id="sharp-и-fuzzy-rdd">Sharp и fuzzy RDD</h3>
+<p>Sharp RDD требует, чтобы treatment полностью определялся cutoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">score &gt;= 60 -&gt; treatment = 1
+score &lt; 60  -&gt; treatment = 0
+</code></pre></div><p>В tiny data есть пользователь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">U006: friction_score = 58, offered_assistance = true, assignment_reason = manual_override
+</code></pre></div><p>Значит sharp RDD неверен. Правильнее обозначить дизайн как fuzzy RDD: cutoff меняет
+вероятность treatment, но не назначает его идеально.</p>
+<p>Artifact считает локальный first stage:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">P(offer | score &gt;= 60) - P(offer | score &lt; 60)
+= 1.000 - 0.333
+= 0.667
+</code></pre></div><p>Reduced form по outcome:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">P(activation | score &gt;= 60) - P(activation | score &lt; 60)
+= 0.333 - 1.000
+= -0.667
+</code></pre></div><p>Wald diagnostic:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">-0.667 / 0.667 = -1.000
+</code></pre></div><p>Это специально называется diagnostic: в игрушечном окне всего 6 строк, поэтому число
+помогает проверить механику, но не является стабильной бизнес-оценкой.</p>
+<h3 id="manipulation-и-continuity">Manipulation и continuity</h3>
+<p>RDD ломается, если люди или система могут подвинуть running variable:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">score 59 -&gt; score 60
+</code></pre></div><p>Тогда пользователи справа и слева от cutoff перестают быть почти-случайно разделёнными.
+В уроке artifact делает простой density screen: считает наблюдения слева и справа внутри
+bandwidth. Это не полноценный McCrary test, но хороший первый guardrail.</p>
+<p>Второй guardrail — continuity по pre-treatment covariates. В tiny data проверяется:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">specialist_capacity
+</code></pre></div><p>Слева и справа от cutoff среднее совпадает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">left_mean  = 1.333
+right_mean = 1.333
+difference = 0.000
+</code></pre></div><p>Это не доказывает continuity assumption, но может поймать очевидный скачок.</p>
+<h3 id="iv-instrument-двигает-treatment-но-не-outcome-напрямую">IV: instrument двигает treatment, но не outcome напрямую</h3>
+<p>Instrumental variables design использует переменную <code>Z</code>, которая меняет treatment <code>D</code>, а
+outcome <code>Y</code> меняет только через <code>D</code>.</p>
+<p>В уроке:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Z = encouraged
+D = received_assistance
+Y = activation_14d
+</code></pre></div><p>Assumptions:</p>
+<ul>
+<li><strong>Relevance:</strong> encouragement меняет вероятность получить assistance.</li>
+<li><strong>Independence / as-if random:</strong> encouragement не связан с потенциальными outcomes.</li>
+<li><strong>Exclusion restriction:</strong> encouragement влияет на activation только через assistance.</li>
+<li><strong>Monotonicity:</strong> encouragement никого не делает менее склонным получить assistance.</li>
+</ul>
+<p>Artifact считает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">first stage = P(D=1 | Z=1) - P(D=1 | Z=0)
+            = 0.800 - 0.400
+            = 0.400
+
+reduced form = P(Y=1 | Z=1) - P(Y=1 | Z=0)
+             = 0.800 - 0.600
+             = 0.200
+
+Wald LATE = reduced form / first stage
+          = 0.200 / 0.400
+          = 0.500
+</code></pre></div><p>Это LATE для compliers: пользователей, чьё получение assistance изменилось из-за
+encouragement. Это не ATE для всех eligible users.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Файлы урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/quasi_experiment_spec.json
+outputs/quasi_experiment_design_auditor.py
+outputs/quasi_experiment_report.json
+</code></pre></div><h3 id="шаг-1-проверьте-источники-и-scenario-registry">Шаг 1: проверьте источники и scenario registry</h3>
+<p>Artifact проверяет declared grain:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">pre_treatment_behavior: user_id
+onboarding_assistance: program_id, user_id
+outcomes: user_id
+encouragement_assignments: encouragement_id
+causal_scenarios: scenario_id
+</code></pre></div><p>Затем сверяет spec с <code>causal_scenarios.csv</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Design</th>
+<th>Estimand</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>score_rdd</td>
+<td>regression_discontinuity</td>
+<td>local_ATE</td>
+</tr>
+<tr>
+<td>capacity_iv</td>
+<td>instrumental_variables</td>
+<td>LATE</td>
+</tr>
+</tbody>
+</table>
+<p>Если spec просит <code>missing_score_rdd</code>, report становится invalid до оценки.</p>
+<h3 id="шаг-2-соберите-rdd-local-window">Шаг 2: соберите RDD local window</h3>
+<p>Primary RDD:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cutoff = 60
+bandwidth = 8
+</code></pre></div><p>Локальная таблица:</p>
+<table>
+<thead>
+<tr>
+<th>user_id</th>
+<th style="text-align:right">friction_score</th>
+<th>side</th>
+<th>offered</th>
+<th>activation</th>
+<th>reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U012</td>
+<td style="text-align:right">52</td>
+<td>left</td>
+<td>false</td>
+<td>true</td>
+<td>below_cutoff</td>
+</tr>
+<tr>
+<td>U007</td>
+<td style="text-align:right">55</td>
+<td>left</td>
+<td>false</td>
+<td>true</td>
+<td>below_cutoff</td>
+</tr>
+<tr>
+<td>U006</td>
+<td style="text-align:right">58</td>
+<td>left</td>
+<td>true</td>
+<td>true</td>
+<td>manual_override</td>
+</tr>
+<tr>
+<td>U005</td>
+<td style="text-align:right">61</td>
+<td>right</td>
+<td>true</td>
+<td>true</td>
+<td>score_threshold_capacity_full</td>
+</tr>
+<tr>
+<td>U011</td>
+<td style="text-align:right">64</td>
+<td>right</td>
+<td>true</td>
+<td>false</td>
+<td>score_threshold_capacity_full</td>
+</tr>
+<tr>
+<td>U004</td>
+<td style="text-align:right">66</td>
+<td>right</td>
+<td>true</td>
+<td>false</td>
+<td>score_threshold</td>
+</tr>
+</tbody>
+</table>
+<p>Главная находка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">U006 violates sharp assignment
+</code></pre></div><p>Значит candidate <code>sharp_score_cutoff_offer</code> получает статус:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">invalid_requires_fuzzy_rdd
+</code></pre></div><h3 id="шаг-3-проверьте-manipulation-и-continuity">Шаг 3: проверьте manipulation и continuity</h3>
+<p>Density screen:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">left rows  = 3
+right rows = 3
+density_ratio = 1.0
+</code></pre></div><p>Continuity screen:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">specialist_capacity difference = 0.0
+</code></pre></div><p>Если несколько пользователей внезапно «переедут» с 55-58 на 61, density ratio станет
+подозрительным. Если справа от cutoff резко вырастет baseline capacity, local comparison
+перестанет быть credible.</p>
+<h3 id="шаг-4-соберите-iv-first-stage-и-late-contract">Шаг 4: соберите IV first stage и LATE contract</h3>
+<p>Instrument groups:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th style="text-align:right">Rows</th>
+<th style="text-align:right">Treatment rate</th>
+<th style="text-align:right">Outcome rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>encouraged</td>
+<td style="text-align:right">5</td>
+<td style="text-align:right">0.800</td>
+<td style="text-align:right">0.800</td>
+</tr>
+<tr>
+<td>not encouraged</td>
+<td style="text-align:right">5</td>
+<td style="text-align:right">0.400</td>
+<td style="text-align:right">0.600</td>
+</tr>
+</tbody>
+</table>
+<p>Artifact фиксирует:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">first_stage = 0.4
+wald_late = 0.5
+</code></pre></div><p>Порог в spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">minimum_first_stage = 0.3
+</code></pre></div><p>Если поднять порог до <code>0.5</code>, check <code>iv_first_stage_is_relevant_enough_for_tiny_design</code>
+блокирует claim policy.</p>
+<h3 id="шаг-5-проверьте-candidate-policy">Шаг 5: проверьте candidate policy</h3>
+<p>Artifact не просто считает числа, а маркирует design candidates:</p>
+<table>
+<thead>
+<tr>
+<th>Candidate</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>primary_fuzzy_score_rdd</td>
+<td>estimable_local_with_assumptions</td>
+</tr>
+<tr>
+<td>sharp_score_cutoff_offer</td>
+<td>invalid_requires_fuzzy_rdd</td>
+</tr>
+<tr>
+<td>wide_bandwidth_ignores_locality</td>
+<td>invalid_not_local</td>
+</tr>
+<tr>
+<td>capacity_encouragement_late</td>
+<td>estimable_late_with_assumptions</td>
+</tr>
+<tr>
+<td>encouragement_claims_ate</td>
+<td>invalid_late_generalized_to_ate</td>
+</tr>
+<tr>
+<td>weak_encouragement_variant</td>
+<td>invalid_weak_instrument</td>
+</tr>
+</tbody>
+</table>
+<p>Это защищает от типовой ошибки: «раз есть инструмент, пишем ATE».</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запуск artifact из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_design_auditor.py
+</code></pre></div><p>Он обновляет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_report.json
+</code></pre></div><p>Короткий пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/09-quasi-experiments/code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;quasi_design_valid&quot;: true,
+  &quot;rdd_design_type&quot;: &quot;fuzzy_rdd&quot;,
+  &quot;rdd_local_rows_n&quot;: 6,
+  &quot;rdd_first_stage&quot;: 0.666667,
+  &quot;rdd_wald_local_effect_diagnostic&quot;: -1.0,
+  &quot;iv_first_stage&quot;: 0.4,
+  &quot;iv_wald_late&quot;: 0.5,
+  &quot;allowed_local_claim&quot;: true
+}
+</code></pre></div><p>Для CI:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_design_auditor.py \
+  --fail-on-invalid
+</code></pre></div><p>Warnings в committed report:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">rdd_tiny_wald_estimate_is_diagnostic_only
+iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data
+</code></pre></div><p>Они не ломают report, но обязаны попасть в интерпретацию.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="manipulation-at-cutoff">Manipulation at cutoff</h3>
+<p>Поменяйте <code>friction_score</code> пользователей <code>U007</code> и <code>U012</code> на <code>61</code>. Теперь справа от cutoff
+слишком много наблюдений:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">rdd_no_visible_running_variable_bunching_inside_bandwidth = false
+</code></pre></div><h3 id="too-narrow-bandwidth">Too narrow bandwidth</h3>
+<p>Поставьте:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;bandwidth&quot;: 1
+</code></pre></div><p>Локальное окно почти пустое, и check
+<code>rdd_has_observations_on_both_sides_inside_bandwidth</code> блокирует design.</p>
+<h3 id="covariate-jump">Covariate jump</h3>
+<p>Поднимите <code>specialist_capacity</code> только справа от cutoff. Check:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">rdd_observed_covariates_are_continuous_at_cutoff
+</code></pre></div><p>становится blocking error.</p>
+<h3 id="weak-instrument">Weak instrument</h3>
+<p>Поставьте:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;minimum_first_stage&quot;: 0.5
+</code></pre></div><p>При observed first stage <code>0.4</code> artifact блокирует IV claim.</p>
+<h3 id="late-as-ate">LATE as ATE</h3>
+<p>Поменяйте declared IV estimand на <code>ATE</code>. Artifact отклонит формулировку:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">iv_estimand_contract_is_late_not_ate = false
+claim_policy_allows_only_local_rdd_and_late_wording = false
+</code></pre></div><h3 id="duplicate-source-grain">Duplicate source grain</h3>
+<p>Продублируйте строку в <code>encouragement_assignments.csv</code>. Это ломает source grain и
+останавливает audit до доверия к IV rows.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Поведенческие тесты:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest phases/13-causal-analysis/09-quasi-experiments/tests/test_main.py
+</code></pre></div><p>Покрытие:</p>
+<ul>
+<li>expected tiny RDD/IV numbers;</li>
+<li>runnable <code>code/main.py</code>;</li>
+<li>explicit fuzzy RDD violation;</li>
+<li>local window, density screen и continuity screen;</li>
+<li>IV first stage, reduced form и Wald LATE;</li>
+<li>candidate design status policy;</li>
+<li>manipulation at cutoff;</li>
+<li>too narrow bandwidth;</li>
+<li>covariate jump near cutoff;</li>
+<li>weak instrument;</li>
+<li>LATE-to-ATE overclaim;</li>
+<li>duplicate source grain;</li>
+<li>scenario registry alignment;</li>
+<li>CLI <code>--fail-on-invalid</code>;</li>
+<li>committed report reproducibility.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">quasi-experiment-design-auditor
+</code></pre></div><p>Файлы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/quasi_experiment_design_auditor.py
+outputs/quasi_experiment_spec.json
+outputs/quasi_experiment_report.json
+outputs/artifact.json
+</code></pre></div><p>Handoff-фраза:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">RDD design is fuzzy, local to friction_score cutoff 60 with bandwidth 8, and passes
+basic density/continuity screens on tiny data. The local Wald RDD number is diagnostic
+only because the window has 6 rows. The capacity encouragement IV has first stage 0.4
+and Wald LATE 0.5, but the claim must remain LATE-for-compliers under relevance,
+as-if-random assignment, exclusion and monotonicity assumptions; it is not an ATE.
+</code></pre></div><h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Сделайте RDD bandwidth равным <code>4</code>. Какие строки останутся в local window и почему
+side support станет хуже?</li>
+<li>Добавьте пользователя с <code>friction_score = 60</code> и <code>offered_assistance = false</code>. Это
+sharp violation или manipulation warning?</li>
+<li>Снимите <code>U006</code> manual override. Как изменится RDD first stage и candidate
+<code>sharp_score_cutoff_offer</code>?</li>
+<li>Поменяйте <code>encouraged=false</code> для <code>U010</code>. Как изменится IV first stage и Wald LATE?</li>
+<li>Напишите handoff в одну фразу так, чтобы не назвать IV LATE population ATE.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDD</td>
+<td>«Сравнить всех выше и ниже threshold»</td>
+<td>Локальный дизайн около cutoff при continuity и отсутствии manipulation</td>
+</tr>
+<tr>
+<td>Running variable</td>
+<td>«Любой score в данных»</td>
+<td>Переменная, которая определяет или резко меняет вероятность treatment у cutoff</td>
+</tr>
+<tr>
+<td>Bandwidth</td>
+<td>«Чем шире, тем больше данных и лучше»</td>
+<td>Компромисс между локальностью и variance; слишком широкое окно меняет estimand</td>
+</tr>
+<tr>
+<td>Sharp RDD</td>
+<td>«Threshold примерно влияет на treatment»</td>
+<td>Treatment детерминированно задается cutoff</td>
+</tr>
+<tr>
+<td>Fuzzy RDD</td>
+<td>«RDD сломан»</td>
+<td>Cutoff меняет вероятность treatment; нужен first-stage/Wald logic</td>
+</tr>
+<tr>
+<td>Instrument</td>
+<td>«Любая случайная переменная рядом с treatment»</td>
+<td>Переменная, которая двигает treatment и влияет на outcome только через treatment</td>
+</tr>
+<tr>
+<td>First stage</td>
+<td>«Техническая деталь IV»</td>
+<td>Проверка relevance: насколько instrument меняет treatment</td>
+</tr>
+<tr>
+<td>Exclusion restriction</td>
+<td>«Можно проверить по данным»</td>
+<td>Assumption, что instrument не влияет на outcome напрямую</td>
+</tr>
+<tr>
+<td>Monotonicity</td>
+<td>«Все всегда obey instrument»</td>
+<td>Нет defiers: instrument не уменьшает treatment take-up ни для кого</td>
+</tr>
+<tr>
+<td>LATE</td>
+<td>«ATE с другим названием»</td>
+<td>Local average treatment effect для compliers</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://doi.org/10.1016/j.jeconom.2007.05.001" target="_blank" rel="noopener">Imbens and Lemieux, 2008</a> — практический обзор RDD; читать про bandwidth, графики и continuity checks.</li>
+<li><a href="https://doi.org/10.1257/jel.48.2.281" target="_blank" rel="noopener">Lee and Lemieux, 2010</a> — подробный эконометрический обзор RDD; полезен для ограничений локальной интерпретации.</li>
+<li><a href="https://doi.org/10.1016/j.jeconom.2007.05.005" target="_blank" rel="noopener">McCrary, 2008</a> — первичный источник density/manipulation test для running variable около cutoff.</li>
+<li><a href="https://www.jstor.org/stable/2951620" target="_blank" rel="noopener">Imbens and Angrist, 1994</a> — первичный источник LATE и IV assumptions; читать, чтобы не обобщать complier effect на всех.</li>
+<li><a href="https://doi.org/10.1198/073500102288618658" target="_blank" rel="noopener">Stock, Wright and Yogo, 2002</a> — обзор weak instruments; полезен после урока, чтобы понять, почему слабый first stage опасен.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>В local RDD window есть пользователь ниже cutoff, которому вручную предложили assistance. Как это маркирует design?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Sharp RDD всё ещё корректен</button><button type="button" class="quiz-option" data-choice="1">Нужно перейти к fuzzy RDD или отклонить sharp-ярлык</button><button type="button" class="quiz-option" data-choice="2">Можно расширить estimand до ATE</button><button type="button" class="quiz-option" data-choice="3">Нужно удалить outcome у этого пользователя</button></div><p class="quiz-feedback" hidden>Нарушение детерминированного cutoff assignment означает, что treatment не задается cutoff идеально; sharp RDD label неверен.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Почему artifact отклоняет candidate, который называет encouragement-IV результат ATE?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что IV всегда оценивает только отрицательные эффекты</button><button type="button" class="quiz-option" data-choice="1">Потому что при IV assumptions Wald ratio идентифицирует LATE для compliers</button><button type="button" class="quiz-option" data-choice="2">Потому что first stage равен нулю</button><button type="button" class="quiz-option" data-choice="3">Потому что outcome бинарный</button></div><p class="quiz-feedback" hidden>Instrumental variables design с monotonicity идентифицирует complier LATE; population ATE требует дополнительных условий.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Что означает подозрительное bunching running variable прямо справа от cutoff?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">RDD стал сильнее, потому что справа больше данных</button><button type="button" class="quiz-option" data-choice="1">Возможна manipulation at cutoff, и локальное сравнение теряет credibility</button><button type="button" class="quiz-option" data-choice="2">Нужно считать только IV и забыть про RDD</button><button type="button" class="quiz-option" data-choice="3">Это доказывает exclusion restriction</button></div><p class="quiz-feedback" hidden>Если пользователи или система могут подвинуть score через cutoff, группы слева и справа перестают быть локально сопоставимыми.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">04</p><h3>В spec подняли minimum_first_stage до 0.5, а observed first stage равен 0.4. Что должен сделать auditor?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Оставить claim без изменений</button><button type="button" class="quiz-option" data-choice="1">Заменить LATE на ATE</button><button type="button" class="quiz-option" data-choice="2">Заблокировать IV claim как weak instrument для заданного порога</button><button type="button" class="quiz-option" data-choice="3">Удалить not-encouraged группу</button></div><p class="quiz-feedback" hidden>Если instrument недостаточно меняет treatment take-up относительно заранее заданного порога, IV claim блокируется.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DATA_DIR = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+SPEC = ROOT / &quot;outputs&quot; / &quot;quasi_experiment_spec.json&quot;
+REPORT = ROOT / &quot;outputs&quot; / &quot;quasi_experiment_report.json&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;quasi_experiment_design_auditor.py&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+MODULE_SPEC = importlib.util.spec_from_file_location(&quot;quasi_experiment_design_auditor&quot;, ARTIFACT)
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDITOR = importlib.util.module_from_spec(MODULE_SPEC)
+sys.modules[MODULE_SPEC.name] = AUDITOR
+MODULE_SPEC.loader.exec_module(AUDITOR)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def candidate(report: dict, design_id: str) -&gt; dict:
+    return next(
+        item for item in report[&quot;candidate_design_audits&quot;] if item[&quot;design_id&quot;] == design_id
+    )
+
+
+class QuasiExperimentDesignAuditorTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.spec = read_json(SPEC)
+
+    def audit(
+        self,
+        *,
+        data_dir: Path | None = None,
+        spec: dict | None = None,
+    ) -&gt; dict:
+        return AUDITOR.audit_quasi_experiments(
+            DATA_DIR if data_dir is None else data_dir,
+            self.spec if spec is None else spec,
+        )
+
+    def test_valid_report_matches_expected_tiny_quasi_design_numbers(self) -&gt; None:
+        report = self.audit()
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_checks&quot;], [])
+        self.assertEqual(report[&quot;summary&quot;][&quot;rdd_local_rows_n&quot;], 6)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;rdd_first_stage&quot;], 2 / 3)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;rdd_reduced_form&quot;], -2 / 3)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;rdd_wald_local_effect_diagnostic&quot;], -1.0)
+        self.assertEqual(report[&quot;summary&quot;][&quot;iv_rows_n&quot;], 10)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;iv_first_stage&quot;], 0.4)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;iv_reduced_form&quot;], 0.2)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;iv_wald_late&quot;], 0.5)
+        self.assertTrue(report[&quot;summary&quot;][&quot;allowed_local_claim&quot;])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warning_checks&quot;],
+            [
+                &quot;rdd_tiny_wald_estimate_is_diagnostic_only&quot;,
+                &quot;iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data&quot;,
+            ],
+        )
+
+    def test_code_example_prints_transferable_summary(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, CODE],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;quasi_design_valid&quot;])
+        self.assertEqual(payload[&quot;rdd_design_type&quot;], &quot;fuzzy_rdd&quot;)
+        self.assertEqual(payload[&quot;rdd_local_rows_n&quot;], 6)
+        self.assertEqual(payload[&quot;rdd_first_stage&quot;], 0.666667)
+        self.assertEqual(payload[&quot;rdd_wald_local_effect_diagnostic&quot;], -1.0)
+        self.assertEqual(payload[&quot;iv_first_stage&quot;], 0.4)
+        self.assertEqual(payload[&quot;iv_wald_late&quot;], 0.5)
+        self.assertTrue(payload[&quot;allowed_local_claim&quot;])
+
+    def test_rdd_local_window_and_fuzzy_assignment_are_explicit(self) -&gt; None:
+        report = self.audit()
+        rdd = report[&quot;rdd_design_audit&quot;]
+        self.assertEqual(rdd[&quot;local_window&quot;], [52, 68])
+        self.assertEqual(rdd[&quot;side_counts&quot;], {&quot;right&quot;: 3, &quot;left&quot;: 3})
+        self.assertEqual(rdd[&quot;calculated_design_type&quot;], &quot;fuzzy_rdd&quot;)
+        self.assertEqual(rdd[&quot;sharp_assignment_violations&quot;][0][&quot;user_id&quot;], &quot;U006&quot;)
+        self.assertEqual(
+            rdd[&quot;sharp_assignment_violations&quot;][0][&quot;assignment_reason&quot;],
+            &quot;manual_override&quot;,
+        )
+        self.assertAlmostEqual(rdd[&quot;density_screen&quot;][&quot;density_ratio&quot;], 1.0)
+        self.assertAlmostEqual(rdd[&quot;continuity_checks&quot;][0][&quot;difference&quot;], 0.0)
+        self.assertTrue(check(report, &quot;rdd_assignment_is_fuzzy_not_sharp&quot;)[&quot;valid&quot;])
+
+    def test_iv_first_stage_reduced_form_and_late_are_explicit(self) -&gt; None:
+        report = self.audit()
+        iv = report[&quot;iv_design_audit&quot;]
+        self.assertEqual(iv[&quot;instrument_counts&quot;], {&quot;encouraged&quot;: 5, &quot;not_encouraged&quot;: 5})
+        self.assertAlmostEqual(iv[&quot;first_stage&quot;][&quot;treatment_rate_z1&quot;], 0.8)
+        self.assertAlmostEqual(iv[&quot;first_stage&quot;][&quot;treatment_rate_z0&quot;], 0.4)
+        self.assertAlmostEqual(iv[&quot;reduced_form&quot;][&quot;outcome_rate_z1&quot;], 0.8)
+        self.assertAlmostEqual(iv[&quot;reduced_form&quot;][&quot;outcome_rate_z0&quot;], 0.6)
+        self.assertEqual(iv[&quot;declared_estimand&quot;], &quot;LATE&quot;)
+        self.assertTrue(check(report, &quot;iv_estimand_contract_is_late_not_ate&quot;)[&quot;valid&quot;])
+
+    def test_candidate_design_statuses_match_policy(self) -&gt; None:
+        report = self.audit()
+        self.assertTrue(check(report, &quot;candidate_design_statuses_match_policy&quot;)[&quot;valid&quot;])
+        self.assertEqual(
+            candidate(report, &quot;primary_fuzzy_score_rdd&quot;)[&quot;calculated_status&quot;],
+            &quot;estimable_local_with_assumptions&quot;,
+        )
+        self.assertEqual(
+            candidate(report, &quot;sharp_score_cutoff_offer&quot;)[&quot;calculated_status&quot;],
+            &quot;invalid_requires_fuzzy_rdd&quot;,
+        )
+        self.assertEqual(
+            candidate(report, &quot;wide_bandwidth_ignores_locality&quot;)[&quot;calculated_status&quot;],
+            &quot;invalid_not_local&quot;,
+        )
+        self.assertEqual(
+            candidate(report, &quot;capacity_encouragement_late&quot;)[&quot;calculated_status&quot;],
+            &quot;estimable_late_with_assumptions&quot;,
+        )
+        self.assertEqual(
+            candidate(report, &quot;encouragement_claims_ate&quot;)[&quot;calculated_status&quot;],
+            &quot;invalid_late_generalized_to_ate&quot;,
+        )
+        self.assertEqual(
+            candidate(report, &quot;weak_encouragement_variant&quot;)[&quot;calculated_status&quot;],
+            &quot;invalid_weak_instrument&quot;,
+        )
+
+    def test_candidate_declared_status_must_match_policy(self) -&gt; None:
+        spec = copy.deepcopy(self.spec)
+        spec[&quot;iv&quot;][&quot;candidate_designs&quot;][1][&quot;declared_status&quot;] = &quot;estimable_late_with_assumptions&quot;
+        report = self.audit(spec=spec)
+        status = check(report, &quot;candidate_design_statuses_match_policy&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(status[&quot;valid&quot;])
+        self.assertEqual(status[&quot;sample&quot;][0][&quot;design_id&quot;], &quot;encouragement_claims_ate&quot;)
+
+    def test_rdd_cutoff_manipulation_screen_catches_bunching(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            assistance = pd.read_csv(tmp / &quot;onboarding_assistance.csv&quot;)
+            assistance.loc[assistance[&quot;user_id&quot;].isin([&quot;U007&quot;, &quot;U012&quot;]), &quot;friction_score&quot;] = 61
+            assistance.to_csv(tmp / &quot;onboarding_assistance.csv&quot;, index=False)
+            report = self.audit(data_dir=tmp)
+            density = check(report, &quot;rdd_no_visible_running_variable_bunching_inside_bandwidth&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(density[&quot;valid&quot;])
+            self.assertGreater(density[&quot;sample&quot;][&quot;density_ratio&quot;], 2.0)
+
+    def test_rdd_needs_observations_on_both_sides_of_cutoff(self) -&gt; None:
+        spec = copy.deepcopy(self.spec)
+        spec[&quot;rdd&quot;][&quot;bandwidth&quot;] = 1
+        report = self.audit(spec=spec)
+        support = check(report, &quot;rdd_has_observations_on_both_sides_inside_bandwidth&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(support[&quot;valid&quot;])
+        self.assertLess(support[&quot;sample&quot;][&quot;side_counts&quot;].get(&quot;left&quot;, 0), 3)
+
+    def test_rdd_covariate_jump_blocks_local_claim_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            assistance = pd.read_csv(tmp / &quot;onboarding_assistance.csv&quot;)
+            assistance.loc[
+                assistance[&quot;user_id&quot;].isin([&quot;U004&quot;, &quot;U005&quot;, &quot;U011&quot;]),
+                &quot;specialist_capacity&quot;,
+            ] = 5
+            assistance.to_csv(tmp / &quot;onboarding_assistance.csv&quot;, index=False)
+            report = self.audit(data_dir=tmp)
+            continuity = check(report, &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;)
+            claim = check(report, &quot;claim_policy_allows_only_local_rdd_and_late_wording&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(continuity[&quot;valid&quot;])
+            self.assertFalse(claim[&quot;valid&quot;])
+            self.assertIn(
+                &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;,
+                claim[&quot;sample&quot;][&quot;failed_required_checks&quot;],
+            )
+
+    def test_iv_weak_first_stage_blocks_late_claim(self) -&gt; None:
+        spec = copy.deepcopy(self.spec)
+        spec[&quot;iv&quot;][&quot;minimum_first_stage&quot;] = 0.5
+        report = self.audit(spec=spec)
+        first_stage = check(report, &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;)
+        claim = check(report, &quot;claim_policy_allows_only_local_rdd_and_late_wording&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(first_stage[&quot;valid&quot;])
+        self.assertFalse(claim[&quot;valid&quot;])
+        self.assertIn(
+            &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+            claim[&quot;sample&quot;][&quot;failed_required_checks&quot;],
+        )
+
+    def test_iv_late_cannot_be_redeclared_as_ate(self) -&gt; None:
+        spec = copy.deepcopy(self.spec)
+        spec[&quot;iv&quot;][&quot;declared_estimand&quot;] = &quot;ATE&quot;
+        report = self.audit(spec=spec)
+        estimand = check(report, &quot;iv_estimand_contract_is_late_not_ate&quot;)
+        claim = check(report, &quot;claim_policy_allows_only_local_rdd_and_late_wording&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(estimand[&quot;valid&quot;])
+        self.assertFalse(claim[&quot;valid&quot;])
+        self.assertEqual(claim[&quot;sample&quot;][&quot;overgeneralized_estimands&quot;], [&quot;ATE&quot;])
+
+    def test_iv_observed_balance_screen_can_fail(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            baseline = pd.read_csv(tmp / &quot;pre_treatment_behavior.csv&quot;)
+            baseline.loc[
+                baseline[&quot;user_id&quot;].isin([&quot;U001&quot;, &quot;U002&quot;, &quot;U003&quot;, &quot;U005&quot;, &quot;U010&quot;]),
+                &quot;app_crashes_before_time_zero&quot;,
+            ] = 9
+            baseline.to_csv(tmp / &quot;pre_treatment_behavior.csv&quot;, index=False)
+            report = self.audit(data_dir=tmp)
+            balance = check(report, &quot;iv_observed_pre_treatment_balance_is_plausible&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(balance[&quot;valid&quot;])
+            self.assertGreater(abs(balance[&quot;sample&quot;][1][&quot;difference&quot;]), 0.25)
+
+    def test_source_table_grain_is_enforced(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            encouragement = pd.read_csv(tmp / &quot;encouragement_assignments.csv&quot;)
+            encouragement = pd.concat([encouragement, encouragement.iloc[[0]]], ignore_index=True)
+            encouragement.to_csv(tmp / &quot;encouragement_assignments.csv&quot;, index=False)
+            report = self.audit(data_dir=tmp)
+            grain = check(report, &quot;source_tables_preserve_declared_grain&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(grain[&quot;valid&quot;])
+            self.assertEqual(grain[&quot;sample&quot;][0][&quot;table&quot;], &quot;encouragement_assignments&quot;)
+
+    def test_scenario_registry_alignment_is_required(self) -&gt; None:
+        spec = copy.deepcopy(self.spec)
+        spec[&quot;rdd&quot;][&quot;scenario_id&quot;] = &quot;missing_score_rdd&quot;
+        report = self.audit(spec=spec)
+        scenario = check(report, &quot;quasi_experiment_specs_match_scenario_registry&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(scenario[&quot;valid&quot;])
+        self.assertEqual(scenario[&quot;sample&quot;][0][&quot;scenario_id&quot;], &quot;missing_score_rdd&quot;)
+
+    def test_cli_fail_on_invalid_exits_nonzero_for_weak_iv(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            spec = copy.deepcopy(self.spec)
+            spec[&quot;iv&quot;][&quot;minimum_first_stage&quot;] = 0.5
+            spec_path = tmp / &quot;invalid_quasi_spec.json&quot;
+            output_path = tmp / &quot;quasi_report.json&quot;
+            write_json(spec_path, spec)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    spec_path,
+                    &quot;--output&quot;,
+                    output_path,
+                    &quot;--fail-on-invalid&quot;,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1)
+            payload = read_json(output_path)
+            self.assertFalse(payload[&quot;valid&quot;])
+            self.assertIn(
+                &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+                payload[&quot;summary&quot;][&quot;blocking_checks&quot;],
+            )
+
+    def test_committed_report_exists_and_matches_artifact_summary(self) -&gt; None:
+        report = read_json(REPORT)
+        fresh = self.audit()
+        self.assertEqual(report[&quot;summary&quot;], fresh[&quot;summary&quot;])
+        self.assertEqual(report[&quot;rdd_design_audit&quot;], fresh[&quot;rdd_design_audit&quot;])
+        self.assertEqual(report[&quot;iv_design_audit&quot;], fresh[&quot;iv_design_audit&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;quasi_experiment_design_auditor.py&quot;
+SPEC = ROOT / &quot;outputs&quot; / &quot;quasi_experiment_spec.json&quot;
+DATA_DIR = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+
+def load_auditor():
+    module_spec = importlib.util.spec_from_file_location(
+        &quot;quasi_experiment_design_auditor&quot;,
+        ARTIFACT,
+    )
+    if module_spec is None or module_spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(module_spec)
+    sys.modules[module_spec.name] = module
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    auditor = load_auditor()
+    spec = json.loads(SPEC.read_text(encoding=&quot;utf-8&quot;))
+    report = auditor.audit_quasi_experiments(DATA_DIR, spec)
+    summary = report[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;quasi_design_valid&quot;: report[&quot;valid&quot;],
+                &quot;rdd_design_type&quot;: report[&quot;rdd_design_audit&quot;][&quot;calculated_design_type&quot;],
+                &quot;rdd_local_rows_n&quot;: summary[&quot;rdd_local_rows_n&quot;],
+                &quot;rdd_first_stage&quot;: round(summary[&quot;rdd_first_stage&quot;], 6),
+                &quot;rdd_wald_local_effect_diagnostic&quot;: round(
+                    summary[&quot;rdd_wald_local_effect_diagnostic&quot;], 6
+                ),
+                &quot;iv_first_stage&quot;: round(summary[&quot;iv_first_stage&quot;], 6),
+                &quot;iv_wald_late&quot;: round(summary[&quot;iv_wald_late&quot;], 6),
+                &quot;allowed_local_claim&quot;: summary[&quot;allowed_local_claim&quot;],
+                &quot;warning_checks&quot;: summary[&quot;warning_checks&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;quasi-experiment-design-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/quasi_experiment_design_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет дизайн RDD и instrumental variables до оценки эффекта: local estimand, cutoff bandwidth, fuzzy-vs-sharp RDD, manipulation screen, IV first stage, LATE contract и запрет обобщать LATE на ATE.&quot;,
+  &quot;usage&quot;: &quot;python outputs/quasi_experiment_design_auditor.py --data-dir ../data/tiny --spec outputs/quasi_experiment_spec.json --output outputs/quasi_experiment_report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/quasi_experiment_design_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import math
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DEFAULT_DATA_DIR = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DEFAULT_SPEC = LESSON_ROOT / &quot;outputs&quot; / &quot;quasi_experiment_spec.json&quot;
+DEFAULT_OUTPUT = LESSON_ROOT / &quot;outputs&quot; / &quot;quasi_experiment_report.json&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def to_bool(series: pd.Series) -&gt; pd.Series:
+    return series.astype(str).str.lower().map({&quot;true&quot;: True, &quot;false&quot;: False})
+
+
+def scalar(value: Any) -&gt; Any:
+    if isinstance(value, (pd.Timestamp,)):
+        return value.isoformat()
+    if hasattr(value, &quot;item&quot;):
+        return value.item()
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    return value
+
+
+def records(frame: pd.DataFrame) -&gt; list[dict[str, Any]]:
+    return [
+        {key: scalar(value) for key, value in row.items()}
+        for row in frame.to_dict(orient=&quot;records&quot;)
+    ]
+
+
+@dataclass
+class CheckBook:
+    checks: list[dict[str, Any]]
+
+    def add(
+        self,
+        check_id: str,
+        valid: bool,
+        *,
+        severity: str = &quot;error&quot;,
+        sample: Any = None,
+        message: str = &quot;&quot;,
+    ) -&gt; None:
+        payload: dict[str, Any] = {
+            &quot;id&quot;: check_id,
+            &quot;valid&quot;: bool(valid),
+            &quot;severity&quot;: severity,
+        }
+        if message:
+            payload[&quot;message&quot;] = message
+        if sample is not None:
+            payload[&quot;sample&quot;] = sample
+        self.checks.append(payload)
+
+    @property
+    def blocking(self) -&gt; list[str]:
+        return [
+            check[&quot;id&quot;]
+            for check in self.checks
+            if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;
+        ]
+
+    @property
+    def warnings(self) -&gt; list[str]:
+        return [
+            check[&quot;id&quot;]
+            for check in self.checks
+            if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;
+        ]
+
+
+def load_tables(data_dir: Path) -&gt; dict[str, pd.DataFrame]:
+    tables = {
+        &quot;causal_scenarios&quot;: pd.read_csv(data_dir / &quot;causal_scenarios.csv&quot;),
+        &quot;pre_treatment_behavior&quot;: pd.read_csv(data_dir / &quot;pre_treatment_behavior.csv&quot;),
+        &quot;onboarding_assistance&quot;: pd.read_csv(data_dir / &quot;onboarding_assistance.csv&quot;),
+        &quot;outcomes&quot;: pd.read_csv(data_dir / &quot;outcomes.csv&quot;),
+        &quot;encouragement_assignments&quot;: pd.read_csv(data_dir / &quot;encouragement_assignments.csv&quot;),
+    }
+    bool_columns = {
+        &quot;onboarding_assistance&quot;: [&quot;offered_assistance&quot;, &quot;received_assistance&quot;],
+        &quot;outcomes&quot;: [&quot;activation_14d&quot;],
+        &quot;encouragement_assignments&quot;: [&quot;encouraged&quot;],
+        &quot;pre_treatment_behavior&quot;: [&quot;activation_14d_pre&quot;],
+    }
+    for table, columns in bool_columns.items():
+        for column in columns:
+            tables[table][column] = to_bool(tables[table][column])
+    numeric_columns = {
+        &quot;onboarding_assistance&quot;: [&quot;friction_score&quot;, &quot;eligibility_cutoff&quot;, &quot;specialist_capacity&quot;],
+        &quot;pre_treatment_behavior&quot;: [
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;sessions_before_time_zero&quot;,
+            &quot;specialist_capacity&quot;,
+        ],
+    }
+    for table, columns in numeric_columns.items():
+        for column in columns:
+            tables[table][column] = pd.to_numeric(tables[table][column])
+    return tables
+
+
+def duplicate_rows(frame: pd.DataFrame, keys: list[str]) -&gt; list[dict[str, Any]]:
+    duplicates = frame[frame.duplicated(keys, keep=False)].sort_values(keys)
+    return records(duplicates[keys]) if not duplicates.empty else []
+
+
+def mean_bool(series: pd.Series) -&gt; float:
+    return float(series.astype(int).mean())
+
+
+def mean_numeric(series: pd.Series) -&gt; float:
+    return float(pd.to_numeric(series).mean())
+
+
+def difference(right: float, left: float) -&gt; float:
+    return float(right - left)
+
+
+def scenario_map(scenarios: pd.DataFrame) -&gt; dict[str, dict[str, Any]]:
+    return {
+        str(row[&quot;scenario_id&quot;]): {key: scalar(value) for key, value in row.items()}
+        for row in scenarios.to_dict(orient=&quot;records&quot;)
+    }
+
+
+def audit_grain(tables: dict[str, pd.DataFrame], checks: CheckBook) -&gt; None:
+    grain_specs = {
+        &quot;pre_treatment_behavior&quot;: [&quot;user_id&quot;],
+        &quot;onboarding_assistance&quot;: [&quot;program_id&quot;, &quot;user_id&quot;],
+        &quot;outcomes&quot;: [&quot;user_id&quot;],
+        &quot;encouragement_assignments&quot;: [&quot;encouragement_id&quot;],
+        &quot;causal_scenarios&quot;: [&quot;scenario_id&quot;],
+    }
+    failures = [
+        {&quot;table&quot;: table, &quot;keys&quot;: keys, &quot;duplicates&quot;: duplicates}
+        for table, keys in grain_specs.items()
+        if (duplicates := duplicate_rows(tables[table], keys))
+    ]
+    checks.add(
+        &quot;source_tables_preserve_declared_grain&quot;,
+        not failures,
+        sample=failures or None,
+        message=&quot;Each source table must keep the grain declared in phase data contract.&quot;,
+    )
+
+
+def audit_scenarios(
+    scenarios: pd.DataFrame,
+    spec: dict[str, Any],
+    checks: CheckBook,
+) -&gt; dict[str, dict[str, Any]]:
+    by_id = scenario_map(scenarios)
+    required = {
+        spec[&quot;rdd&quot;][&quot;scenario_id&quot;]: &quot;regression_discontinuity&quot;,
+        spec[&quot;iv&quot;][&quot;scenario_id&quot;]: &quot;instrumental_variables&quot;,
+    }
+    missing_or_wrong = [
+        {
+            &quot;scenario_id&quot;: scenario_id,
+            &quot;expected_design&quot;: expected_design,
+            &quot;actual&quot;: by_id.get(scenario_id),
+        }
+        for scenario_id, expected_design in required.items()
+        if scenario_id not in by_id or by_id[scenario_id].get(&quot;design&quot;) != expected_design
+    ]
+    checks.add(
+        &quot;quasi_experiment_specs_match_scenario_registry&quot;,
+        not missing_or_wrong,
+        sample=missing_or_wrong or None,
+        message=&quot;RDD and IV specs must point to causal_scenarios rows with matching design.&quot;,
+    )
+    return by_id
+
+
+def build_user_level_frame(tables: dict[str, pd.DataFrame]) -&gt; pd.DataFrame:
+    assistance = tables[&quot;onboarding_assistance&quot;]
+    baseline = tables[&quot;pre_treatment_behavior&quot;]
+    outcomes = tables[&quot;outcomes&quot;]
+    return (
+        assistance.merge(baseline, on=&quot;user_id&quot;, suffixes=(&quot;&quot;, &quot;_baseline&quot;))
+        .merge(outcomes, on=&quot;user_id&quot;)
+        .sort_values(&quot;user_id&quot;)
+        .reset_index(drop=True)
+    )
+
+
+def audit_rdd(
+    user_frame: pd.DataFrame,
+    scenarios: dict[str, dict[str, Any]],
+    spec: dict[str, Any],
+    checks: CheckBook,
+) -&gt; dict[str, Any]:
+    rdd = spec[&quot;rdd&quot;]
+    score = rdd[&quot;running_variable&quot;]
+    cutoff = float(rdd[&quot;cutoff&quot;])
+    bandwidth = float(rdd[&quot;bandwidth&quot;])
+    treatment = rdd[&quot;treatment&quot;]
+    outcome = rdd[&quot;outcome&quot;]
+    local = user_frame[(user_frame[score] - cutoff).abs() &lt;= bandwidth].copy()
+    local[&quot;side&quot;] = local[score].map(lambda value: &quot;right&quot; if value &gt;= cutoff else &quot;left&quot;)
+    local[&quot;distance_to_cutoff&quot;] = local[score] - cutoff
+
+    side_counts = local[&quot;side&quot;].value_counts().to_dict()
+    minimum_each_side = int(rdd[&quot;minimum_each_side_n&quot;])
+    checks.add(
+        &quot;rdd_has_observations_on_both_sides_inside_bandwidth&quot;,
+        side_counts.get(&quot;left&quot;, 0) &gt;= minimum_each_side
+        and side_counts.get(&quot;right&quot;, 0) &gt;= minimum_each_side,
+        sample={&quot;side_counts&quot;: side_counts, &quot;minimum_each_side_n&quot;: minimum_each_side},
+        message=&quot;A local cutoff design needs enough rows on both sides of the cutoff.&quot;,
+    )
+
+    scenario = scenarios.get(rdd[&quot;scenario_id&quot;], {})
+    checks.add(
+        &quot;rdd_local_estimand_contract_is_explicit&quot;,
+        scenario.get(&quot;estimand&quot;) == rdd[&quot;declared_estimand&quot;]
+        and rdd[&quot;declared_estimand&quot;].startswith(&quot;local&quot;),
+        sample={
+            &quot;scenario_estimand&quot;: scenario.get(&quot;estimand&quot;),
+            &quot;declared_estimand&quot;: rdd[&quot;declared_estimand&quot;],
+        },
+        message=&quot;RDD may support a local estimand at the cutoff, not a population ATE.&quot;,
+    )
+
+    right = local[local[&quot;side&quot;] == &quot;right&quot;]
+    left = local[local[&quot;side&quot;] == &quot;left&quot;]
+    right_treatment_rate = mean_bool(right[treatment]) if not right.empty else 0.0
+    left_treatment_rate = mean_bool(left[treatment]) if not left.empty else 0.0
+    first_stage = difference(right_treatment_rate, left_treatment_rate)
+    right_outcome_rate = mean_bool(right[outcome]) if not right.empty else 0.0
+    left_outcome_rate = mean_bool(left[outcome]) if not left.empty else 0.0
+    reduced_form = difference(right_outcome_rate, left_outcome_rate)
+    wald = reduced_form / first_stage if abs(first_stage) &gt; 1e-12 else None
+
+    sharp_violations = local[
+        ((local[score] &gt;= cutoff) &amp; (~local[treatment]))
+        | ((local[score] &lt; cutoff) &amp; (local[treatment]))
+    ][[&quot;user_id&quot;, score, treatment, &quot;assignment_reason&quot;, &quot;distance_to_cutoff&quot;]]
+    calculated_type = &quot;fuzzy_rdd&quot; if not sharp_violations.empty else &quot;sharp_rdd&quot;
+    checks.add(
+        &quot;rdd_assignment_is_fuzzy_not_sharp&quot;,
+        calculated_type == rdd[&quot;declared_design_type&quot;],
+        severity=&quot;warning&quot;,
+        sample=records(sharp_violations) or None,
+        message=&quot;Cutoff assignment is not deterministic; estimate must be framed as fuzzy RDD.&quot;,
+    )
+
+    lower = int(cutoff - bandwidth)
+    upper = int(cutoff + bandwidth)
+    density_ratio = (
+        max(side_counts.get(&quot;left&quot;, 0), side_counts.get(&quot;right&quot;, 0))
+        / max(1, min(side_counts.get(&quot;left&quot;, 0), side_counts.get(&quot;right&quot;, 0)))
+    )
+    checks.add(
+        &quot;rdd_no_visible_running_variable_bunching_inside_bandwidth&quot;,
+        density_ratio &lt;= float(rdd[&quot;max_density_ratio&quot;]),
+        sample={
+            &quot;window&quot;: [lower, upper],
+            &quot;side_counts&quot;: side_counts,
+            &quot;density_ratio&quot;: density_ratio,
+        },
+        message=&quot;A simple McCrary-style screen should not show strong bunching at cutoff.&quot;,
+    )
+
+    continuity_rows: list[dict[str, Any]] = []
+    for covariate in rdd[&quot;continuity_covariates&quot;]:
+        right_mean = mean_numeric(right[covariate]) if not right.empty else 0.0
+        left_mean = mean_numeric(left[covariate]) if not left.empty else 0.0
+        continuity_rows.append(
+            {
+                &quot;covariate&quot;: covariate,
+                &quot;left_mean&quot;: left_mean,
+                &quot;right_mean&quot;: right_mean,
+                &quot;difference&quot;: difference(right_mean, left_mean),
+            }
+        )
+    max_abs_covariate_diff = max(abs(row[&quot;difference&quot;]) for row in continuity_rows)
+    checks.add(
+        &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;,
+        max_abs_covariate_diff &lt;= float(rdd[&quot;max_covariate_mean_diff&quot;]),
+        sample=continuity_rows,
+        message=&quot;Pre-treatment covariates should not jump at the cutoff.&quot;,
+    )
+
+    local_rows = local[
+        [&quot;user_id&quot;, score, &quot;distance_to_cutoff&quot;, &quot;side&quot;, treatment, outcome, &quot;assignment_reason&quot;]
+    ].sort_values([score, &quot;user_id&quot;])
+
+    rdd_audit = {
+        &quot;design_id&quot;: rdd[&quot;design_id&quot;],
+        &quot;scenario_id&quot;: rdd[&quot;scenario_id&quot;],
+        &quot;declared_design_type&quot;: rdd[&quot;declared_design_type&quot;],
+        &quot;calculated_design_type&quot;: calculated_type,
+        &quot;cutoff&quot;: cutoff,
+        &quot;bandwidth&quot;: bandwidth,
+        &quot;local_window&quot;: [lower, upper],
+        &quot;local_rows_n&quot;: int(len(local)),
+        &quot;side_counts&quot;: {key: int(value) for key, value in side_counts.items()},
+        &quot;local_rows&quot;: records(local_rows),
+        &quot;first_stage&quot;: {
+            &quot;right_treatment_rate&quot;: right_treatment_rate,
+            &quot;left_treatment_rate&quot;: left_treatment_rate,
+            &quot;discontinuity&quot;: first_stage,
+        },
+        &quot;reduced_form&quot;: {
+            &quot;right_outcome_rate&quot;: right_outcome_rate,
+            &quot;left_outcome_rate&quot;: left_outcome_rate,
+            &quot;discontinuity&quot;: reduced_form,
+        },
+        &quot;wald_local_effect_diagnostic&quot;: wald,
+        &quot;sharp_assignment_violations&quot;: records(sharp_violations),
+        &quot;density_screen&quot;: {
+            &quot;side_counts&quot;: {key: int(value) for key, value in side_counts.items()},
+            &quot;density_ratio&quot;: density_ratio,
+            &quot;max_density_ratio&quot;: rdd[&quot;max_density_ratio&quot;],
+        },
+        &quot;continuity_checks&quot;: continuity_rows,
+    }
+    checks.add(
+        &quot;rdd_effect_estimate_is_labeled_local_and_diagnostic&quot;,
+        True,
+        sample={
+            &quot;estimand&quot;: rdd[&quot;declared_estimand&quot;],
+            &quot;wald_local_effect_diagnostic&quot;: wald,
+        },
+        message=&quot;The tiny-data Wald number is a design diagnostic, not a general ATE.&quot;,
+    )
+    checks.add(
+        &quot;rdd_tiny_wald_estimate_is_diagnostic_only&quot;,
+        False,
+        severity=&quot;warning&quot;,
+        sample={
+            &quot;local_rows_n&quot;: int(len(local)),
+            &quot;wald_local_effect_diagnostic&quot;: wald,
+        },
+        message=&quot;Tiny local windows are useful for hand checks, not for stable effect claims.&quot;,
+    )
+    return rdd_audit
+
+
+def audit_iv(
+    tables: dict[str, pd.DataFrame],
+    scenarios: dict[str, dict[str, Any]],
+    spec: dict[str, Any],
+    checks: CheckBook,
+) -&gt; dict[str, Any]:
+    iv = spec[&quot;iv&quot;]
+    instrument = iv[&quot;instrument&quot;]
+    treatment = iv[&quot;treatment&quot;]
+    outcome = iv[&quot;outcome&quot;]
+    frame = (
+        tables[&quot;encouragement_assignments&quot;]
+        .merge(tables[&quot;onboarding_assistance&quot;], on=&quot;user_id&quot;)
+        .merge(tables[&quot;outcomes&quot;], on=&quot;user_id&quot;)
+        .merge(tables[&quot;pre_treatment_behavior&quot;], on=&quot;user_id&quot;, suffixes=(&quot;&quot;, &quot;_baseline&quot;))
+        .sort_values(&quot;user_id&quot;)
+        .reset_index(drop=True)
+    )
+    frame[&quot;instrument_group&quot;] = frame[instrument].map(
+        lambda value: &quot;encouraged&quot; if value else &quot;not_encouraged&quot;
+    )
+
+    encouraged = frame[frame[instrument]]
+    not_encouraged = frame[~frame[instrument]]
+    z_counts = frame[&quot;instrument_group&quot;].value_counts().to_dict()
+    treatment_rate_z1 = mean_bool(encouraged[treatment])
+    treatment_rate_z0 = mean_bool(not_encouraged[treatment])
+    first_stage = difference(treatment_rate_z1, treatment_rate_z0)
+    outcome_rate_z1 = mean_bool(encouraged[outcome])
+    outcome_rate_z0 = mean_bool(not_encouraged[outcome])
+    reduced_form = difference(outcome_rate_z1, outcome_rate_z0)
+    wald_late = reduced_form / first_stage if abs(first_stage) &gt; 1e-12 else None
+
+    checks.add(
+        &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+        abs(first_stage) &gt;= float(iv[&quot;minimum_first_stage&quot;]),
+        sample={
+            &quot;treatment_rate_z1&quot;: treatment_rate_z1,
+            &quot;treatment_rate_z0&quot;: treatment_rate_z0,
+            &quot;first_stage&quot;: first_stage,
+            &quot;minimum_first_stage&quot;: iv[&quot;minimum_first_stage&quot;],
+        },
+        message=&quot;The instrument must move treatment take-up before any IV estimate is meaningful.&quot;,
+    )
+
+    scenario = scenarios.get(iv[&quot;scenario_id&quot;], {})
+    checks.add(
+        &quot;iv_estimand_contract_is_late_not_ate&quot;,
+        scenario.get(&quot;estimand&quot;) == iv[&quot;declared_estimand&quot;] == &quot;LATE&quot;,
+        sample={
+            &quot;scenario_estimand&quot;: scenario.get(&quot;estimand&quot;),
+            &quot;declared_estimand&quot;: iv[&quot;declared_estimand&quot;],
+        },
+        message=&quot;An IV design identifies LATE for compliers under assumptions, not ATE.&quot;,
+    )
+
+    balance_rows: list[dict[str, Any]] = []
+    for covariate in iv[&quot;balance_covariates&quot;]:
+        if frame[covariate].dtype == bool:
+            z1_mean = mean_bool(encouraged[covariate])
+            z0_mean = mean_bool(not_encouraged[covariate])
+        else:
+            z1_mean = mean_numeric(encouraged[covariate])
+            z0_mean = mean_numeric(not_encouraged[covariate])
+        balance_rows.append(
+            {
+                &quot;covariate&quot;: covariate,
+                &quot;encouraged_mean&quot;: z1_mean,
+                &quot;not_encouraged_mean&quot;: z0_mean,
+                &quot;difference&quot;: difference(z1_mean, z0_mean),
+            }
+        )
+    max_abs_balance_diff = max(abs(row[&quot;difference&quot;]) for row in balance_rows)
+    checks.add(
+        &quot;iv_observed_pre_treatment_balance_is_plausible&quot;,
+        max_abs_balance_diff &lt;= float(iv[&quot;max_balance_abs_diff&quot;]),
+        sample=balance_rows,
+        message=&quot;Instrument groups should look similar on pre-treatment covariates.&quot;,
+    )
+
+    assumptions_recorded = all(
+        iv[&quot;assumptions&quot;].get(key) for key in (&quot;exclusion_restriction&quot;, &quot;monotonicity&quot;)
+    )
+    checks.add(
+        &quot;iv_exclusion_and_monotonicity_are_recorded_as_assumptions&quot;,
+        assumptions_recorded,
+        sample=iv[&quot;assumptions&quot;],
+        message=&quot;Exclusion and monotonicity must be documented before IV estimation.&quot;,
+    )
+    checks.add(
+        &quot;iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data&quot;,
+        False,
+        severity=&quot;warning&quot;,
+        sample=iv[&quot;assumptions&quot;],
+        message=(
+            &quot;Observed data can falsify some IV assumptions, but cannot prove exclusion &quot;
+            &quot;or monotonicity.&quot;
+        ),
+    )
+
+    iv_rows = frame[
+        [
+            &quot;user_id&quot;,
+            instrument,
+            treatment,
+            outcome,
+            &quot;instrument_version&quot;,
+            &quot;assignment_reason&quot;,
+            &quot;friction_score&quot;,
+        ]
+    ].sort_values([&quot;encouraged&quot;, &quot;user_id&quot;], ascending=[False, True])
+    return {
+        &quot;design_id&quot;: iv[&quot;design_id&quot;],
+        &quot;scenario_id&quot;: iv[&quot;scenario_id&quot;],
+        &quot;declared_estimand&quot;: iv[&quot;declared_estimand&quot;],
+        &quot;rows_n&quot;: int(len(frame)),
+        &quot;instrument_counts&quot;: {key: int(value) for key, value in z_counts.items()},
+        &quot;first_stage&quot;: {
+            &quot;treatment_rate_z1&quot;: treatment_rate_z1,
+            &quot;treatment_rate_z0&quot;: treatment_rate_z0,
+            &quot;first_stage&quot;: first_stage,
+            &quot;minimum_first_stage&quot;: iv[&quot;minimum_first_stage&quot;],
+        },
+        &quot;reduced_form&quot;: {
+            &quot;outcome_rate_z1&quot;: outcome_rate_z1,
+            &quot;outcome_rate_z0&quot;: outcome_rate_z0,
+            &quot;reduced_form&quot;: reduced_form,
+        },
+        &quot;wald_late&quot;: wald_late,
+        &quot;balance_checks&quot;: balance_rows,
+        &quot;assumptions&quot;: iv[&quot;assumptions&quot;],
+        &quot;rows&quot;: records(iv_rows),
+    }
+
+
+def calculated_candidate_status(
+    candidate: dict[str, Any],
+    *,
+    rdd_audit: dict[str, Any],
+    iv_audit: dict[str, Any],
+    spec: dict[str, Any],
+) -&gt; str:
+    design_id = candidate[&quot;design_id&quot;]
+    if design_id == &quot;primary_fuzzy_score_rdd&quot;:
+        if rdd_audit[&quot;calculated_design_type&quot;] != &quot;fuzzy_rdd&quot;:
+            return &quot;invalid_not_fuzzy_rdd&quot;
+        return &quot;estimable_local_with_assumptions&quot;
+    if design_id == &quot;sharp_score_cutoff_offer&quot;:
+        if rdd_audit[&quot;sharp_assignment_violations&quot;]:
+            return &quot;invalid_requires_fuzzy_rdd&quot;
+        return &quot;estimable_sharp_rdd&quot;
+    if design_id == &quot;wide_bandwidth_ignores_locality&quot;:
+        if float(candidate[&quot;bandwidth&quot;]) &gt; float(spec[&quot;rdd&quot;][&quot;bandwidth&quot;]):
+            return &quot;invalid_not_local&quot;
+        return &quot;estimable_local_with_assumptions&quot;
+    if design_id == &quot;capacity_encouragement_late&quot;:
+        if abs(iv_audit[&quot;first_stage&quot;][&quot;first_stage&quot;]) &gt;= float(spec[&quot;iv&quot;][&quot;minimum_first_stage&quot;]):
+            return &quot;estimable_late_with_assumptions&quot;
+        return &quot;invalid_weak_instrument&quot;
+    if design_id == &quot;encouragement_claims_ate&quot;:
+        if candidate.get(&quot;claimed_estimand&quot;) == &quot;ATE&quot;:
+            return &quot;invalid_late_generalized_to_ate&quot;
+        return &quot;estimable_late_with_assumptions&quot;
+    if design_id == &quot;weak_encouragement_variant&quot;:
+        threshold = float(candidate[&quot;minimum_first_stage&quot;])
+        if abs(iv_audit[&quot;first_stage&quot;][&quot;first_stage&quot;]) &lt; threshold:
+            return &quot;invalid_weak_instrument&quot;
+        return &quot;estimable_late_with_assumptions&quot;
+    return &quot;unknown_candidate_design&quot;
+
+
+def audit_candidates(
+    spec: dict[str, Any],
+    checks: CheckBook,
+    *,
+    rdd_audit: dict[str, Any],
+    iv_audit: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    candidate_rows: list[dict[str, Any]] = []
+    for section in (&quot;rdd&quot;, &quot;iv&quot;):
+        for candidate in spec[section][&quot;candidate_designs&quot;]:
+            calculated = calculated_candidate_status(
+                candidate,
+                rdd_audit=rdd_audit,
+                iv_audit=iv_audit,
+                spec=spec,
+            )
+            candidate_rows.append(
+                {
+                    &quot;design_id&quot;: candidate[&quot;design_id&quot;],
+                    &quot;family&quot;: section,
+                    &quot;declared_status&quot;: candidate[&quot;declared_status&quot;],
+                    &quot;calculated_status&quot;: calculated,
+                }
+            )
+    mismatches = [
+        row
+        for row in candidate_rows
+        if row[&quot;declared_status&quot;] != row[&quot;calculated_status&quot;]
+    ]
+    checks.add(
+        &quot;candidate_design_statuses_match_policy&quot;,
+        not mismatches,
+        sample=mismatches or None,
+        message=&quot;Candidate quasi-experimental designs must be labeled by the audit policy.&quot;,
+    )
+    return candidate_rows
+
+
+def audit_claim_policy(
+    checks: CheckBook,
+    *,
+    spec: dict[str, Any],
+    rdd_audit: dict[str, Any],
+    iv_audit: dict[str, Any],
+) -&gt; dict[str, Any]:
+    required_for_local_claim = [
+        &quot;rdd_has_observations_on_both_sides_inside_bandwidth&quot;,
+        &quot;rdd_local_estimand_contract_is_explicit&quot;,
+        &quot;rdd_no_visible_running_variable_bunching_inside_bandwidth&quot;,
+        &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;,
+        &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+        &quot;iv_estimand_contract_is_late_not_ate&quot;,
+        &quot;iv_observed_pre_treatment_balance_is_plausible&quot;,
+        &quot;candidate_design_statuses_match_policy&quot;,
+    ]
+    by_id = {check[&quot;id&quot;]: check for check in checks.checks}
+    failed = [
+        check_id
+        for check_id in required_for_local_claim
+        if check_id not in by_id or not by_id[check_id][&quot;valid&quot;]
+    ]
+    claimed_estimands = {
+        spec[&quot;rdd&quot;][&quot;design_id&quot;]: spec[&quot;rdd&quot;][&quot;declared_estimand&quot;],
+        spec[&quot;iv&quot;][&quot;design_id&quot;]: spec[&quot;iv&quot;][&quot;declared_estimand&quot;],
+    }
+    overgeneralized = [
+        estimand
+        for estimand in claimed_estimands.values()
+        if estimand == &quot;ATE&quot;
+    ]
+    allowed = not failed and not overgeneralized
+    checks.add(
+        &quot;claim_policy_allows_only_local_rdd_and_late_wording&quot;,
+        allowed,
+        sample={
+            &quot;failed_required_checks&quot;: failed,
+            &quot;claimed_estimands&quot;: claimed_estimands,
+            &quot;overgeneralized_estimands&quot;: overgeneralized,
+        },
+        message=&quot;The handoff may use local RDD/LATE wording only if design diagnostics pass.&quot;,
+    )
+    return {
+        &quot;allowed_local_claim&quot;: allowed,
+        &quot;required_checks&quot;: required_for_local_claim,
+        &quot;failed_required_checks&quot;: failed,
+        &quot;wording&quot;: (
+            &quot;Under stated assumptions, the RDD evidence is local to the friction-score cutoff &quot;
+            &quot;and the IV evidence is LATE for compliers, not a population ATE.&quot;
+            if allowed
+            else &quot;Do not make a causal quasi-experimental claim until blocking diagnostics pass.&quot;
+        ),
+    }
+
+
+def audit_quasi_experiments(data_dir: Path, spec: dict[str, Any]) -&gt; dict[str, Any]:
+    checks = CheckBook([])
+    tables = load_tables(data_dir)
+    audit_grain(tables, checks)
+    scenarios = audit_scenarios(tables[&quot;causal_scenarios&quot;], spec, checks)
+    user_frame = build_user_level_frame(tables)
+    rdd_audit = audit_rdd(user_frame, scenarios, spec, checks)
+    iv_audit = audit_iv(tables, scenarios, spec, checks)
+    candidate_audits = audit_candidates(
+        spec,
+        checks,
+        rdd_audit=rdd_audit,
+        iv_audit=iv_audit,
+    )
+    policy = audit_claim_policy(
+        checks,
+        spec=spec,
+        rdd_audit=rdd_audit,
+        iv_audit=iv_audit,
+    )
+    summary = {
+        &quot;spec_id&quot;: spec[&quot;spec_id&quot;],
+        &quot;rdd_design_id&quot;: rdd_audit[&quot;design_id&quot;],
+        &quot;iv_design_id&quot;: iv_audit[&quot;design_id&quot;],
+        &quot;rdd_cutoff&quot;: rdd_audit[&quot;cutoff&quot;],
+        &quot;rdd_bandwidth&quot;: rdd_audit[&quot;bandwidth&quot;],
+        &quot;rdd_local_rows_n&quot;: rdd_audit[&quot;local_rows_n&quot;],
+        &quot;rdd_first_stage&quot;: rdd_audit[&quot;first_stage&quot;][&quot;discontinuity&quot;],
+        &quot;rdd_reduced_form&quot;: rdd_audit[&quot;reduced_form&quot;][&quot;discontinuity&quot;],
+        &quot;rdd_wald_local_effect_diagnostic&quot;: rdd_audit[&quot;wald_local_effect_diagnostic&quot;],
+        &quot;iv_rows_n&quot;: iv_audit[&quot;rows_n&quot;],
+        &quot;iv_first_stage&quot;: iv_audit[&quot;first_stage&quot;][&quot;first_stage&quot;],
+        &quot;iv_reduced_form&quot;: iv_audit[&quot;reduced_form&quot;][&quot;reduced_form&quot;],
+        &quot;iv_wald_late&quot;: iv_audit[&quot;wald_late&quot;],
+        &quot;allowed_local_claim&quot;: policy[&quot;allowed_local_claim&quot;],
+        &quot;blocking_checks&quot;: checks.blocking,
+        &quot;warning_checks&quot;: checks.warnings,
+    }
+    return {
+        &quot;valid&quot;: not checks.blocking,
+        &quot;summary&quot;: summary,
+        &quot;rdd_design_audit&quot;: rdd_audit,
+        &quot;iv_design_audit&quot;: iv_audit,
+        &quot;candidate_design_audits&quot;: candidate_audits,
+        &quot;claim_policy&quot;: policy,
+        &quot;checks&quot;: checks.checks,
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(
+        description=&quot;Audit RDD and instrumental-variable design before estimation.&quot;
+    )
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument(&quot;--spec&quot;, type=Path, default=DEFAULT_SPEC)
+    parser.add_argument(&quot;--output&quot;, type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(&quot;--fail-on-invalid&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args()
+
+    report = audit_quasi_experiments(args.data_dir, read_json(args.spec))
+    write_json(args.output, report)
+    print(json.dumps(report[&quot;summary&quot;], ensure_ascii=False, indent=2))
+    if args.fail_on_invalid and not report[&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_design_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/quasi_experiment_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;spec_id&quot;: &quot;quasi_experiment_design_v1&quot;,
+    &quot;rdd_design_id&quot;: &quot;score_cutoff_offer_local_fuzzy_rdd&quot;,
+    &quot;iv_design_id&quot;: &quot;capacity_encouragement_late&quot;,
+    &quot;rdd_cutoff&quot;: 60.0,
+    &quot;rdd_bandwidth&quot;: 8.0,
+    &quot;rdd_local_rows_n&quot;: 6,
+    &quot;rdd_first_stage&quot;: 0.6666666666666667,
+    &quot;rdd_reduced_form&quot;: -0.6666666666666667,
+    &quot;rdd_wald_local_effect_diagnostic&quot;: -1.0,
+    &quot;iv_rows_n&quot;: 10,
+    &quot;iv_first_stage&quot;: 0.4,
+    &quot;iv_reduced_form&quot;: 0.20000000000000007,
+    &quot;iv_wald_late&quot;: 0.5000000000000001,
+    &quot;allowed_local_claim&quot;: true,
+    &quot;blocking_checks&quot;: [],
+    &quot;warning_checks&quot;: [
+      &quot;rdd_tiny_wald_estimate_is_diagnostic_only&quot;,
+      &quot;iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data&quot;
+    ]
+  },
+  &quot;rdd_design_audit&quot;: {
+    &quot;design_id&quot;: &quot;score_cutoff_offer_local_fuzzy_rdd&quot;,
+    &quot;scenario_id&quot;: &quot;score_rdd&quot;,
+    &quot;declared_design_type&quot;: &quot;fuzzy_rdd&quot;,
+    &quot;calculated_design_type&quot;: &quot;fuzzy_rdd&quot;,
+    &quot;cutoff&quot;: 60.0,
+    &quot;bandwidth&quot;: 8.0,
+    &quot;local_window&quot;: [
+      52,
+      68
+    ],
+    &quot;local_rows_n&quot;: 6,
+    &quot;side_counts&quot;: {
+      &quot;right&quot;: 3,
+      &quot;left&quot;: 3
+    },
+    &quot;local_rows&quot;: [
+      {
+        &quot;user_id&quot;: &quot;U012&quot;,
+        &quot;friction_score&quot;: 52,
+        &quot;distance_to_cutoff&quot;: -8.0,
+        &quot;side&quot;: &quot;left&quot;,
+        &quot;offered_assistance&quot;: false,
+        &quot;activation_14d&quot;: true,
+        &quot;assignment_reason&quot;: &quot;below_cutoff&quot;
+      },
+      {
+        &quot;user_id&quot;: &quot;U007&quot;,
+        &quot;friction_score&quot;: 55,
+        &quot;distance_to_cutoff&quot;: -5.0,
+        &quot;side&quot;: &quot;left&quot;,
+        &quot;offered_assistance&quot;: false,
+        &quot;activation_14d&quot;: true,
+        &quot;assignment_reason&quot;: &quot;below_cutoff&quot;
+      },
+      {
+        &quot;user_id&quot;: &quot;U006&quot;,
+        &quot;friction_score&quot;: 58,
+        &quot;distance_to_cutoff&quot;: -2.0,
+        &quot;side&quot;: &quot;left&quot;,
+        &quot;offered_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;assignment_reason&quot;: &quot;manual_override&quot;
+      },
+      {
+        &quot;user_id&quot;: &quot;U005&quot;,
+        &quot;friction_score&quot;: 61,
+        &quot;distance_to_cutoff&quot;: 1.0,
+        &quot;side&quot;: &quot;right&quot;,
+        &quot;offered_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;assignment_reason&quot;: &quot;score_threshold_capacity_full&quot;
+      },
+      {
+        &quot;user_id&quot;: &quot;U011&quot;,
+        &quot;friction_score&quot;: 64,
+        &quot;distance_to_cutoff&quot;: 4.0,
+        &quot;side&quot;: &quot;right&quot;,
+        &quot;offered_assistance&quot;: true,
+        &quot;activation_14d&quot;: false,
+        &quot;assignment_reason&quot;: &quot;score_threshold_capacity_full&quot;
+      },
+      {
+        &quot;user_id&quot;: &quot;U004&quot;,
+        &quot;friction_score&quot;: 66,
+        &quot;distance_to_cutoff&quot;: 6.0,
+        &quot;side&quot;: &quot;right&quot;,
+        &quot;offered_assistance&quot;: true,
+        &quot;activation_14d&quot;: false,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;
+      }
+    ],
+    &quot;first_stage&quot;: {
+      &quot;right_treatment_rate&quot;: 1.0,
+      &quot;left_treatment_rate&quot;: 0.3333333333333333,
+      &quot;discontinuity&quot;: 0.6666666666666667
+    },
+    &quot;reduced_form&quot;: {
+      &quot;right_outcome_rate&quot;: 0.3333333333333333,
+      &quot;left_outcome_rate&quot;: 1.0,
+      &quot;discontinuity&quot;: -0.6666666666666667
+    },
+    &quot;wald_local_effect_diagnostic&quot;: -1.0,
+    &quot;sharp_assignment_violations&quot;: [
+      {
+        &quot;user_id&quot;: &quot;U006&quot;,
+        &quot;friction_score&quot;: 58,
+        &quot;offered_assistance&quot;: true,
+        &quot;assignment_reason&quot;: &quot;manual_override&quot;,
+        &quot;distance_to_cutoff&quot;: -2.0
+      }
+    ],
+    &quot;density_screen&quot;: {
+      &quot;side_counts&quot;: {
+        &quot;right&quot;: 3,
+        &quot;left&quot;: 3
+      },
+      &quot;density_ratio&quot;: 1.0,
+      &quot;max_density_ratio&quot;: 2.0
+    },
+    &quot;continuity_checks&quot;: [
+      {
+        &quot;covariate&quot;: &quot;specialist_capacity&quot;,
+        &quot;left_mean&quot;: 1.3333333333333333,
+        &quot;right_mean&quot;: 1.3333333333333333,
+        &quot;difference&quot;: 0.0
+      }
+    ]
+  },
+  &quot;iv_design_audit&quot;: {
+    &quot;design_id&quot;: &quot;capacity_encouragement_late&quot;,
+    &quot;scenario_id&quot;: &quot;capacity_iv&quot;,
+    &quot;declared_estimand&quot;: &quot;LATE&quot;,
+    &quot;rows_n&quot;: 10,
+    &quot;instrument_counts&quot;: {
+      &quot;encouraged&quot;: 5,
+      &quot;not_encouraged&quot;: 5
+    },
+    &quot;first_stage&quot;: {
+      &quot;treatment_rate_z1&quot;: 0.8,
+      &quot;treatment_rate_z0&quot;: 0.4,
+      &quot;first_stage&quot;: 0.4,
+      &quot;minimum_first_stage&quot;: 0.3
+    },
+    &quot;reduced_form&quot;: {
+      &quot;outcome_rate_z1&quot;: 0.8,
+      &quot;outcome_rate_z0&quot;: 0.6,
+      &quot;reduced_form&quot;: 0.20000000000000007
+    },
+    &quot;wald_late&quot;: 0.5000000000000001,
+    &quot;balance_checks&quot;: [
+      {
+        &quot;covariate&quot;: &quot;activation_14d_pre&quot;,
+        &quot;encouraged_mean&quot;: 0.4,
+        &quot;not_encouraged_mean&quot;: 0.4,
+        &quot;difference&quot;: 0.0
+      },
+      {
+        &quot;covariate&quot;: &quot;app_crashes_before_time_zero&quot;,
+        &quot;encouraged_mean&quot;: 1.6,
+        &quot;not_encouraged_mean&quot;: 1.8,
+        &quot;difference&quot;: -0.19999999999999996
+      }
+    ],
+    &quot;assumptions&quot;: {
+      &quot;relevance&quot;: &quot;encouragement changes the probability of receiving assisted onboarding&quot;,
+      &quot;as_if_random&quot;: &quot;capacity_lottery_v1 is assigned before time zero within the IV target population&quot;,
+      &quot;exclusion_restriction&quot;: &quot;encouragement affects activation only through received_assistance&quot;,
+      &quot;monotonicity&quot;: &quot;encouragement does not make any user less likely to receive assistance&quot;
+    },
+    &quot;rows&quot;: [
+      {
+        &quot;user_id&quot;: &quot;U001&quot;,
+        &quot;encouraged&quot;: true,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;,
+        &quot;friction_score&quot;: 82
+      },
+      {
+        &quot;user_id&quot;: &quot;U002&quot;,
+        &quot;encouraged&quot;: true,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;,
+        &quot;friction_score&quot;: 76
+      },
+      {
+        &quot;user_id&quot;: &quot;U003&quot;,
+        &quot;encouraged&quot;: true,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: false,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;,
+        &quot;friction_score&quot;: 71
+      },
+      {
+        &quot;user_id&quot;: &quot;U005&quot;,
+        &quot;encouraged&quot;: true,
+        &quot;received_assistance&quot;: false,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold_capacity_full&quot;,
+        &quot;friction_score&quot;: 61
+      },
+      {
+        &quot;user_id&quot;: &quot;U010&quot;,
+        &quot;encouraged&quot;: true,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;,
+        &quot;friction_score&quot;: 73
+      },
+      {
+        &quot;user_id&quot;: &quot;U004&quot;,
+        &quot;encouraged&quot;: false,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: false,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold&quot;,
+        &quot;friction_score&quot;: 66
+      },
+      {
+        &quot;user_id&quot;: &quot;U006&quot;,
+        &quot;encouraged&quot;: false,
+        &quot;received_assistance&quot;: true,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;manual_override&quot;,
+        &quot;friction_score&quot;: 58
+      },
+      {
+        &quot;user_id&quot;: &quot;U007&quot;,
+        &quot;encouraged&quot;: false,
+        &quot;received_assistance&quot;: false,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;below_cutoff&quot;,
+        &quot;friction_score&quot;: 55
+      },
+      {
+        &quot;user_id&quot;: &quot;U011&quot;,
+        &quot;encouraged&quot;: false,
+        &quot;received_assistance&quot;: false,
+        &quot;activation_14d&quot;: false,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;score_threshold_capacity_full&quot;,
+        &quot;friction_score&quot;: 64
+      },
+      {
+        &quot;user_id&quot;: &quot;U012&quot;,
+        &quot;encouraged&quot;: false,
+        &quot;received_assistance&quot;: false,
+        &quot;activation_14d&quot;: true,
+        &quot;instrument_version&quot;: &quot;capacity_lottery_v1&quot;,
+        &quot;assignment_reason&quot;: &quot;below_cutoff&quot;,
+        &quot;friction_score&quot;: 52
+      }
+    ]
+  },
+  &quot;candidate_design_audits&quot;: [
+    {
+      &quot;design_id&quot;: &quot;primary_fuzzy_score_rdd&quot;,
+      &quot;family&quot;: &quot;rdd&quot;,
+      &quot;declared_status&quot;: &quot;estimable_local_with_assumptions&quot;,
+      &quot;calculated_status&quot;: &quot;estimable_local_with_assumptions&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;sharp_score_cutoff_offer&quot;,
+      &quot;family&quot;: &quot;rdd&quot;,
+      &quot;declared_status&quot;: &quot;invalid_requires_fuzzy_rdd&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_requires_fuzzy_rdd&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;wide_bandwidth_ignores_locality&quot;,
+      &quot;family&quot;: &quot;rdd&quot;,
+      &quot;declared_status&quot;: &quot;invalid_not_local&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_not_local&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;capacity_encouragement_late&quot;,
+      &quot;family&quot;: &quot;iv&quot;,
+      &quot;declared_status&quot;: &quot;estimable_late_with_assumptions&quot;,
+      &quot;calculated_status&quot;: &quot;estimable_late_with_assumptions&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;encouragement_claims_ate&quot;,
+      &quot;family&quot;: &quot;iv&quot;,
+      &quot;declared_status&quot;: &quot;invalid_late_generalized_to_ate&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_late_generalized_to_ate&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;weak_encouragement_variant&quot;,
+      &quot;family&quot;: &quot;iv&quot;,
+      &quot;declared_status&quot;: &quot;invalid_weak_instrument&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_weak_instrument&quot;
+    }
+  ],
+  &quot;claim_policy&quot;: {
+    &quot;allowed_local_claim&quot;: true,
+    &quot;required_checks&quot;: [
+      &quot;rdd_has_observations_on_both_sides_inside_bandwidth&quot;,
+      &quot;rdd_local_estimand_contract_is_explicit&quot;,
+      &quot;rdd_no_visible_running_variable_bunching_inside_bandwidth&quot;,
+      &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;,
+      &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+      &quot;iv_estimand_contract_is_late_not_ate&quot;,
+      &quot;iv_observed_pre_treatment_balance_is_plausible&quot;,
+      &quot;candidate_design_statuses_match_policy&quot;
+    ],
+    &quot;failed_required_checks&quot;: [],
+    &quot;wording&quot;: &quot;Under stated assumptions, the RDD evidence is local to the friction-score cutoff and the IV evidence is LATE for compliers, not a population ATE.&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;source_tables_preserve_declared_grain&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Each source table must keep the grain declared in phase data contract.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;quasi_experiment_specs_match_scenario_registry&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;RDD and IV specs must point to causal_scenarios rows with matching design.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;rdd_has_observations_on_both_sides_inside_bandwidth&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;A local cutoff design needs enough rows on both sides of the cutoff.&quot;,
+      &quot;sample&quot;: {
+        &quot;side_counts&quot;: {
+          &quot;right&quot;: 3,
+          &quot;left&quot;: 3
+        },
+        &quot;minimum_each_side_n&quot;: 3
+      }
+    },
+    {
+      &quot;id&quot;: &quot;rdd_local_estimand_contract_is_explicit&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;RDD may support a local estimand at the cutoff, not a population ATE.&quot;,
+      &quot;sample&quot;: {
+        &quot;scenario_estimand&quot;: &quot;local_ATE&quot;,
+        &quot;declared_estimand&quot;: &quot;local_ATE&quot;
+      }
+    },
+    {
+      &quot;id&quot;: &quot;rdd_assignment_is_fuzzy_not_sharp&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Cutoff assignment is not deterministic; estimate must be framed as fuzzy RDD.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;user_id&quot;: &quot;U006&quot;,
+          &quot;friction_score&quot;: 58,
+          &quot;offered_assistance&quot;: true,
+          &quot;assignment_reason&quot;: &quot;manual_override&quot;,
+          &quot;distance_to_cutoff&quot;: -2.0
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;rdd_no_visible_running_variable_bunching_inside_bandwidth&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;A simple McCrary-style screen should not show strong bunching at cutoff.&quot;,
+      &quot;sample&quot;: {
+        &quot;window&quot;: [
+          52,
+          68
+        ],
+        &quot;side_counts&quot;: {
+          &quot;right&quot;: 3,
+          &quot;left&quot;: 3
+        },
+        &quot;density_ratio&quot;: 1.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;rdd_observed_covariates_are_continuous_at_cutoff&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Pre-treatment covariates should not jump at the cutoff.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;covariate&quot;: &quot;specialist_capacity&quot;,
+          &quot;left_mean&quot;: 1.3333333333333333,
+          &quot;right_mean&quot;: 1.3333333333333333,
+          &quot;difference&quot;: 0.0
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;rdd_effect_estimate_is_labeled_local_and_diagnostic&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;The tiny-data Wald number is a design diagnostic, not a general ATE.&quot;,
+      &quot;sample&quot;: {
+        &quot;estimand&quot;: &quot;local_ATE&quot;,
+        &quot;wald_local_effect_diagnostic&quot;: -1.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;rdd_tiny_wald_estimate_is_diagnostic_only&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Tiny local windows are useful for hand checks, not for stable effect claims.&quot;,
+      &quot;sample&quot;: {
+        &quot;local_rows_n&quot;: 6,
+        &quot;wald_local_effect_diagnostic&quot;: -1.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;iv_first_stage_is_relevant_enough_for_tiny_design&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;The instrument must move treatment take-up before any IV estimate is meaningful.&quot;,
+      &quot;sample&quot;: {
+        &quot;treatment_rate_z1&quot;: 0.8,
+        &quot;treatment_rate_z0&quot;: 0.4,
+        &quot;first_stage&quot;: 0.4,
+        &quot;minimum_first_stage&quot;: 0.3
+      }
+    },
+    {
+      &quot;id&quot;: &quot;iv_estimand_contract_is_late_not_ate&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;An IV design identifies LATE for compliers under assumptions, not ATE.&quot;,
+      &quot;sample&quot;: {
+        &quot;scenario_estimand&quot;: &quot;LATE&quot;,
+        &quot;declared_estimand&quot;: &quot;LATE&quot;
+      }
+    },
+    {
+      &quot;id&quot;: &quot;iv_observed_pre_treatment_balance_is_plausible&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Instrument groups should look similar on pre-treatment covariates.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;covariate&quot;: &quot;activation_14d_pre&quot;,
+          &quot;encouraged_mean&quot;: 0.4,
+          &quot;not_encouraged_mean&quot;: 0.4,
+          &quot;difference&quot;: 0.0
+        },
+        {
+          &quot;covariate&quot;: &quot;app_crashes_before_time_zero&quot;,
+          &quot;encouraged_mean&quot;: 1.6,
+          &quot;not_encouraged_mean&quot;: 1.8,
+          &quot;difference&quot;: -0.19999999999999996
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;iv_exclusion_and_monotonicity_are_recorded_as_assumptions&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Exclusion and monotonicity must be documented before IV estimation.&quot;,
+      &quot;sample&quot;: {
+        &quot;relevance&quot;: &quot;encouragement changes the probability of receiving assisted onboarding&quot;,
+        &quot;as_if_random&quot;: &quot;capacity_lottery_v1 is assigned before time zero within the IV target population&quot;,
+        &quot;exclusion_restriction&quot;: &quot;encouragement affects activation only through received_assistance&quot;,
+        &quot;monotonicity&quot;: &quot;encouragement does not make any user less likely to receive assistance&quot;
+      }
+    },
+    {
+      &quot;id&quot;: &quot;iv_exclusion_and_monotonicity_cannot_be_proven_from_observed_data&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Observed data can falsify some IV assumptions, but cannot prove exclusion or monotonicity.&quot;,
+      &quot;sample&quot;: {
+        &quot;relevance&quot;: &quot;encouragement changes the probability of receiving assisted onboarding&quot;,
+        &quot;as_if_random&quot;: &quot;capacity_lottery_v1 is assigned before time zero within the IV target population&quot;,
+        &quot;exclusion_restriction&quot;: &quot;encouragement affects activation only through received_assistance&quot;,
+        &quot;monotonicity&quot;: &quot;encouragement does not make any user less likely to receive assistance&quot;
+      }
+    },
+    {
+      &quot;id&quot;: &quot;candidate_design_statuses_match_policy&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Candidate quasi-experimental designs must be labeled by the audit policy.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;claim_policy_allows_only_local_rdd_and_late_wording&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;The handoff may use local RDD/LATE wording only if design diagnostics pass.&quot;,
+      &quot;sample&quot;: {
+        &quot;failed_required_checks&quot;: [],
+        &quot;claimed_estimands&quot;: {
+          &quot;score_cutoff_offer_local_fuzzy_rdd&quot;: &quot;local_ATE&quot;,
+          &quot;capacity_encouragement_late&quot;: &quot;LATE&quot;
+        },
+        &quot;overgeneralized_estimands&quot;: []
+      }
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/quasi_experiment_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;spec_id&quot;: &quot;quasi_experiment_design_v1&quot;,
+  &quot;rdd&quot;: {
+    &quot;design_id&quot;: &quot;score_cutoff_offer_local_fuzzy_rdd&quot;,
+    &quot;scenario_id&quot;: &quot;score_rdd&quot;,
+    &quot;source_table&quot;: &quot;onboarding_assistance&quot;,
+    &quot;outcome_table&quot;: &quot;outcomes&quot;,
+    &quot;unit&quot;: &quot;user_id&quot;,
+    &quot;running_variable&quot;: &quot;friction_score&quot;,
+    &quot;cutoff&quot;: 60,
+    &quot;bandwidth&quot;: 8,
+    &quot;treatment&quot;: &quot;offered_assistance&quot;,
+    &quot;outcome&quot;: &quot;activation_14d&quot;,
+    &quot;forcing_rule&quot;: &quot;friction_score &gt;= eligibility_cutoff&quot;,
+    &quot;declared_design_type&quot;: &quot;fuzzy_rdd&quot;,
+    &quot;declared_estimand&quot;: &quot;local_ATE&quot;,
+    &quot;minimum_each_side_n&quot;: 3,
+    &quot;max_density_ratio&quot;: 2.0,
+    &quot;continuity_covariates&quot;: [&quot;specialist_capacity&quot;],
+    &quot;max_covariate_mean_diff&quot;: 0.75,
+    &quot;candidate_designs&quot;: [
+      {
+        &quot;design_id&quot;: &quot;primary_fuzzy_score_rdd&quot;,
+        &quot;declared_status&quot;: &quot;estimable_local_with_assumptions&quot;
+      },
+      {
+        &quot;design_id&quot;: &quot;sharp_score_cutoff_offer&quot;,
+        &quot;declared_status&quot;: &quot;invalid_requires_fuzzy_rdd&quot;
+      },
+      {
+        &quot;design_id&quot;: &quot;wide_bandwidth_ignores_locality&quot;,
+        &quot;bandwidth&quot;: 25,
+        &quot;declared_status&quot;: &quot;invalid_not_local&quot;
+      }
+    ]
+  },
+  &quot;iv&quot;: {
+    &quot;design_id&quot;: &quot;capacity_encouragement_late&quot;,
+    &quot;scenario_id&quot;: &quot;capacity_iv&quot;,
+    &quot;instrument_table&quot;: &quot;encouragement_assignments&quot;,
+    &quot;treatment_table&quot;: &quot;onboarding_assistance&quot;,
+    &quot;outcome_table&quot;: &quot;outcomes&quot;,
+    &quot;unit&quot;: &quot;user_id&quot;,
+    &quot;instrument&quot;: &quot;encouraged&quot;,
+    &quot;treatment&quot;: &quot;received_assistance&quot;,
+    &quot;outcome&quot;: &quot;activation_14d&quot;,
+    &quot;declared_estimand&quot;: &quot;LATE&quot;,
+    &quot;minimum_first_stage&quot;: 0.3,
+    &quot;balance_covariates&quot;: [
+      &quot;activation_14d_pre&quot;,
+      &quot;app_crashes_before_time_zero&quot;
+    ],
+    &quot;max_balance_abs_diff&quot;: 0.25,
+    &quot;assumptions&quot;: {
+      &quot;relevance&quot;: &quot;encouragement changes the probability of receiving assisted onboarding&quot;,
+      &quot;as_if_random&quot;: &quot;capacity_lottery_v1 is assigned before time zero within the IV target population&quot;,
+      &quot;exclusion_restriction&quot;: &quot;encouragement affects activation only through received_assistance&quot;,
+      &quot;monotonicity&quot;: &quot;encouragement does not make any user less likely to receive assistance&quot;
+    },
+    &quot;candidate_designs&quot;: [
+      {
+        &quot;design_id&quot;: &quot;capacity_encouragement_late&quot;,
+        &quot;declared_status&quot;: &quot;estimable_late_with_assumptions&quot;
+      },
+      {
+        &quot;design_id&quot;: &quot;encouragement_claims_ate&quot;,
+        &quot;claimed_estimand&quot;: &quot;ATE&quot;,
+        &quot;declared_status&quot;: &quot;invalid_late_generalized_to_ate&quot;
+      },
+      {
+        &quot;design_id&quot;: &quot;weak_encouragement_variant&quot;,
+        &quot;minimum_first_stage&quot;: 0.9,
+        &quot;declared_status&quot;: &quot;invalid_weak_instrument&quot;
+      }
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/09-quasi-experiments/outputs/quasi_experiment_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/09-quasi-experiments" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/causal-analysis/difference-in-differences/"><span>← Предыдущий урок</span><strong>Difference-in-Differences</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/causal-analysis/sensitivity/"><span>Следующий урок →</span><strong>Sensitivity analysis и falsification checks</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

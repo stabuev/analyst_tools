@@ -1,0 +1,2376 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="martcustomerrevenuehealth из прошлых уроков можно пересчитывать целиком: данных мало, логика компактная. Но дневная fact-витрина выручки в реальном проекте быстро…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/incremental-models/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Инкрементальные модели">
+  <meta property="og:description" content="martcustomerrevenuehealth из прошлых уроков можно пересчитывать целиком: данных мало, логика компактная. Но дневная fact-витрина выручки в реальном проекте быстро…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/incremental-models/">
+  <meta name="twitter:card" content="summary">
+  <title>Инкрементальные модели — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Инкрементальные модели", "description": "martcustomerrevenuehealth из прошлых уроков можно пересчитывать целиком: данных мало, логика компактная. Но дневная fact-витрина выручки в реальном проекте быстро…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/incremental-models/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 11: Analytics Engineering", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=11"}, {"@type": "ListItem", "position": 3, "name": "Инкрементальные модели", "item": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/incremental-models/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 11</p><h2>Analytics Engineering</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-layers/"><span>01</span>Слои и контракты аналитических данных</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-project/"><span>02</span>Структура dbt-проекта</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/sources-and-refs/"><span>03</span>Sources, refs и зависимости</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/models/"><span>04</span>Модели и materializations</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-tests/"><span>05</span>Data tests</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/macros/"><span>06</span>Jinja и macros без злоупотребления</a><a class="lesson-sidebar-link is-active" href="../../../lessons/analytics-engineering/incremental-models/"><span>07</span>Инкрементальные модели</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/snapshots/"><span>08</span>Snapshots и история изменений</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/documentation-and-lineage/"><span>09</span>Документация и lineage</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/sqlfluff/"><span>10</span>SQLFluff и единый стиль</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-duckdb-project/"><span>11</span>Локальный проект с dbt-duckdb</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 11 · Analytics Engineering</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 118 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/11-analytics-engineering/07-incremental-models" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему incremental-модель опасно писать как &quot;добавляем только новые строки&quot;?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Без ключа, окна поздних данных и full-refresh policy она может копить дубли и пропускать исторические исправления.</button><button type="button" class="quiz-option" data-choice="1">Потому что dbt запрещает incremental materialization для fact-таблиц.</button><button type="button" class="quiz-option" data-choice="2">Потому что incremental-модель всегда медленнее table materialization.</button><button type="button" class="quiz-option" data-choice="3">Потому что data tests не запускаются на incremental-моделях.</button></div><p class="quiz-feedback" hidden>Incremental безопасен только как контракт обновления: grain, unique_key, окно пересчета, тесты и правила полного пересчета.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что должен описывать `unique_key` в дневной витрине `fct_order_revenue_daily`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ключ grain: одну строку target-таблицы, в уроке это `revenue_date`.</button><button type="button" class="quiz-option" data-choice="1">Любую колонку, которая есть в source CSV.</button><button type="button" class="quiz-option" data-choice="2">Только surrogate key, созданный случайным UUID.</button><button type="button" class="quiz-option" data-choice="3">Колонку, по которой сортируется итоговый отчет.</button></div><p class="quiz-feedback" hidden>`unique_key` должен совпадать с grain модели и позволять заменить уже существующую строку при повторном пересчете.</p></article></section>
+        <article class="lesson-article"><h1 id="инкрементальные-модели">Инкрементальные модели</h1>
+<blockquote>
+<p>Incremental-модель ускоряет пересчет только тогда, когда у нее есть явный ключ, окно поздних данных и понятная политика full refresh.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build
+<strong>Треки:</strong> Data
+<strong>Пререквизиты:</strong> 11-analytics-engineering/06-macros
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> проектируете incremental mart с <code>is_incremental()</code>, <code>unique_key</code>, late-arrival window, full-refresh policy и тестами против дубликатов, пропущенных обновлений и schema change.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объяснить, когда incremental materialization безопаснее полного пересчета, а когда опаснее.</li>
+<li>Спроектировать grain и <code>unique_key</code> до написания фильтра обновления.</li>
+<li>Написать dbt-модель с <code>is_incremental()</code>, <code>{{ this }}</code> и окном поздних данных.</li>
+<li>Зафиксировать full-refresh/backfill policy рядом с моделью.</li>
+<li>Проверить incremental run на сценарии &quot;новая дата плюс поздно пришедший заказ&quot;.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p><code>mart_customer_revenue_health</code> из прошлых уроков можно пересчитывать целиком: данных мало, логика компактная. Но дневная fact-витрина выручки в реальном проекте быстро становится тяжелой. Каждый день добавляются новые заказы, иногда старые даты получают поздние строки, refund может приехать после платежа, а отчет finance хочет стабильную таблицу.</p>
+<p>Наивная оптимизация звучит так: &quot;будем добавлять только новые строки&quot;. В ней сразу три риска:</p>
+<ul>
+<li>без <code>unique_key</code> повторный запуск создает дубликаты по дате;</li>
+<li>без late-arrival window заказ за прошлую дату не попадет в витрину;</li>
+<li>без full-refresh policy изменение логики конвертации валюты исправит только новые дни, а история останется старой.</li>
+</ul>
+<p>В этом уроке вы строите <code>fct_order_revenue_daily</code>: одну строку на <code>revenue_date</code>, инкрементальное обновление с двухдневным окном и проверяемый playbook для backfill.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Incremental-модель в dbt материализуется как таблица. Первый запуск строит ее полностью. Следующие запуски могут обработать только подмножество входных строк и применить результат к уже существующей таблице.</p>
+<p>Для такой модели нужен не один SQL-фильтр, а договор:</p>
+<table>
+<thead>
+<tr>
+<th>Решение</th>
+<th>Вопрос</th>
+<th>Ошибка без него</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grain</td>
+<td>Что означает одна строка target-таблицы?</td>
+<td>Нельзя понять, что считать дублем</td>
+</tr>
+<tr>
+<td><code>unique_key</code></td>
+<td>По какому ключу обновлять уже существующую строку?</td>
+<td>Append-only поведение копит повторы</td>
+</tr>
+<tr>
+<td>Incremental predicate</td>
+<td>Какие source-строки пересчитывать на обычном запуске?</td>
+<td>Старые даты не обновляются или пересчитывается слишком много</td>
+</tr>
+<tr>
+<td>Late-arrival window</td>
+<td>Насколько назад смотреть из-за задержек данных?</td>
+<td>Поздний заказ или refund не попадет в витрину</td>
+</tr>
+<tr>
+<td>Schema change policy</td>
+<td>Что делать при изменении набора колонок?</td>
+<td>История и новая схема расходятся молча</td>
+</tr>
+<tr>
+<td>Full-refresh policy</td>
+<td>Когда перестроить всю таблицу с нуля?</td>
+<td>Исторические ошибки остаются вне окна</td>
+</tr>
+</tbody>
+</table>
+<p><code>is_incremental()</code> должен компилироваться в валидный SQL в обеих ветках. Он становится true, когда target relation уже существует, модель настроена как incremental и запуск не идет с <code>--full-refresh</code>. Поэтому фильтр обычно пишут так, чтобы первый запуск не зависел от <code>{{ this }}</code>, а incremental-запуск читал максимум из уже построенной таблицы.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала разберите механизм без dbt. Есть текущая target-таблица:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">revenue_date | paid_revenue_rub
+2026-05-02   | 1200.00
+2026-05-03   | 800.00
+2026-05-04   | 0.00
+</code></pre></div><p>Новая source-выгрузка содержит:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">o004 | 2026-05-07 | paid | 2312.50
+o005 | 2026-05-03 | paid | 100.00
+</code></pre></div><p><code>o005</code> пришел поздно: дата заказа 2026-05-03, но загрузили его после первой сборки. Если фильтровать только <code>order_date &gt; max(revenue_date)</code>, модель увидит 2026-05-07 и пропустит 2026-05-03.</p>
+<h3 id="шаг-1-назовите-grain-и-ключ">Шаг 1. Назовите grain и ключ</h3>
+<p>Для дневной fact-витрины grain:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">one calendar revenue date
+</code></pre></div><p>Ключ:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">unique_key = revenue_date
+</code></pre></div><p>Это значит: при пересчете 2026-05-03 новая строка должна заменить старую строку за 2026-05-03, а не добавиться второй строкой.</p>
+<h3 id="шаг-2-выберите-окно-поздних-данных">Шаг 2. Выберите окно поздних данных</h3>
+<p>В учебном датасете задержка маленькая, поэтому используем два дня назад от максимальной даты в target:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">where orders.order_date &gt;= (
+    select coalesce(max(revenue_date) - interval &#x27;2 days&#x27;, date &#x27;1900-01-01&#x27;) from target_table
+)
+</code></pre></div><p>Если target пустой, <code>coalesce</code> дает безопасную нижнюю границу. Если target уже содержит максимум 2026-05-04, окно начинается с 2026-05-02 и поздний заказ на 2026-05-03 попадет в пересчет.</p>
+<h3 id="шаг-3-смоделируйте-delete-insert">Шаг 3. Смоделируйте delete+insert</h3>
+<p>Минимальный алгоритм:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">target = {
+    &quot;2026-05-02&quot;: 1200.00,
+    &quot;2026-05-03&quot;: 800.00,
+    &quot;2026-05-04&quot;: 0.00,
+}
+
+recalculated_window = {
+    &quot;2026-05-02&quot;: 1200.00,
+    &quot;2026-05-03&quot;: 900.00,
+    &quot;2026-05-04&quot;: 0.00,
+    &quot;2026-05-07&quot;: 2312.50,
+}
+
+for revenue_date in recalculated_window:
+    target.pop(revenue_date, None)
+target.update(recalculated_window)
+</code></pre></div><p>После обновления 2026-05-03 равен <code>900.00</code>, а не двум строкам <code>800.00</code> и <code>100.00</code>. Это и есть смысл <code>unique_key</code> плюс incremental strategy: обновлять набор ключей, который модель пересчитала.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Готовый dbt-проект лежит в <code>outputs/incremental_project</code>. Ключевая модель:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">{{
+    config(
+        materialized=&#x27;incremental&#x27;,
+        unique_key=&#x27;revenue_date&#x27;,
+        incremental_strategy=&#x27;delete+insert&#x27;,
+        on_schema_change=&#x27;fail&#x27;
+    )
+}}
+</code></pre></div><p>Фильтр внутри модели:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">{% if is_incremental() %}
+where orders.order_date &gt;= (
+    select coalesce(max(revenue_date) - interval &#x27;2 days&#x27;, date &#x27;1900-01-01&#x27;) from {{ this }}
+)
+{% endif %}
+</code></pre></div><p>Контракт повторен в <code>models/properties.yml</code>:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">meta:
+  incremental_contract:
+    event_time_column: revenue_date
+    unique_key: revenue_date
+    late_arrival_window_days: 2
+    incremental_strategy: delete+insert
+    schema_change_policy: fail
+    backfill_command: &quot;dbt run --full-refresh --select fct_order_revenue_daily&quot;
+</code></pre></div><p>Запустите из папки <code>phases/11-analytics-engineering/07-incremental-models</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/incremental_model_auditor.py \
+  --project outputs/incremental_project \
+  --data-contract ../data/contract.json \
+  --run-dbt
+</code></pre></div><p>Аудитор делает три live-шага:</p>
+<ol>
+<li>Собирает начальную базу без <code>o004</code>: <code>3</code> дневные строки, <code>2000.00</code> RUB paid revenue.</li>
+<li>Подменяет raw-таблицы на полную выгрузку и добавляет поздний <code>o005</code> на 2026-05-03.</li>
+<li>Запускает обычный <code>dbt run</code>, проверяет incremental result и затем документированный <code>--full-refresh</code>.</li>
+</ol>
+<p>Ожидаемый итог:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;row_count&quot;: 4,
+  &quot;paid_revenue_rub&quot;: &quot;4412.50&quot;,
+  &quot;may_03_paid_revenue_rub&quot;: &quot;900.00&quot;,
+  &quot;duplicate_date_rows&quot;: 0
+}
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте пять поломок:</p>
+<ol>
+<li>Удалите <code>unique_key='revenue_date'</code> из модели. Статический auditor должен отклонить модель до запуска dbt.</li>
+<li>Замените <code>{{ this }}</code> на literal table name. Auditor покажет, что модель больше не переносима между окружениями.</li>
+<li>Измените <code>interval '2 days'</code> на <code>interval '0 days'</code>. Поздний заказ на 2026-05-03 больше не входит в окно.</li>
+<li>Уберите <code>unique</code> test с <code>revenue_date</code>. Контракт ключа станет декларацией без проверки.</li>
+<li>Перепишите playbook без <code>--full-refresh</code>. Команда потеряет правило, когда история должна быть перестроена.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Локальная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests -v
+uv run --locked python code/main.py
+</code></pre></div><p><code>code/main.py</code> выводит compact report:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;incremental_fct_output&quot;: {
+    &quot;row_count&quot;: 4,
+    &quot;paid_revenue_rub&quot;: &quot;4412.50&quot;,
+    &quot;may_03_paid_revenue_rub&quot;: &quot;900.00&quot;,
+    &quot;duplicate_date_rows&quot;: 0
+  },
+  &quot;checks&quot;: &quot;15/15&quot;
+}
+</code></pre></div><p>Data test <code>tests/assert_daily_revenue_reconciles.sql</code> сверяет дневную витрину с source-level расчетом из <code>stg_orders</code> и <code>stg_currency_rates</code>. Это важно: successful <code>dbt run</code> означает только &quot;SQL выполнился&quot;, а не &quot;инкрементальная логика не пропустила старую дату&quot;.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<ul>
+<li><code>outputs/incremental_model_auditor.py</code> - CLI-аудитор incremental contract и live late-arrival behavior.</li>
+<li><code>outputs/incremental_audit_report.json</code> - deterministic static report.</li>
+<li><code>outputs/backfill_full_refresh_playbook.md</code> - full-refresh/backfill policy для модели.</li>
+<li><code>outputs/incremental_project/</code> - dbt-проект с <code>fct_order_revenue_daily</code>.</li>
+</ul>
+<p>Команда для CI artifact:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/incremental_model_auditor.py \
+  --project outputs/incremental_project \
+  --data-contract ../data/contract.json \
+  --run-dbt \
+  --output outputs/incremental_audit_report.json
+</code></pre></div><p>В рабочем проекте такой gate полезен перед merge: он проверяет не только наличие <code>materialized='incremental'</code>, но и операционный договор, из-за которого модель можно безопасно поддерживать.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте колонку <code>gross_revenue_rub</code> в source reconciliation test и проверьте, что refund-дни не ломают paid revenue.</li>
+<li>Смените grain на <code>revenue_date, currency</code> и перечислите, какие места контракта должны измениться.</li>
+<li>Добавьте второй поздний заказ за дату вне двухдневного окна и опишите, почему для него нужен backfill/full refresh, а не обычный incremental run.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Incremental model</td>
+<td>&quot;dbt сам поймет, что изменилось&quot;</td>
+<td>Таблица, которую модель обновляет по явно заданной логике и стратегии</td>
+</tr>
+<tr>
+<td><code>is_incremental()</code></td>
+<td>&quot;Условие для ускорения любого SQL&quot;</td>
+<td>Jinja-предикат, который true только при существующей incremental relation и запуске без <code>--full-refresh</code></td>
+</tr>
+<tr>
+<td><code>unique_key</code></td>
+<td>&quot;Просто документация ключа&quot;</td>
+<td>Ключ, по которому adapter может обновлять уже существующие строки вместо append-дубликатов</td>
+</tr>
+<tr>
+<td>Late-arrival window</td>
+<td>&quot;Запас на всякий случай&quot;</td>
+<td>Осознанный исторический интервал, который обычный incremental run пересчитывает из-за задержек данных</td>
+</tr>
+<tr>
+<td>Full refresh</td>
+<td>&quot;Аварийная кнопка&quot;</td>
+<td>Операционный режим перестроения всей incremental table, нужный после изменений логики, grain, key или исторического backfill</td>
+</tr>
+<tr>
+<td><code>on_schema_change</code></td>
+<td>&quot;Автоматическое исправление истории&quot;</td>
+<td>Политика реакции на изменение колонок; она не заменяет backfill старых строк</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.getdbt.com/docs/build/incremental-models" target="_blank" rel="noopener">dbt Docs: Incremental models</a> — прочитайте условия <code>is_incremental()</code>, пример фильтра по max timestamp и предупреждения про late-arriving facts.</li>
+<li><a href="https://docs.getdbt.com/docs/build/incremental-strategy" target="_blank" rel="noopener">dbt Docs: Incremental strategy</a> — сравните стратегии adapter'ов и проверьте, какая стратегия доступна в вашем warehouse.</li>
+<li><a href="https://docs.getdbt.com/reference/resource-configs/unique_key" target="_blank" rel="noopener">dbt Reference: unique_key</a> — разберите, почему ключевые колонки не должны быть null и как задавать составной ключ.</li>
+<li><a href="https://docs.getdbt.com/reference/commands/run" target="_blank" rel="noopener">dbt Reference: run command</a> — посмотрите, как <code>--full-refresh</code> меняет поведение incremental-моделей и почему это часть runbook.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Когда `is_incremental()` становится true в dbt-модели?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда target relation уже существует, модель materialized как incremental и запуск идет без `--full-refresh`.</button><button type="button" class="quiz-option" data-choice="1">На любом запуске модели, где в SQL есть `unique_key`.</button><button type="button" class="quiz-option" data-choice="2">Только при запуске `dbt test`.</button><button type="button" class="quiz-option" data-choice="3">Только если source freshness показывает новые строки.</button></div><p class="quiz-feedback" hidden>Именно поэтому SQL должен быть валиден в обеих ветках: первый full build и последующие incremental runs компилируются по-разному.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем в уроке используется `max(revenue_date) - interval &#x27;2 days&#x27;`, а не просто `max(revenue_date)`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы обычный incremental run пересчитал недавние даты и поймал поздно пришедший заказ.</button><button type="button" class="quiz-option" data-choice="1">Чтобы DuckDB быстрее создал схему `analytics`.</button><button type="button" class="quiz-option" data-choice="2">Чтобы dbt перестал требовать `unique_key`.</button><button type="button" class="quiz-option" data-choice="3">Чтобы отключить full refresh.</button></div><p class="quiz-feedback" hidden>Окно поздних данных намеренно пересчитывает недавнюю историю, где еще могут появиться задержанные source-строки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Когда для incremental-модели нужен `--full-refresh`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда меняется grain, ключ, историческая бизнес-логика, схема или нужен backfill вне обычного окна.</button><button type="button" class="quiz-option" data-choice="1">После каждого обычного daily run.</button><button type="button" class="quiz-option" data-choice="2">Только если `dbt parse` не нашел YAML-файл.</button><button type="button" class="quiz-option" data-choice="3">Никогда: incremental-модель должна чинить всю историю сама.</button></div><p class="quiz-feedback" hidden>Incremental predicate ограничивает историю, поэтому изменения вне окна требуют полного перестроения или отдельного backfill-процесса.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Почему в модели стоит `on_schema_change=&#x27;fail&#x27;`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы изменение опубликованных колонок остановило run и заставило пересмотреть контракт и full-refresh/backfill.</button><button type="button" class="quiz-option" data-choice="1">Чтобы dbt автоматически заполнил новые колонки во всех исторических строках.</button><button type="button" class="quiz-option" data-choice="2">Чтобы запретить любые data tests.</button><button type="button" class="quiz-option" data-choice="3">Чтобы модель стала ephemeral.</button></div><p class="quiz-feedback" hidden>Schema change policy не заменяет исторический backfill. Fail-режим делает изменение явным и ревьюируемым.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;incremental_model_auditor.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;incremental_project&quot;
+PLAYBOOK = ROOT / &quot;outputs&quot; / &quot;backfill_full_refresh_playbook.md&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;incremental_model_auditor&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDITOR = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDITOR)
+
+
+def check(report: dict[str, Any], check_id: str) -&gt; dict[str, Any]:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def read_yaml(path: Path) -&gt; dict[str, Any]:
+    return yaml.safe_load(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_yaml(path: Path, value: dict[str, Any]) -&gt; None:
+    path.write_text(yaml.safe_dump(value, sort_keys=False), encoding=&quot;utf-8&quot;)
+
+
+def model_doc(properties: dict[str, Any], name: str) -&gt; dict[str, Any]:
+    return next(item for item in properties[&quot;models&quot;] if item[&quot;name&quot;] == name)
+
+
+class IncrementalModelAuditorTest(unittest.TestCase):
+    def copy_project(self, tmp: str) -&gt; Path:
+        base = Path(tmp)
+        destination = base / &quot;project&quot;
+        shutil.copytree(PROJECT, destination)
+        shutil.copy(PLAYBOOK, base / PLAYBOOK.name)
+        return destination
+
+    def test_valid_project_declares_incremental_contract(self) -&gt; None:
+        report = AUDITOR.validate_project(PROJECT, DATA_CONTRACT, run_dbt=False)
+        self.assertTrue(report[&quot;valid&quot;])
+        contract = report[&quot;summary&quot;][&quot;incremental_contract&quot;]
+        self.assertEqual(contract[&quot;unique_key&quot;], &quot;revenue_date&quot;)
+        self.assertEqual(contract[&quot;late_arrival_window_days&quot;], 2)
+        self.assertEqual(contract[&quot;schema_change_policy&quot;], &quot;fail&quot;)
+        self.assertTrue(check(report, &quot;incremental_model_sql_declares_contract&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;unique_key_has_data_tests&quot;)[&quot;valid&quot;])
+
+    def test_live_incremental_run_catches_late_arriving_order_without_duplicates(self) -&gt; None:
+        report = AUDITOR.validate_project(PROJECT, DATA_CONTRACT, run_dbt=True)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;initial_fct_output&quot;],
+            {
+                &quot;row_count&quot;: 3,
+                &quot;paid_revenue_rub&quot;: &quot;2000.00&quot;,
+                &quot;may_03_paid_revenue_rub&quot;: &quot;800.00&quot;,
+                &quot;duplicate_date_rows&quot;: 0,
+            },
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;incremental_fct_output&quot;],
+            {
+                &quot;row_count&quot;: 4,
+                &quot;paid_revenue_rub&quot;: &quot;4412.50&quot;,
+                &quot;may_03_paid_revenue_rub&quot;: &quot;900.00&quot;,
+                &quot;duplicate_date_rows&quot;: 0,
+            },
+        )
+        self.assertTrue(check(report, &quot;documented_full_refresh_succeeds&quot;)[&quot;valid&quot;])
+
+    def test_unique_key_config_is_required_in_model_sql(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            model_path = project / &quot;models&quot; / &quot;marts&quot; / &quot;fct_order_revenue_daily.sql&quot;
+            model_path.write_text(
+                model_path.read_text(encoding=&quot;utf-8&quot;).replace(&quot;        unique_key=&#x27;revenue_date&#x27;,\n&quot;, &quot;&quot;),
+                encoding=&quot;utf-8&quot;,
+            )
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;incremental_model_sql_declares_contract&quot;)[&quot;valid&quot;])
+
+    def test_is_incremental_guard_and_this_relation_are_required(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            model_path = project / &quot;models&quot; / &quot;marts&quot; / &quot;fct_order_revenue_daily.sql&quot;
+            text = model_path.read_text(encoding=&quot;utf-8&quot;)
+            text = text.replace(&quot;{% if is_incremental() %}&quot;, &quot;{% if false %}&quot;)
+            text = text.replace(&quot;{{ this }}&quot;, &quot;analytics.fct_order_revenue_daily&quot;)
+            model_path.write_text(text, encoding=&quot;utf-8&quot;)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            sql_check = check(report, &quot;incremental_model_sql_declares_contract&quot;)
+            self.assertFalse(sql_check[&quot;valid&quot;])
+            missing = {item[&quot;fragment&quot;] for item in sql_check[&quot;sample&quot;]}
+            self.assertIn(&quot;is_incremental_guard&quot;, missing)
+            self.assertIn(&quot;target_relation&quot;, missing)
+
+    def test_late_arrival_window_cannot_be_shrunk_silently(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            model_path = project / &quot;models&quot; / &quot;marts&quot; / &quot;fct_order_revenue_daily.sql&quot;
+            model_path.write_text(
+                model_path.read_text(encoding=&quot;utf-8&quot;).replace(&quot;interval &#x27;2 days&#x27;&quot;, &quot;interval &#x27;0 days&#x27;&quot;),
+                encoding=&quot;utf-8&quot;,
+            )
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;incremental_model_sql_declares_contract&quot;)[&quot;valid&quot;])
+
+    def test_incremental_contract_meta_is_required(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            model_doc(properties, &quot;fct_order_revenue_daily&quot;)[&quot;meta&quot;].pop(&quot;incremental_contract&quot;)
+            write_yaml(properties_path, properties)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;incremental_contract_meta_is_complete&quot;)[&quot;valid&quot;])
+
+    def test_unique_key_must_have_unique_and_not_null_tests(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            model = model_doc(properties, &quot;fct_order_revenue_daily&quot;)
+            revenue_date = next(item for item in model[&quot;columns&quot;] if item[&quot;name&quot;] == &quot;revenue_date&quot;)
+            revenue_date[&quot;data_tests&quot;] = [&quot;not_null&quot;]
+            write_yaml(properties_path, properties)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;unique_key_has_data_tests&quot;)[&quot;valid&quot;])
+
+    def test_playbook_must_name_full_refresh_and_schema_change_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            playbook = Path(directory) / PLAYBOOK.name
+            playbook.write_text(&quot;Run the model carefully.\n&quot;, encoding=&quot;utf-8&quot;)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;backfill_full_refresh_playbook_exists&quot;)[&quot;valid&quot;])
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_project(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            output = Path(directory) / &quot;report.json&quot;
+            model_path = project / &quot;models&quot; / &quot;marts&quot; / &quot;fct_order_revenue_daily.sql&quot;
+            model_path.write_text(
+                model_path.read_text(encoding=&quot;utf-8&quot;).replace(&quot;materialized=&#x27;incremental&#x27;&quot;, &quot;materialized=&#x27;table&#x27;&quot;),
+                encoding=&quot;utf-8&quot;,
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--project&quot;,
+                    project,
+                    &quot;--data-contract&quot;,
+                    DATA_CONTRACT,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            report = json.loads(output.read_text(encoding=&quot;utf-8&quot;))
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;incremental_model_sql_declares_contract&quot;)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+AUDITOR_PATH = ROOT / &quot;outputs&quot; / &quot;incremental_model_auditor.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;incremental_project&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+
+
+def load_auditor():
+    spec = importlib.util.spec_from_file_location(&quot;incremental_model_auditor&quot;, AUDITOR_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {AUDITOR_PATH}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    auditor = load_auditor()
+    report = auditor.validate_project(PROJECT, DATA_CONTRACT, run_dbt=True)
+    summary = report[&quot;summary&quot;]
+    compact = {
+        &quot;valid&quot;: report[&quot;valid&quot;],
+        &quot;contract&quot;: summary.get(&quot;incremental_contract&quot;),
+        &quot;initial_fct_output&quot;: summary.get(&quot;initial_fct_output&quot;),
+        &quot;incremental_fct_output&quot;: summary.get(&quot;incremental_fct_output&quot;),
+        &quot;final_full_refresh_output&quot;: summary.get(&quot;final_full_refresh_output&quot;),
+        &quot;checks&quot;: f&quot;{sum(1 for item in report[&#x27;checks&#x27;] if item[&#x27;valid&#x27;])}/{len(report[&#x27;checks&#x27;])}&quot;,
+    }
+    print(json.dumps(compact, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;dbt-incremental-model-contract&quot;,
+  &quot;type&quot;: &quot;tool&quot;,
+  &quot;path&quot;: &quot;outputs/incremental_model_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет dbt incremental model: config, unique_key, late-arrival window, full-refresh playbook, schema change policy и live-сценарий с поздно пришедшим заказом.&quot;,
+  &quot;usage&quot;: &quot;python outputs/incremental_model_auditor.py --project outputs/incremental_project --data-contract ../data/contract.json --run-dbt&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backfill_full_refresh_playbook.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Incremental model backfill and full-refresh playbook
+
+## Model contract
+
+- Model: `fct_order_revenue_daily`
+- Grain: one row per `revenue_date`
+- `unique_key`: `revenue_date`
+- Incremental strategy: `delete+insert`
+- Late-arriving window: reprocess `max(revenue_date) - interval &#x27;2 days&#x27;`
+- Schema change policy: `on_schema_change=&#x27;fail&#x27;`
+
+## Normal incremental run
+
+Use the normal run after new raw data lands and the schema, grain and revenue logic are unchanged:
+
+```bash
+dbt run --select fct_order_revenue_daily
+dbt test --select fct_order_revenue_daily
+dbt test --select assert_daily_revenue_reconciles
+```
+
+Expected behavior:
+
+- new dates are inserted;
+- dates inside the late-arriving window are recalculated;
+- existing rows with the same `unique_key` are deleted and inserted again;
+- duplicate `revenue_date` rows must not survive data tests.
+
+## Full refresh
+
+Run full refresh when the historical result may be wrong outside the late-arriving window:
+
+```bash
+dbt run --full-refresh --select fct_order_revenue_daily
+dbt test --select fct_order_revenue_daily
+dbt test --select assert_daily_revenue_reconciles
+```
+
+Required full-refresh triggers:
+
+- changed grain or `unique_key`;
+- changed currency conversion or paid/refund logic;
+- changed late-arriving data window;
+- changed schema of published columns;
+- warehouse migration or adapter strategy change;
+- explicit backfill request for historical dates.
+
+## Schema change response
+
+The model uses `on_schema_change=&#x27;fail&#x27;`. If a source or model change adds, drops or changes a published column, stop the incremental run, update the model contract and perform a reviewed full refresh. Do not rely on incremental schema sync to backfill historical values.
+
+## Backfill checklist
+
+1. Confirm the historical date range and the business reason for the backfill.
+2. Check downstream users of `fct_order_revenue_daily`.
+3. Run the full-refresh command in a staging target first.
+4. Compare row count, duplicate count by `unique_key`, and paid revenue against the source-level reconciliation test.
+5. Run the same full refresh in production and attach the dbt run artifact to the change record.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/backfill_full_refresh_playbook.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_audit_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;project_root&quot;: &quot;phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project&quot;,
+    &quot;model_description&quot;: &quot;Incremental daily order revenue fact refreshed with a late-arriving data window.&quot;,
+    &quot;incremental_contract&quot;: {
+      &quot;event_time_column&quot;: &quot;revenue_date&quot;,
+      &quot;unique_key&quot;: &quot;revenue_date&quot;,
+      &quot;late_arrival_window_days&quot;: 2,
+      &quot;incremental_strategy&quot;: &quot;delete+insert&quot;,
+      &quot;schema_change_policy&quot;: &quot;fail&quot;,
+      &quot;duplicate_policy&quot;: &quot;delete existing rows by revenue_date unique_key, then insert the recalculated window&quot;,
+      &quot;full_refresh_policy&quot;: &quot;Run dbt run --full-refresh --select fct_order_revenue_daily after revenue_date grain, schema, key, currency logic or late-arrival policy changes.&quot;,
+      &quot;backfill_command&quot;: &quot;dbt run --full-refresh --select fct_order_revenue_daily&quot;
+    },
+    &quot;data_contract&quot;: &quot;phases/11-analytics-engineering/data/contract.json&quot;,
+    &quot;data_dir&quot;: &quot;phases/11-analytics-engineering/data/tiny&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;project_root_exists&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project&quot;,
+      &quot;expected&quot;: &quot;existing directory&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_project_files_exist&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;dbt_project.yml&quot;,
+        &quot;profiles.yml.example&quot;,
+        &quot;commands.md&quot;,
+        &quot;models/marts/fct_order_revenue_daily.sql&quot;,
+        &quot;models/properties.yml&quot;,
+        &quot;tests/assert_daily_revenue_reconciles.sql&quot;
+      ],
+      &quot;expected&quot;: &quot;required files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;dbt_project_is_renamed&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;name&quot;: &quot;incremental_project&quot;,
+        &quot;profile&quot;: &quot;incremental_project&quot;
+      },
+      &quot;expected&quot;: &quot;incremental_project&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;incremental_model_sql_declares_contract&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;incremental_strategy&quot;,
+        &quot;is_incremental_guard&quot;,
+        &quot;late_window&quot;,
+        &quot;materialized_incremental&quot;,
+        &quot;safe_empty_target&quot;,
+        &quot;schema_change_policy&quot;,
+        &quot;target_relation&quot;,
+        &quot;unique_key&quot;
+      ],
+      &quot;expected&quot;: &quot;required fragments&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;incremental_model_keeps_daily_grain&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;revenue_date&quot;,
+      &quot;expected&quot;: &quot;one row per date&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;incremental_model_properties_exist&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;fct_order_revenue_daily&quot;,
+      &quot;expected&quot;: &quot;fct_order_revenue_daily&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;properties_repeat_incremental_config&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;materialized&quot;: &quot;incremental&quot;,
+        &quot;unique_key&quot;: &quot;revenue_date&quot;,
+        &quot;incremental_strategy&quot;: &quot;delete+insert&quot;,
+        &quot;on_schema_change&quot;: &quot;fail&quot;
+      },
+      &quot;expected&quot;: {
+        &quot;materialized&quot;: &quot;incremental&quot;,
+        &quot;unique_key&quot;: &quot;revenue_date&quot;,
+        &quot;incremental_strategy&quot;: &quot;delete+insert&quot;,
+        &quot;on_schema_change&quot;: &quot;fail&quot;
+      },
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;incremental_contract_meta_is_complete&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;event_time_column&quot;: &quot;revenue_date&quot;,
+        &quot;unique_key&quot;: &quot;revenue_date&quot;,
+        &quot;late_arrival_window_days&quot;: 2,
+        &quot;incremental_strategy&quot;: &quot;delete+insert&quot;,
+        &quot;schema_change_policy&quot;: &quot;fail&quot;,
+        &quot;duplicate_policy&quot;: &quot;delete existing rows by revenue_date unique_key, then insert the recalculated window&quot;,
+        &quot;full_refresh_policy&quot;: &quot;Run dbt run --full-refresh --select fct_order_revenue_daily after revenue_date grain, schema, key, currency logic or late-arrival policy changes.&quot;,
+        &quot;backfill_command&quot;: &quot;dbt run --full-refresh --select fct_order_revenue_daily&quot;
+      },
+      &quot;expected&quot;: {
+        &quot;event_time_column&quot;: &quot;revenue_date&quot;,
+        &quot;unique_key&quot;: &quot;revenue_date&quot;,
+        &quot;late_arrival_window_days&quot;: 2,
+        &quot;incremental_strategy&quot;: &quot;delete+insert&quot;,
+        &quot;schema_change_policy&quot;: &quot;fail&quot;
+      },
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;unique_key_has_data_tests&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;not_null&quot;,
+        &quot;unique&quot;
+      ],
+      &quot;expected&quot;: &quot;unique and not_null&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;daily_revenue_reconciliation_test_exists&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;fct_order_revenue_daily&quot;,
+        &quot;stg_orders&quot;,
+        &quot;full outer join&quot;,
+        &quot;expected_paid_revenue_rub&quot;
+      ],
+      &quot;expected&quot;: &quot;source reconciliation&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backfill_full_refresh_playbook_exists&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;fct_order_revenue_daily&quot;,
+        &quot;--full-refresh&quot;,
+        &quot;unique_key&quot;,
+        &quot;late-arriving&quot;,
+        &quot;schema change&quot;,
+        &quot;backfill&quot;,
+        &quot;duplicate&quot;
+      ],
+      &quot;expected&quot;: &quot;runbook terms&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_audit_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_model_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import yaml
+
+
+EXPECTED_PROJECT_NAME = &quot;incremental_project&quot;
+MODEL_NAME = &quot;fct_order_revenue_daily&quot;
+EXPECTED_UNIQUE_KEY = &quot;revenue_date&quot;
+EXPECTED_LATE_WINDOW_DAYS = 2
+EXPECTED_INCREMENTAL_STRATEGY = &quot;delete+insert&quot;
+EXPECTED_SCHEMA_CHANGE_POLICY = &quot;fail&quot;
+ANSI_RE = re.compile(r&quot;\x1b\[[0-9;]*m&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None) -&gt; dict[str, Any]:
+    return {&quot;id&quot;: check_id, &quot;valid&quot;: True, &quot;observed&quot;: observed, &quot;expected&quot;: expected, &quot;sample&quot;: []}
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def read_json(path: Path) -&gt; Any:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def read_yaml(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        value = yaml.safe_load(source)
+    if not isinstance(value, dict):
+        raise ValueError(f&quot;{path} must contain a YAML mapping&quot;)
+    return value
+
+
+def safe_identifier(value: str) -&gt; str:
+    if not re.fullmatch(r&quot;[A-Za-z_][A-Za-z0-9_]*&quot;, value):
+        raise ValueError(f&quot;unsafe SQL identifier: {value}&quot;)
+    return value
+
+
+def data_contract_tables(data_contract: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    tables = data_contract.get(&quot;tables&quot;)
+    if not isinstance(tables, dict):
+        raise ValueError(&quot;data contract must contain a tables object&quot;)
+    return {str(name): table for name, table in tables.items() if isinstance(table, dict)}
+
+
+def model_config_text_is_valid(sql_text: str) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    required_fragments = {
+        &quot;materialized_incremental&quot;: &quot;materialized=&#x27;incremental&#x27;&quot;,
+        &quot;unique_key&quot;: &quot;unique_key=&#x27;revenue_date&#x27;&quot;,
+        &quot;incremental_strategy&quot;: &quot;incremental_strategy=&#x27;delete+insert&#x27;&quot;,
+        &quot;schema_change_policy&quot;: &quot;on_schema_change=&#x27;fail&#x27;&quot;,
+        &quot;is_incremental_guard&quot;: &quot;is_incremental()&quot;,
+        &quot;target_relation&quot;: &quot;{{ this }}&quot;,
+        &quot;late_window&quot;: &quot;interval &#x27;2 days&#x27;&quot;,
+        &quot;safe_empty_target&quot;: &quot;date &#x27;1900-01-01&#x27;&quot;,
+    }
+    missing = [
+        {&quot;fragment&quot;: name, &quot;expected&quot;: value}
+        for name, value in required_fragments.items()
+        if value not in sql_text
+    ]
+    if missing:
+        checks.append(failed(&quot;incremental_model_sql_declares_contract&quot;, missing, required_fragments, missing))
+    else:
+        checks.append(passed(&quot;incremental_model_sql_declares_contract&quot;, sorted(required_fragments), &quot;required fragments&quot;))
+
+    if &quot;group by orders.order_date&quot; not in sql_text or &quot;orders.order_date as revenue_date&quot; not in sql_text:
+        checks.append(
+            failed(
+                &quot;incremental_model_keeps_daily_grain&quot;,
+                &quot;missing date grain fragments&quot;,
+                &quot;one row per revenue_date&quot;,
+                [&quot;fct_order_revenue_daily.sql&quot;],
+            )
+        )
+    else:
+        checks.append(passed(&quot;incremental_model_keeps_daily_grain&quot;, &quot;revenue_date&quot;, &quot;one row per date&quot;))
+    return checks
+
+
+def find_model(properties: dict[str, Any], name: str) -&gt; dict[str, Any] | None:
+    for item in properties.get(&quot;models&quot;, []):
+        if isinstance(item, dict) and item.get(&quot;name&quot;) == name:
+            return item
+    return None
+
+
+def test_names_for_column(model: dict[str, Any], column_name: str) -&gt; set[str]:
+    for column in model.get(&quot;columns&quot;, []):
+        if isinstance(column, dict) and column.get(&quot;name&quot;) == column_name:
+            names: set[str] = set()
+            for item in column.get(&quot;data_tests&quot;, []):
+                if isinstance(item, str):
+                    names.add(item)
+                elif isinstance(item, dict) and item:
+                    names.add(next(iter(item)))
+            return names
+    return set()
+
+
+def validate_model_properties(properties_path: Path) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    properties = read_yaml(properties_path)
+    model = find_model(properties, MODEL_NAME)
+    if model is None:
+        return [failed(&quot;incremental_model_properties_exist&quot;, None, MODEL_NAME)], {}
+
+    checks: list[dict[str, Any]] = [passed(&quot;incremental_model_properties_exist&quot;, MODEL_NAME, MODEL_NAME)]
+    summary: dict[str, Any] = {&quot;model_description&quot;: model.get(&quot;description&quot;)}
+    config = model.get(&quot;config&quot;) or {}
+    expected_config = {
+        &quot;materialized&quot;: &quot;incremental&quot;,
+        &quot;unique_key&quot;: EXPECTED_UNIQUE_KEY,
+        &quot;incremental_strategy&quot;: EXPECTED_INCREMENTAL_STRATEGY,
+        &quot;on_schema_change&quot;: EXPECTED_SCHEMA_CHANGE_POLICY,
+    }
+    config_errors = [
+        {&quot;key&quot;: key, &quot;observed&quot;: config.get(key), &quot;expected&quot;: value}
+        for key, value in expected_config.items()
+        if config.get(key) != value
+    ]
+    if config_errors:
+        checks.append(failed(&quot;properties_repeat_incremental_config&quot;, config_errors, expected_config, config_errors))
+    else:
+        checks.append(passed(&quot;properties_repeat_incremental_config&quot;, expected_config, expected_config))
+
+    meta = model.get(&quot;meta&quot;) or {}
+    contract = meta.get(&quot;incremental_contract&quot;) or {}
+    summary[&quot;incremental_contract&quot;] = contract
+    expected_contract = {
+        &quot;event_time_column&quot;: EXPECTED_UNIQUE_KEY,
+        &quot;unique_key&quot;: EXPECTED_UNIQUE_KEY,
+        &quot;late_arrival_window_days&quot;: EXPECTED_LATE_WINDOW_DAYS,
+        &quot;incremental_strategy&quot;: EXPECTED_INCREMENTAL_STRATEGY,
+        &quot;schema_change_policy&quot;: EXPECTED_SCHEMA_CHANGE_POLICY,
+    }
+    contract_errors = [
+        {&quot;key&quot;: key, &quot;observed&quot;: contract.get(key), &quot;expected&quot;: value}
+        for key, value in expected_contract.items()
+        if contract.get(key) != value
+    ]
+    text_fields = &quot; &quot;.join(str(contract.get(key, &quot;&quot;)) for key in [&quot;full_refresh_policy&quot;, &quot;backfill_command&quot;, &quot;duplicate_policy&quot;])
+    if &quot;--full-refresh&quot; not in text_fields or EXPECTED_UNIQUE_KEY not in text_fields:
+        contract_errors.append({&quot;key&quot;: &quot;runbook_text&quot;, &quot;observed&quot;: text_fields, &quot;expected&quot;: &quot;--full-refresh and unique_key&quot;})
+    if contract_errors:
+        checks.append(failed(&quot;incremental_contract_meta_is_complete&quot;, contract_errors, expected_contract, contract_errors))
+    else:
+        checks.append(passed(&quot;incremental_contract_meta_is_complete&quot;, contract, expected_contract))
+
+    revenue_date_tests = test_names_for_column(model, EXPECTED_UNIQUE_KEY)
+    if {&quot;unique&quot;, &quot;not_null&quot;}.issubset(revenue_date_tests):
+        checks.append(passed(&quot;unique_key_has_data_tests&quot;, sorted(revenue_date_tests), &quot;unique and not_null&quot;))
+    else:
+        checks.append(
+            failed(&quot;unique_key_has_data_tests&quot;, sorted(revenue_date_tests), &quot;unique and not_null&quot;, [EXPECTED_UNIQUE_KEY])
+        )
+    return checks, summary
+
+
+def validate_playbook(playbook_path: Path) -&gt; dict[str, Any]:
+    if not playbook_path.is_file():
+        return failed(&quot;backfill_full_refresh_playbook_exists&quot;, str(playbook_path), &quot;existing playbook&quot;)
+    text = playbook_path.read_text(encoding=&quot;utf-8&quot;).lower()
+    required_terms = [
+        MODEL_NAME,
+        &quot;--full-refresh&quot;,
+        &quot;unique_key&quot;,
+        &quot;late-arriving&quot;,
+        &quot;schema change&quot;,
+        &quot;backfill&quot;,
+        &quot;duplicate&quot;,
+    ]
+    missing = [term for term in required_terms if term not in text]
+    if missing:
+        return failed(&quot;backfill_full_refresh_playbook_exists&quot;, missing, required_terms, missing)
+    return passed(&quot;backfill_full_refresh_playbook_exists&quot;, required_terms, &quot;runbook terms&quot;)
+
+
+def validate_static_project(project_root: Path) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {&quot;project_root&quot;: str(project_root)}
+    if not project_root.is_dir():
+        return [failed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;)], summary
+    checks.append(passed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;))
+
+    required_files = [
+        &quot;dbt_project.yml&quot;,
+        &quot;profiles.yml.example&quot;,
+        &quot;commands.md&quot;,
+        &quot;models/marts/fct_order_revenue_daily.sql&quot;,
+        &quot;models/properties.yml&quot;,
+        &quot;tests/assert_daily_revenue_reconciles.sql&quot;,
+    ]
+    missing_files = [path for path in required_files if not (project_root / path).is_file()]
+    if missing_files:
+        checks.append(failed(&quot;required_project_files_exist&quot;, missing_files, required_files, missing_files))
+        return checks, summary
+    checks.append(passed(&quot;required_project_files_exist&quot;, required_files, &quot;required files&quot;))
+
+    dbt_project = read_yaml(project_root / &quot;dbt_project.yml&quot;)
+    project_observed = {&quot;name&quot;: dbt_project.get(&quot;name&quot;), &quot;profile&quot;: dbt_project.get(&quot;profile&quot;)}
+    if project_observed != {&quot;name&quot;: EXPECTED_PROJECT_NAME, &quot;profile&quot;: EXPECTED_PROJECT_NAME}:
+        checks.append(
+            failed(
+                &quot;dbt_project_is_renamed&quot;,
+                project_observed,
+                {&quot;name&quot;: EXPECTED_PROJECT_NAME, &quot;profile&quot;: EXPECTED_PROJECT_NAME},
+            )
+        )
+    else:
+        checks.append(passed(&quot;dbt_project_is_renamed&quot;, project_observed, EXPECTED_PROJECT_NAME))
+
+    model_sql = (project_root / &quot;models&quot; / &quot;marts&quot; / &quot;fct_order_revenue_daily.sql&quot;).read_text(encoding=&quot;utf-8&quot;)
+    checks.extend(model_config_text_is_valid(model_sql))
+
+    property_checks, property_summary = validate_model_properties(project_root / &quot;models&quot; / &quot;properties.yml&quot;)
+    checks.extend(property_checks)
+    summary.update(property_summary)
+
+    test_sql = (project_root / &quot;tests&quot; / &quot;assert_daily_revenue_reconciles.sql&quot;).read_text(encoding=&quot;utf-8&quot;)
+    required_test_fragments = [MODEL_NAME, &quot;stg_orders&quot;, &quot;full outer join&quot;, &quot;expected_paid_revenue_rub&quot;]
+    missing_test_fragments = [fragment for fragment in required_test_fragments if fragment not in test_sql]
+    if missing_test_fragments:
+        checks.append(
+            failed(&quot;daily_revenue_reconciliation_test_exists&quot;, missing_test_fragments, required_test_fragments)
+        )
+    else:
+        checks.append(passed(&quot;daily_revenue_reconciliation_test_exists&quot;, required_test_fragments, &quot;source reconciliation&quot;))
+
+    checks.append(validate_playbook(project_root.parent / &quot;backfill_full_refresh_playbook.md&quot;))
+    return checks, summary
+
+
+def prepare_duckdb_database(db_path: Path, data_contract: dict[str, Any], data_dir: Path) -&gt; dict[str, int]:
+    import duckdb
+
+    tables = data_contract_tables(data_contract)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(db_path))
+    try:
+        con.execute(&quot;create schema if not exists raw&quot;)
+        row_counts: dict[str, int] = {}
+        for table_name in sorted(tables):
+            safe_table = safe_identifier(table_name)
+            csv_path = data_dir / f&quot;{table_name}.csv&quot;
+            if not csv_path.is_file():
+                raise FileNotFoundError(f&quot;missing source CSV: {csv_path}&quot;)
+            con.execute(
+                f&#x27;create or replace table raw.&quot;{safe_table}&quot; as select * from read_csv(?, delim=?, header=true, strict_mode=false)&#x27;,
+                [str(csv_path), &quot;,&quot;],
+            )
+            row_counts[table_name] = con.execute(
+                f&#x27;select count(*) from raw.&quot;{safe_table}&quot;&#x27;
+            ).fetchone()[0]
+    finally:
+        con.close()
+    return row_counts
+
+
+def tail(text: str, line_count: int = 8) -&gt; str:
+    lines = ANSI_RE.sub(&quot;&quot;, text).splitlines()
+    return &quot;\n&quot;.join(lines[-line_count:])
+
+
+def run_command(command: list[str], env: dict[str, str]) -&gt; dict[str, Any]:
+    completed = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+    return {
+        &quot;command&quot;: &quot; &quot;.join(command[:6]),
+        &quot;returncode&quot;: completed.returncode,
+        &quot;stdout_tail&quot;: tail(completed.stdout),
+        &quot;stderr_tail&quot;: tail(completed.stderr),
+    }
+
+
+def copy_csv_dir(data_dir: Path, destination: Path) -&gt; None:
+    shutil.copytree(data_dir, destination)
+
+
+def rewrite_csv_without_order(csv_path: Path, order_id: str) -&gt; None:
+    with csv_path.open(newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as source:
+        rows = list(csv.DictReader(source))
+        fieldnames = source.readline()
+    if not rows:
+        return
+    columns = list(rows[0].keys())
+    filtered = [row for row in rows if row.get(&quot;order_id&quot;) != order_id]
+    with csv_path.open(&quot;w&quot;, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as target:
+        writer = csv.DictWriter(target, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(filtered)
+
+
+def append_csv_row(csv_path: Path, row: dict[str, str]) -&gt; None:
+    with csv_path.open(newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as source:
+        reader = csv.DictReader(source)
+        fieldnames = reader.fieldnames
+    if fieldnames is None:
+        raise ValueError(f&quot;{csv_path} has no header&quot;)
+    existing_text = csv_path.read_text(encoding=&quot;utf-8&quot;)
+    with csv_path.open(&quot;a&quot;, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as target:
+        if existing_text and not existing_text.endswith(&quot;\n&quot;):
+            target.write(&quot;\n&quot;)
+        writer = csv.DictWriter(target, fieldnames=fieldnames)
+        writer.writerow(row)
+
+
+def build_initial_and_incremental_data(data_dir: Path, tmp: Path) -&gt; tuple[Path, Path]:
+    initial = tmp / &quot;data_initial&quot;
+    incremental = tmp / &quot;data_incremental&quot;
+    copy_csv_dir(data_dir, initial)
+    copy_csv_dir(data_dir, incremental)
+    rewrite_csv_without_order(initial / &quot;raw_orders.csv&quot;, &quot;o004&quot;)
+    rewrite_csv_without_order(initial / &quot;raw_order_items.csv&quot;, &quot;o004&quot;)
+    append_csv_row(
+        incremental / &quot;raw_orders.csv&quot;,
+        {
+            &quot;order_id&quot;: &quot;o005&quot;,
+            &quot;user_id&quot;: &quot;u002&quot;,
+            &quot;ordered_at&quot;: &quot;2026-05-03T21:00:00+03:00&quot;,
+            &quot;status&quot;: &quot;paid&quot;,
+            &quot;currency&quot;: &quot;RUB&quot;,
+            &quot;amount&quot;: &quot;100.00&quot;,
+            &quot;updated_at&quot;: &quot;2026-05-07T20:00:00+03:00&quot;,
+        },
+    )
+    append_csv_row(
+        incremental / &quot;raw_order_items.csv&quot;,
+        {
+            &quot;order_id&quot;: &quot;o005&quot;,
+            &quot;line_number&quot;: &quot;1&quot;,
+            &quot;product_id&quot;: &quot;p_addon&quot;,
+            &quot;quantity&quot;: &quot;1&quot;,
+            &quot;unit_price&quot;: &quot;100.00&quot;,
+            &quot;currency&quot;: &quot;RUB&quot;,
+            &quot;loaded_at&quot;: &quot;2026-05-07T20:01:00+03:00&quot;,
+        },
+    )
+    return initial, incremental
+
+
+def inspect_fct_output(db_path: Path) -&gt; dict[str, Any]:
+    import duckdb
+
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        row = con.execute(
+            &quot;&quot;&quot;
+            select
+                count(*) as row_count,
+                cast(sum(paid_revenue_rub) as decimal(18, 2)) as paid_revenue_rub,
+                cast(sum(case when revenue_date = date &#x27;2026-05-03&#x27; then paid_revenue_rub else 0 end) as decimal(18, 2)) as may_03_paid_revenue_rub,
+                count(*) - count(distinct revenue_date) as duplicate_date_rows
+            from analytics.fct_order_revenue_daily
+            &quot;&quot;&quot;
+        ).fetchone()
+    finally:
+        con.close()
+    return {
+        &quot;row_count&quot;: int(row[0]),
+        &quot;paid_revenue_rub&quot;: str(row[1]),
+        &quot;may_03_paid_revenue_rub&quot;: str(row[2]),
+        &quot;duplicate_date_rows&quot;: int(row[3]),
+    }
+
+
+def compiled_incremental_sql(project_copy: Path) -&gt; str:
+    compiled_root = project_copy / &quot;target&quot; / &quot;compiled&quot; / EXPECTED_PROJECT_NAME
+    candidates = sorted(compiled_root.rglob(f&quot;{MODEL_NAME}.sql&quot;))
+    if not candidates:
+        return &quot;&quot;
+    return candidates[0].read_text(encoding=&quot;utf-8&quot;)
+
+
+def run_dbt_incremental_audit(
+    project_root: Path,
+    data_contract: dict[str, Any],
+    data_dir: Path,
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    with TemporaryDirectory() as directory:
+        tmp = Path(directory)
+        project_copy = tmp / &quot;project&quot;
+        profiles_dir = tmp / &quot;profiles&quot;
+        shutil.copytree(project_root, project_copy)
+        profiles_dir.mkdir()
+        shutil.copy(project_copy / &quot;profiles.yml.example&quot;, profiles_dir / &quot;profiles.yml&quot;)
+        initial_data, incremental_data = build_initial_and_incremental_data(data_dir, tmp)
+        db_path = tmp / &quot;incremental.duckdb&quot;
+
+        env = os.environ.copy()
+        env[&quot;DBT_SEND_ANONYMOUS_USAGE_STATS&quot;] = &quot;false&quot;
+        env[&quot;DBT_DUCKDB_PATH&quot;] = str(db_path)
+        base = [&quot;--project-dir&quot;, str(project_copy), &quot;--profiles-dir&quot;, str(profiles_dir)]
+
+        summary[&quot;initial_loaded_raw_rows&quot;] = prepare_duckdb_database(db_path, data_contract, initial_data)
+        initial_commands = [
+            run_command([&quot;dbt&quot;, &quot;parse&quot;, *base], env),
+            run_command([&quot;dbt&quot;, &quot;run&quot;, &quot;--full-refresh&quot;, *base], env),
+            run_command([&quot;dbt&quot;, &quot;test&quot;, &quot;--select&quot;, &quot;test_type:data&quot;, *base], env),
+        ]
+        summary[&quot;initial_dbt_commands&quot;] = initial_commands
+        if any(command[&quot;returncode&quot;] != 0 for command in initial_commands):
+            checks.append(
+                failed(&quot;initial_full_refresh_succeeds&quot;, initial_commands, &quot;parse, full-refresh run and tests exit 0&quot;)
+            )
+            return checks, summary
+        initial_output = inspect_fct_output(db_path)
+        summary[&quot;initial_fct_output&quot;] = initial_output
+        expected_initial = {
+            &quot;row_count&quot;: 3,
+            &quot;paid_revenue_rub&quot;: &quot;2000.00&quot;,
+            &quot;may_03_paid_revenue_rub&quot;: &quot;800.00&quot;,
+            &quot;duplicate_date_rows&quot;: 0,
+        }
+        if initial_output != expected_initial:
+            checks.append(failed(&quot;initial_full_refresh_succeeds&quot;, initial_output, expected_initial))
+            return checks, summary
+        checks.append(passed(&quot;initial_full_refresh_succeeds&quot;, initial_output, expected_initial))
+
+        summary[&quot;incremental_loaded_raw_rows&quot;] = prepare_duckdb_database(db_path, data_contract, incremental_data)
+        incremental_commands = [
+            run_command([&quot;dbt&quot;, &quot;run&quot;, *base], env),
+            run_command([&quot;dbt&quot;, &quot;test&quot;, &quot;--select&quot;, &quot;test_type:data&quot;, *base], env),
+        ]
+        summary[&quot;incremental_dbt_commands&quot;] = incremental_commands
+        if any(command[&quot;returncode&quot;] != 0 for command in incremental_commands):
+            checks.append(
+                failed(&quot;incremental_run_succeeds_after_late_arrival&quot;, incremental_commands, &quot;incremental run and tests exit 0&quot;)
+            )
+            return checks, summary
+        incremental_output = inspect_fct_output(db_path)
+        summary[&quot;incremental_fct_output&quot;] = incremental_output
+        expected_incremental = {
+            &quot;row_count&quot;: 4,
+            &quot;paid_revenue_rub&quot;: &quot;4412.50&quot;,
+            &quot;may_03_paid_revenue_rub&quot;: &quot;900.00&quot;,
+            &quot;duplicate_date_rows&quot;: 0,
+        }
+        if incremental_output != expected_incremental:
+            checks.append(
+                failed(
+                    &quot;incremental_run_succeeds_after_late_arrival&quot;,
+                    incremental_output,
+                    expected_incremental,
+                )
+            )
+        else:
+            checks.append(
+                passed(&quot;incremental_run_succeeds_after_late_arrival&quot;, incremental_output, expected_incremental)
+            )
+
+        compiled_sql = compiled_incremental_sql(project_copy)
+        unresolved_tokens = [token for token in [&quot;{{&quot;, &quot;{%&quot;, &quot;is_incremental()&quot;] if token in compiled_sql]
+        if unresolved_tokens:
+            checks.append(failed(&quot;compiled_incremental_sql_is_plain_sql&quot;, unresolved_tokens, &quot;no Jinja tokens&quot;))
+        elif &quot;interval &#x27;2 days&#x27;&quot; not in compiled_sql:
+            checks.append(
+                failed(&quot;compiled_incremental_sql_is_plain_sql&quot;, &quot;missing late window&quot;, &quot;compiled SQL contains late window&quot;)
+            )
+        else:
+            checks.append(passed(&quot;compiled_incremental_sql_is_plain_sql&quot;, &quot;plain SQL with late window&quot;, &quot;no Jinja tokens&quot;))
+
+        full_refresh_commands = [
+            run_command([&quot;dbt&quot;, &quot;run&quot;, &quot;--full-refresh&quot;, &quot;--select&quot;, MODEL_NAME, *base], env),
+            run_command([&quot;dbt&quot;, &quot;test&quot;, &quot;--select&quot;, &quot;test_type:data&quot;, *base], env),
+        ]
+        summary[&quot;final_full_refresh_commands&quot;] = full_refresh_commands
+        if any(command[&quot;returncode&quot;] != 0 for command in full_refresh_commands):
+            checks.append(failed(&quot;documented_full_refresh_succeeds&quot;, full_refresh_commands, &quot;full-refresh run and tests exit 0&quot;))
+            return checks, summary
+        full_refresh_output = inspect_fct_output(db_path)
+        summary[&quot;final_full_refresh_output&quot;] = full_refresh_output
+        if full_refresh_output != expected_incremental:
+            checks.append(failed(&quot;documented_full_refresh_succeeds&quot;, full_refresh_output, expected_incremental))
+        else:
+            checks.append(passed(&quot;documented_full_refresh_succeeds&quot;, full_refresh_output, expected_incremental))
+    return checks, summary
+
+
+def validate_project(
+    project_root: Path,
+    data_contract_path: Path,
+    data_dir: Path | None = None,
+    run_dbt: bool = False,
+) -&gt; dict[str, Any]:
+    data_contract = read_json(data_contract_path)
+    resolved_data_dir = data_dir or data_contract_path.parent / &quot;tiny&quot;
+    checks, summary = validate_static_project(project_root)
+    summary[&quot;data_contract&quot;] = str(data_contract_path)
+    summary[&quot;data_dir&quot;] = str(resolved_data_dir)
+    if run_dbt and all(check[&quot;valid&quot;] for check in checks):
+        live_checks, live_summary = run_dbt_incremental_audit(project_root, data_contract, resolved_data_dir)
+        checks.extend(live_checks)
+        summary.update(live_summary)
+    elif run_dbt:
+        checks.append(failed(&quot;initial_full_refresh_succeeds&quot;, &quot;skipped because static checks failed&quot;, &quot;dbt commands&quot;))
+    return {&quot;valid&quot;: all(check[&quot;valid&quot;] for check in checks), &quot;summary&quot;: summary, &quot;checks&quot;: checks}
+
+
+def parse_args() -&gt; argparse.Namespace:
+    lesson_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description=&quot;Audit a dbt incremental model contract and live late-arrival behavior.&quot;)
+    parser.add_argument(
+        &quot;--project&quot;,
+        type=Path,
+        default=Path(__file__).resolve().parent / &quot;incremental_project&quot;,
+        help=&quot;Path to the dbt project.&quot;,
+    )
+    parser.add_argument(
+        &quot;--data-contract&quot;,
+        type=Path,
+        default=lesson_root.parent / &quot;data&quot; / &quot;contract.json&quot;,
+        help=&quot;Path to the phase data contract.&quot;,
+    )
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, help=&quot;Directory containing raw CSV files.&quot;)
+    parser.add_argument(&quot;--output&quot;, type=Path, help=&quot;Optional path to write report JSON.&quot;)
+    parser.add_argument(&quot;--run-dbt&quot;, action=&quot;store_true&quot;, help=&quot;Run live dbt full-refresh and incremental checks.&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; None:
+    args = parse_args()
+    report = validate_project(
+        args.project,
+        args.data_contract,
+        data_dir=args.data_dir,
+        run_dbt=args.run_dbt,
+    )
+    rendered = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.write_text(rendered + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+    print(rendered)
+    if not report[&quot;valid&quot;]:
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_model_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/commands.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Incremental project commands
+
+Run from the lesson root:
+
+```bash
+dbt compile --project-dir outputs/incremental_project --profiles-dir outputs/incremental_project
+dbt run --project-dir outputs/incremental_project --profiles-dir outputs/incremental_project
+dbt test --select &quot;test_type:data&quot; --project-dir outputs/incremental_project --profiles-dir outputs/incremental_project
+dbt run --full-refresh --select fct_order_revenue_daily --project-dir outputs/incremental_project --profiles-dir outputs/incremental_project
+python outputs/incremental_model_auditor.py --project outputs/incremental_project --data-contract ../data/contract.json --run-dbt
+```
+
+The committed report is static and deterministic:
+
+```bash
+python outputs/incremental_model_auditor.py --output outputs/incremental_audit_report.json
+```
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/commands.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/dbt_project.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>name: incremental_project
+version: &quot;1.0.0&quot;
+config-version: 2
+
+profile: incremental_project
+
+model-paths: [&quot;models&quot;]
+test-paths: [&quot;tests&quot;]
+macro-paths: [&quot;macros&quot;]
+snapshot-paths: [&quot;snapshots&quot;]
+seed-paths: [&quot;seeds&quot;]
+
+target-path: &quot;target&quot;
+clean-targets:
+  - &quot;target&quot;
+  - &quot;dbt_packages&quot;
+
+models:
+  incremental_project:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+
+data_tests:
+  incremental_project:
+    +store_failures: false
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/dbt_project.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/macros/normalization.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{%- macro normalize_status(column_name) -%}
+lower({{ column_name }})
+{%- endmacro -%}
+
+{%- macro normalize_currency(column_name) -%}
+upper({{ column_name }})
+{%- endmacro -%}
+
+{%- macro to_decimal(column_name, precision=18, scale=2) -%}
+cast({{ column_name }} as decimal({{ precision }}, {{ scale }}))
+{%- endmacro -%}
+
+{%- macro money_product(quantity_column, unit_price_column, precision=18, scale=2) -%}
+cast({{ quantity_column }} * {{ unit_price_column }} as decimal({{ precision }}, {{ scale }}))
+{%- endmacro -%}
+
+{%- macro rub_amount(amount_column, rate_column, precision=18, scale=2) -%}
+cast({{ amount_column }} * {{ rate_column }} as decimal({{ precision }}, {{ scale }}))
+{%- endmacro -%}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/macros/normalization.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/macros/properties.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+macros:
+  - name: normalize_status
+    description: &quot;Normalizes an already-selected status expression to lower case without changing business meaning.&quot;
+    config:
+      docs:
+        show: true
+      meta:
+        owner: analytics-engineering
+        abstraction_level: low_level_sql
+        review_rule: &quot;Safe only for source-shaped string normalization; do not encode allowed statuses here.&quot;
+    arguments:
+      - name: column_name
+        type: column
+        description: &quot;Column or SQL expression that contains a status-like value.&quot;
+  - name: normalize_currency
+    description: &quot;Normalizes an already-selected currency expression to upper case.&quot;
+    config:
+      docs:
+        show: true
+      meta:
+        owner: analytics-engineering
+        abstraction_level: low_level_sql
+        review_rule: &quot;Safe for ISO-like currency codes; accepted values remain data tests.&quot;
+    arguments:
+      - name: column_name
+        type: column
+        description: &quot;Column or SQL expression that contains a currency code.&quot;
+  - name: to_decimal
+    description: &quot;Casts a numeric column or expression to a DuckDB decimal with explicit precision and scale.&quot;
+    config:
+      docs:
+        show: true
+      meta:
+        owner: analytics-engineering
+        abstraction_level: low_level_sql
+        review_rule: &quot;Safe for mechanical type normalization; do not hide metric formulas inside the argument.&quot;
+    arguments:
+      - name: column_name
+        type: column
+        description: &quot;Column or SQL expression to cast.&quot;
+      - name: precision
+        type: integer
+        description: &quot;Total decimal precision. Defaults to 18.&quot;
+      - name: scale
+        type: integer
+        description: &quot;Decimal scale. Defaults to 2.&quot;
+  - name: money_product
+    description: &quot;Multiplies quantity by unit price and casts the result to an explicit money decimal.&quot;
+    config:
+      docs:
+        show: true
+      meta:
+        owner: analytics-engineering
+        abstraction_level: low_level_sql
+        review_rule: &quot;Safe only for row-level line item arithmetic where grain is already visible in the model.&quot;
+    arguments:
+      - name: quantity_column
+        type: column
+        description: &quot;Column or SQL expression with item quantity.&quot;
+      - name: unit_price_column
+        type: column
+        description: &quot;Column or SQL expression with item unit price.&quot;
+      - name: precision
+        type: integer
+        description: &quot;Total decimal precision. Defaults to 18.&quot;
+      - name: scale
+        type: integer
+        description: &quot;Decimal scale. Defaults to 2.&quot;
+  - name: rub_amount
+    description: &quot;Converts a native-currency amount expression to RUB using an explicit rate expression.&quot;
+    config:
+      docs:
+        show: true
+      meta:
+        owner: analytics-engineering
+        abstraction_level: low_level_sql
+        review_rule: &quot;Safe for arithmetic conversion only; join keys, dates and paid/refund semantics stay in the model.&quot;
+    arguments:
+      - name: amount_column
+        type: column
+        description: &quot;Column or SQL expression with an amount in source currency.&quot;
+      - name: rate_column
+        type: column
+        description: &quot;Column or SQL expression with a RUB exchange rate.&quot;
+      - name: precision
+        type: integer
+        description: &quot;Total decimal precision. Defaults to 18.&quot;
+      - name: scale
+        type: integer
+        description: &quot;Decimal scale. Defaults to 2.&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/macros/properties.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/intermediate/int_order_line_revenue.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    items.order_id,
+    orders.user_id,
+    orders.order_date,
+    items.line_number,
+    items.product_id,
+    items.quantity,
+    items.unit_price,
+    items.currency,
+    orders.status,
+    {{ money_product(&#x27;items.quantity&#x27;, &#x27;items.unit_price&#x27;) }} as line_revenue_native
+from {{ ref(&#x27;stg_order_items&#x27;) }} as items
+inner join {{ ref(&#x27;stg_orders&#x27;) }} as orders
+    on items.order_id = orders.order_id
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/intermediate/int_order_line_revenue.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/intermediate/int_refunds_by_order.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    currency,
+    {{ to_decimal(&#x27;sum(amount)&#x27;) }} as refund_amount_native,
+    max(refunded_at) as last_refunded_at
+from {{ ref(&#x27;stg_refunds&#x27;) }}
+group by
+    order_id,
+    currency
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/intermediate/int_refunds_by_order.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/intermediate/int_subscription_latest.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with ranked as (
+    select
+        user_id,
+        plan,
+        status,
+        started_at,
+        ended_at,
+        updated_at,
+        row_number() over (
+            partition by user_id
+            order by updated_at desc, subscription_id desc
+        ) as row_number_latest
+    from {{ ref(&#x27;stg_subscriptions&#x27;) }}
+)
+
+select
+    user_id,
+    plan as latest_subscription_plan,
+    status as latest_subscription_status,
+    status = &#x27;active&#x27; as has_active_subscription,
+    started_at as latest_subscription_started_at,
+    ended_at as latest_subscription_ended_at,
+    updated_at as latest_subscription_updated_at
+from ranked
+where row_number_latest = 1
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/intermediate/int_subscription_latest.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/intermediate/int_support_by_user.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    user_id,
+    count(*) as support_ticket_count,
+    sum(case when priority = &#x27;high&#x27; then 1 else 0 end) as high_priority_ticket_count,
+    max(created_at) as last_ticket_at
+from {{ ref(&#x27;stg_support_tickets&#x27;) }}
+group by user_id
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/intermediate/int_support_by_user.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/marts/fct_order_revenue_daily.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{
+    config(
+        materialized=&#x27;incremental&#x27;,
+        unique_key=&#x27;revenue_date&#x27;,
+        incremental_strategy=&#x27;delete+insert&#x27;,
+        on_schema_change=&#x27;fail&#x27;
+    )
+}}
+
+with line_revenue as (
+    select * from {{ ref(&#x27;int_order_line_revenue&#x27;) }}
+),
+
+refunds_by_order as (
+    select * from {{ ref(&#x27;int_refunds_by_order&#x27;) }}
+),
+
+order_revenue as (
+    select
+        lines.order_id,
+        lines.order_date,
+        lines.status,
+        lines.currency,
+        {{ to_decimal(&#x27;sum(lines.line_revenue_native)&#x27;) }} as gross_amount_native,
+        {{ to_decimal(&#x27;coalesce(max(refunds.refund_amount_native), 0)&#x27;) }} as refund_amount_native
+    from line_revenue as lines
+    left join refunds_by_order as refunds
+        on lines.order_id = refunds.order_id
+    group by
+        lines.order_id,
+        lines.order_date,
+        lines.status,
+        lines.currency
+),
+
+order_revenue_rub as (
+    select
+        orders.order_id,
+        orders.order_date,
+        orders.status,
+        {{ rub_amount(&#x27;orders.gross_amount_native&#x27;, &#x27;rates.rate_to_rub&#x27;) }} as gross_revenue_rub,
+        cast(
+            case
+                when orders.status = &#x27;paid&#x27;
+                    then {{ rub_amount(&#x27;(orders.gross_amount_native - orders.refund_amount_native)&#x27;, &#x27;rates.rate_to_rub&#x27;) }}
+                else 0
+            end
+            as decimal(18, 2)
+        ) as paid_revenue_rub,
+        {{ rub_amount(&#x27;orders.refund_amount_native&#x27;, &#x27;rates.rate_to_rub&#x27;) }} as refunded_amount_rub
+    from order_revenue as orders
+    left join {{ ref(&#x27;stg_currency_rates&#x27;) }} as rates
+        on orders.currency = rates.currency
+        and orders.order_date = rates.rate_date
+),
+
+daily_revenue as (
+    select
+        orders.order_date as revenue_date,
+        count(distinct orders.order_id) as order_count,
+        count(distinct case when orders.status = &#x27;paid&#x27; then orders.order_id end) as paid_order_count,
+        {{ to_decimal(&#x27;sum(orders.gross_revenue_rub)&#x27;) }} as gross_revenue_rub,
+        {{ to_decimal(&#x27;sum(orders.paid_revenue_rub)&#x27;) }} as paid_revenue_rub,
+        {{ to_decimal(&#x27;sum(orders.refunded_amount_rub)&#x27;) }} as refunded_amount_rub,
+        max(orders.order_date) as max_source_order_date
+    from order_revenue_rub as orders
+    {% if is_incremental() %}
+    where orders.order_date &gt;= (
+        select coalesce(max(revenue_date) - interval &#x27;2 days&#x27;, date &#x27;1900-01-01&#x27;) from {{ this }}
+    )
+    {% endif %}
+    group by orders.order_date
+)
+
+select
+    revenue_date,
+    order_count,
+    paid_order_count,
+    gross_revenue_rub,
+    paid_revenue_rub,
+    refunded_amount_rub,
+    max_source_order_date
+from daily_revenue
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/marts/fct_order_revenue_daily.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/marts/mart_customer_revenue_health.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with line_revenue as (
+    select * from {{ ref(&#x27;int_order_line_revenue&#x27;) }}
+),
+
+refunds_by_order as (
+    select * from {{ ref(&#x27;int_refunds_by_order&#x27;) }}
+),
+
+order_revenue as (
+    select
+        lines.order_id,
+        lines.user_id,
+        lines.order_date,
+        lines.status,
+        lines.currency,
+        {{ to_decimal(&#x27;sum(lines.line_revenue_native)&#x27;) }} as gross_amount_native,
+        {{ to_decimal(&#x27;coalesce(max(refunds.refund_amount_native), 0)&#x27;) }} as refund_amount_native
+    from line_revenue as lines
+    left join refunds_by_order as refunds
+        on lines.order_id = refunds.order_id
+    group by
+        lines.order_id,
+        lines.user_id,
+        lines.order_date,
+        lines.status,
+        lines.currency
+),
+
+order_revenue_rub as (
+    select
+        orders.order_id,
+        orders.user_id,
+        orders.status,
+        {{ rub_amount(&#x27;orders.gross_amount_native&#x27;, &#x27;rates.rate_to_rub&#x27;) }} as gross_revenue_rub,
+        cast(
+            case
+                when orders.status = &#x27;paid&#x27;
+                    then {{ rub_amount(&#x27;(orders.gross_amount_native - orders.refund_amount_native)&#x27;, &#x27;rates.rate_to_rub&#x27;) }}
+                else 0
+            end
+            as decimal(18, 2)
+        ) as paid_revenue_rub,
+        {{ rub_amount(&#x27;orders.refund_amount_native&#x27;, &#x27;rates.rate_to_rub&#x27;) }} as refunded_amount_rub
+    from order_revenue as orders
+    left join {{ ref(&#x27;stg_currency_rates&#x27;) }} as rates
+        on orders.currency = rates.currency
+        and orders.order_date = rates.rate_date
+)
+
+select
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan,
+    coalesce(subscriptions.latest_subscription_status, &#x27;none&#x27;) as latest_subscription_status,
+    coalesce(subscriptions.has_active_subscription, false) as has_active_subscription,
+    count(distinct orders.order_id) as order_count,
+    count(distinct case when orders.status = &#x27;paid&#x27; then orders.order_id end) as paid_order_count,
+    {{ to_decimal(&#x27;coalesce(sum(orders.gross_revenue_rub), 0)&#x27;) }} as gross_revenue_rub,
+    {{ to_decimal(&#x27;coalesce(sum(orders.paid_revenue_rub), 0)&#x27;) }} as paid_revenue_rub,
+    {{ to_decimal(&#x27;coalesce(sum(orders.refunded_amount_rub), 0)&#x27;) }} as refunded_amount_rub,
+    coalesce(max(support.support_ticket_count), 0) as support_ticket_count,
+    coalesce(max(support.high_priority_ticket_count), 0) as high_priority_ticket_count,
+    case
+        when coalesce(sum(orders.refunded_amount_rub), 0) &gt; 0
+            or coalesce(max(support.support_ticket_count), 0) &gt; 0
+            then &#x27;needs_attention&#x27;
+        when coalesce(sum(orders.paid_revenue_rub), 0) &gt;= 2000
+            then &#x27;high_value&#x27;
+        when coalesce(sum(orders.paid_revenue_rub), 0) &gt; 0
+            then &#x27;monetized&#x27;
+        else &#x27;no_revenue&#x27;
+    end as revenue_health_segment
+from {{ ref(&#x27;stg_users&#x27;) }} as users
+left join order_revenue_rub as orders
+    on users.user_id = orders.user_id
+left join {{ ref(&#x27;int_subscription_latest&#x27;) }} as subscriptions
+    on users.user_id = subscriptions.user_id
+left join {{ ref(&#x27;int_support_by_user&#x27;) }} as support
+    on users.user_id = support.user_id
+where users.is_deleted = false
+group by
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan,
+    subscriptions.latest_subscription_status,
+    subscriptions.has_active_subscription
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/marts/mart_customer_revenue_health.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/properties.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+models:
+  - name: stg_users
+    description: &quot;One row per registered user with normalized user attributes.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one registered user&quot;
+      consumer: &quot;intermediate and mart models&quot;
+      materialization_reason: &quot;Light source-shaped projection; freshness should follow raw data on each query.&quot;
+      cost_note: &quot;Low-cost casts and renames, no business aggregation.&quot;
+      required_tests: [&quot;not_null:user_id&quot;, &quot;unique:user_id&quot;]
+    columns:
+      - name: user_id
+        data_tests:
+          - unique
+          - not_null
+      - name: platform
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;android&#x27;, &#x27;ios&#x27;, &#x27;web&#x27;]
+  - name: stg_events
+    description: &quot;One row per source event with typed timestamps and normalized platform.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one client or server event&quot;
+      consumer: &quot;future behavior models&quot;
+      materialization_reason: &quot;Event staging is a transparent raw boundary, not a stored mart.&quot;
+      cost_note: &quot;Projection only; later incremental event marts handle volume.&quot;
+      required_tests: [&quot;not_null:event_id&quot;, &quot;unique:event_id&quot;, &quot;accepted_values:platform&quot;]
+    columns:
+      - name: event_id
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_users&#x27;)
+                field: user_id
+      - name: platform
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;android&#x27;, &#x27;ios&#x27;, &#x27;web&#x27;]
+  - name: stg_orders
+    description: &quot;One row per order with typed amount, status and order date.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one order or marketplace payment&quot;
+      consumer: &quot;intermediate revenue models&quot;
+      materialization_reason: &quot;Keeps order source logic current and inspectable.&quot;
+      cost_note: &quot;Small normalization work before joins.&quot;
+      required_tests: [&quot;not_null:order_id&quot;, &quot;unique:order_id&quot;, &quot;relationships:user_id&quot;, &quot;accepted_values:status&quot;]
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_users&#x27;)
+                field: user_id
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;paid&#x27;, &#x27;refunded&#x27;]
+      - name: amount
+        data_tests:
+          - not_null
+  - name: stg_order_items
+    description: &quot;One row per order line item.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one line item inside an order&quot;
+      consumer: &quot;line revenue intermediate model&quot;
+      materialization_reason: &quot;Line items are source-shaped and should not be stored twice.&quot;
+      cost_note: &quot;Projection and decimal casts only.&quot;
+      required_tests: [&quot;not_null:order_id&quot;, &quot;relationships:order_id&quot;, &quot;not_null:line_number&quot;]
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_orders&#x27;)
+                field: order_id
+      - name: line_number
+        data_tests:
+          - not_null
+      - name: quantity
+        data_tests:
+          - not_null
+  - name: stg_subscriptions
+    description: &quot;One row per subscription period.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one subscription period&quot;
+      consumer: &quot;latest subscription status model&quot;
+      materialization_reason: &quot;Subscription state is mutable; snapshots arrive in a later lesson.&quot;
+      cost_note: &quot;Windowing is left to an intermediate view.&quot;
+      required_tests: [&quot;not_null:subscription_id&quot;, &quot;unique:subscription_id&quot;, &quot;accepted_values:status&quot;]
+    columns:
+      - name: subscription_id
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_users&#x27;)
+                field: user_id
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;active&#x27;, &#x27;cancelled&#x27;]
+  - name: stg_support_tickets
+    description: &quot;One row per support ticket.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one support ticket&quot;
+      consumer: &quot;support aggregation by user&quot;
+      materialization_reason: &quot;Ticket source is small and source-shaped.&quot;
+      cost_note: &quot;No aggregation in staging.&quot;
+      required_tests: [&quot;not_null:ticket_id&quot;, &quot;unique:ticket_id&quot;, &quot;relationships:user_id&quot;]
+    columns:
+      - name: ticket_id
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_users&#x27;)
+                field: user_id
+  - name: stg_refunds
+    description: &quot;One row per refund event for an order.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one refund event for an order&quot;
+      consumer: &quot;refund aggregation intermediate model&quot;
+      materialization_reason: &quot;Refunds stay current and transparent before order-level aggregation.&quot;
+      cost_note: &quot;Projection only.&quot;
+      required_tests: [&quot;not_null:refund_id&quot;, &quot;unique:refund_id&quot;, &quot;relationships:order_id&quot;]
+    columns:
+      - name: refund_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref(&#x27;stg_orders&#x27;)
+                field: order_id
+  - name: stg_currency_rates
+    description: &quot;One row per currency and calendar date.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one currency rate for one calendar date&quot;
+      consumer: &quot;mart currency normalization&quot;
+      materialization_reason: &quot;Small lookup table; view is enough in the local project.&quot;
+      cost_note: &quot;Tiny lookup with date and decimal casts.&quot;
+      required_tests: [&quot;not_null:currency&quot;, &quot;not_null:rate_date&quot;, &quot;accepted_values:currency&quot;]
+    columns:
+      - name: currency
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [&#x27;RUB&#x27;, &#x27;USD&#x27;]
+      - name: rate_date
+        data_tests:
+          - not_null
+      - name: rate_to_rub
+        data_tests:
+          - not_null
+  - name: int_order_line_revenue
+    description: &quot;Reusable line-level revenue logic joined to order status.&quot;
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: &quot;one order line with order status&quot;
+      consumer: &quot;mart_customer_revenue_health&quot;
+      materialization_reason: &quot;Light reusable CTE used by one downstream mart; keeping it ephemeral avoids extra relations.&quot;
+      cost_note: &quot;Safe while the compiled mart remains readable and fanout is limited.&quot;
+      required_tests: [&quot;singular:assert_no_many_to_many_revenue_join&quot;]
+  - name: int_refunds_by_order
+    description: &quot;Order-level refund amount before currency conversion.&quot;
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: &quot;one refunded order&quot;
+      consumer: &quot;mart_customer_revenue_health&quot;
+      materialization_reason: &quot;Small aggregation used by a single mart and easy to inspect as compiled CTE.&quot;
+      cost_note: &quot;Do not make widely shared or debugging-heavy logic ephemeral.&quot;
+      required_tests: [&quot;relationships:order_id&quot;]
+  - name: int_support_by_user
+    description: &quot;Support ticket counts and latest ticket timestamp by user.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: &quot;one user with support ticket summary&quot;
+      consumer: &quot;customer revenue health mart and ad-hoc support checks&quot;
+      materialization_reason: &quot;Reusable diagnostic model that analysts may query directly.&quot;
+      cost_note: &quot;Small aggregation, but direct inspectability matters.&quot;
+      required_tests: [&quot;not_null:user_id&quot;, &quot;unique:user_id&quot;]
+    columns:
+      - name: user_id
+        data_tests:
+          - unique
+          - not_null
+  - name: int_subscription_latest
+    description: &quot;Latest subscription status by user.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: &quot;one user with latest subscription state&quot;
+      consumer: &quot;customer revenue health mart&quot;
+      materialization_reason: &quot;Window logic should be inspectable before snapshot history is introduced.&quot;
+      cost_note: &quot;View keeps mutable-state caveat visible.&quot;
+      required_tests: [&quot;not_null:user_id&quot;, &quot;unique:user_id&quot;, &quot;accepted_values:latest_subscription_status&quot;]
+    columns:
+      - name: user_id
+        data_tests:
+          - unique
+          - not_null
+      - name: latest_subscription_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;active&#x27;, &#x27;cancelled&#x27;]
+  - name: mart_customer_revenue_health
+    description: &quot;Consumer-facing customer revenue health mart.&quot;
+    config:
+      materialized: table
+    meta:
+      layer: marts
+      grain: &quot;one active non-deleted user&quot;
+      consumer: &quot;product and finance analysis&quot;
+      materialization_reason: &quot;Published mart is queried by consumers and should be fast and stable between runs.&quot;
+      cost_note: &quot;Rebuild cost is acceptable for the tiny local project; incremental comes later.&quot;
+      required_tests: [&quot;not_null:user_id&quot;, &quot;unique:user_id&quot;, &quot;accepted_values:revenue_health_segment&quot;, &quot;singular:assert_paid_revenue_reconciles&quot;]
+      warning_checks: [&quot;warn_customers_without_subscription&quot;]
+    columns:
+      - name: user_id
+        data_tests:
+          - unique
+          - not_null
+      - name: revenue_health_segment
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [&#x27;needs_attention&#x27;, &#x27;high_value&#x27;, &#x27;monetized&#x27;, &#x27;no_revenue&#x27;]
+  - name: fct_order_revenue_daily
+    description: &quot;Incremental daily order revenue fact refreshed with a late-arriving data window.&quot;
+    config:
+      materialized: incremental
+      unique_key: revenue_date
+      incremental_strategy: delete+insert
+      on_schema_change: fail
+    meta:
+      layer: marts
+      grain: &quot;one calendar revenue date&quot;
+      consumer: &quot;finance reporting and daily revenue monitoring&quot;
+      materialization_reason: &quot;Daily revenue grows over time; incremental refresh limits work while preserving a controlled late-arrival window.&quot;
+      cost_note: &quot;Reprocesses the last two days on every incremental run to catch late orders and refund updates.&quot;
+      required_tests: [&quot;not_null:revenue_date&quot;, &quot;unique:revenue_date&quot;, &quot;singular:assert_daily_revenue_reconciles&quot;]
+      incremental_contract:
+        event_time_column: revenue_date
+        unique_key: revenue_date
+        late_arrival_window_days: 2
+        incremental_strategy: delete+insert
+        schema_change_policy: fail
+        duplicate_policy: &quot;delete existing rows by revenue_date unique_key, then insert the recalculated window&quot;
+        full_refresh_policy: &quot;Run dbt run --full-refresh --select fct_order_revenue_daily after revenue_date grain, schema, key, currency logic or late-arrival policy changes.&quot;
+        backfill_command: &quot;dbt run --full-refresh --select fct_order_revenue_daily&quot;
+    columns:
+      - name: revenue_date
+        data_tests:
+          - unique
+          - not_null
+      - name: order_count
+        data_tests:
+          - not_null
+      - name: paid_order_count
+        data_tests:
+          - not_null
+      - name: paid_revenue_rub
+        data_tests:
+          - not_null
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/properties.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/sources.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+sources:
+  - name: raw_app
+    schema: raw
+    description: &quot;Raw extract for the phase 11 customer revenue mart.&quot;
+    tables:
+      - name: users
+        identifier: raw_users
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: user_id
+            data_tests:
+              - unique
+              - not_null
+      - name: events
+        identifier: raw_events
+        config:
+          loaded_at_field: received_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: event_id
+            data_tests:
+              - unique
+              - not_null
+          - name: event_name
+            data_tests:
+              - not_null
+      - name: orders
+        identifier: raw_orders
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source(&#x27;raw_app&#x27;, &#x27;users&#x27;)
+                    field: user_id
+          - name: status
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [&#x27;paid&#x27;, &#x27;refunded&#x27;]
+      - name: order_items
+        identifier: raw_order_items
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: order_id
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source(&#x27;raw_app&#x27;, &#x27;orders&#x27;)
+                    field: order_id
+          - name: line_number
+            data_tests:
+              - not_null
+      - name: subscriptions
+        identifier: raw_subscriptions
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: subscription_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source(&#x27;raw_app&#x27;, &#x27;users&#x27;)
+                    field: user_id
+          - name: status
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [&#x27;active&#x27;, &#x27;cancelled&#x27;]
+      - name: support_tickets
+        identifier: raw_support_tickets
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: ticket_id
+            data_tests:
+              - unique
+              - not_null
+          - name: user_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source(&#x27;raw_app&#x27;, &#x27;users&#x27;)
+                    field: user_id
+      - name: refunds
+        identifier: raw_refunds
+        config:
+          loaded_at_field: refunded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: refund_id
+            data_tests:
+              - unique
+              - not_null
+          - name: order_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source(&#x27;raw_app&#x27;, &#x27;orders&#x27;)
+                    field: order_id
+      - name: currency_rates
+        identifier: raw_currency_rates
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+        columns:
+          - name: currency
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: [&#x27;RUB&#x27;, &#x27;USD&#x27;]
+          - name: rate_date
+            data_tests:
+              - not_null
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/sources.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_currency_rates.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    {{ normalize_currency(&#x27;currency&#x27;) }} as currency,
+    cast(rate_date as date) as rate_date,
+    {{ to_decimal(&#x27;rate_to_rub&#x27;, 18, 4) }} as rate_to_rub,
+    cast(loaded_at as timestamptz) as loaded_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;currency_rates&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_currency_rates.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_events.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    event_id,
+    user_id,
+    event_name,
+    cast(event_version as integer) as event_version,
+    cast(occurred_at as timestamptz) as occurred_at,
+    cast(received_at as timestamptz) as received_at,
+    lower(platform) as platform,
+    properties_json
+from {{ source(&#x27;raw_app&#x27;, &#x27;events&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_events.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_order_items.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    cast(line_number as integer) as line_number,
+    product_id,
+    cast(quantity as integer) as quantity,
+    {{ to_decimal(&#x27;unit_price&#x27;) }} as unit_price,
+    {{ normalize_currency(&#x27;currency&#x27;) }} as currency,
+    cast(loaded_at as timestamptz) as loaded_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;order_items&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_order_items.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_orders.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    user_id,
+    cast(ordered_at as timestamptz) as ordered_at,
+    cast(cast(ordered_at as timestamptz) as date) as order_date,
+    {{ normalize_status(&#x27;status&#x27;) }} as status,
+    {{ normalize_currency(&#x27;currency&#x27;) }} as currency,
+    {{ to_decimal(&#x27;amount&#x27;) }} as amount,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;orders&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_orders.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_refunds.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    refund_id,
+    order_id,
+    cast(refunded_at as timestamptz) as refunded_at,
+    {{ normalize_currency(&#x27;currency&#x27;) }} as currency,
+    {{ to_decimal(&#x27;amount&#x27;) }} as amount,
+    reason
+from {{ source(&#x27;raw_app&#x27;, &#x27;refunds&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_refunds.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_subscriptions.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    subscription_id,
+    user_id,
+    {{ normalize_status(&#x27;plan&#x27;) }} as plan,
+    {{ normalize_status(&#x27;status&#x27;) }} as status,
+    cast(started_at as timestamptz) as started_at,
+    cast(nullif(ended_at, &#x27;&#x27;) as timestamptz) as ended_at,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;subscriptions&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_subscriptions.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_support_tickets.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    ticket_id,
+    user_id,
+    cast(created_at as timestamptz) as created_at,
+    lower(topic) as topic,
+    lower(priority) as priority,
+    lower(status) as status
+from {{ source(&#x27;raw_app&#x27;, &#x27;support_tickets&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_support_tickets.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/models/staging/stg_users.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    user_id,
+    cast(registered_at as timestamptz) as registered_at,
+    country,
+    lower(platform) as platform,
+    acquisition_channel,
+    lower(plan) as plan,
+    cast(is_deleted as boolean) as is_deleted,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/models/staging/stg_users.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/profiles.yml.example</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>incremental_project:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: &quot;{{ env_var(&#x27;DBT_DUCKDB_PATH&#x27;, &#x27;incremental.duckdb&#x27;) }}&quot;
+      schema: analytics
+      threads: 4
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/profiles.yml.example" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/seeds/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/seeds/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/snapshots/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/snapshots/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/assert_daily_revenue_reconciles.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with source_daily_revenue as (
+    select
+        orders.order_date as revenue_date,
+        count(distinct orders.order_id) as expected_order_count,
+        count(distinct case when orders.status = &#x27;paid&#x27; then orders.order_id end) as expected_paid_order_count,
+        cast(
+            sum(
+                case
+                    when orders.status = &#x27;paid&#x27; then orders.amount * rates.rate_to_rub
+                    else 0
+                end
+            )
+            as decimal(18, 2)
+        ) as expected_paid_revenue_rub
+    from {{ ref(&#x27;stg_orders&#x27;) }} as orders
+    inner join {{ ref(&#x27;stg_currency_rates&#x27;) }} as rates
+        on orders.currency = rates.currency
+        and orders.order_date = rates.rate_date
+    group by orders.order_date
+),
+
+mart_daily_revenue as (
+    select
+        revenue_date,
+        order_count as observed_order_count,
+        paid_order_count as observed_paid_order_count,
+        paid_revenue_rub as observed_paid_revenue_rub
+    from {{ ref(&#x27;fct_order_revenue_daily&#x27;) }}
+)
+
+select
+    coalesce(mart.revenue_date, source.revenue_date) as revenue_date,
+    observed_order_count,
+    expected_order_count,
+    observed_paid_order_count,
+    expected_paid_order_count,
+    observed_paid_revenue_rub,
+    expected_paid_revenue_rub
+from mart_daily_revenue as mart
+full outer join source_daily_revenue as source
+    on mart.revenue_date = source.revenue_date
+where mart.revenue_date is null
+    or source.revenue_date is null
+    or observed_order_count != expected_order_count
+    or observed_paid_order_count != expected_paid_order_count
+    or abs(observed_paid_revenue_rub - expected_paid_revenue_rub) &gt; 0.01
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/assert_daily_revenue_reconciles.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/assert_no_many_to_many_revenue_join.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with expected as (
+    select count(*) as source_order_item_rows
+    from {{ ref(&#x27;stg_order_items&#x27;) }}
+),
+
+observed as (
+    select count(*) as revenue_line_rows
+    from {{ ref(&#x27;int_order_line_revenue&#x27;) }}
+)
+
+select
+    revenue_line_rows,
+    source_order_item_rows
+from observed
+cross join expected
+where revenue_line_rows != source_order_item_rows
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/assert_no_many_to_many_revenue_join.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/assert_paid_revenue_reconciles.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with source_paid_revenue as (
+    select
+        cast(sum(orders.amount * rates.rate_to_rub) as decimal(18, 2)) as expected_paid_revenue_rub
+    from {{ ref(&#x27;stg_orders&#x27;) }} as orders
+    inner join {{ ref(&#x27;stg_currency_rates&#x27;) }} as rates
+        on orders.currency = rates.currency
+        and orders.order_date = rates.rate_date
+    where orders.status = &#x27;paid&#x27;
+),
+
+mart_paid_revenue as (
+    select
+        cast(sum(paid_revenue_rub) as decimal(18, 2)) as observed_paid_revenue_rub
+    from {{ ref(&#x27;mart_customer_revenue_health&#x27;) }}
+)
+
+select
+    observed_paid_revenue_rub,
+    expected_paid_revenue_rub
+from mart_paid_revenue
+cross join source_paid_revenue
+where abs(observed_paid_revenue_rub - expected_paid_revenue_rub) &gt; 0.01
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/assert_paid_revenue_reconciles.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/schema.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+data_tests:
+  - name: assert_paid_revenue_reconciles
+    description: &quot;Contract gate: paid revenue in the mart must reconcile to paid order amounts converted to RUB.&quot;
+  - name: assert_no_many_to_many_revenue_join
+    description: &quot;Contract gate: order line revenue must preserve one row per source order item.&quot;
+  - name: warn_customers_without_subscription
+    description: &quot;Warning diagnostic: customers without active subscription context or with support tickets need review, but do not block publication.&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/schema.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/incremental_project/tests/warn_customers_without_subscription.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(severity = &#x27;warn&#x27;) }}
+
+select
+    user_id,
+    latest_subscription_status,
+    support_ticket_count,
+    revenue_health_segment
+from {{ ref(&#x27;mart_customer_revenue_health&#x27;) }}
+where latest_subscription_status = &#x27;none&#x27;
+    or support_ticket_count &gt; 0
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/07-incremental-models/outputs/incremental_project/tests/warn_customers_without_subscription.sql" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/07-incremental-models" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/analytics-engineering/macros/"><span>← Предыдущий урок</span><strong>Jinja и macros без злоупотребления</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/analytics-engineering/snapshots/"><span>Следующий урок →</span><strong>Snapshots и история изменений</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

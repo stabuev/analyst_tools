@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Монолитный запрос одновременно читает CSV, приводит типы, фильтрует оплату, агрегирует позиции и соединяет таблицы. Если итоговая выручка изменилась, неизвестно, на…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/cte-and-subqueries/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="CTE и композиция запросов">
+  <meta property="og:description" content="Монолитный запрос одновременно читает CSV, приводит типы, фильтрует оплату, агрегирует позиции и соединяет таблицы. Если итоговая выручка изменилась, неизвестно, на…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/cte-and-subqueries/">
+  <meta name="twitter:card" content="summary">
+  <title>CTE и композиция запросов — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "CTE и композиция запросов", "description": "Монолитный запрос одновременно читает CSV, приводит типы, фильтрует оплату, агрегирует позиции и соединяет таблицы. Если итоговая выручка изменилась, неизвестно, на…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/cte-and-subqueries/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "CTE и композиция запросов", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/cte-and-subqueries/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 41 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/06-cte-and-subqueries" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что представляет обычный CTE?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Именованный результат внутри одного запроса</button><button type="button" class="quiz-option" data-choice="1">Постоянную таблицу</button><button type="button" class="quiz-option" data-choice="2">Индекс</button><button type="button" class="quiz-option" data-choice="3">Транзакцию</button></div><p class="quiz-feedback" hidden>CTE действует в области одного statement и помогает именовать шаг.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какое имя лучше для шага после приведения типов?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">typed_orders</button><button type="button" class="quiz-option" data-choice="1">data2</button><button type="button" class="quiz-option" data-choice="2">temp</button><button type="button" class="quiz-option" data-choice="3">final_final</button></div><p class="quiz-feedback" hidden>Имя должно выражать реляционное преобразование и контракт шага.</p></article></section>
+        <article class="lesson-article"><h1 id="cte-и-композиция-запросов">CTE и композиция запросов</h1>
+<blockquote>
+<p>Именованный SQL-шаг полезен, когда у него есть собственный grain и проверяемый контракт.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/05
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> разбивает расчет на CTE и проверяет инварианты каждого шага.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделять загрузку, типизацию, фильтрацию, агрегацию и JOIN.</li>
+<li>Давать CTE имена по смыслу преобразования.</li>
+<li>Проверять row count, ключ и метрики между шагами.</li>
+<li>Отличать читаемость CTE от обещания materialization.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Монолитный запрос одновременно читает CSV, приводит типы, фильтрует оплату, агрегирует
+позиции и соединяет таблицы. Если итоговая выручка изменилась, неизвестно, на каком шаге:
+при cast, фильтре или JOIN.</p>
+<h2 id="концепция">Концепция</h2>
+<p>CTE — локально именованный реляционный результат. Хороший pipeline читается как граф:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw_orders -&gt; typed_orders -&gt; paid_orders -&gt; final
+raw_items  -&gt; item_totals ----------------^
+</code></pre></div><p>У каждого узла есть grain и инвариант. Например, типизация сохраняет 12 строк, фильтр
+оставляет 9 оплаченных заказов, а финал сохраняет уникальность <code>order_id</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала запишите шаги словами и ожидаемые counts:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw_orders: 12
+typed_orders: 12
+paid_orders: 9
+item_totals: 12
+final: 9
+</code></pre></div><p>Только после этого соедините шаги в <code>WITH</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH
+typed_orders AS (...),
+paid_orders AS (
+    SELECT * FROM typed_orders WHERE status = &#x27;paid&#x27;
+),
+item_totals AS (
+    SELECT order_id, sum(quantity * unit_price) AS item_total
+    FROM order_items
+    GROUP BY order_id
+),
+final AS (
+    SELECT paid_orders.*, item_totals.item_total
+    FROM paid_orders
+    LEFT JOIN item_totals USING (order_id)
+)
+SELECT * FROM final;
+</code></pre></div><p>Артефакт дополняет pipeline scalar-subqueries, которые возвращают audit row со всеми
+инвариантами.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Удалите одну позицию заказа и проверьте <code>missing_item_totals</code>.</li>
+<li>Перенесите фильтр оплаты в финальный SELECT и сравните промежуточные counts.</li>
+<li>Продублируйте заказ и проверьте <code>duplicate_final_keys</code>.</li>
+<li>Используйте безымянные <code>cte1</code>, <code>cte2</code> и оцените читаемость ошибки.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Финальный этап имеет 9 уникальных заказов, выручку <code>5005</code>, полное покрытие позициями и
+нулевое число расхождений между <code>amount</code> и <code>item_total</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/cte_pipeline.py \
+  --orders ../data/tiny/orders.csv \
+  --items ../data/tiny/order_items.csv
+</code></pre></div><p>CLI возвращает этапы, checks и общий <code>valid</code>.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте CTE нормализации категорий.</li>
+<li>Вынесите unmatched-заказы в отдельный диагностический шаг.</li>
+<li>Сравните plan при <code>AS MATERIALIZED</code> и <code>AS NOT MATERIALIZED</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CTE</td>
+<td>Временная таблица на диске</td>
+<td>Именованный результат в области statement</td>
+</tr>
+<tr>
+<td>Composition</td>
+<td>Склейка SQL-строк</td>
+<td>Последовательность реляционных преобразований</td>
+</tr>
+<tr>
+<td>Invariant</td>
+<td>Ожидаемое число</td>
+<td>Условие, которое обязано сохраняться</td>
+</tr>
+<tr>
+<td>Materialization</td>
+<td>Любой CTE</td>
+<td>Физическое вычисление и хранение промежуточного результата</td>
+</tr>
+<tr>
+<td>Inlining</td>
+<td>Удаление CTE</td>
+<td>Встраивание определения CTE оптимизатором</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/with" target="_blank" rel="noopener">DuckDB: WITH</a> — изучите обычные и рекурсивные CTE и правила materialization.</li>
+<li><a href="https://duckdb.org/docs/current/sql/expressions/subqueries" target="_blank" rel="noopener">DuckDB: Subqueries</a> — сравните scalar, EXISTS и табличные подзапросы.</li>
+<li><a href="https://duckdb.org/docs/current/guides/meta/explain" target="_blank" rel="noopener">DuckDB: EXPLAIN</a> — проверьте, как CTE представлен в физическом плане.</li>
+<li><a href="https://www.postgresql.org/docs/current/queries-with.html" target="_blank" rel="noopener">PostgreSQL: WITH Queries</a> — сопоставьте композицию и recursive queries в зрелой SQL-системе.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что проверяет инвариант raw_rows = typed_rows?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Приведение типов не удалило строки</button><button type="button" class="quiz-option" data-choice="1">Типы стали строками</button><button type="button" class="quiz-option" data-choice="2">Запрос ускорился</button><button type="button" class="quiz-option" data-choice="3">Дубликаты исчезли</button></div><p class="quiz-feedback" hidden>Этап типизации должен сохранять множество строк или явно сообщать обратное.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем проверять каждый CTE отдельно?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы локализовать первый нарушенный контракт</button><button type="button" class="quiz-option" data-choice="1">Чтобы CTE материализовался</button><button type="button" class="quiz-option" data-choice="2">Чтобы убрать SQL</button><button type="button" class="quiz-option" data-choice="3">Чтобы заменить тесты</button></div><p class="quiz-feedback" hidden>Промежуточные counts и keys показывают, на каком шаге изменился смысл.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Гарантирует ли CTE ускорение запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Нет, это прежде всего композиция</button><button type="button" class="quiz-option" data-choice="1">Да, всегда</button><button type="button" class="quiz-option" data-choice="2">Только с SELECT *</button><button type="button" class="quiz-option" data-choice="3">Только без WHERE</button></div><p class="quiz-feedback" hidden>Оптимизатор решает materialization и inlining; CTE сам по себе не обещает скорость.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;cte_pipeline.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;cte_pipeline&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+CTE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(CTE)
+
+
+class CtePipelineTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.report = CTE.run_pipeline(DATA / &quot;orders.csv&quot;, DATA / &quot;order_items.csv&quot;)
+        self.stages = self.report[&quot;stages&quot;]
+
+    def test_typing_preserves_source_rows(self) -&gt; None:
+        self.assertEqual(self.stages[&quot;raw_order_rows&quot;], 12)
+        self.assertEqual(self.stages[&quot;typed_order_rows&quot;], 12)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;typing_preserves_rows&quot;])
+
+    def test_paid_stage_has_expected_rows(self) -&gt; None:
+        self.assertEqual(self.stages[&quot;paid_order_rows&quot;], 9)
+
+    def test_final_preserves_paid_grain(self) -&gt; None:
+        self.assertEqual(self.stages[&quot;final_rows&quot;], 9)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;final_matches_paid_grain&quot;])
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;final_key_unique&quot;])
+
+    def test_item_stage_is_one_row_per_order(self) -&gt; None:
+        self.assertEqual(self.stages[&quot;item_total_rows&quot;], 12)
+        self.assertEqual(self.stages[&quot;missing_item_totals&quot;], 0)
+
+    def test_pipeline_reconciles_amounts(self) -&gt; None:
+        self.assertEqual(self.stages[&quot;paid_revenue&quot;], 5005.0)
+        self.assertEqual(self.stages[&quot;amount_item_mismatches&quot;], 0)
+        self.assertTrue(self.report[&quot;valid&quot;])
+
+    def test_named_steps_are_present(self) -&gt; None:
+        for name in (&quot;raw_orders&quot;, &quot;typed_orders&quot;, &quot;paid_orders&quot;, &quot;item_totals&quot;, &quot;final&quot;):
+            self.assertIn(f&quot;{name} AS&quot;, CTE.PIPELINE_SQL)
+
+    def test_missing_item_is_visible_at_final_stage(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            broken = Path(directory) / &quot;items.csv&quot;
+            lines = (DATA / &quot;order_items.csv&quot;).read_text(encoding=&quot;utf-8&quot;).splitlines()
+            broken.write_text(
+                &quot;\n&quot;.join(line for line in lines if not line.startswith(&quot;O1012,&quot;)) + &quot;\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = CTE.run_pipeline(DATA / &quot;orders.csv&quot;, broken)
+            self.assertEqual(report[&quot;stages&quot;][&quot;missing_item_totals&quot;], 1)
+            self.assertFalse(report[&quot;valid&quot;])
+
+    def test_cli_prints_json(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--orders&quot;,
+                DATA / &quot;orders.csv&quot;,
+                &quot;--items&quot;,
+                DATA / &quot;order_items.csv&quot;,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;cte_pipeline.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;cte_pipeline&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    manual_stages = {&quot;raw&quot;: 12, &quot;typed&quot;: 12, &quot;paid&quot;: 9, &quot;final&quot;: 9}
+    report = load_artifact().run_pipeline(
+        DATA / &quot;orders.csv&quot;,
+        DATA / &quot;order_items.csv&quot;,
+    )
+    print(json.dumps({&quot;manual&quot;: manual_stages, &quot;duckdb&quot;: report}, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;checked-cte-pipeline&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/cte_pipeline.py&quot;,
+  &quot;description&quot;: &quot;Выполняет именованный CTE pipeline и публикует инварианты каждого этапа.&quot;,
+  &quot;usage&quot;: &quot;python outputs/cte_pipeline.py --orders ../data/tiny/orders.csv --items ../data/tiny/order_items.csv&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cte_pipeline.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+PIPELINE_SQL = &quot;&quot;&quot;
+WITH
+raw_orders AS (
+    SELECT *
+    FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+),
+typed_orders AS (
+    SELECT
+        order_id,
+        user_id,
+        ordered_at::TIMESTAMPTZ AS ordered_at,
+        lower(trim(status)) AS status,
+        upper(trim(currency)) AS currency,
+        amount::DECIMAL(18, 2) AS amount
+    FROM raw_orders
+),
+paid_orders AS (
+    SELECT *
+    FROM typed_orders
+    WHERE status = &#x27;paid&#x27;
+),
+raw_items AS (
+    SELECT *
+    FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+),
+item_totals AS (
+    SELECT
+        order_id,
+        count(*) AS item_rows,
+        sum(quantity::INTEGER * unit_price::DECIMAL(18, 2)) AS item_total
+    FROM raw_items
+    GROUP BY order_id
+),
+final AS (
+    SELECT
+        paid_orders.order_id,
+        paid_orders.user_id,
+        paid_orders.currency,
+        paid_orders.amount,
+        item_totals.item_rows,
+        item_totals.item_total
+    FROM paid_orders
+    LEFT JOIN item_totals USING (order_id)
+)
+SELECT
+    (SELECT count(*) FROM raw_orders) AS raw_order_rows,
+    (SELECT count(*) FROM typed_orders) AS typed_order_rows,
+    (SELECT count(*) FROM paid_orders) AS paid_order_rows,
+    (SELECT count(*) FROM item_totals) AS item_total_rows,
+    (SELECT count(*) FROM final) AS final_rows,
+    (SELECT count(*) FROM (
+        SELECT order_id FROM final GROUP BY order_id HAVING count(*) &gt; 1
+    )) AS duplicate_final_keys,
+    (SELECT count(*) FROM final WHERE item_total IS NULL) AS missing_item_totals,
+    (SELECT sum(amount) FROM final) AS paid_revenue,
+    (SELECT count(*) FROM final WHERE abs(amount - item_total) &gt; 0.0001)
+        AS amount_item_mismatches
+&quot;&quot;&quot;
+
+
+def _number(value: Any) -&gt; Any:
+    return float(value) if isinstance(value, Decimal) else value
+
+
+def run_pipeline(orders_path: Path, items_path: Path) -&gt; dict[str, Any]:
+    connection = duckdb.connect()
+    try:
+        relation = connection.execute(
+            PIPELINE_SQL,
+            [str(orders_path), str(items_path)],
+        )
+        columns = [column[0] for column in relation.description]
+        row = relation.fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise ValueError(&quot;pipeline returned no audit row&quot;)
+    stages = {column: _number(value) for column, value in zip(columns, row, strict=True)}
+    checks = {
+        &quot;typing_preserves_rows&quot;: stages[&quot;raw_order_rows&quot;] == stages[&quot;typed_order_rows&quot;],
+        &quot;final_matches_paid_grain&quot;: stages[&quot;paid_order_rows&quot;] == stages[&quot;final_rows&quot;],
+        &quot;final_key_unique&quot;: stages[&quot;duplicate_final_keys&quot;] == 0,
+        &quot;all_paid_orders_have_items&quot;: stages[&quot;missing_item_totals&quot;] == 0,
+        &quot;amounts_reconcile&quot;: stages[&quot;amount_item_mismatches&quot;] == 0,
+    }
+    return {&quot;stages&quot;: stages, &quot;checks&quot;: checks, &quot;valid&quot;: all(checks.values())}
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Run a checked CTE SQL pipeline&quot;)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--items&quot;, type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        report = run_pipeline(args.orders, args.items)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/06-cte-and-subqueries/outputs/cte_pipeline.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/06-cte-and-subqueries" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/joins/"><span>← Предыдущий урок</span><strong>Joins без размножения метрик</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/window-functions/"><span>Следующий урок →</span><strong>Оконные функции</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

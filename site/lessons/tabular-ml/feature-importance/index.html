@@ -1,0 +1,2432 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 16/03 у вас есть CatBoost model run с validation-only early stopping: bestiteration=0, treecount=1, test split не участвовал в выборе итерации. Теперь хочется…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/feature-importance/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Встроенная важность признаков">
+  <meta property="og:description" content="После 16/03 у вас есть CatBoost model run с validation-only early stopping: bestiteration=0, treecount=1, test split не участвовал в выборе итерации. Теперь хочется…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/feature-importance/">
+  <meta name="twitter:card" content="summary">
+  <title>Встроенная важность признаков — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Встроенная важность признаков", "description": "После 16/03 у вас есть CatBoost model run с validation-only early stopping: bestiteration=0, treecount=1, test split не участвовал в выборе итерации. Теперь хочется…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/feature-importance/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Встроенная важность признаков", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/feature-importance/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 175 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/04-feature-importance" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что корректно утверждать по CatBoost built-in importance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Это diagnostic того, как конкретная обученная модель использовала признаки</button><button type="button" class="quiz-option" data-choice="1">Это доказательство причинного эффекта признака на churn</button><button type="button" class="quiz-option" data-choice="2">Это всегда стабильный бизнес-рейтинг признаков</button><button type="button" class="quiz-option" data-choice="3">Это замена train/validation/test split</button></div><p class="quiz-feedback" hidden>Built-in importance относится к конкретной модели и методу расчета; causal или business claims требуют другой evidence.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему feature-name audit обязателен перед интерпретацией importance vector?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Без проверки порядка можно приписать значение importance не тому признаку</button><button type="button" class="quiz-option" data-choice="1">CatBoost не умеет считать importance без one-hot encoding</button><button type="button" class="quiz-option" data-choice="2">Feature-name audit автоматически улучшает validation score</button><button type="button" class="quiz-option" data-choice="3">Так можно использовать test split для выбора признаков</button></div><p class="quiz-feedback" hidden>Importance values возвращаются в порядке признаков модели; неверная привязка names превращает отчет в дезинформацию.</p></article></section>
+        <article class="lesson-article"><h1 id="встроенная-важность-признаков">Встроенная важность признаков</h1>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>16/03</code> у вас есть CatBoost model run с validation-only early stopping:
+<code>best_iteration=0</code>, <code>tree_count=1</code>, test split не участвовал в выборе итерации. Теперь
+хочется открыть <code>feature_importances_</code>, отсортировать признаки и сказать бизнесу:
+&quot;пользователи уходят из-за platform&quot;.</p>
+<p>Это опасная фраза. Built-in importance отвечает не на вопрос &quot;почему пользователь ушел&quot;,
+а на вопрос &quot;как этот обученный CatBoost использовал признаки внутри своей структуры или
+validation diagnostic&quot;. На tiny-модели с одним деревом результат особенно хрупкий:
+<code>PredictionValuesChange</code> дает <code>platform = 100</code>, а остальные признаки получают <code>0</code>.</p>
+<p>В этом уроке вы построите reporter, который считает встроенную важность, но сразу
+подписывает метод, проверяет feature names и добавляет interpretation warnings.</p>
+<h2 id="концепция">Концепция</h2>
+<p>CatBoost умеет считать несколько типов важности. В этом уроке нужны два:</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что показывает</th>
+<th>Главная ловушка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PredictionValuesChange</code></td>
+<td>насколько в среднем меняется prediction value при использовании признака в деревьях</td>
+<td>model-internal diagnostic, чувствителен к структуре конкретной модели</td>
+</tr>
+<tr>
+<td><code>LossFunctionChange</code></td>
+<td>как меняется loss на заданных данных, если убрать признак</td>
+<td>зависит от выбранного eval data и может быть отрицательным</td>
+</tr>
+</tbody>
+</table>
+<p>Оба метода полезны, но они не доказывают причинность. Если <code>platform</code> top-1, это значит:
+в этой tiny-модели CatBoost построил split, где <code>platform</code> объясняет изменение model
+score. Это не значит, что изменение платформы изменит churn.</p>
+<p>Отдельно нужны три audit layer:</p>
+<ol>
+<li><strong>Feature-name audit.</strong> Importance vector должен совпадать с training pool order:
+сначала numeric features, затем categorical features.</li>
+<li><strong>Method labels.</strong> Каждая строка importance должна хранить <code>method</code>,
+<code>method_label</code>, <code>data_split</code> и <code>interpretation_scope</code>.</li>
+<li><strong>Warning ledger.</strong> High-cardinality categories, correlated features, tiny tree count
+и single-feature dominance должны быть видимы рядом с числами.</li>
+</ol>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый policy spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/built_in_importance_policy_spec.json
+</code></pre></div><p>Он фиксирует:</p>
+<ul>
+<li>связь с early-stopping handoff из <code>16/03</code>;</li>
+<li>два метода: <code>PredictionValuesChange</code> и <code>LossFunctionChange</code>;</li>
+<li>точный порядок 10 признаков;</li>
+<li>non-causal interpretation policy;</li>
+<li>warning thresholds для high-cardinality, correlated features, tiny tree count и
+dominant importance.</li>
+</ul>
+<p>Минимальный механизм:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pvc = model.get_feature_importance(type=&quot;PredictionValuesChange&quot;)
+loss = model.get_feature_importance(data=validation_pool, type=&quot;LossFunctionChange&quot;)
+</code></pre></div><p>Но production-часть урока не останавливается на массиве чисел. Она соединяет значения с
+feature names, добавляет method labels, маркирует top feature внутри каждого метода и
+пишет warnings.</p>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_reporter.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/04-feature-importance/code/main.py
+</code></pre></div><p>Ожидаемая сводка:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;method_count&quot;: 2,
+  &quot;feature_count&quot;: 10,
+  &quot;importance_row_count&quot;: 20,
+  &quot;top_prediction_values_change_feature&quot;: &quot;platform&quot;,
+  &quot;top_loss_function_change_feature&quot;: &quot;platform&quot;,
+  &quot;warning_count&quot;: 4,
+  &quot;readiness_status&quot;: &quot;ready_for_permutation_importance_lesson&quot;
+}
+</code></pre></div><p>После запуска появляются пять файлов:</p>
+<ul>
+<li><code>built_in_importance_report.json</code> - общий отчет, checks, summary и warnings;</li>
+<li><code>built_in_importance.csv</code> - 20 строк: 2 метода на 10 признаков;</li>
+<li><code>feature_name_audit.csv</code> - порядок признаков, роли numeric/categorical и risk flags;</li>
+<li><code>importance_warning_ledger.csv</code> - high-cardinality, correlated-feature, tiny-tree и
+dominance warnings;</li>
+<li><code>built_in_importance_serialized_spec.json</code> - handoff для <code>16/05</code>.</li>
+</ul>
+<p>В текущем tiny fixture:</p>
+<ul>
+<li><code>PredictionValuesChange</code> присваивает <code>platform</code> значение <code>100</code>;</li>
+<li><code>LossFunctionChange</code> для <code>platform</code> равен <code>-0.005247</code> на validation;</li>
+<li><code>acquisition_channel</code> отмечен как high-cardinality feature, хотя его importance сейчас
+<code>0</code>;</li>
+<li>пять пар numeric features имеют train correlation <code>&gt;= 0.8</code>;</li>
+<li>модель содержит одно дерево, поэтому strong interpretation claim запрещен.</li>
+</ul>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Удалите из <code>importance_methods</code> метод <code>LossFunctionChange</code>. Audit должен заблокировать
+policy: один built-in метод не дает нужного контраста между model-structure и
+validation-loss diagnostic.</p>
+<p>Поменяйте порядок <code>expected_feature_order</code>, например поставьте <code>platform</code> первым. Audit
+должен упасть до расчета интерпретации: importance без надежной привязки к feature names
+опаснее, чем отсутствие importance.</p>
+<p>Теперь измените interpretation claim на:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;platform causes churn&quot;
+</code></pre></div><p>Policy должна быть заблокирована. Built-in importance может быть входом в расследование,
+но не является causal claim.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/04-feature-importance/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>handoff от <code>16/03</code>;</li>
+<li>два labeled метода CatBoost importance;</li>
+<li>20 строк importance для 10 признаков;</li>
+<li><code>platform</code> как top feature в обоих built-in методах;</li>
+<li>отрицательный <code>LossFunctionChange</code> как допустимый diagnostic value;</li>
+<li>exact feature-name order;</li>
+<li>high-cardinality warning для <code>acquisition_channel</code>;</li>
+<li>correlated-feature warnings;</li>
+<li>tiny <code>tree_count=1</code> warning;</li>
+<li>блокировку positive causal claim;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полного курса после изменения статуса:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока - built-in importance report. Его можно передать в <code>16/05</code>, где
+появится permutation importance:</p>
+<ul>
+<li>модель совпадает с early-stopping run из <code>16/03</code>;</li>
+<li>feature names совпадают с training pool;</li>
+<li>built-in methods явно подписаны;</li>
+<li>high-cardinality и correlated-feature risks не скрыты;</li>
+<li>report не содержит positive causal claim;</li>
+<li><code>ready_for_permutation_importance_lesson</code> означает, что следующий урок может проверить,
+сохраняется ли importance на held-out scoring при перестановке признаков.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Измените <code>dominant_prediction_values_change_threshold</code> на <code>99</code> и объясните, почему
+warning не меняет readiness, но меняет тон интерпретации.</li>
+<li>Уберите <code>acquisition_channel</code> из categorical features и проверьте, какие строки
+feature-name audit и warning ledger исчезнут.</li>
+<li>Повторите расчет без <code>use_best_model</code> в upstream early-stopping spec и объясните, почему
+importance уже относится к другой версии модели.</li>
+<li>Сравните <code>PredictionValuesChange</code> и <code>LossFunctionChange</code>: почему один метод дает
+<code>100</code>, а второй отрицательное число?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Built-in importance</td>
+<td>&quot;Это причина поведения пользователя&quot;</td>
+<td>Diagnostic того, как конкретная модель использовала признаки</td>
+</tr>
+<tr>
+<td><code>PredictionValuesChange</code></td>
+<td>&quot;Чем больше, тем важнее для бизнеса&quot;</td>
+<td>Model-internal оценка изменения prediction value в структуре деревьев</td>
+</tr>
+<tr>
+<td><code>LossFunctionChange</code></td>
+<td>&quot;Всегда положительная польза признака&quot;</td>
+<td>Изменение loss на выбранном data split; значение может быть отрицательным</td>
+</tr>
+<tr>
+<td>Feature-name audit</td>
+<td>&quot;Порядок признаков очевиден&quot;</td>
+<td>Проверка, что vector importance сопоставлен с правильными feature names</td>
+</tr>
+<tr>
+<td>Correlated-feature warning</td>
+<td>&quot;Нулевая importance значит признак бесполезен&quot;</td>
+<td>Коррелированные признаки могут делить или маскировать importance друг друга</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://catboost.ai/docs/en/concepts/fstr" target="_blank" rel="noopener">CatBoost feature importance</a> - типы <code>PredictionValuesChange</code> и <code>LossFunctionChange</code>, смысл формул и ограничения.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier_get_feature_importance" target="_blank" rel="noopener">CatBoostClassifier.get_feature_importance</a> - параметры <code>data</code>, <code>type</code>, <code>prettified</code> и формат результата.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier" target="_blank" rel="noopener">CatBoostClassifier</a> - модельный API, из которого берутся feature names, fitted model и diagnostic methods.</li>
+<li><a href="https://scikit-learn.org/stable/modules/permutation_importance.html" target="_blank" rel="noopener">scikit-learn permutation importance</a> - следующий шаг: model-agnostic проверка importance на held-out scoring.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Чем `PredictionValuesChange` отличается от `LossFunctionChange` в уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`PredictionValuesChange` описывает изменение prediction value в структуре модели, а `LossFunctionChange` использует validation data и loss</button><button type="button" class="quiz-option" data-choice="1">`PredictionValuesChange` всегда causal, а `LossFunctionChange` всегда permutation-based</button><button type="button" class="quiz-option" data-choice="2">Оба метода обязаны возвращать одинаковые положительные значения</button><button type="button" class="quiz-option" data-choice="3">`LossFunctionChange` нельзя считать для CatBoostClassifier</button></div><p class="quiz-feedback" hidden>Методы отвечают на разные diagnostic questions; поэтому reporter хранит method label и data split.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает отрицательный `LossFunctionChange` для `platform` на tiny validation?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">На выбранном validation split удаление признака не ухудшает loss; это diagnostic warning, а не причинный вывод</button><button type="button" class="quiz-option" data-choice="1">CatBoost сломался и importance нельзя сохранять</button><button type="button" class="quiz-option" data-choice="2">Признак доказанно уменьшает churn</button><button type="button" class="quiz-option" data-choice="3">Нужно перенести test rows в validation</button></div><p class="quiz-feedback" hidden>LossFunctionChange зависит от data split и может быть отрицательным; это сигнал осторожности, а не production claim.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Зачем reporter сохраняет high-cardinality и correlated-feature warnings рядом с importance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы не скрыть known limitations, которые могут исказить built-in ranking</button><button type="button" class="quiz-option" data-choice="1">Чтобы автоматически удалить все такие признаки из модели</button><button type="button" class="quiz-option" data-choice="2">Чтобы заменить permutation importance</button><button type="button" class="quiz-option" data-choice="3">Чтобы доказать, что top feature является причиной churn</button></div><p class="quiz-feedback" hidden>Warnings не запрещают модель, но меняют силу интерпретации и подготавливают следующий урок про permutation importance.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;built_in_importance_reporter.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from built_in_importance_reporter import (  # noqa: E402
+    DEFAULT_CATEGORICAL_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class BuiltInImportanceReporterTest(TestCase):
+    def audit(
+        self,
+        root: Path = DATA_ROOT,
+        upstream_root: Path = UPSTREAM_DATA_ROOT,
+        **paths: Path,
+    ) -&gt; dict:
+        return run(
+            policy_path=paths.get(&quot;policy_path&quot;, root / &quot;built_in_importance_policy_spec.json&quot;),
+            catboost_spec_path=paths.get(&quot;catboost_spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            early_stopping_report_path=paths.get(&quot;early_stopping_report_path&quot;, DEFAULT_EARLY_STOPPING_REPORT_PATH),
+            early_stopping_spec_path=paths.get(&quot;early_stopping_spec_path&quot;, DEFAULT_EARLY_STOPPING_SPEC_PATH),
+            categorical_report_path=paths.get(&quot;categorical_report_path&quot;, DEFAULT_CATEGORICAL_REPORT_PATH),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            labels_path=paths.get(&quot;labels_path&quot;, upstream_root / &quot;ml_labels.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+        for filename in (&quot;built_in_importance_policy_spec.json&quot;, &quot;catboost_model_spec.json&quot;):
+            shutil.copy2(DATA_ROOT / filename, phase16 / filename)
+        for filename in (&quot;ml_raw_features.csv&quot;, &quot;ml_labels.csv&quot;, &quot;ml_split_manifest.csv&quot;):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_REPORT_PATH, reports / &quot;early_stopping_report.json&quot;)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_SPEC_PATH, reports / &quot;early_stopping_serialized_spec.json&quot;)
+        shutil.copy2(DEFAULT_CATEGORICAL_REPORT_PATH, reports / &quot;categorical_feature_report.json&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_report_records_methods_features_and_top_feature(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;built_in_importance_audit_id&quot;], &quot;trial-churn-built-in-importance-audit-v0&quot;)
+        self.assertEqual(summary[&quot;early_stopping_model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(summary[&quot;method_count&quot;], 2)
+        self.assertEqual(summary[&quot;feature_count&quot;], 10)
+        self.assertEqual(summary[&quot;importance_row_count&quot;], 20)
+        self.assertEqual(summary[&quot;feature_name_audit_row_count&quot;], 10)
+        self.assertEqual(summary[&quot;warning_ledger_row_count&quot;], 8)
+        self.assertEqual(summary[&quot;top_prediction_values_change_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(summary[&quot;top_loss_function_change_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(summary[&quot;tree_count&quot;], 1)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_permutation_importance_lesson&quot;)
+        self.assertEqual(
+            summary[&quot;warnings&quot;],
+            [
+                &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+                &quot;correlated_features_can_split_builtin_importance&quot;,
+                &quot;tiny_tree_count_makes_importance_unstable&quot;,
+                &quot;single_feature_dominates_prediction_values_change&quot;,
+            ],
+        )
+
+    def test_importance_rows_have_method_labels_and_expected_values(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;method&quot;], row[&quot;feature_name&quot;]): row for row in report[&quot;importance&quot;]}
+
+        pvc_platform = rows[(&quot;PredictionValuesChange&quot;, &quot;platform&quot;)]
+        self.assertEqual(pvc_platform[&quot;method_label&quot;], &quot;model_internal_prediction_change&quot;)
+        self.assertEqual(pvc_platform[&quot;interpretation_scope&quot;], &quot;model_internal_diagnostic_not_causal&quot;)
+        self.assertEqual(pvc_platform[&quot;raw_importance&quot;], 100.0)
+        self.assertEqual(pvc_platform[&quot;normalized_absolute_importance&quot;], 1.0)
+        self.assertTrue(pvc_platform[&quot;is_top_feature_for_method&quot;])
+        self.assertEqual(pvc_platform[&quot;rank_within_method&quot;], 1)
+
+        loss_platform = rows[(&quot;LossFunctionChange&quot;, &quot;platform&quot;)]
+        self.assertEqual(loss_platform[&quot;method_label&quot;], &quot;validation_loss_delta_when_feature_is_removed&quot;)
+        self.assertTrue(loss_platform[&quot;requires_eval_data&quot;])
+        self.assertEqual(loss_platform[&quot;data_split&quot;], &quot;validation&quot;)
+        self.assertEqual(loss_platform[&quot;raw_importance&quot;], -0.005247)
+        self.assertEqual(loss_platform[&quot;direction&quot;], &quot;negative&quot;)
+        self.assertTrue(loss_platform[&quot;is_top_feature_for_method&quot;])
+        self.assertEqual(rows[(&quot;PredictionValuesChange&quot;, &quot;acquisition_channel&quot;)][&quot;raw_importance&quot;], 0.0)
+
+    def test_feature_name_audit_preserves_training_pool_order_and_risk_flags(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;feature_name&quot;]: row for row in report[&quot;feature_name_audit&quot;]}
+
+        self.assertEqual([row[&quot;feature_name&quot;] for row in report[&quot;feature_name_audit&quot;]][:3], [&quot;sessions_14d&quot;, &quot;active_days_14d&quot;, &quot;support_tickets_14d&quot;])
+        self.assertTrue(all(row[&quot;name_matches&quot;] for row in report[&quot;feature_name_audit&quot;]))
+        self.assertEqual(rows[&quot;platform&quot;][&quot;feature_index&quot;], 7)
+        self.assertTrue(rows[&quot;platform&quot;][&quot;is_categorical&quot;])
+        self.assertFalse(rows[&quot;platform&quot;][&quot;high_cardinality_feature&quot;])
+        self.assertTrue(rows[&quot;acquisition_channel&quot;][&quot;high_cardinality_feature&quot;])
+        self.assertTrue(rows[&quot;sessions_14d&quot;][&quot;correlated_feature&quot;])
+        self.assertFalse(rows[&quot;plan_id&quot;][&quot;correlated_feature&quot;])
+        self.assertTrue(check(report, &quot;feature_names_match_training_pool_order&quot;)[&quot;valid&quot;])
+
+    def test_warning_ledger_names_high_cardinality_correlation_tree_count_and_dominance(self) -&gt; None:
+        report = self.audit()
+        warning_ids = {row[&quot;warning_id&quot;] for row in report[&quot;warning_ledger&quot;]}
+        rows_by_id = {}
+        for row in report[&quot;warning_ledger&quot;]:
+            rows_by_id.setdefault(row[&quot;warning_id&quot;], []).append(row)
+
+        self.assertEqual(
+            warning_ids,
+            {
+                &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+                &quot;correlated_features_can_split_builtin_importance&quot;,
+                &quot;tiny_tree_count_makes_importance_unstable&quot;,
+                &quot;single_feature_dominates_prediction_values_change&quot;,
+            },
+        )
+        self.assertEqual(rows_by_id[&quot;high_cardinality_features_flagged_for_built_in_importance&quot;][0][&quot;feature_name&quot;], &quot;acquisition_channel&quot;)
+        self.assertEqual(len(rows_by_id[&quot;correlated_features_can_split_builtin_importance&quot;]), 5)
+        self.assertEqual(rows_by_id[&quot;tiny_tree_count_makes_importance_unstable&quot;][0][&quot;observed&quot;], 1)
+        self.assertEqual(rows_by_id[&quot;single_feature_dominates_prediction_values_change&quot;][0][&quot;feature_name&quot;], &quot;platform&quot;)
+
+    def test_serialized_spec_records_handoff_and_top_features(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;early_stopping_audit_id&quot;], &quot;trial-churn-early-stopping-audit-v0&quot;)
+        self.assertEqual(serialized[&quot;tree_count_summary&quot;][&quot;tree_count&quot;], 1)
+        self.assertEqual(serialized[&quot;top_features_by_method&quot;][&quot;PredictionValuesChange&quot;][&quot;feature_name&quot;], &quot;platform&quot;)
+        self.assertEqual(serialized[&quot;top_features_by_method&quot;][&quot;LossFunctionChange&quot;][&quot;raw_importance&quot;], -0.005247)
+        self.assertEqual(serialized[&quot;warning_summary&quot;][&quot;high_cardinality_features&quot;], [&quot;acquisition_channel&quot;])
+        self.assertEqual(serialized[&quot;warning_summary&quot;][&quot;correlated_pair_count&quot;], 5)
+        self.assertEqual(
+            serialized[&quot;upstream_handoff&quot;][&quot;early_stopping_readiness_status&quot;],
+            &quot;ready_for_feature_importance_lesson&quot;,
+        )
+
+    def test_code_example_writes_all_built_in_importance_outputs(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;method_count&quot;], 2)
+        self.assertEqual(payload[&quot;feature_count&quot;], 10)
+        self.assertEqual(payload[&quot;importance_row_count&quot;], 20)
+        self.assertEqual(payload[&quot;top_prediction_values_change_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;built_in_importance_report.json&quot;)[&quot;summary&quot;][&quot;warning_ledger_row_count&quot;], 8)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;built_in_importance.csv&quot;)), 20)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;feature_name_audit.csv&quot;)), 10)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;importance_warning_ledger.csv&quot;)), 8)
+        self.assertEqual(
+            read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;built_in_importance_serialized_spec.json&quot;)[&quot;top_features_by_method&quot;][&quot;PredictionValuesChange&quot;][&quot;feature_name&quot;],
+            &quot;platform&quot;,
+        )
+
+    def test_invalid_early_stopping_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            early_report = read_json(reports / &quot;early_stopping_report.json&quot;)
+            early_report[&quot;summary&quot;][&quot;readiness_status&quot;] = &quot;blocked_by_early_stopping_policy&quot;
+            write_json(reports / &quot;early_stopping_report.json&quot;, early_report)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;built_in_importance_policy_matches_early_stopping_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertIn(&quot;built_in_importance_policy_matches_early_stopping_handoff&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_loss_function_change_method_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;)
+            policy[&quot;importance_methods&quot;] = policy[&quot;importance_methods&quot;][:1]
+            write_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;importance_methods&quot;)
+
+    def test_feature_order_mismatch_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;)
+            policy[&quot;feature_name_policy&quot;][&quot;expected_feature_order&quot;] = list(reversed(policy[&quot;feature_name_policy&quot;][&quot;expected_feature_order&quot;]))
+            write_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;feature_name_policy.expected_feature_order&quot;)
+
+    def test_positive_causal_claim_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;)
+            policy[&quot;interpretation_policy&quot;][&quot;claim&quot;] = &quot;platform causes churn, so change the product decision&quot;
+            write_json(phase16 / &quot;built_in_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;interpretation_policy.claim&quot;)
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;forbidden_terms&quot;], [&quot;causes churn&quot;])
+
+    def test_missing_categorical_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_report = reports / &quot;missing_categorical_feature_report.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=missing_report,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+
+    def test_cli_fail_on_warning_exits_after_writing_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;outputs&quot;
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--output-dir&quot;, output_dir, &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            report_exists = (output_dir / &quot;built_in_importance_report.json&quot;).exists()
+            warning_exists = (output_dir / &quot;importance_warning_ledger.csv&quot;).exists()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;warning_count&quot;], 4)
+        self.assertTrue(report_exists)
+        self.assertTrue(warning_exists)
+
+    def test_missing_policy_returns_structured_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_policy = phase16 / &quot;missing_built_in_importance_policy_spec.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                policy_path=missing_policy,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+        self.assertEqual(report[&quot;checks&quot;][0][&quot;id&quot;], &quot;input_files_are_present&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from built_in_importance_reporter import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; None:
+    result = run()
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;])
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;built_in_importance_audit_id&quot;: summary[&quot;built_in_importance_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: summary[&quot;early_stopping_model_id&quot;],
+                &quot;method_count&quot;: summary[&quot;method_count&quot;],
+                &quot;feature_count&quot;: summary[&quot;feature_count&quot;],
+                &quot;importance_row_count&quot;: summary[&quot;importance_row_count&quot;],
+                &quot;top_prediction_values_change_feature&quot;: summary[&quot;top_prediction_values_change_feature&quot;],
+                &quot;top_loss_function_change_feature&quot;: summary[&quot;top_loss_function_change_feature&quot;],
+                &quot;warning_count&quot;: len(summary[&quot;warnings&quot;]),
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;built-in-importance-reporter&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/built_in_importance_reporter.py&quot;,
+  &quot;description&quot;: &quot;Считает CatBoost built-in feature importance с method labels, feature-name audit, high-cardinality/correlation warnings и non-causal interpretation policy.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_reporter.py --output-dir phases/16-tabular-ml/04-feature-importance/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/built_in_importance.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>method,method_label,interpretation_scope,data_split,requires_eval_data,feature_index,feature_name,feature_role,raw_importance,absolute_importance,normalized_absolute_importance,direction,is_top_feature_for_method,rank_within_method
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,0,sessions_14d,numeric,0.0,0.0,0.0,zero,False,2
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,1,active_days_14d,numeric,0.0,0.0,0.0,zero,False,3
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,2,support_tickets_14d,numeric,0.0,0.0,0.0,zero,False,4
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,3,revenue_30d,numeric,0.0,0.0,0.0,zero,False,5
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,4,days_since_signup,numeric,0.0,0.0,0.0,zero,False,6
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,5,had_support_ticket_14d,numeric,0.0,0.0,0.0,zero,False,7
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,6,plan_id,categorical,0.0,0.0,0.0,zero,False,8
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,7,platform,categorical,100.0,100.0,1.0,positive,True,1
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,8,country,categorical,0.0,0.0,0.0,zero,False,9
+PredictionValuesChange,model_internal_prediction_change,model_internal_diagnostic_not_causal,model_structure,False,9,acquisition_channel,categorical,0.0,0.0,0.0,zero,False,10
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,0,sessions_14d,numeric,0.0,0.0,0.0,zero,False,2
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,1,active_days_14d,numeric,0.0,0.0,0.0,zero,False,3
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,2,support_tickets_14d,numeric,0.0,0.0,0.0,zero,False,4
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,3,revenue_30d,numeric,0.0,0.0,0.0,zero,False,5
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,4,days_since_signup,numeric,0.0,0.0,0.0,zero,False,6
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,5,had_support_ticket_14d,numeric,0.0,0.0,0.0,zero,False,7
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,6,plan_id,categorical,0.0,0.0,0.0,zero,False,8
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,7,platform,categorical,-0.005247,0.005247,1.0,negative,True,1
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,8,country,categorical,0.0,0.0,0.0,zero,False,9
+LossFunctionChange,validation_loss_delta_when_feature_is_removed,model_internal_validation_diagnostic_not_causal,validation,True,9,acquisition_channel,categorical,0.0,0.0,0.0,zero,False,10
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/built_in_importance_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;method_count&quot;: 2,
+    &quot;feature_count&quot;: 10,
+    &quot;importance_row_count&quot;: 20,
+    &quot;feature_name_audit_row_count&quot;: 10,
+    &quot;warning_ledger_row_count&quot;: 8,
+    &quot;top_prediction_values_change_feature&quot;: &quot;platform&quot;,
+    &quot;top_loss_function_change_feature&quot;: &quot;platform&quot;,
+    &quot;tree_count&quot;: 1,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+      &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;tiny_tree_count_makes_importance_unstable&quot;,
+      &quot;single_feature_dominates_prediction_values_change&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_permutation_importance_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-04T12:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;built_in_importance_policy&quot;,
+        &quot;catboost_model_spec&quot;,
+        &quot;categorical_report&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;early_stopping_serialized_spec&quot;,
+        &quot;features&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;built_in_importance_policy_matches_early_stopping_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+        &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+        &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;methods&quot;: [
+          &quot;PredictionValuesChange&quot;,
+          &quot;LossFunctionChange&quot;
+        ],
+        &quot;feature_count&quot;: 10,
+        &quot;claim&quot;: &quot;Built-in importance is a model-internal diagnostic for this trained CatBoost model, not evidence of business or causal impact.&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_names_match_training_pool_order&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 10,
+        &quot;features&quot;: [
+          &quot;sessions_14d&quot;,
+          &quot;active_days_14d&quot;,
+          &quot;support_tickets_14d&quot;,
+          &quot;revenue_30d&quot;,
+          &quot;days_since_signup&quot;,
+          &quot;had_support_ticket_14d&quot;,
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;country&quot;,
+          &quot;acquisition_channel&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;built_in_importance_rows_cover_all_methods_and_features&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;method_count&quot;: 2,
+        &quot;feature_count&quot;: 10,
+        &quot;row_count&quot;: 20
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: &quot;acquisition_channel&quot;,
+          &quot;expected&quot;: &quot;high-cardinality features are interpreted with caution&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be unstable or biased for sparse/high-cardinality categories.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 0.981981,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 1.0,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 0.904534,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 0.866025,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 0.894427,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_tree_count_makes_importance_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tiny_tree_count_makes_importance_unstable&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;method&quot;: &quot;all_builtin_methods&quot;,
+          &quot;observed&quot;: 1,
+          &quot;expected&quot;: &quot;&gt;= 10&quot;,
+          &quot;reason&quot;: &quot;A one-tree tiny model is useful for testing the protocol, not for strong interpretation claims.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;single_feature_dominates_prediction_values_change&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;single_feature_dominates_prediction_values_change&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;platform&quot;,
+          &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+          &quot;observed&quot;: 100.0,
+          &quot;expected&quot;: &quot;&lt; 90.0&quot;,
+          &quot;reason&quot;: &quot;Dominant built-in importance on a tiny model can be an artifact of one split.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;importance&quot;: [
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 2
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 3
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 4
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 5
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 6
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 7
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 8
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 100.0,
+      &quot;absolute_importance&quot;: 100.0,
+      &quot;normalized_absolute_importance&quot;: 1.0,
+      &quot;direction&quot;: &quot;positive&quot;,
+      &quot;is_top_feature_for_method&quot;: true,
+      &quot;rank_within_method&quot;: 1
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 9
+    },
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 10
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 2
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 3
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 4
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 5
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 6
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 7
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 8
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: -0.005247,
+      &quot;absolute_importance&quot;: 0.005247,
+      &quot;normalized_absolute_importance&quot;: 1.0,
+      &quot;direction&quot;: &quot;negative&quot;,
+      &quot;is_top_feature_for_method&quot;: true,
+      &quot;rank_within_method&quot;: 1
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 9
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;raw_importance&quot;: 0.0,
+      &quot;absolute_importance&quot;: 0.0,
+      &quot;normalized_absolute_importance&quot;: 0.0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;is_top_feature_for_method&quot;: false,
+      &quot;rank_within_method&quot;: 10
+    }
+  ],
+  &quot;feature_name_audit&quot;: [
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;expected_feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;model_feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;expected_feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;model_feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;expected_feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;model_feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;expected_feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;model_feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;expected_feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;model_feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;expected_feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;model_feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;is_categorical&quot;: false,
+      &quot;is_numeric&quot;: true,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;expected_feature_name&quot;: &quot;plan_id&quot;,
+      &quot;model_feature_name&quot;: &quot;plan_id&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;is_categorical&quot;: true,
+      &quot;is_numeric&quot;: false,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;expected_feature_name&quot;: &quot;platform&quot;,
+      &quot;model_feature_name&quot;: &quot;platform&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;is_categorical&quot;: true,
+      &quot;is_numeric&quot;: false,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;expected_feature_name&quot;: &quot;country&quot;,
+      &quot;model_feature_name&quot;: &quot;country&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;is_categorical&quot;: true,
+      &quot;is_numeric&quot;: false,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;correlated_feature&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;expected_feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;model_feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;name_matches&quot;: true,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;is_categorical&quot;: true,
+      &quot;is_numeric&quot;: false,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;correlated_feature&quot;: false
+    }
+  ],
+  &quot;warning_ledger&quot;: [
+    {
+      &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: &quot;acquisition_channel&quot;,
+      &quot;expected&quot;: &quot;high-cardinality features are interpreted with caution&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be unstable or biased for sparse/high-cardinality categories.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 0.981981,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 1.0,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 0.904534,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 0.866025,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 0.894427,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tiny_tree_count_makes_importance_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;method&quot;: &quot;all_builtin_methods&quot;,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;&gt;= 10&quot;,
+      &quot;reason&quot;: &quot;A one-tree tiny model is useful for testing the protocol, not for strong interpretation claims.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;single_feature_dominates_prediction_values_change&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;observed&quot;: 100.0,
+      &quot;expected&quot;: &quot;&lt; 90.0&quot;,
+      &quot;reason&quot;: &quot;Dominant built-in importance on a tiny model can be an artifact of one split.&quot;,
+      &quot;blocks_readiness&quot;: false
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/built_in_importance_reporter.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import numpy as np
+import pandas as pd
+from catboost import CatBoostClassifier, Pool
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;built_in_importance_policy_spec.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_CATEGORICAL_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;
+)
+DEFAULT_EARLY_STOPPING_REPORT_PATH = PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;
+DEFAULT_EARLY_STOPPING_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_serialized_spec.json&quot;
+)
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+
+GENERATED_AT = &quot;2026-07-04T12:00:00+03:00&quot;
+
+
+def portable_path(path: Path) -&gt; str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+class BuiltInImportanceError(ValueError):
+    &quot;&quot;&quot;Raised when built-in importance inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise BuiltInImportanceError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def expected_feature_order(catboost_spec: dict[str, Any]) -&gt; list[str]:
+    contract = catboost_spec.get(&quot;feature_contract&quot;, {})
+    return list(contract.get(&quot;numeric_features&quot;, [])) + list(contract.get(&quot;categorical_features&quot;, []))
+
+
+def validate_handoff(
+    *,
+    policy: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    early_report: dict[str, Any],
+    early_spec: dict[str, Any],
+    categorical_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    required = {
+        &quot;built_in_importance_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;source_catboost_model_id&quot;,
+        &quot;early_stopping_model_id&quot;,
+        &quot;early_stopping_audit_id&quot;,
+        &quot;categorical_audit_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;eval_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;importance_methods&quot;,
+        &quot;feature_name_policy&quot;,
+        &quot;interpretation_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    expected_identity = {
+        &quot;problem_id&quot;: early_spec.get(&quot;problem_id&quot;),
+        &quot;catboost_baseline_id&quot;: early_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;source_catboost_model_id&quot;: early_spec.get(&quot;source_catboost_model_id&quot;),
+        &quot;early_stopping_model_id&quot;: early_spec.get(&quot;early_stopping_model_id&quot;),
+        &quot;early_stopping_audit_id&quot;: early_spec.get(&quot;early_stopping_audit_id&quot;),
+        &quot;categorical_audit_id&quot;: early_spec.get(&quot;categorical_audit_id&quot;),
+        &quot;fit_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;fit_split&quot;),
+        &quot;eval_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;eval_split&quot;),
+        &quot;final_holdout_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;final_holdout_split&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if policy.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: policy.get(field), &quot;expected&quot;: expected})
+
+    if early_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;early_stopping_report.valid&quot;, &quot;observed&quot;: early_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if early_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_feature_importance_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;early_stopping_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: early_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_feature_importance_lesson&quot;,
+            }
+        )
+    if categorical_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;categorical_report.valid&quot;, &quot;observed&quot;: categorical_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if categorical_report.get(&quot;summary&quot;, {}).get(&quot;categorical_audit_id&quot;) != policy.get(&quot;categorical_audit_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_audit_id&quot;,
+                &quot;observed&quot;: policy.get(&quot;categorical_audit_id&quot;),
+                &quot;expected&quot;: categorical_report.get(&quot;summary&quot;, {}).get(&quot;categorical_audit_id&quot;),
+            }
+        )
+    if expected_feature_order(catboost_spec) != early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;feature_order&quot;,
+                &quot;observed&quot;: expected_feature_order(catboost_spec),
+                &quot;expected&quot;: early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []),
+            }
+        )
+
+    if errors:
+        return [
+            failed(
+                &quot;built_in_importance_policy_matches_early_stopping_handoff&quot;,
+                errors,
+                &quot;same CatBoost model, early-stopping run and categorical audit&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;built_in_importance_policy_matches_early_stopping_handoff&quot;,
+            {
+                &quot;built_in_importance_audit_id&quot;: policy[&quot;built_in_importance_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: policy[&quot;early_stopping_model_id&quot;],
+                &quot;early_stopping_audit_id&quot;: policy[&quot;early_stopping_audit_id&quot;],
+            },
+        )
+    ]
+
+
+def validate_importance_policy(policy: dict[str, Any], expected_features: list[str]) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    methods = policy.get(&quot;importance_methods&quot;) if isinstance(policy.get(&quot;importance_methods&quot;), list) else []
+    method_names = [item.get(&quot;method&quot;) for item in methods if isinstance(item, dict)]
+    expected_methods = [&quot;PredictionValuesChange&quot;, &quot;LossFunctionChange&quot;]
+    if method_names != expected_methods:
+        errors.append({&quot;field&quot;: &quot;importance_methods&quot;, &quot;observed&quot;: method_names, &quot;expected&quot;: expected_methods})
+    for item in methods:
+        if not item.get(&quot;method_label&quot;) or &quot;diagnostic&quot; not in item.get(&quot;interpretation_scope&quot;, &quot;&quot;):
+            errors.append({&quot;field&quot;: f&quot;importance_methods.{item.get(&#x27;method&#x27;)}&quot;, &quot;expected&quot;: &quot;method label and diagnostic scope&quot;})
+        if item.get(&quot;method&quot;) == &quot;LossFunctionChange&quot; and (not item.get(&quot;requires_eval_data&quot;) or item.get(&quot;data_split&quot;) != policy.get(&quot;eval_split&quot;)):
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;LossFunctionChange.data_split&quot;,
+                    &quot;observed&quot;: item.get(&quot;data_split&quot;),
+                    &quot;expected&quot;: policy.get(&quot;eval_split&quot;),
+                }
+            )
+
+    observed_order = policy.get(&quot;feature_name_policy&quot;, {}).get(&quot;expected_feature_order&quot;)
+    if observed_order != expected_features:
+        errors.append({&quot;field&quot;: &quot;feature_name_policy.expected_feature_order&quot;, &quot;observed&quot;: observed_order, &quot;expected&quot;: expected_features})
+
+    claim = str(policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;claim&quot;, &quot;&quot;)).lower()
+    forbidden = [term for term in policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;forbidden_positive_claim_terms&quot;, []) if term in claim]
+    if forbidden:
+        errors.append({&quot;field&quot;: &quot;interpretation_policy.claim&quot;, &quot;forbidden_terms&quot;: sorted(forbidden)})
+
+    if errors:
+        return [
+            failed(
+                &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;,
+                errors,
+                &quot;two labeled CatBoost built-in methods, exact feature order and no positive causal claim&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;importance_policy_declares_methods_feature_names_and_noncausal_scope&quot;,
+            {&quot;methods&quot;: method_names, &quot;feature_count&quot;: len(expected_features), &quot;claim&quot;: policy[&quot;interpretation_policy&quot;][&quot;claim&quot;]},
+        )
+    ]
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+    for frame_name, frame in {
+        &quot;features&quot;: features,
+        &quot;labels&quot;: labels,
+        &quot;manifest&quot;: manifest,
+    }.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise BuiltInImportanceError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise BuiltInImportanceError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(
+        manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;, &quot;user_id&quot;, &quot;prediction_time&quot;]],
+        on=&quot;snapshot_id&quot;,
+        how=&quot;inner&quot;,
+    )
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def prepare_features(
+    frame: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    missing_category_token: str,
+) -&gt; pd.DataFrame:
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def train_model(
+    *,
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    early_spec: dict[str, Any],
+) -&gt; CatBoostClassifier:
+    categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+    train_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;fit_split&quot;]
+    eval_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;eval_split&quot;]
+    model = CatBoostClassifier(**early_spec[&quot;catboost_params&quot;])
+    model.fit(
+        Pool(matrix.loc[train_mask], frame.loc[train_mask, &quot;target&quot;], cat_features=categorical_features),
+        eval_set=Pool(matrix.loc[eval_mask], frame.loc[eval_mask, &quot;target&quot;], cat_features=categorical_features),
+    )
+    return model
+
+
+def high_cardinality_features(categorical_report: dict[str, Any]) -&gt; set[str]:
+    return {
+        str(row[&quot;feature_name&quot;])
+        for row in categorical_report.get(&quot;inventory&quot;, [])
+        if row.get(&quot;high_cardinality_feature&quot;) is True
+    }
+
+
+def feature_name_audit_rows(
+    *,
+    expected_features: list[str],
+    model_features: list[str],
+    numeric_features: list[str],
+    categorical_features: list[str],
+    high_cardinality: set[str],
+    correlated_features: set[str],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, feature in enumerate(expected_features):
+        rows.append(
+            {
+                &quot;feature_index&quot;: index,
+                &quot;feature_name&quot;: feature,
+                &quot;expected_feature_name&quot;: feature,
+                &quot;model_feature_name&quot;: model_features[index] if index &lt; len(model_features) else &quot;&quot;,
+                &quot;name_matches&quot;: index &lt; len(model_features) and model_features[index] == feature,
+                &quot;feature_role&quot;: &quot;categorical&quot; if feature in categorical_features else &quot;numeric&quot;,
+                &quot;is_categorical&quot;: feature in categorical_features,
+                &quot;is_numeric&quot;: feature in numeric_features,
+                &quot;high_cardinality_feature&quot;: feature in high_cardinality,
+                &quot;correlated_feature&quot;: feature in correlated_features,
+            }
+        )
+    return rows
+
+
+def validate_feature_name_audit(rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    mismatches = [row for row in rows if not row[&quot;name_matches&quot;]]
+    if mismatches:
+        return [
+            failed(
+                &quot;feature_names_match_training_pool_order&quot;,
+                mismatches,
+                &quot;CatBoost model feature names exactly match policy order&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;feature_names_match_training_pool_order&quot;,
+            {&quot;feature_count&quot;: len(rows), &quot;features&quot;: [row[&quot;feature_name&quot;] for row in rows]},
+        )
+    ]
+
+
+def correlated_numeric_pairs(frame: pd.DataFrame, numeric_features: list[str], fit_split: str, threshold: float) -&gt; list[dict[str, Any]]:
+    train = frame.loc[frame[&quot;split&quot;] == fit_split, numeric_features].apply(pd.to_numeric, errors=&quot;coerce&quot;)
+    corr = train.corr().abs()
+    pairs: list[dict[str, Any]] = []
+    for left_index, left in enumerate(numeric_features):
+        for right in numeric_features[left_index + 1 :]:
+            value = corr.loc[left, right]
+            if pd.notna(value) and float(value) &gt;= threshold:
+                pairs.append(
+                    {
+                        &quot;left_feature&quot;: left,
+                        &quot;right_feature&quot;: right,
+                        &quot;abs_correlation&quot;: rounded(float(value)),
+                    }
+                )
+    return pairs
+
+
+def compute_importance_rows(
+    *,
+    policy: dict[str, Any],
+    model: CatBoostClassifier,
+    matrix: pd.DataFrame,
+    frame: pd.DataFrame,
+    expected_features: list[str],
+    categorical_features: list[str],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    eval_mask = frame[&quot;split&quot;] == policy[&quot;eval_split&quot;]
+    eval_pool = Pool(matrix.loc[eval_mask], frame.loc[eval_mask, &quot;target&quot;], cat_features=categorical_features)
+
+    for method_spec in policy[&quot;importance_methods&quot;]:
+        method = method_spec[&quot;method&quot;]
+        if method_spec.get(&quot;requires_eval_data&quot;):
+            values = model.get_feature_importance(data=eval_pool, type=method)
+        else:
+            values = model.get_feature_importance(type=method)
+        abs_total = float(np.sum(np.abs(values)))
+        method_rows = []
+        for index, (feature, value) in enumerate(zip(expected_features, values, strict=True)):
+            raw = float(value)
+            method_rows.append(
+                {
+                    &quot;method&quot;: method,
+                    &quot;method_label&quot;: method_spec[&quot;method_label&quot;],
+                    &quot;interpretation_scope&quot;: method_spec[&quot;interpretation_scope&quot;],
+                    &quot;data_split&quot;: method_spec[&quot;data_split&quot;],
+                    &quot;requires_eval_data&quot;: bool(method_spec[&quot;requires_eval_data&quot;]),
+                    &quot;feature_index&quot;: index,
+                    &quot;feature_name&quot;: feature,
+                    &quot;feature_role&quot;: &quot;categorical&quot; if feature in categorical_features else &quot;numeric&quot;,
+                    &quot;raw_importance&quot;: rounded(raw),
+                    &quot;absolute_importance&quot;: rounded(abs(raw)),
+                    &quot;normalized_absolute_importance&quot;: rounded(abs(raw) / abs_total) if abs_total else 0.0,
+                    &quot;direction&quot;: &quot;positive&quot; if raw &gt; 0 else &quot;negative&quot; if raw &lt; 0 else &quot;zero&quot;,
+                    &quot;is_top_feature_for_method&quot;: False,
+                    &quot;rank_within_method&quot;: None,
+                }
+            )
+        ranked = sorted(method_rows, key=lambda row: (-float(row[&quot;absolute_importance&quot;]), int(row[&quot;feature_index&quot;])))
+        for rank, row in enumerate(ranked, start=1):
+            row[&quot;rank_within_method&quot;] = rank
+            row[&quot;is_top_feature_for_method&quot;] = rank == 1
+        rows.extend(sorted(method_rows, key=lambda row: int(row[&quot;feature_index&quot;])))
+    return rows
+
+
+def top_feature_by_method(importance_rows: list[dict[str, Any]]) -&gt; dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for method in sorted({row[&quot;method&quot;] for row in importance_rows}):
+        top = next(row for row in importance_rows if row[&quot;method&quot;] == method and row[&quot;is_top_feature_for_method&quot;])
+        result[method] = {
+            &quot;feature_name&quot;: top[&quot;feature_name&quot;],
+            &quot;raw_importance&quot;: top[&quot;raw_importance&quot;],
+            &quot;normalized_absolute_importance&quot;: top[&quot;normalized_absolute_importance&quot;],
+            &quot;feature_role&quot;: top[&quot;feature_role&quot;],
+        }
+    return result
+
+
+def warning_ledger_rows(
+    *,
+    policy: dict[str, Any],
+    importance_rows: list[dict[str, Any]],
+    high_cardinality: set[str],
+    correlated_pairs: list[dict[str, Any]],
+    tree_count: int,
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    warning_policy = policy.get(&quot;warning_policy&quot;, {})
+    pvc_top = top_feature_by_method(importance_rows).get(&quot;PredictionValuesChange&quot;, {})
+    pvc_top_value = float(pvc_top.get(&quot;raw_importance&quot;, 0.0) or 0.0)
+    dominant_threshold = float(warning_policy.get(&quot;dominant_prediction_values_change_threshold&quot;, 100.0))
+
+    for feature in sorted(high_cardinality):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: feature,
+                &quot;method&quot;: &quot;all_builtin_methods&quot;,
+                &quot;observed&quot;: feature,
+                &quot;expected&quot;: &quot;high-cardinality features are interpreted with caution&quot;,
+                &quot;reason&quot;: &quot;Built-in importance can be unstable or biased for sparse/high-cardinality categories.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    for pair in correlated_pairs:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;correlated_features_can_split_builtin_importance&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: f&quot;{pair[&#x27;left_feature&#x27;]}|{pair[&#x27;right_feature&#x27;]}&quot;,
+                &quot;method&quot;: &quot;all_builtin_methods&quot;,
+                &quot;observed&quot;: pair[&quot;abs_correlation&quot;],
+                &quot;expected&quot;: f&quot;abs correlation &lt; {warning_policy.get(&#x27;correlation_threshold&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;Built-in importance can be shared or hidden among correlated features.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    min_tree_count = int(warning_policy.get(&quot;min_tree_count_for_stable_importance&quot;, 0))
+    if tree_count &lt; min_tree_count:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tiny_tree_count_makes_importance_unstable&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;method&quot;: &quot;all_builtin_methods&quot;,
+                &quot;observed&quot;: tree_count,
+                &quot;expected&quot;: f&quot;&gt;= {min_tree_count}&quot;,
+                &quot;reason&quot;: &quot;A one-tree tiny model is useful for testing the protocol, not for strong interpretation claims.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if pvc_top_value &gt;= dominant_threshold:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;single_feature_dominates_prediction_values_change&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: pvc_top.get(&quot;feature_name&quot;, &quot;&quot;),
+                &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+                &quot;observed&quot;: rounded(pvc_top_value),
+                &quot;expected&quot;: f&quot;&lt; {dominant_threshold}&quot;,
+                &quot;reason&quot;: &quot;Dominant built-in importance on a tiny model can be an artifact of one split.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+    return rows
+
+
+def warning_checks(warning_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for warning_id in [
+        &quot;high_cardinality_features_flagged_for_built_in_importance&quot;,
+        &quot;correlated_features_can_split_builtin_importance&quot;,
+        &quot;tiny_tree_count_makes_importance_unstable&quot;,
+        &quot;single_feature_dominates_prediction_values_change&quot;,
+    ]:
+        rows = [row for row in warning_rows if row[&quot;warning_id&quot;] == warning_id]
+        if rows:
+            checks.append(failed(warning_id, len(rows), &quot;0 warnings&quot;, rows[:5], severity=&quot;warning&quot;))
+        else:
+            checks.append(passed(warning_id, 0))
+    return checks
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable built-in importance inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;built_in_importance_audit_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_built_in_importance_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;importance&quot;: [],
+        &quot;feature_name_audit&quot;: [],
+        &quot;warning_ledger&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    early_stopping_report_path: Path = DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    early_stopping_spec_path: Path = DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    categorical_report_path: Path = DEFAULT_CATEGORICAL_REPORT_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;built_in_importance_policy&quot;: policy_path,
+        &quot;catboost_model_spec&quot;: catboost_spec_path,
+        &quot;early_stopping_report&quot;: early_stopping_report_path,
+        &quot;early_stopping_serialized_spec&quot;: early_stopping_spec_path,
+        &quot;categorical_report&quot;: categorical_report_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        policy = read_json(policy_path)
+        catboost_spec = read_json(catboost_spec_path)
+        early_report = read_json(early_stopping_report_path)
+        early_spec = read_json(early_stopping_spec_path)
+        categorical_report = read_json(categorical_report_path)
+        frame = joined_frame(features_path, labels_path, manifest_path)
+        numeric_features = list(early_spec.get(&quot;numeric_features&quot;, []))
+        categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+        expected_features = expected_feature_order(catboost_spec)
+
+        checks = [file_check]
+        checks.extend(
+            validate_handoff(
+                policy=policy,
+                catboost_spec=catboost_spec,
+                early_report=early_report,
+                early_spec=early_spec,
+                categorical_report=categorical_report,
+            )
+        )
+        checks.extend(validate_importance_policy(policy, expected_features))
+
+        importance_rows: list[dict[str, Any]] = []
+        feature_audit: list[dict[str, Any]] = []
+        warning_rows: list[dict[str, Any]] = []
+        correlated_pairs: list[dict[str, Any]] = []
+        high_cardinality = high_cardinality_features(categorical_report)
+        model: CatBoostClassifier | None = None
+
+        if not blocking_errors(checks):
+            matrix = prepare_features(
+                frame,
+                numeric_features,
+                categorical_features,
+                catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;),
+            )
+            model = train_model(frame=frame, matrix=matrix, early_spec=early_spec)
+            correlated_pairs = correlated_numeric_pairs(
+                frame,
+                numeric_features,
+                policy[&quot;fit_split&quot;],
+                float(policy.get(&quot;warning_policy&quot;, {}).get(&quot;correlation_threshold&quot;, 1.0)),
+            )
+            correlated = {pair[&quot;left_feature&quot;] for pair in correlated_pairs} | {pair[&quot;right_feature&quot;] for pair in correlated_pairs}
+            feature_audit = feature_name_audit_rows(
+                expected_features=expected_features,
+                model_features=list(model.feature_names_),
+                numeric_features=numeric_features,
+                categorical_features=categorical_features,
+                high_cardinality=high_cardinality,
+                correlated_features=correlated,
+            )
+            checks.extend(validate_feature_name_audit(feature_audit))
+            if not blocking_errors(checks):
+                importance_rows = compute_importance_rows(
+                    policy=policy,
+                    model=model,
+                    matrix=matrix,
+                    frame=frame,
+                    expected_features=expected_features,
+                    categorical_features=categorical_features,
+                )
+                checks.append(
+                    passed(
+                        &quot;built_in_importance_rows_cover_all_methods_and_features&quot;,
+                        {
+                            &quot;method_count&quot;: len(policy[&quot;importance_methods&quot;]),
+                            &quot;feature_count&quot;: len(expected_features),
+                            &quot;row_count&quot;: len(importance_rows),
+                        },
+                    )
+                )
+                warning_rows = warning_ledger_rows(
+                    policy=policy,
+                    importance_rows=importance_rows,
+                    high_cardinality=high_cardinality,
+                    correlated_pairs=correlated_pairs,
+                    tree_count=int(early_spec.get(&quot;tree_count_summary&quot;, {}).get(&quot;tree_count&quot;, 0)),
+                )
+                checks.extend(warning_checks(warning_rows))
+
+        blocking = blocking_errors(checks)
+        warnings = warning_ids(checks)
+        valid = not blocking
+        top_by_method = top_feature_by_method(importance_rows) if importance_rows else {}
+        serialized_spec = {
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: policy.get(&quot;catboost_baseline_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;categorical_audit_id&quot;: policy.get(&quot;categorical_audit_id&quot;),
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;feature_order&quot;: expected_features,
+            &quot;importance_methods&quot;: policy.get(&quot;importance_methods&quot;, []),
+            &quot;interpretation_policy&quot;: policy.get(&quot;interpretation_policy&quot;, {}),
+            &quot;tree_count_summary&quot;: early_spec.get(&quot;tree_count_summary&quot;, {}),
+            &quot;top_features_by_method&quot;: top_by_method,
+            &quot;warning_summary&quot;: {
+                &quot;warning_count&quot;: len(warning_rows),
+                &quot;high_cardinality_features&quot;: sorted(high_cardinality),
+                &quot;correlated_pair_count&quot;: len(correlated_pairs),
+            },
+            &quot;upstream_handoff&quot;: {
+                &quot;early_stopping_report&quot;: portable_path(early_stopping_report_path),
+                &quot;early_stopping_readiness_status&quot;: early_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;categorical_report&quot;: portable_path(categorical_report_path),
+                &quot;categorical_audit_id&quot;: categorical_report.get(&quot;summary&quot;, {}).get(&quot;categorical_audit_id&quot;),
+            },
+            &quot;output&quot;: policy.get(&quot;output&quot;, {}),
+        }
+        summary = {
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;method_count&quot;: len(policy.get(&quot;importance_methods&quot;, [])),
+            &quot;feature_count&quot;: len(expected_features),
+            &quot;importance_row_count&quot;: len(importance_rows),
+            &quot;feature_name_audit_row_count&quot;: len(feature_audit),
+            &quot;warning_ledger_row_count&quot;: len(warning_rows),
+            &quot;top_prediction_values_change_feature&quot;: top_by_method.get(&quot;PredictionValuesChange&quot;, {}).get(&quot;feature_name&quot;),
+            &quot;top_loss_function_change_feature&quot;: top_by_method.get(&quot;LossFunctionChange&quot;, {}).get(&quot;feature_name&quot;),
+            &quot;tree_count&quot;: early_spec.get(&quot;tree_count_summary&quot;, {}).get(&quot;tree_count&quot;),
+            &quot;blocking_errors&quot;: blocking,
+            &quot;warnings&quot;: warnings,
+            &quot;readiness_status&quot;: &quot;ready_for_permutation_importance_lesson&quot; if valid else &quot;blocked_by_built_in_importance_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        return {
+            &quot;valid&quot;: valid,
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;checks&quot;: checks,
+            &quot;importance&quot;: importance_rows,
+            &quot;feature_name_audit&quot;: feature_audit if valid else [],
+            &quot;warning_ledger&quot;: warning_rows,
+            &quot;serialized_spec&quot;: serialized_spec if valid else {},
+        }
+    except (BuiltInImportanceError, OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
+        return failure_report(&quot;built_in_importance_runtime_error&quot;, str(exc))
+
+
+IMPORTANCE_FIELDS = [
+    &quot;method&quot;,
+    &quot;method_label&quot;,
+    &quot;interpretation_scope&quot;,
+    &quot;data_split&quot;,
+    &quot;requires_eval_data&quot;,
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;feature_role&quot;,
+    &quot;raw_importance&quot;,
+    &quot;absolute_importance&quot;,
+    &quot;normalized_absolute_importance&quot;,
+    &quot;direction&quot;,
+    &quot;is_top_feature_for_method&quot;,
+    &quot;rank_within_method&quot;,
+]
+
+FEATURE_AUDIT_FIELDS = [
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;expected_feature_name&quot;,
+    &quot;model_feature_name&quot;,
+    &quot;name_matches&quot;,
+    &quot;feature_role&quot;,
+    &quot;is_categorical&quot;,
+    &quot;is_numeric&quot;,
+    &quot;high_cardinality_feature&quot;,
+    &quot;correlated_feature&quot;,
+]
+
+WARNING_FIELDS = [
+    &quot;warning_id&quot;,
+    &quot;severity&quot;,
+    &quot;feature_name&quot;,
+    &quot;method&quot;,
+    &quot;observed&quot;,
+    &quot;expected&quot;,
+    &quot;reason&quot;,
+    &quot;blocks_readiness&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_spec&quot;})
+    write_csv(output_dir / output_spec[&quot;importance_file&quot;], result[&quot;importance&quot;], IMPORTANCE_FIELDS)
+    write_csv(output_dir / output_spec[&quot;feature_name_audit_file&quot;], result[&quot;feature_name_audit&quot;], FEATURE_AUDIT_FIELDS)
+    write_csv(output_dir / output_spec[&quot;warning_ledger_file&quot;], result[&quot;warning_ledger&quot;], WARNING_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Report CatBoost built-in feature importance with interpretation warnings.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--early-stopping-report&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_REPORT_PATH)
+    parser.add_argument(&quot;--early-stopping-spec&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_SPEC_PATH)
+    parser.add_argument(&quot;--categorical-report&quot;, type=Path, default=DEFAULT_CATEGORICAL_REPORT_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        policy_path=args.policy,
+        catboost_spec_path=args.catboost_spec,
+        early_stopping_report_path=args.early_stopping_report,
+        early_stopping_spec_path=args.early_stopping_spec,
+        categorical_report_path=args.categorical_report,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+    )
+    output_spec = read_json(args.policy).get(&quot;output&quot;, {}) if args.policy.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;built_in_importance_audit_id&quot;: summary.get(&quot;built_in_importance_audit_id&quot;),
+                &quot;early_stopping_model_id&quot;: summary.get(&quot;early_stopping_model_id&quot;),
+                &quot;method_count&quot;: summary.get(&quot;method_count&quot;),
+                &quot;feature_count&quot;: summary.get(&quot;feature_count&quot;),
+                &quot;importance_row_count&quot;: summary.get(&quot;importance_row_count&quot;),
+                &quot;top_prediction_values_change_feature&quot;: summary.get(&quot;top_prediction_values_change_feature&quot;),
+                &quot;top_loss_function_change_feature&quot;: summary.get(&quot;top_loss_function_change_feature&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_reporter.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/built_in_importance_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+  &quot;feature_order&quot;: [
+    &quot;sessions_14d&quot;,
+    &quot;active_days_14d&quot;,
+    &quot;support_tickets_14d&quot;,
+    &quot;revenue_30d&quot;,
+    &quot;days_since_signup&quot;,
+    &quot;had_support_ticket_14d&quot;,
+    &quot;plan_id&quot;,
+    &quot;platform&quot;,
+    &quot;country&quot;,
+    &quot;acquisition_channel&quot;
+  ],
+  &quot;importance_methods&quot;: [
+    {
+      &quot;method&quot;: &quot;PredictionValuesChange&quot;,
+      &quot;method_label&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;data_split&quot;: &quot;model_structure&quot;,
+      &quot;requires_eval_data&quot;: false,
+      &quot;interpretation_scope&quot;: &quot;model_internal_diagnostic_not_causal&quot;
+    },
+    {
+      &quot;method&quot;: &quot;LossFunctionChange&quot;,
+      &quot;method_label&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;data_split&quot;: &quot;validation&quot;,
+      &quot;requires_eval_data&quot;: true,
+      &quot;interpretation_scope&quot;: &quot;model_internal_validation_diagnostic_not_causal&quot;
+    }
+  ],
+  &quot;interpretation_policy&quot;: {
+    &quot;claim&quot;: &quot;Built-in importance is a model-internal diagnostic for this trained CatBoost model, not evidence of business or causal impact.&quot;,
+    &quot;forbidden_positive_claim_terms&quot;: [
+      &quot;causes churn&quot;,
+      &quot;caused churn&quot;,
+      &quot;causal driver&quot;,
+      &quot;because of platform&quot;,
+      &quot;proves retention effect&quot;
+    ],
+    &quot;required_limitation_labels&quot;: [
+      &quot;not_causal&quot;,
+      &quot;model_specific&quot;,
+      &quot;sensitive_to_correlated_features&quot;,
+      &quot;sensitive_to_high_cardinality&quot;
+    ]
+  },
+  &quot;tree_count_summary&quot;: {
+    &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;source_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;planned_iterations&quot;: 80,
+    &quot;baseline_iterations&quot;: 20,
+    &quot;trained_iteration_count&quot;: 4,
+    &quot;best_iteration&quot;: 0,
+    &quot;tree_count&quot;: 1,
+    &quot;tree_count_reduction_from_budget&quot;: 79,
+    &quot;tree_count_reduction_from_baseline&quot;: 19,
+    &quot;stopped_before_budget&quot;: true,
+    &quot;use_best_model&quot;: true,
+    &quot;od_type&quot;: &quot;Iter&quot;,
+    &quot;od_wait&quot;: 3,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;best_validation_logloss&quot;: 0.698394,
+    &quot;last_validation_logloss&quot;: 0.715,
+    &quot;test_used_for_best_iteration&quot;: false
+  },
+  &quot;top_features_by_method&quot;: {
+    &quot;LossFunctionChange&quot;: {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;raw_importance&quot;: -0.005247,
+      &quot;normalized_absolute_importance&quot;: 1.0,
+      &quot;feature_role&quot;: &quot;categorical&quot;
+    },
+    &quot;PredictionValuesChange&quot;: {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;raw_importance&quot;: 100.0,
+      &quot;normalized_absolute_importance&quot;: 1.0,
+      &quot;feature_role&quot;: &quot;categorical&quot;
+    }
+  },
+  &quot;warning_summary&quot;: {
+    &quot;warning_count&quot;: 8,
+    &quot;high_cardinality_features&quot;: [
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;correlated_pair_count&quot;: 5
+  },
+  &quot;upstream_handoff&quot;: {
+    &quot;early_stopping_report&quot;: &quot;phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json&quot;,
+    &quot;early_stopping_readiness_status&quot;: &quot;ready_for_feature_importance_lesson&quot;,
+    &quot;categorical_report&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json&quot;,
+    &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;
+  },
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;built_in_importance_report.json&quot;,
+    &quot;importance_file&quot;: &quot;built_in_importance.csv&quot;,
+    &quot;feature_name_audit_file&quot;: &quot;feature_name_audit.csv&quot;,
+    &quot;warning_ledger_file&quot;: &quot;importance_warning_ledger.csv&quot;,
+    &quot;serialized_spec_file&quot;: &quot;built_in_importance_serialized_spec.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/feature_name_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_index,feature_name,expected_feature_name,model_feature_name,name_matches,feature_role,is_categorical,is_numeric,high_cardinality_feature,correlated_feature
+0,sessions_14d,sessions_14d,sessions_14d,True,numeric,False,True,False,True
+1,active_days_14d,active_days_14d,active_days_14d,True,numeric,False,True,False,True
+2,support_tickets_14d,support_tickets_14d,support_tickets_14d,True,numeric,False,True,False,True
+3,revenue_30d,revenue_30d,revenue_30d,True,numeric,False,True,False,True
+4,days_since_signup,days_since_signup,days_since_signup,True,numeric,False,True,False,True
+5,had_support_ticket_14d,had_support_ticket_14d,had_support_ticket_14d,True,numeric,False,True,False,True
+6,plan_id,plan_id,plan_id,True,categorical,True,False,False,False
+7,platform,platform,platform,True,categorical,True,False,False,False
+8,country,country,country,True,categorical,True,False,False,False
+9,acquisition_channel,acquisition_channel,acquisition_channel,True,categorical,True,False,True,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/feature_name_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/importance_warning_ledger.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>warning_id,severity,feature_name,method,observed,expected,reason,blocks_readiness
+high_cardinality_features_flagged_for_built_in_importance,warning,acquisition_channel,all_builtin_methods,acquisition_channel,high-cardinality features are interpreted with caution,Built-in importance can be unstable or biased for sparse/high-cardinality categories.,False
+correlated_features_can_split_builtin_importance,warning,sessions_14d|active_days_14d,all_builtin_methods,0.981981,abs correlation &lt; 0.8,Built-in importance can be shared or hidden among correlated features.,False
+correlated_features_can_split_builtin_importance,warning,sessions_14d|revenue_30d,all_builtin_methods,1.0,abs correlation &lt; 0.8,Built-in importance can be shared or hidden among correlated features.,False
+correlated_features_can_split_builtin_importance,warning,support_tickets_14d|had_support_ticket_14d,all_builtin_methods,0.904534,abs correlation &lt; 0.8,Built-in importance can be shared or hidden among correlated features.,False
+correlated_features_can_split_builtin_importance,warning,revenue_30d|days_since_signup,all_builtin_methods,0.866025,abs correlation &lt; 0.8,Built-in importance can be shared or hidden among correlated features.,False
+correlated_features_can_split_builtin_importance,warning,days_since_signup|had_support_ticket_14d,all_builtin_methods,0.894427,abs correlation &lt; 0.8,Built-in importance can be shared or hidden among correlated features.,False
+tiny_tree_count_makes_importance_unstable,warning,,all_builtin_methods,1,&gt;= 10,&quot;A one-tree tiny model is useful for testing the protocol, not for strong interpretation claims.&quot;,False
+single_feature_dominates_prediction_values_change,warning,platform,PredictionValuesChange,100.0,&lt; 90.0,Dominant built-in importance on a tiny model can be an artifact of one split.,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/outputs/importance_warning_ledger.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/04-feature-importance" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/early-stopping/"><span>← Предыдущий урок</span><strong>Early stopping и iteration budget</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/permutation-importance/"><span>Следующий урок →</span><strong>Permutation importance</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Нужно посчитать оплаченную выручку по валютам. Итог 5005 выглядит убедительно, но без объявленного grain непонятно, допустимы ли четыре строки результата, почему число…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/aggregations/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Агрегации и уровни детализации">
+  <meta property="og:description" content="Нужно посчитать оплаченную выручку по валютам. Итог 5005 выглядит убедительно, но без объявленного grain непонятно, допустимы ли четыре строки результата, почему число…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/aggregations/">
+  <meta name="twitter:card" content="summary">
+  <title>Агрегации и уровни детализации — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Агрегации и уровни детализации", "description": "Нужно посчитать оплаченную выручку по валютам. Итог 5005 выглядит убедительно, но без объявленного grain непонятно, допустимы ли четыре строки результата, почему число…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/aggregations/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Агрегации и уровни детализации", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/aggregations/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 39 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/04-aggregations" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой grain имеет SELECT currency, sum(amount) GROUP BY currency?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Одна строка на валюту</button><button type="button" class="quiz-option" data-choice="1">Одна строка на заказ</button><button type="button" class="quiz-option" data-choice="2">Одна строка на пользователя</button><button type="button" class="quiz-option" data-choice="3">Одна строка на amount</button></div><p class="quiz-feedback" hidden>Группирующие колонки определяют единицу строки результата.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Чем COUNT(*) отличается от COUNT(amount)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Первый считает строки, второй непустые amount</button><button type="button" class="quiz-option" data-choice="1">Ничем</button><button type="button" class="quiz-option" data-choice="2">Второй считает уникальные</button><button type="button" class="quiz-option" data-choice="3">Первый игнорирует NULL</button></div><p class="quiz-feedback" hidden>COUNT(expression) игнорирует NULL результата выражения.</p></article></section>
+        <article class="lesson-article"><h1 id="агрегации-и-уровни-детализации">Агрегации и уровни детализации</h1>
+<blockquote>
+<p>GROUP BY меняет grain: это преобразование модели данных, а не только сокращение строк.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/03
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> объявляет grain результата GROUP BY и подтверждает агрегаты контролем.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Определять grain результата по группирующим колонкам.</li>
+<li>Различать <code>COUNT(*)</code> и <code>COUNT(expression)</code>.</li>
+<li>Использовать <code>FILTER</code>, <code>WHERE</code> и <code>HAVING</code> на правильном уровне.</li>
+<li>Сверять агрегаты с ручным расчетом и аддитивными инвариантами.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Нужно посчитать оплаченную выручку по валютам. Итог <code>5005</code> выглядит убедительно, но без
+объявленного grain непонятно, допустимы ли четыре строки результата, почему число заказов
+не равно числу известных сумм и не потерялись ли строки с <code>NULL</code>.</p>
+<h2 id="концепция">Концепция</h2>
+<p><code>GROUP BY currency</code> создает одну группу на каждую валюту. Все выражения в <code>SELECT</code> должны
+быть либо ключами группы, либо агрегатами. Grain результата: одна строка на <code>currency</code>.</p>
+<p>Контрольные инварианты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sum(order_rows по группам) = число строк источника
+sum(paid_revenue по валютам) = ручная сумма оплаченных заказов
+currency уникальна в результате
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>Пройдите оплаченные строки вручную и накопите словарь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">RUB -&gt; 1200 + 1500 = 2700
+USD -&gt; 75 + 60 + 45 = 180
+EUR -&gt; 25 + 900 + 700 = 1625
+KZT -&gt; 500
+</code></pre></div><p>Итого <code>5005</code>. Эта таблица является независимым oracle для SQL.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
+    currency,
+    count(*) AS order_rows,
+    count(amount) AS known_amount_rows,
+    sum(amount) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_revenue,
+    count(*) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_orders
+FROM orders
+GROUP BY currency;
+</code></pre></div><p><code>WHERE status = 'paid'</code> удалил бы прочие статусы для всех агрегатов. <code>FILTER</code> ограничивает
+только выбранный агрегат и позволяет одновременно видеть полный размер группы.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Добавьте <code>status</code> в <code>SELECT</code>, но не в <code>GROUP BY</code>.</li>
+<li>Замените <code>COUNT(*)</code> на <code>COUNT(amount)</code> и назовите колонку <code>orders</code>.</li>
+<li>Сложите суммы разных валют без конвертации.</li>
+<li>Примените фильтр агрегата в <code>WHERE</code> вместо <code>HAVING</code>.</li>
+</ol>
+<p>Первые две ошибки либо остановят запрос, либо изменят смысл метрики; третья может дать
+синтаксически корректное, но бессмысленное число.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Tiny-набор подтверждает четыре валюты, 12 исходных строк, 10 известных сумм и общую
+оплаченную выручку <code>5005</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/aggregate_model.py \
+  --orders ../data/tiny/orders.csv
+</code></pre></div><p>CLI поставляет агрегированную модель и checks, пригодные для regression test.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте grain <code>currency, status</code>.</li>
+<li>Посчитайте долю оплаченных заказов с явным знаменателем.</li>
+<li>Добавьте <code>HAVING</code> для валют минимум с двумя заказами и проверьте новый grain.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Group</td>
+<td>Просто одинаковые значения</td>
+<td>Множество строк с одной комбинацией ключей</td>
+</tr>
+<tr>
+<td>Aggregate</td>
+<td>Любая функция</td>
+<td>Функция, сворачивающая строки группы</td>
+</tr>
+<tr>
+<td>HAVING</td>
+<td>Синоним WHERE</td>
+<td>Фильтр уже построенных групп</td>
+</tr>
+<tr>
+<td>FILTER</td>
+<td>Фильтр всего запроса</td>
+<td>Условие конкретного агрегата</td>
+</tr>
+<tr>
+<td>Additivity</td>
+<td>Возможность сложить любые числа</td>
+<td>Допустимость суммирования по выбранным измерениям</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/groupby" target="_blank" rel="noopener">DuckDB: GROUP BY</a> — разберите стандартный синтаксис и <code>GROUP BY ALL</code>.</li>
+<li><a href="https://duckdb.org/docs/current/sql/functions/aggregates" target="_blank" rel="noopener">DuckDB: Aggregate Functions</a> — изучите NULL-семантику <code>sum</code>, <code>avg</code>, <code>count</code> и порядок.</li>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/filter" target="_blank" rel="noopener">DuckDB: FILTER</a> — сравните условные агрегаты с <code>CASE</code>.</li>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/having" target="_blank" rel="noopener">DuckDB: HAVING</a> — прочитайте, когда условие относится к группе, а не исходной строке.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Где фильтровать агрегированные группы?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">HAVING</button><button type="button" class="quiz-option" data-choice="1">WHERE после SELECT</button><button type="button" class="quiz-option" data-choice="2">ORDER BY</button><button type="button" class="quiz-option" data-choice="3">LIMIT</button></div><p class="quiz-feedback" hidden>HAVING применяется к группам после агрегации.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Как проверить, что GROUP BY не потерял исходные строки?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Сверить сумму count(*) по группам с источником</button><button type="button" class="quiz-option" data-choice="1">Добавить DISTINCT</button><button type="button" class="quiz-option" data-choice="2">Сортировать группы</button><button type="button" class="quiz-option" data-choice="3">Округлить суммы</button></div><p class="quiz-feedback" hidden>Аддитивный контроль количества строк подтверждает полное разбиение.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что делает FILTER внутри SUM?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ограничивает строки конкретного агрегата</button><button type="button" class="quiz-option" data-choice="1">Фильтрует весь запрос</button><button type="button" class="quiz-option" data-choice="2">Меняет grain</button><button type="button" class="quiz-option" data-choice="3">Удаляет GROUP BY</button></div><p class="quiz-feedback" hidden>FILTER позволяет разным агрегатам использовать разные подмножества одной группы.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;aggregate_model.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;aggregate_model&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AGG = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AGG)
+
+
+class AggregateModelTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.report = AGG.build_aggregates(DATA)
+        self.rows = {row[&quot;currency&quot;]: row for row in self.report[&quot;rows&quot;]}
+
+    def test_result_grain_is_one_row_per_currency(self) -&gt; None:
+        self.assertEqual(self.report[&quot;grain&quot;], [&quot;currency&quot;])
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;grain_unique&quot;])
+        self.assertEqual(set(self.rows), {&quot;EUR&quot;, &quot;KZT&quot;, &quot;RUB&quot;, &quot;USD&quot;})
+
+    def test_rub_control_aggregate(self) -&gt; None:
+        self.assertEqual(self.rows[&quot;RUB&quot;][&quot;paid_orders&quot;], 2)
+        self.assertEqual(self.rows[&quot;RUB&quot;][&quot;paid_revenue&quot;], 2700.0)
+
+    def test_eur_control_aggregate(self) -&gt; None:
+        self.assertEqual(self.rows[&quot;EUR&quot;][&quot;paid_orders&quot;], 3)
+        self.assertEqual(self.rows[&quot;EUR&quot;][&quot;paid_revenue&quot;], 1625.0)
+
+    def test_total_paid_revenue_matches_manual_sum(self) -&gt; None:
+        self.assertEqual(self.report[&quot;checks&quot;][&quot;paid_revenue_total&quot;], 5005.0)
+
+    def test_group_rows_reconcile_to_source(self) -&gt; None:
+        self.assertEqual(self.report[&quot;checks&quot;][&quot;source_rows&quot;], 12)
+
+    def test_count_expression_excludes_null_amount(self) -&gt; None:
+        self.assertEqual(self.report[&quot;checks&quot;][&quot;known_amount_rows&quot;], 10)
+        self.assertEqual(self.rows[&quot;USD&quot;][&quot;order_rows&quot;], 4)
+        self.assertEqual(self.rows[&quot;USD&quot;][&quot;known_amount_rows&quot;], 3)
+
+    def test_average_uses_paid_non_null_amounts(self) -&gt; None:
+        self.assertAlmostEqual(self.rows[&quot;USD&quot;][&quot;average_paid_amount&quot;], 60.0)
+
+    def test_cli_prints_json(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, ARTIFACT, &quot;--orders&quot;, DATA],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[&quot;checks&quot;][&quot;paid_revenue_total&quot;], 5005.0)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import importlib.util
+import json
+from collections import defaultdict
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;aggregate_model.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;aggregate_model&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def manual_paid_revenue(path: Path) -&gt; dict[str, float]:
+    totals: defaultdict[str, float] = defaultdict(float)
+    with path.open(newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as source:
+        for row in csv.DictReader(source):
+            if row[&quot;status&quot;].strip().lower() == &quot;paid&quot; and row[&quot;amount&quot;]:
+                totals[row[&quot;currency&quot;].strip().upper()] += float(row[&quot;amount&quot;])
+    return dict(sorted(totals.items()))
+
+
+def main() -&gt; None:
+    report = load_artifact().build_aggregates(DATA)
+    print(
+        json.dumps(
+            {&quot;manual_paid_revenue&quot;: manual_paid_revenue(DATA), &quot;duckdb&quot;: report},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/aggregate_model.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+
+def _json_value(value: Any) -&gt; Any:
+    return float(value) if isinstance(value, Decimal) else value
+
+
+def build_aggregates(orders_path: Path) -&gt; dict[str, Any]:
+    query = &quot;&quot;&quot;
+        WITH orders AS (
+            SELECT
+                upper(trim(currency)) AS currency,
+                lower(trim(status)) AS status,
+                amount::DECIMAL(18, 2) AS amount
+            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        )
+        SELECT
+            currency,
+            count(*) AS order_rows,
+            count(amount) AS known_amount_rows,
+            sum(amount) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_revenue,
+            count(*) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_orders,
+            avg(amount) FILTER (WHERE status = &#x27;paid&#x27;) AS average_paid_amount
+        FROM orders
+        GROUP BY currency
+        ORDER BY currency
+    &quot;&quot;&quot;
+    connection = duckdb.connect()
+    try:
+        relation = connection.execute(query, [str(orders_path)])
+        columns = [column[0] for column in relation.description]
+        rows = [
+            {column: _json_value(value) for column, value in zip(columns, row, strict=True)}
+            for row in relation.fetchall()
+        ]
+    finally:
+        connection.close()
+
+    paid_total = sum(row[&quot;paid_revenue&quot;] or 0 for row in rows)
+    return {
+        &quot;grain&quot;: [&quot;currency&quot;],
+        &quot;rows&quot;: rows,
+        &quot;checks&quot;: {
+            &quot;grain_unique&quot;: len({row[&quot;currency&quot;] for row in rows}) == len(rows),
+            &quot;paid_revenue_total&quot;: round(paid_total, 2),
+            &quot;source_rows&quot;: sum(row[&quot;order_rows&quot;] for row in rows),
+            &quot;known_amount_rows&quot;: sum(row[&quot;known_amount_rows&quot;] for row in rows),
+        },
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Build checked SQL aggregates by currency&quot;)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        report = build_aggregates(args.orders)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/outputs/aggregate_model.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;sql-aggregate-model&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/aggregate_model.py&quot;,
+  &quot;description&quot;: &quot;Строит агрегаты по валюте и проверяет grain, число строк и контрольную выручку.&quot;,
+  &quot;usage&quot;: &quot;python outputs/aggregate_model.py --orders ../data/tiny/orders.csv&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/04-aggregations/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/04-aggregations" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>← Предыдущий урок</span><strong>NULL и трехзначная логика</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/joins/"><span>Следующий урок →</span><strong>Joins без размножения метрик</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

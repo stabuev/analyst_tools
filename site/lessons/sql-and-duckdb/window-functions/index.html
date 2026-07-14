@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Нужно пронумеровать покупки пользователя, получить предыдущую сумму и накопительную выручку. GROUP BY уничтожит строки заказов, а окно сохранит одну строку на orderid.…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-functions/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Оконные функции">
+  <meta property="og:description" content="Нужно пронумеровать покупки пользователя, получить предыдущую сумму и накопительную выручку. GROUP BY уничтожит строки заказов, а окно сохранит одну строку на orderid.…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-functions/">
+  <meta name="twitter:card" content="summary">
+  <title>Оконные функции — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Оконные функции", "description": "Нужно пронумеровать покупки пользователя, получить предыдущую сумму и накопительную выручку. GROUP BY уничтожит строки заказов, а окно сохранит одну строку на orderid.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-functions/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Оконные функции", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-functions/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 42 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/07-window-functions" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Чем окно отличается от GROUP BY?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Сохраняет строки исходного grain</button><button type="button" class="quiz-option" data-choice="1">Всегда уменьшает строки</button><button type="button" class="quiz-option" data-choice="2">Не умеет агрегировать</button><button type="button" class="quiz-option" data-choice="3">Не использует порядок</button></div><p class="quiz-feedback" hidden>Оконная функция добавляет значение к строкам, не сворачивая их в группы.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что определяет PARTITION BY user_id?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Независимые окна пользователей</button><button type="button" class="quiz-option" data-choice="1">Сортировку всего результата</button><button type="button" class="quiz-option" data-choice="2">Фильтр пользователей</button><button type="button" class="quiz-option" data-choice="3">Тип user_id</button></div><p class="quiz-feedback" hidden>Состояние окна перезапускается для каждой partition.</p></article></section>
+        <article class="lesson-article"><h1 id="оконные-функции">Оконные функции</h1>
+<blockquote>
+<p>Окно сохраняет grain строки, но его смысл полностью задают partition, order и frame.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/06
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> выбирает окно и проверяет ранги, лаги и накопительные метрики.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать оконный расчет от GROUP BY.</li>
+<li>Выбирать <code>PARTITION BY</code> и детерминированный <code>ORDER BY</code>.</li>
+<li>Использовать <code>row_number</code>, <code>rank</code>, <code>lag</code> и накопительную <code>sum</code>.</li>
+<li>Объяснять разницу <code>ROWS</code> и <code>RANGE</code>.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Нужно пронумеровать покупки пользователя, получить предыдущую сумму и накопительную
+выручку. GROUP BY уничтожит строки заказов, а окно сохранит одну строку на <code>order_id</code>.
+Однако порядок только по дате может иметь ties, а неявный frame способен включить сразу
+несколько peer-строк.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Оконный контракт содержит три части:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">OVER (
+    PARTITION BY user_id
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+</code></pre></div><ul>
+<li>partition определяет независимую последовательность;</li>
+<li>order задает положение строки;</li>
+<li>frame задает множество строк для агрегата относительно текущей.</li>
+</ul>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Для U001:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th style="text-align:right">amount</th>
+<th style="text-align:right">number</th>
+<th style="text-align:right">previous</th>
+<th style="text-align:right">cumulative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1001</td>
+<td style="text-align:right">1200</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">NULL</td>
+<td style="text-align:right">1200</td>
+</tr>
+<tr>
+<td>O1005</td>
+<td style="text-align:right">1500</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1200</td>
+<td style="text-align:right">2700</td>
+</tr>
+</tbody>
+</table>
+<p>Этот ручной результат является oracle.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">row_number() OVER user_order AS order_number,
+lag(amount) OVER user_order AS previous_amount,
+sum(amount) OVER (
+    PARTITION BY user_id
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+) AS cumulative_amount
+</code></pre></div><p>Именованное окно сокращает повторение partition/order, но frame накопительной суммы
+оставлен явным рядом с агрегатом.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Встроенный demo содержит ключи порядка <code>[1, 1, 2]</code>. Для первой строки:</p>
+<ul>
+<li><code>ROWS</code> дает 10;</li>
+<li><code>RANGE</code> сразу включает обе строки с ключом 1 и дает 30.</li>
+</ul>
+<p>Уберите <code>order_id</code> из порядка, добавьте две покупки в одну секунду и наблюдайте
+недетерминированность <code>row_number</code>.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li>9 оплаченных заказов остаются 9 строками;</li>
+<li><code>order_id</code> уникален;</li>
+<li>U001 имеет cumulative <code>1200, 2700</code>;</li>
+<li>U007 заканчивает cumulative <code>1600</code>;</li>
+<li>frame demo явно различает <code>ROWS</code> и <code>RANGE</code>.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/window_metrics.py \
+  --orders ../data/tiny/orders.csv
+</code></pre></div><p>Артефакт поставляет набор оконных метрик и отдельный frame experiment.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте <code>lead</code> для следующей суммы.</li>
+<li>Рассчитайте разницу между текущим и предыдущим заказом.</li>
+<li>Получите последний заказ пользователя через <code>QUALIFY</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Window</td>
+<td>То же, что GROUP BY</td>
+<td>Контекст расчета без сворачивания строк</td>
+</tr>
+<tr>
+<td>Partition</td>
+<td>Физический файл</td>
+<td>Независимая группа строк окна</td>
+</tr>
+<tr>
+<td>Peer</td>
+<td>Дубликат строки</td>
+<td>Строка с равными ключами ORDER BY</td>
+</tr>
+<tr>
+<td>Frame</td>
+<td>Вся partition всегда</td>
+<td>Подмножество partition относительно текущей строки</td>
+</tr>
+<tr>
+<td>Tie-breaker</td>
+<td>Косметическая сортировка</td>
+<td>Дополнительный ключ детерминированного порядка</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/functions/window_functions" target="_blank" rel="noopener">DuckDB: Window Functions</a> — изучите функции, partition, order и frames.</li>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/window" target="_blank" rel="noopener">DuckDB: WINDOW Clause</a> — разберите переиспользование именованных окон.</li>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/qualify" target="_blank" rel="noopener">DuckDB: QUALIFY</a> — фильтруйте результат окна без дополнительного CTE.</li>
+<li><a href="https://www.postgresql.org/docs/current/tutorial-window.html" target="_blank" rel="noopener">PostgreSQL: Window Functions</a> — сравните стандартную модель partition и frame.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем добавлять order_id после ordered_at в ORDER BY окна?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы разрешить ties детерминированно</button><button type="button" class="quiz-option" data-choice="1">Чтобы изменить grain</button><button type="button" class="quiz-option" data-choice="2">Чтобы удалить NULL</button><button type="button" class="quiz-option" data-choice="3">Чтобы ускорить CSV</button></div><p class="quiz-feedback" hidden>Уникальный tie-breaker задает стабильный порядок строк.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что возвращает LAG(amount)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Значение предыдущей строки окна</button><button type="button" class="quiz-option" data-choice="1">Сумму partition</button><button type="button" class="quiz-option" data-choice="2">Следующее значение</button><button type="button" class="quiz-option" data-choice="3">Ранг</button></div><p class="quiz-feedback" hidden>LAG обращается к предыдущей строке в порядке окна.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему ROWS и RANGE могут различаться?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">RANGE включает peers с тем же ключом порядка</button><button type="button" class="quiz-option" data-choice="1">ROWS игнорирует порядок</button><button type="button" class="quiz-option" data-choice="2">RANGE удаляет NULL</button><button type="button" class="quiz-option" data-choice="3">ROWS группирует</button></div><p class="quiz-feedback" hidden>RANGE работает по значениям ORDER BY и объединяет равные ключи в peer group.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;window_metrics.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;window_metrics&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+WINDOW = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(WINDOW)
+
+
+class WindowMetricsTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.report = WINDOW.build_window_metrics(DATA)
+        self.rows = {row[&quot;order_id&quot;]: row for row in self.report[&quot;rows&quot;]}
+
+    def test_windows_preserve_paid_order_grain(self) -&gt; None:
+        self.assertEqual(self.report[&quot;checks&quot;][&quot;row_count&quot;], 9)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;order_id_unique&quot;])
+
+    def test_row_number_restarts_by_user(self) -&gt; None:
+        self.assertEqual(self.rows[&quot;O1001&quot;][&quot;order_number&quot;], 1)
+        self.assertEqual(self.rows[&quot;O1005&quot;][&quot;order_number&quot;], 2)
+        self.assertEqual(self.rows[&quot;O1003&quot;][&quot;order_number&quot;], 1)
+
+    def test_lag_uses_previous_order_in_partition(self) -&gt; None:
+        self.assertIsNone(self.rows[&quot;O1001&quot;][&quot;previous_amount&quot;])
+        self.assertEqual(self.rows[&quot;O1005&quot;][&quot;previous_amount&quot;], 1200.0)
+
+    def test_cumulative_sum_has_explicit_rows_frame(self) -&gt; None:
+        self.assertEqual(self.rows[&quot;O1001&quot;][&quot;cumulative_amount&quot;], 1200.0)
+        self.assertEqual(self.rows[&quot;O1005&quot;][&quot;cumulative_amount&quot;], 2700.0)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;explicit_rows_frame&quot;])
+
+    def test_another_partition_is_independent(self) -&gt; None:
+        self.assertEqual(self.rows[&quot;O1012&quot;][&quot;cumulative_amount&quot;], 1600.0)
+
+    def test_rows_and_range_differ_for_peers(self) -&gt; None:
+        demo = WINDOW.frame_demo()
+        self.assertEqual([row[&quot;rows_sum&quot;] for row in demo], [10, 30, 35])
+        self.assertEqual([row[&quot;range_sum&quot;] for row in demo], [30, 30, 35])
+
+    def test_rank_and_row_number_match_without_ties(self) -&gt; None:
+        for row in self.report[&quot;rows&quot;]:
+            self.assertEqual(row[&quot;order_number&quot;], row[&quot;order_rank&quot;])
+
+    def test_cli_prints_json(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, ARTIFACT, &quot;--orders&quot;, DATA],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[&quot;checks&quot;][&quot;row_count&quot;], 9)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;window_metrics.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;window_metrics&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    manual_u001 = [
+        {&quot;order_id&quot;: &quot;O1001&quot;, &quot;number&quot;: 1, &quot;cumulative&quot;: 1200.0},
+        {&quot;order_id&quot;: &quot;O1005&quot;, &quot;number&quot;: 2, &quot;cumulative&quot;: 2700.0},
+    ]
+    report = load_artifact().build_window_metrics(DATA)
+    print(json.dumps({&quot;manual_u001&quot;: manual_u001, &quot;duckdb&quot;: report}, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;window-metrics-contract&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/window_metrics.py&quot;,
+  &quot;description&quot;: &quot;Строит ранги, lag и накопительные суммы с явным PARTITION, ORDER и frame.&quot;,
+  &quot;usage&quot;: &quot;python outputs/window_metrics.py --orders ../data/tiny/orders.csv&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/window_metrics.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+
+def _value(value: Any) -&gt; Any:
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+
+
+def frame_demo() -&gt; list[dict[str, Any]]:
+    query = &quot;&quot;&quot;
+        WITH events(row_id, sort_key, amount) AS (
+            VALUES (1, 1, 10), (2, 1, 20), (3, 2, 5)
+        )
+        SELECT
+            row_id,
+            sort_key,
+            amount,
+            sum(amount) OVER (
+                ORDER BY sort_key
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS rows_sum,
+            sum(amount) OVER (
+                ORDER BY sort_key
+                RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS range_sum
+        FROM events
+        ORDER BY row_id
+    &quot;&quot;&quot;
+    relation = duckdb.sql(query)
+    columns = [column[0] for column in relation.description]
+    return [dict(zip(columns, row, strict=True)) for row in relation.fetchall()]
+
+
+def build_window_metrics(orders_path: Path) -&gt; dict[str, Any]:
+    query = &quot;&quot;&quot;
+        WITH paid_orders AS (
+            SELECT
+                order_id,
+                user_id,
+                ordered_at::TIMESTAMPTZ AS ordered_at,
+                amount::DECIMAL(18, 2) AS amount
+            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+            WHERE lower(trim(status)) = &#x27;paid&#x27;
+        )
+        SELECT
+            order_id,
+            user_id,
+            row_number() OVER user_order AS order_number,
+            rank() OVER user_order AS order_rank,
+            lag(amount) OVER user_order AS previous_amount,
+            amount,
+            sum(amount) OVER (
+                PARTITION BY user_id
+                ORDER BY ordered_at, order_id
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS cumulative_amount
+        FROM paid_orders
+        WINDOW user_order AS (
+            PARTITION BY user_id
+            ORDER BY ordered_at, order_id
+        )
+        ORDER BY user_id, order_number
+    &quot;&quot;&quot;
+    connection = duckdb.connect()
+    try:
+        relation = connection.execute(query, [str(orders_path)])
+        columns = [column[0] for column in relation.description]
+        rows = [
+            {column: _value(value) for column, value in zip(columns, row, strict=True)}
+            for row in relation.fetchall()
+        ]
+    finally:
+        connection.close()
+    return {
+        &quot;grain&quot;: [&quot;order_id&quot;],
+        &quot;rows&quot;: rows,
+        &quot;frame_demo&quot;: frame_demo(),
+        &quot;checks&quot;: {
+            &quot;row_count&quot;: len(rows),
+            &quot;order_id_unique&quot;: len({row[&quot;order_id&quot;] for row in rows}) == len(rows),
+            &quot;explicit_rows_frame&quot;: &quot;ROWS BETWEEN&quot; in query,
+        },
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Build checked SQL window metrics&quot;)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        report = build_window_metrics(args.orders)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/07-window-functions/outputs/window_metrics.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/07-window-functions" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>← Предыдущий урок</span><strong>CTE и композиция запросов</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/dates/"><span>Следующий урок →</span><strong>Время и даты в SQL</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Скрипт формирует WHERE status = &#x27;{status}&#x27;. Значение paid&#x27; OR 1=1 -- превращает фильтр в другой SQL. Одновременно соединение создается глобально и не закрывается после…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/sqlalchemy/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Подключение к БД через SQLAlchemy">
+  <meta property="og:description" content="Скрипт формирует WHERE status = &#x27;{status}&#x27;. Значение paid&#x27; OR 1=1 -- превращает фильтр в другой SQL. Одновременно соединение создается глобально и не закрывается после…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/sqlalchemy/">
+  <meta name="twitter:card" content="summary">
+  <title>Подключение к БД через SQLAlchemy — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Подключение к БД через SQLAlchemy", "description": "Скрипт формирует WHERE status = '{status}'. Значение paid' OR 1=1 -- превращает фильтр в другой SQL. Одновременно соединение создается глобально и не закрывается после…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/sqlalchemy/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Подключение к БД через SQLAlchemy", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/sqlalchemy/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 54 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/07-sqlalchemy" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Почему f-string с пользовательским status опасен в SQL?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он медленнее</button><button type="button" class="quiz-option" data-choice="1">Значение становится частью SQL-синтаксиса</button><button type="button" class="quiz-option" data-choice="2">SQLAlchemy запрещает строки</button><button type="button" class="quiz-option" data-choice="3">Он закрывает соединение</button></div><p class="quiz-feedback" hidden>Интерполяция смешивает код запроса и данные и открывает SQL injection.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Для чего нужен context manager соединения?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для изменения схемы</button><button type="button" class="quiz-option" data-choice="1">Для детерминированного возврата ресурса</button><button type="button" class="quiz-option" data-choice="2">Для форматирования SQL</button><button type="button" class="quiz-option" data-choice="3">Для хранения пароля</button></div><p class="quiz-feedback" hidden>Соединение закрывается и возвращается pool даже при исключении.</p></article></section>
+        <article class="lesson-article"><h1 id="подключение-к-бд-через-sqlalchemy">Подключение к БД через SQLAlchemy</h1>
+<blockquote>
+<p>SQL-структура и пользовательские значения должны встречаться только внутри driver, а не в строковой интерполяции.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 05/06<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> читает параметризованный срез через SQLAlchemy Core, управляет соединением
+и не интерполирует значения в SQL.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделять Engine, Connection, statement и parameters.</li>
+<li>Строить SELECT через SQLAlchemy Core.</li>
+<li>Передавать значения bind parameters.</li>
+<li>Проверять схему и grain результата.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Скрипт формирует <code>WHERE status = '{status}'</code>. Значение
+<code>paid' OR 1=1 --</code> превращает фильтр в другой SQL. Одновременно соединение создается
+глобально и не закрывается после ошибки.</p>
+<h2 id="концепция">Концепция</h2>
+<p>SQLAlchemy Core разделяет:</p>
+<table>
+<thead>
+<tr>
+<th>Объект</th>
+<th>Ответственность</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Engine</td>
+<td>конфигурация DBAPI и pool</td>
+</tr>
+<tr>
+<td>Connection</td>
+<td>ограниченный ресурс выполнения</td>
+</tr>
+<tr>
+<td>Table/Column</td>
+<td>SQL identifiers</td>
+</tr>
+<tr>
+<td>Statement</td>
+<td>структура запроса</td>
+</tr>
+<tr>
+<td>Parameters</td>
+<td>значения, связанные driver</td>
+</tr>
+</tbody>
+</table>
+<p>Bind parameters защищают значения. Динамические имена таблиц и столбцов являются
+структурой SQL и должны приходить из allowlist или объектов metadata.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>На уровне DB-API безопасный запрос использует placeholder:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection.execute(
+    &quot;SELECT order_id FROM orders WHERE amount &gt;= ?&quot;,
+    (900,),
+)
+</code></pre></div><p>SQLAlchemy строит ту же границу:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">statement = select(orders).where(
+    orders.c.amount &gt;= bindparam(&quot;min_amount&quot;)
+)
+connection.execute(statement, {&quot;min_amount&quot;: 900})
+</code></pre></div><div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Артефакт отражает таблицы из metadata, строит JOIN orders/users, применяет status,
+min_amount и limit как параметры и выполняет запрос внутри:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">with engine.connect() as connection:
+    rows = connection.execute(statement, params).mappings().all()
+</code></pre></div><div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/db_reader.py \
+  --database ../data/tiny/analytics.sqlite \
+  --status paid \
+  --min-amount 900
+</code></pre></div><p>Engine освобождается через <code>dispose</code>, а результат проверяется по JSON-контракту.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Передайте <code>paid' OR 1=1 --</code> как status. Корректный клиент вернет ноль строк и не изменит
+таблицу. Попробуйте также:</p>
+<ol>
+<li>отрицательный limit;</li>
+<li>отсутствующую базу;</li>
+<li>неизвестный status в source;</li>
+<li>удаленный столбец result contract;</li>
+<li>interpolated table name без allowlist.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li><code>paid</code> и min amount 900 дают три заказа;</li>
+<li>SQL не содержит literal <code>'paid'</code>;</li>
+<li>bind names включают status и limit;</li>
+<li>injection string является обычным значением;</li>
+<li>таблица после запроса содержит пять строк;</li>
+<li>result columns и grain соответствуют контракту;</li>
+<li>limit соблюдается.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/db_reader.py</code> является параметризованным read-only reader. JSON-отчет содержит
+compiled SQL без literal values, список bind names, database schema и проверенный result.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте диапазон дат двумя bind parameters.</li>
+<li>Реализуйте allowlist сортировки.</li>
+<li>Подключите другую SQLAlchemy-compatible БД через URL из environment.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Engine</td>
+<td>Открытое соединение</td>
+<td>Factory и pool подключения к DBAPI</td>
+</tr>
+<tr>
+<td>Connection</td>
+<td>Глобальный singleton</td>
+<td>Ограниченный ресурс выполнения SQL</td>
+</tr>
+<tr>
+<td>Bind parameter</td>
+<td>Экранированная f-string</td>
+<td>Значение, переданное driver отдельно от SQL</td>
+</tr>
+<tr>
+<td>Reflection</td>
+<td>Копирование данных</td>
+<td>Чтение metadata существующей схемы</td>
+</tr>
+<tr>
+<td>SQLAlchemy Core</td>
+<td>ORM</td>
+<td>Expression language для SQL без объектной модели домена</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.sqlalchemy.org/en/20/core/connections.html" target="_blank" rel="noopener">SQLAlchemy: Engines and Connections</a> — изучите lifecycle Engine, Connection и transaction.</li>
+<li><a href="https://docs.sqlalchemy.org/en/20/tutorial/data_select.html" target="_blank" rel="noopener">SQLAlchemy: SELECT</a> — разберите Core statements, joins и bind parameters.</li>
+<li><a href="https://docs.sqlalchemy.org/en/20/tutorial/dbapi_transactions.html" target="_blank" rel="noopener">SQLAlchemy: Working with Transactions</a> — сопоставьте context managers, commit и rollback.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener">OWASP: SQL Injection Prevention</a> — сравните parameterized queries и опасную string concatenation.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что такое bind parameter?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Имя таблицы</button><button type="button" class="quiz-option" data-choice="1">Отдельно передаваемое значение SQL-выражения</button><button type="button" class="quiz-option" data-choice="2">Комментарий</button><button type="button" class="quiz-option" data-choice="3">Тип индекса</button></div><p class="quiz-feedback" hidden>Driver связывает значение с placeholder без превращения его в SQL-код.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему имена таблиц нельзя передавать обычным bind parameter?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Они являются частью структуры SQL, а не значениями</button><button type="button" class="quiz-option" data-choice="1">Они всегда секретны</button><button type="button" class="quiz-option" data-choice="2">SQLite не имеет таблиц</button><button type="button" class="quiz-option" data-choice="3">Параметры только числовые</button></div><p class="quiz-feedback" hidden>Динамические identifiers требуют allowlist или SQLAlchemy objects, а не value binding.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Что нужно проверить после успешного execute?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только время</button><button type="button" class="quiz-option" data-choice="1">Схему, grain, row limit и domain values</button><button type="button" class="quiz-option" data-choice="2">Только SQL-текст</button><button type="button" class="quiz-option" data-choice="3">Только URL базы</button></div><p class="quiz-feedback" hidden>Успешный запрос не доказывает соответствие результата аналитическому контракту.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import sqlite3
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;db_reader.py&quot;
+DATA = ROOT.parent / &quot;data&quot;
+DATABASE = DATA / &quot;tiny&quot; / &quot;analytics.sqlite&quot;
+CONTRACT = DATA / &quot;db_contract.json&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;db_reader&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+READER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(READER)
+
+
+class DatabaseReaderTest(unittest.TestCase):
+    def test_parameterized_slice_returns_expected_rows(self) -&gt; None:
+        result = READER.read_orders(
+            DATABASE,
+            CONTRACT,
+            min_amount=900,
+            status=&quot;paid&quot;,
+        )
+        self.assertTrue(result[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertEqual(
+            [row[&quot;order_id&quot;] for row in result[&quot;result&quot;][&quot;rows&quot;]],
+            [&quot;O2501&quot;, &quot;O2502&quot;, &quot;O2505&quot;],
+        )
+
+    def test_result_contract_and_grain_are_checked(self) -&gt; None:
+        result = READER.read_orders(DATABASE, CONTRACT)
+        self.assertEqual(result[&quot;result&quot;][&quot;grain&quot;], [&quot;order_id&quot;])
+        self.assertTrue(result[&quot;checks&quot;][&quot;columns_match&quot;])
+        self.assertTrue(result[&quot;checks&quot;][&quot;grain_unique&quot;])
+
+    def test_values_are_not_interpolated_into_sql(self) -&gt; None:
+        result = READER.read_orders(DATABASE, CONTRACT, status=&quot;paid&quot;)
+        self.assertFalse(result[&quot;query&quot;][&quot;literal_values_embedded&quot;])
+        self.assertIn(&quot;status&quot;, result[&quot;query&quot;][&quot;bind_names&quot;])
+        self.assertNotIn(&quot;&#x27;paid&#x27;&quot;, result[&quot;query&quot;][&quot;sql&quot;])
+
+    def test_injection_string_is_treated_as_a_value(self) -&gt; None:
+        malicious = &quot;paid&#x27; OR 1=1 --&quot;
+        result = READER.read_orders(DATABASE, CONTRACT, status=malicious)
+        self.assertEqual(result[&quot;result&quot;][&quot;rows&quot;], [])
+        with sqlite3.connect(DATABASE) as connection:
+            count = connection.execute(&quot;SELECT COUNT(*) FROM orders&quot;).fetchone()[0]
+        self.assertEqual(count, 5)
+
+    def test_limit_is_bound_and_respected(self) -&gt; None:
+        result = READER.read_orders(DATABASE, CONTRACT, limit=2)
+        self.assertEqual(result[&quot;summary&quot;][&quot;row_count&quot;], 2)
+        self.assertIn(&quot;row_limit&quot;, result[&quot;query&quot;][&quot;bind_names&quot;])
+
+    def test_schema_inspection_is_included(self) -&gt; None:
+        result = READER.read_orders(DATABASE, CONTRACT)
+        names = [column[&quot;name&quot;] for column in result[&quot;schema&quot;][&quot;orders&quot;]]
+        self.assertEqual(names, [&quot;order_id&quot;, &quot;user_id&quot;, &quot;ordered_at&quot;, &quot;amount&quot;, &quot;status&quot;])
+
+    def test_missing_database_is_configuration_error(self) -&gt; None:
+        with self.assertRaisesRegex(READER.DatabaseReadError, &quot;does not exist&quot;):
+            READER.read_orders(DATA / &quot;tiny&quot; / &quot;missing.sqlite&quot;, CONTRACT)
+
+    def test_cli_outputs_valid_json(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--database&quot;,
+                DATABASE,
+                &quot;--contract&quot;,
+                CONTRACT,
+                &quot;--status&quot;,
+                &quot;paid&quot;,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import sqlite3
+from pathlib import Path
+
+from sqlalchemy import MetaData, Table, bindparam, create_engine, select
+
+ROOT = Path(__file__).resolve().parents[1]
+DATABASE = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;analytics.sqlite&quot;
+
+with sqlite3.connect(DATABASE) as connection:
+    manual = connection.execute(
+        &quot;SELECT order_id, amount FROM orders WHERE amount &gt;= ? ORDER BY order_id&quot;,
+        (900,),
+    ).fetchall()
+print(&quot;DB-API placeholders:&quot;, manual)
+
+engine = create_engine(f&quot;sqlite:///{DATABASE}&quot;)
+metadata = MetaData()
+orders = Table(&quot;orders&quot;, metadata, autoload_with=engine)
+statement = select(orders.c.order_id, orders.c.amount).where(
+    orders.c.amount &gt;= bindparam(&quot;min_amount&quot;)
+)
+with engine.connect() as connection:
+    rows = connection.execute(statement, {&quot;min_amount&quot;: 900}).mappings().all()
+print(&quot;SQLAlchemy Core:&quot;, [dict(row) for row in rows])
+engine.dispose()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;parameterized-db-reader&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/db_reader.py&quot;,
+  &quot;description&quot;: &quot;Читает проверенный срез заказов через SQLAlchemy Core с bind parameters и контрактом результата.&quot;,
+  &quot;usage&quot;: &quot;python outputs/db_reader.py --database ../data/tiny/analytics.sqlite --min-amount 100 --status paid&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/db_reader.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import MetaData, Table, bindparam, create_engine, inspect, select
+from sqlalchemy.engine import URL
+from sqlalchemy.exc import SQLAlchemyError
+
+
+class DatabaseReadError(RuntimeError):
+    &quot;&quot;&quot;Raised when a database slice cannot be read or validated.&quot;&quot;&quot;
+
+
+def load_contract(path: str | Path) -&gt; dict[str, Any]:
+    contract_path = Path(path)
+    if not contract_path.is_file():
+        raise DatabaseReadError(f&quot;contract file does not exist: {contract_path}&quot;)
+    try:
+        contract = json.loads(contract_path.read_text(encoding=&quot;utf-8&quot;))
+    except json.JSONDecodeError as error:
+        raise DatabaseReadError(f&quot;invalid contract JSON: {error.msg}&quot;) from error
+    required = {&quot;result_columns&quot;, &quot;grain&quot;, &quot;allowed_statuses&quot;}
+    missing = required - set(contract)
+    if missing:
+        raise DatabaseReadError(f&quot;contract misses fields: {sorted(missing)}&quot;)
+    return contract
+
+
+def database_url(database: str | Path) -&gt; str | URL:
+    value = str(database)
+    if &quot;://&quot; in value:
+        return value
+    path = Path(value).resolve()
+    if not path.is_file():
+        raise DatabaseReadError(f&quot;database file does not exist: {path}&quot;)
+    return URL.create(&quot;sqlite&quot;, database=str(path))
+
+
+def read_orders(
+    database: str | Path,
+    contract_path: str | Path,
+    *,
+    min_amount: float = 0.0,
+    status: str | None = None,
+    limit: int = 100,
+) -&gt; dict[str, Any]:
+    if limit &lt;= 0:
+        raise DatabaseReadError(&quot;limit must be positive&quot;)
+    contract = load_contract(contract_path)
+    engine = create_engine(database_url(database))
+    try:
+        metadata = MetaData()
+        orders = Table(&quot;orders&quot;, metadata, autoload_with=engine)
+        users = Table(&quot;users&quot;, metadata, autoload_with=engine)
+        statement = (
+            select(
+                orders.c.order_id,
+                orders.c.user_id,
+                orders.c.ordered_at,
+                orders.c.amount,
+                orders.c.status,
+                users.c.segment,
+            )
+            .join(users, orders.c.user_id == users.c.user_id)
+            .where(orders.c.amount &gt;= bindparam(&quot;min_amount&quot;))
+            .order_by(orders.c.order_id)
+            .limit(bindparam(&quot;row_limit&quot;))
+        )
+        params: dict[str, Any] = {&quot;min_amount&quot;: min_amount, &quot;row_limit&quot;: limit}
+        if status is not None:
+            statement = statement.where(orders.c.status == bindparam(&quot;status&quot;))
+            params[&quot;status&quot;] = status
+        compiled = statement.compile(engine)
+        with engine.connect() as connection:
+            rows = [dict(row) for row in connection.execute(statement, params).mappings()]
+        schema = {
+            table: [
+                {
+                    &quot;name&quot;: column[&quot;name&quot;],
+                    &quot;type&quot;: str(column[&quot;type&quot;]),
+                    &quot;nullable&quot;: column[&quot;nullable&quot;],
+                }
+                for column in inspect(engine).get_columns(table)
+            ]
+            for table in (&quot;orders&quot;, &quot;users&quot;)
+        }
+    except SQLAlchemyError as error:
+        raise DatabaseReadError(f&quot;database query failed: {error}&quot;) from error
+    finally:
+        engine.dispose()
+
+    columns = list(rows[0]) if rows else contract[&quot;result_columns&quot;]
+    ids = [row[&quot;order_id&quot;] for row in rows]
+    checks = {
+        &quot;columns_match&quot;: columns == contract[&quot;result_columns&quot;],
+        &quot;grain_unique&quot;: len(ids) == len(set(ids)),
+        &quot;statuses_allowed&quot;: all(row[&quot;status&quot;] in contract[&quot;allowed_statuses&quot;] for row in rows),
+        &quot;row_limit_respected&quot;: len(rows) &lt;= limit,
+    }
+    return {
+        &quot;query&quot;: {
+            &quot;sql&quot;: str(compiled),
+            &quot;bind_names&quot;: sorted(params),
+            &quot;literal_values_embedded&quot;: any(
+                str(value) in str(compiled) for value in params.values()
+            ),
+        },
+        &quot;parameters&quot;: params,
+        &quot;schema&quot;: schema,
+        &quot;result&quot;: {&quot;grain&quot;: contract[&quot;grain&quot;], &quot;columns&quot;: columns, &quot;rows&quot;: rows},
+        &quot;checks&quot;: checks,
+        &quot;summary&quot;: {
+            &quot;valid&quot;: all(checks.values())
+            and not any(str(value) in str(compiled) for value in params.values()),
+            &quot;row_count&quot;: len(rows),
+        },
+    }
+
+
+def json_default(value: Any) -&gt; Any:
+    if hasattr(value, &quot;isoformat&quot;):
+        return value.isoformat()
+    raise TypeError(f&quot;cannot serialize {type(value).__name__}&quot;)
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Read a parameterized order slice&quot;)
+    parser.add_argument(&quot;--database&quot;, required=True)
+    parser.add_argument(
+        &quot;--contract&quot;,
+        type=Path,
+        default=Path(__file__).resolve().parents[2] / &quot;data&quot; / &quot;db_contract.json&quot;,
+    )
+    parser.add_argument(&quot;--min-amount&quot;, type=float, default=0.0)
+    parser.add_argument(&quot;--status&quot;)
+    parser.add_argument(&quot;--limit&quot;, type=int, default=100)
+    args = parser.parse_args()
+    try:
+        result = read_orders(
+            args.database,
+            args.contract,
+            min_amount=args.min_amount,
+            status=args.status,
+            limit=args.limit,
+        )
+    except DatabaseReadError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        raise SystemExit(2) from error
+    json.dump(result, sys.stdout, ensure_ascii=False, indent=2, default=json_default)
+    sys.stdout.write(&quot;\n&quot;)
+    if not result[&quot;summary&quot;][&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/07-sqlalchemy/outputs/db_reader.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/07-sqlalchemy" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/html-parsing/"><span>← Предыдущий урок</span><strong>HTML и Beautiful Soup</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/parquet/"><span>Следующий урок →</span><strong>Parquet и колоночное хранение</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

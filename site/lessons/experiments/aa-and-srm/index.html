@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 10/02 у команды есть стабильные assignments и exposures. Можно было бы сразу считать activationrate7d, но это опасный shortcut. Если до анализа эффекта не…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/experiments/aa-and-srm/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="A/A-тест и Sample Ratio Mismatch">
+  <meta property="og:description" content="После 10/02 у команды есть стабильные assignments и exposures. Можно было бы сразу считать activationrate7d, но это опасный shortcut. Если до анализа эффекта не…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/experiments/aa-and-srm/">
+  <meta name="twitter:card" content="summary">
+  <title>A/A-тест и Sample Ratio Mismatch — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "A/A-тест и Sample Ratio Mismatch", "description": "После 10/02 у команды есть стабильные assignments и exposures. Можно было бы сразу считать activationrate7d, но это опасный shortcut. Если до анализа эффекта не…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/experiments/aa-and-srm/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 10: Эксперименты", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=10"}, {"@type": "ListItem", "position": 3, "name": "A/A-тест и Sample Ratio Mismatch", "item": "https://datascience.xyz/courses/analyst-tools/lessons/experiments/aa-and-srm/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 10</p><h2>Эксперименты</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/experiments/hypothesis-and-metric/"><span>01</span>Гипотеза и целевая метрика</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/randomization-unit/"><span>02</span>Единица рандомизации</a><a class="lesson-sidebar-link is-active" href="../../../lessons/experiments/aa-and-srm/"><span>03</span>A/A-тест и Sample Ratio Mismatch</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/mde-and-power/"><span>04</span>MDE, мощность и размер выборки</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/means-and-proportions/"><span>05</span>Сравнение средних и долей</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/bootstrap/"><span>06</span>Bootstrap в экспериментах</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/cuped/"><span>07</span>Снижение дисперсии и CUPED</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/multiple-testing/"><span>08</span>Множественные проверки</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/peeking/"><span>09</span>Подглядывание и последовательный анализ</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/heterogeneous-effects/"><span>10</span>Сегменты и неоднородные эффекты</a><a class="lesson-sidebar-link" href="../../../lessons/experiments/decision-protocol/"><span>11</span>Протокол решения и коммуникация</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 10 · Эксперименты</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 103 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/10-experiments/03-aa-and-srm" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает Sample Ratio Mismatch в A/B-эксперименте?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Фактические variant counts заметно не соответствуют заранее объявленной traffic allocation</button><button type="button" class="quiz-option" data-choice="1">Treatment показал меньший p-value, чем control</button><button type="button" class="quiz-option" data-choice="2">Primary metric выросла меньше MDE</button><button type="button" class="quiz-option" data-choice="3">В одном сегменте пользователей больше, чем в другом</button></div><p class="quiz-feedback" hidden>SRM проверяет качество назначения или наблюдения трафика: совпадают ли фактические доли вариантов с expected allocation.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем делать A/A или pre-period pseudo-outcome check до A/B-анализа?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы проверить, не создает ли randomization pipeline ложный сигнал там, где treatment еще не мог повлиять</button><button type="button" class="quiz-option" data-choice="1">Чтобы заранее доказать, что treatment победит</button><button type="button" class="quiz-option" data-choice="2">Чтобы заменить расчет primary effect</button><button type="button" class="quiz-option" data-choice="3">Чтобы выбрать новую primary metric после запуска</button></div><p class="quiz-feedback" hidden>A/A проверяет health эксперимента и null behavior; он не измеряет эффект treatment, а ищет дефекты рандомизации и логирования.</p></article></section>
+        <article class="lesson-article"><h1 id="a-a-тест-и-sample-ratio-mismatch">A/A-тест и Sample Ratio Mismatch</h1>
+<blockquote>
+<p>До вопроса &quot;какой вариант лучше&quot; идет вопрос &quot;похоже ли это на честно наблюдаемый эксперимент&quot;.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Product<br />
+<strong>Пререквизиты:</strong> 10/02 - Единица рандомизации<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> проводит A/A-test, SRM check и randomization validation: сверяет expected
+allocation, variant counts, covariate balance, telemetry loss и metric null distribution
+до анализа A/B.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать randomization health checks от оценки treatment effect.</li>
+<li>Считать Sample Ratio Mismatch по assignment и exposure counts.</li>
+<li>Проверять telemetry loss между assignment и exposure logs.</li>
+<li>Использовать pre-treatment covariates как A/A pseudo-outcomes.</li>
+<li>Разделять blocking failures и warning-level diagnostics в machine-readable report.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>10/02</code> у команды есть стабильные assignments и exposures. Можно было бы сразу
+считать <code>activation_rate_7d</code>, но это опасный shortcut. Если до анализа эффекта не
+проверить качество рандомизации и логов, результат может выглядеть статистически
+аккуратно и при этом отвечать на сломанную выборку.</p>
+<p>Типичные дефекты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">assignment split не совпал с 50/50 allocation
+treatment exposures потерялись из telemetry
+pre-treatment covariates сильно отличаются между вариантами
+A/A на pre-period метрике показывает невозможный &quot;эффект&quot;
+</code></pre></div><p>SRM и A/A не говорят, что treatment плохой или хороший. Они говорят, можно ли доверять
+дизайну и данным перед тем, как считать treatment effect.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="srm-проверяет-traffic-allocation-а-не-outcome">SRM проверяет traffic allocation, а не outcome</h3>
+<p>Sample Ratio Mismatch возникает, когда observed counts по вариантам заметно расходятся с
+expected allocation:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">expected 50/50
+observed 70/30
+</code></pre></div><p>Причины могут быть разными: routing bug, eligibility drift, feature-flag condition,
+client crash, identity stitching или потеря событий. Поэтому в уроке есть две проверки:</p>
+<table>
+<thead>
+<tr>
+<th>Проверка</th>
+<th>Что считает</th>
+<th>Какой дефект ищет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assignment_srm_chi_square</code></td>
+<td>variant counts в <code>assignments.csv</code></td>
+<td>routing или assignment defect</td>
+</tr>
+<tr>
+<td><code>exposure_srm_chi_square</code></td>
+<td>variant counts в <code>exposures.csv</code></td>
+<td>потеря exposure событий или biased logging</td>
+</tr>
+</tbody>
+</table>
+<p>Если assignment SRM чистый, а exposure SRM или telemetry loss плохие, проблема не в
+hash bucket, а в наблюдаемости события влияния.</p>
+<h3 id="chi-square-srm-это-gate-а-не-эффект">Chi-square SRM - это gate, а не эффект</h3>
+<p>Для двух вариантов с allocation 50/50:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">expected_control = total * 0.5
+expected_treatment = total * 0.5
+chi_square = sum((observed - expected)^2 / expected)
+</code></pre></div><p>Protocol <code>10/01</code> задает строгий <code>srm_alpha = 0.001</code>. В production SRM должен быть редким:
+если он случился, анализ блокируется до расследования. На tiny-profile всего пять
+assigned users, поэтому split 3/2 дает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">chi_square = 0.2
+p_value = 0.654721
+</code></pre></div><p>Это не SRM, а нормальная дискретность маленького учебного набора.</p>
+<h3 id="telemetry-loss-может-имитировать-srm-после-assignment">Telemetry loss может имитировать SRM после assignment</h3>
+<p>Assignment может быть честным, но exposure logs могут потеряться. В уроке diagnostic
+считает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">assigned units
+exposed units
+missing exposures
+missing rate by variant
+variant missing-rate gap
+extra exposure units
+duplicate exposure units
+</code></pre></div><p>Если treatment exposures теряются чаще control, denominator будущей метрики уже смещен.
+Это blocking failure, даже если assignment buckets были стабильны.</p>
+<h3 id="a-a-на-pre-period-metrics-ищет-невозможный-сигнал">A/A на pre-period metrics ищет невозможный сигнал</h3>
+<p>В настоящем A/A оба варианта одинаковые. В этом уроке мы используем pre-treatment metrics
+как pseudo-outcomes: treatment еще не мог повлиять на <code>sessions_7d_pre</code>,
+<code>activation_7d_pre</code>, support tickets или revenue до эксперимента. Если split уже там
+показывает сильный сигнал, нужно проверить randomization и population.</p>
+<p>Артефакт считает exact two-sided permutation p-value для разницы средних. Для tiny
+profile p-values не блокируют анализ, но report показывает warning по standardized mean
+differences: пять users недостаточны, чтобы covariate balance выглядел как production.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Откройте <code>outputs/randomization_health.py</code>. Механизм состоит из четырех блоков.</p>
+<h3 id="шаг-1-посчитайте-expected-counts">Шаг 1: посчитайте expected counts</h3>
+<p>Traffic allocation берется из protocol:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;control&quot;: 0.5,
+  &quot;treatment&quot;: 0.5
+}
+</code></pre></div><p>Для пяти assignments expected counts равны <code>2.5</code> и <code>2.5</code>. Observed counts в baseline:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;control&quot;: 3,
+  &quot;treatment&quot;: 2
+}
+</code></pre></div><h3 id="шаг-2-проверьте-srm-через-chi-square">Шаг 2: проверьте SRM через chi-square</h3>
+<p>Артефакт использует <code>scipy.stats.chisquare</code>:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">statistic, p_value = stats.chisquare(
+    f_obs=[observed[&quot;control&quot;], observed[&quot;treatment&quot;]],
+    f_exp=[expected[&quot;control&quot;], expected[&quot;treatment&quot;]],
+)
+</code></pre></div><p>Если <code>p_value &lt; srm_alpha</code>, check становится blocking error. В baseline:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">assignment_srm_chi_square: p_value = 0.654721
+exposure_srm_chi_square:   p_value = 0.654721
+</code></pre></div><h3 id="шаг-3-сравните-assignment-и-exposure-units">Шаг 3: сравните assignment и exposure units</h3>
+<p>Telemetry block строится без статистики:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">missing_units = assigned_units - exposed_units
+extra_units = exposed_units - assigned_units
+missing_rate_by_variant = missing / assigned
+</code></pre></div><p>В baseline все пять assigned users имеют exposure. Если удалить treatment exposures,
+report вернет non-zero exit code и check <code>telemetry_loss_by_variant</code> станет invalid.</p>
+<h3 id="шаг-4-проверьте-pre-treatment-pseudo-outcomes">Шаг 4: проверьте pre-treatment pseudo-outcomes</h3>
+<p>Для каждой pre-period метрики diagnostic делит значения по variant и считает exact
+permutation p-value. На tiny-profile для <code>sessions_7d_pre</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">control mean = 2.0
+treatment mean = 4.5
+observed difference = 2.5
+p_value = 0.2
+permutations = 10
+</code></pre></div><p>Это не treatment effect. Это sanity check: сигнал до treatment был бы подозрительным.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/10-experiments/03-aa-and-srm/code/main.py
+</code></pre></div><p>Фрагмент результата:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;ready_for_ab_analysis&quot;: true,
+  &quot;assignment_srm_p_value&quot;: 0.654721,
+  &quot;exposure_srm_p_value&quot;: 0.654721,
+  &quot;telemetry_missing_units&quot;: 0,
+  &quot;warning_checks&quot;: [
+    &quot;covariate_balance_standardized_difference&quot;
+  ]
+}
+</code></pre></div><p>CLI артефакта:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/randomization_health.py \
+  --assignments ../data/tiny/assignments.csv \
+  --exposures ../data/tiny/exposures.csv \
+  --pre-metrics ../data/tiny/pre_experiment_metrics.csv \
+  --protocol ../01-hypothesis-and-metric/outputs/experiment_protocol.json \
+  --health-spec outputs/randomization_health_spec.json \
+  --output /tmp/phase10-randomization-health.json
+</code></pre></div><p>Если есть blocking failures, CLI возвращает <code>1</code>. Warning-level checks попадают в report,
+но не блокируют <code>ready_for_ab_analysis</code>.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте, что diagnostic различает типы поломок:</p>
+<ol>
+<li>Все 100 synthetic assignments попали в control: <code>assignment_srm_chi_square</code> блокирует
+анализ.</li>
+<li>Из exposure logs исчезли treatment users: <code>telemetry_loss_by_variant</code> блокирует
+анализ.</li>
+<li>Exposure появился для unknown assignment unit: <code>extra_exposure_units</code> становится
+blocking failure.</li>
+<li>Нет pre-treatment metric row для assigned user: <code>pre_experiment_metrics_complete</code>
+блокирует A/A checks.</li>
+<li>В pre-period pseudo-outcome treatment уже выглядит экстремально лучше control:
+<code>aa_pre_experiment_pseudo_outcomes</code> становится warning.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Поведенческие тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/10-experiments/03-aa-and-srm/tests -v
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>committed <code>randomization_health_report.json</code> совпадает с расчетом;</li>
+<li>baseline готов к A/B-анализу, но содержит warning по tiny covariate balance;</li>
+<li>exact permutation A/A p-values воспроизводимы;</li>
+<li>code example печатает health summary;</li>
+<li>extreme large split блокируется как SRM;</li>
+<li>telemetry loss и extra exposure unit блокируют report;</li>
+<li>missing pre-treatment rows/columns блокируют report;</li>
+<li>CLI пишет report и возвращает non-zero при blocking telemetry loss.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/randomization_health.py
+outputs/randomization_health_spec.json
+outputs/randomization_health_report.json
+</code></pre></div><p>Этот report становится upstream gate для <code>10/04</code>-<code>10/05</code>: планировать мощность и считать
+effect можно только после того, как assignment/exposure health прошел blocking checks.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Поменяйте <code>srm_alpha</code> на <code>0.05</code> и объясните, почему production gate обычно строже.</li>
+<li>Удалите один control exposure и сравните assignment SRM, exposure SRM и telemetry-loss
+check.</li>
+<li>Добавьте в <code>pre_experiment_metrics.csv</code> ковариату <code>days_since_registration_pre</code> и
+включите ее в <code>randomization_health_spec.json</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample Ratio Mismatch</td>
+<td>&quot;Treatment хуже, потому что пользователей меньше&quot;</td>
+<td>Несовпадение observed variant counts с expected allocation</td>
+</tr>
+<tr>
+<td>A/A-test</td>
+<td>&quot;Бесполезный A/B без treatment&quot;</td>
+<td>Health check, где ожидается отсутствие сигнала между одинаковыми вариантами</td>
+</tr>
+<tr>
+<td>Telemetry loss</td>
+<td>&quot;Просто меньше строк&quot;</td>
+<td>Потеря событий, которая может смещать denominator и outcome, особенно если зависит от variant</td>
+</tr>
+<tr>
+<td>Pre-treatment covariate</td>
+<td>&quot;Любая метрика до отчета&quot;</td>
+<td>Метрика, измеренная до exposure и не являющаяся следствием варианта</td>
+</tr>
+<tr>
+<td>Blocking failure</td>
+<td>&quot;Любое предупреждение&quot;</td>
+<td>Дефект, после которого A/B-effect нельзя интерпретировать до расследования</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chisquare.html" target="_blank" rel="noopener">SciPy <code>chisquare</code></a> — официальный API, который используется для SRM chi-square проверки expected allocation.</li>
+<li><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html" target="_blank" rel="noopener">SciPy <code>permutation_test</code></a> — официальный API для permutation-based tests; сравните его с ручным exact permutation в уроке.</li>
+<li><a href="https://arxiv.org/abs/2208.07766" target="_blank" rel="noopener">Ensure A/B Test Quality at Scale with Automated Randomization Validation and Sample Ratio Mismatch Detection</a> — primary source про automated randomization validation и SRM detection на масштабе платформы экспериментов.</li>
+<li><a href="https://arxiv.org/abs/1903.12470" target="_blank" rel="noopener">Trustworthy Experimentation Under Telemetry Loss</a> — primary source о том, почему потеря telemetry может смещать экспериментальные выводы.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему полезно считать SRM отдельно по assignments и exposures?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Assignment SRM ловит routing defect, а exposure SRM вместе с telemetry loss ловит потерю событий после назначения</button><button type="button" class="quiz-option" data-choice="1">Assignment SRM нужен только для красивой таблицы, exposure SRM всегда достаточен</button><button type="button" class="quiz-option" data-choice="2">Они обязаны давать разные p-values, иначе эксперимент невалиден</button><button type="button" class="quiz-option" data-choice="3">Exposure SRM заменяет проверку timestamp ordering</button></div><p class="quiz-feedback" hidden>Проблема может быть в самом назначении или в том, что часть назначенных пользователей не попала в exposure logs. Эти дефекты нужно различать.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему covariate imbalance на tiny-profile в уроке не блокирует весь report?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что это warning-level диагностика на пяти users, а blocking checks отвечают за SRM, telemetry loss и структурную полноту</button><button type="button" class="quiz-option" data-choice="1">Потому что covariates никогда не нужны в экспериментах</button><button type="button" class="quiz-option" data-choice="2">Потому что imbalance доказывает treatment effect</button><button type="button" class="quiz-option" data-choice="3">Потому что A/A всегда игнорирует pre-treatment metrics</button></div><p class="quiz-feedback" hidden>На очень маленьком учебном наборе standardized differences могут быть большими из-за дискретности. Их надо показать, но не путать с production SRM gate.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой дефект должен блокировать A/B-анализ даже при нормальном assignment SRM?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Treatment exposures потерялись после assignment, и missing rate отличается по variant</button><button type="button" class="quiz-option" data-choice="1">Control users имеют чуть меньший pre-period revenue на tiny sample</button><button type="button" class="quiz-option" data-choice="2">A/A p-value больше 0.05</button><button type="button" class="quiz-option" data-choice="3">В protocol есть guardrail metrics</button></div><p class="quiz-feedback" hidden>Assignment мог быть честным, но если exposure telemetry теряется неравномерно, denominator и outcome window становятся смещенными.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import copy
+import csv
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DATA = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;randomization_health.py&quot;
+HEALTH_SPEC = ROOT / &quot;outputs&quot; / &quot;randomization_health_spec.json&quot;
+REPORT = ROOT / &quot;outputs&quot; / &quot;randomization_health_report.json&quot;
+PROTOCOL = PHASE_ROOT / &quot;01-hypothesis-and-metric&quot; / &quot;outputs&quot; / &quot;experiment_protocol.json&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+MODULE_SPEC = importlib.util.spec_from_file_location(&quot;randomization_health&quot;, ARTIFACT)
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+DIAGNOSTIC = importlib.util.module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(DIAGNOSTIC)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def load_examples() -&gt; tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]], dict, dict]:
+    assignments = DIAGNOSTIC.read_csv(DATA / &quot;assignments.csv&quot;)
+    exposures = DIAGNOSTIC.read_csv(DATA / &quot;exposures.csv&quot;)
+    pre_metrics = DIAGNOSTIC.read_csv(DATA / &quot;pre_experiment_metrics.csv&quot;)
+    protocol = DIAGNOSTIC.read_json(PROTOCOL)
+    health_spec = DIAGNOSTIC.read_json(HEALTH_SPEC)
+    return assignments, exposures, pre_metrics, protocol, health_spec
+
+
+def write_rows(path: Path, rows: list[dict[str, str]], fieldnames: list[str] | None = None) -&gt; None:
+    fieldnames = fieldnames or list(rows[0])
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+class RandomizationHealthTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.assignments, self.exposures, self.pre_metrics, self.protocol, self.health_spec = load_examples()
+
+    def report(
+        self,
+        assignments: list[dict[str, str]] | None = None,
+        exposures: list[dict[str, str]] | None = None,
+        pre_metrics: list[dict[str, str]] | None = None,
+    ) -&gt; dict:
+        return DIAGNOSTIC.build_report(
+            self.assignments if assignments is None else assignments,
+            self.exposures if exposures is None else exposures,
+            self.pre_metrics if pre_metrics is None else pre_metrics,
+            self.protocol,
+            self.health_spec,
+        )
+
+    def test_committed_report_matches_calculated_output(self) -&gt; None:
+        calculated = self.report()
+        committed = json.loads(REPORT.read_text(encoding=&quot;utf-8&quot;))
+        self.assertEqual(calculated, committed)
+        self.assertTrue(calculated[&quot;valid&quot;])
+        self.assertTrue(calculated[&quot;ready_for_ab_analysis&quot;])
+        self.assertEqual(calculated[&quot;summary&quot;][&quot;assignment_variant_counts&quot;], {&quot;control&quot;: 3, &quot;treatment&quot;: 2})
+        self.assertEqual(check(calculated, &quot;assignment_srm_chi_square&quot;)[&quot;observed&quot;][&quot;p_value&quot;], 0.654721)
+
+    def test_tiny_covariate_imbalance_is_warning_not_blocker(self) -&gt; None:
+        report = self.report()
+        balance = check(report, &quot;covariate_balance_standardized_difference&quot;)
+        self.assertEqual(balance[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(balance[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_failures&quot;], [])
+        self.assertEqual(report[&quot;summary&quot;][&quot;warning_checks&quot;], [&quot;covariate_balance_standardized_difference&quot;])
+
+    def test_aa_pre_experiment_pseudo_outcomes_use_exact_permutations(self) -&gt; None:
+        report = self.report()
+        aa_check = check(report, &quot;aa_pre_experiment_pseudo_outcomes&quot;)
+        self.assertTrue(aa_check[&quot;valid&quot;])
+        sessions = next(item for item in aa_check[&quot;sample&quot;] if item[&quot;column&quot;] == &quot;sessions_7d_pre&quot;)
+        self.assertEqual(sessions[&quot;observed_difference&quot;], 2.5)
+        self.assertEqual(sessions[&quot;p_value&quot;], 0.2)
+        self.assertEqual(sessions[&quot;permutations&quot;], 10)
+
+    def test_code_example_prints_health_summary(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, CODE],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;ready_for_ab_analysis&quot;])
+        self.assertEqual(payload[&quot;assignment_srm_p_value&quot;], 0.654721)
+        self.assertEqual(payload[&quot;telemetry_missing_units&quot;], 0)
+        self.assertEqual(payload[&quot;warning_checks&quot;], [&quot;covariate_balance_standardized_difference&quot;])
+
+    def test_assignment_srm_blocks_extreme_large_split(self) -&gt; None:
+        assignments = []
+        exposures = []
+        pre_metrics = []
+        for index in range(100):
+            user_id = f&quot;UA{index:03d}&quot;
+            assignments.append(
+                {
+                    &quot;experiment_id&quot;: self.protocol[&quot;experiment_id&quot;],
+                    &quot;assignment_unit_type&quot;: &quot;user_id&quot;,
+                    &quot;assignment_unit_id&quot;: user_id,
+                    &quot;user_id&quot;: user_id,
+                    &quot;variant_id&quot;: &quot;control&quot;,
+                    &quot;bucket&quot;: str(index),
+                    &quot;assigned_at&quot;: &quot;2026-06-10T00:00:00+03:00&quot;,
+                    &quot;allocation_ratio&quot;: &quot;0.5&quot;,
+                    &quot;is_eligible&quot;: &quot;true&quot;,
+                    &quot;assignment_source&quot;: &quot;fixture&quot;,
+                }
+            )
+            exposures.append(
+                {
+                    &quot;exposure_id&quot;: f&quot;X-{user_id}&quot;,
+                    &quot;experiment_id&quot;: self.protocol[&quot;experiment_id&quot;],
+                    &quot;assignment_unit_id&quot;: user_id,
+                    &quot;user_id&quot;: user_id,
+                    &quot;variant_id&quot;: &quot;control&quot;,
+                    &quot;exposure_event&quot;: &quot;paywall_viewed&quot;,
+                    &quot;exposed_at&quot;: &quot;2026-06-10T09:00:00+03:00&quot;,
+                    &quot;received_at&quot;: &quot;2026-06-10T09:01:00+03:00&quot;,
+                    &quot;platform&quot;: &quot;android&quot;,
+                    &quot;app_version&quot;: &quot;5.20.0&quot;,
+                }
+            )
+            pre_metrics.append(
+                {
+                    &quot;experiment_id&quot;: self.protocol[&quot;experiment_id&quot;],
+                    &quot;user_id&quot;: user_id,
+                    &quot;sessions_7d_pre&quot;: &quot;1&quot;,
+                    &quot;activation_7d_pre&quot;: &quot;0&quot;,
+                    &quot;support_tickets_7d_pre&quot;: &quot;0&quot;,
+                    &quot;realized_revenue_7d_pre&quot;: &quot;0.00&quot;,
+                }
+            )
+        report = self.report(assignments=assignments, exposures=exposures, pre_metrics=pre_metrics)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;assignment_srm_chi_square&quot;, report[&quot;summary&quot;][&quot;blocking_failures&quot;])
+        self.assertLess(check(report, &quot;assignment_srm_chi_square&quot;)[&quot;observed&quot;][&quot;p_value&quot;], 0.001)
+
+    def test_telemetry_loss_blocks_missing_treatment_exposures(self) -&gt; None:
+        exposures = [row for row in copy.deepcopy(self.exposures) if row[&quot;variant_id&quot;] != &quot;treatment&quot;]
+        report = self.report(exposures=exposures)
+        telemetry = check(report, &quot;telemetry_loss_by_variant&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(telemetry[&quot;valid&quot;])
+        self.assertEqual(telemetry[&quot;observed&quot;][&quot;missing_units&quot;], 2)
+        self.assertIn(&quot;telemetry_loss_by_variant&quot;, report[&quot;summary&quot;][&quot;blocking_failures&quot;])
+
+    def test_extra_exposure_without_assignment_is_blocking(self) -&gt; None:
+        exposures = copy.deepcopy(self.exposures)
+        extra = dict(exposures[0])
+        extra[&quot;exposure_id&quot;] = &quot;X-extra&quot;
+        extra[&quot;assignment_unit_id&quot;] = &quot;U404&quot;
+        extra[&quot;user_id&quot;] = &quot;U404&quot;
+        exposures.append(extra)
+        report = self.report(exposures=exposures)
+        telemetry = check(report, &quot;telemetry_loss_by_variant&quot;)
+        self.assertFalse(telemetry[&quot;valid&quot;])
+        self.assertEqual(telemetry[&quot;observed&quot;][&quot;extra_exposure_units&quot;], 1)
+
+    def test_missing_pre_experiment_metric_row_blocks_report(self) -&gt; None:
+        pre_metrics = [row for row in copy.deepcopy(self.pre_metrics) if row[&quot;user_id&quot;] != &quot;U005&quot;]
+        report = self.report(pre_metrics=pre_metrics)
+        metrics_check = check(report, &quot;pre_experiment_metrics_complete&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(metrics_check[&quot;valid&quot;])
+        self.assertEqual(metrics_check[&quot;observed&quot;][&quot;missing_users&quot;], [&quot;U005&quot;])
+
+    def test_missing_pre_experiment_metric_column_blocks_report(self) -&gt; None:
+        pre_metrics = copy.deepcopy(self.pre_metrics)
+        for row in pre_metrics:
+            row.pop(&quot;sessions_7d_pre&quot;)
+        report = self.report(pre_metrics=pre_metrics)
+        metrics_check = check(report, &quot;pre_experiment_metrics_complete&quot;)
+        self.assertFalse(metrics_check[&quot;valid&quot;])
+        self.assertEqual(metrics_check[&quot;observed&quot;][&quot;missing_columns&quot;], [&quot;sessions_7d_pre&quot;])
+
+    def test_aa_check_flags_extreme_preperiod_difference_as_warning(self) -&gt; None:
+        assignments = []
+        pre_metrics = []
+        for index in range(8):
+            variant_id = &quot;control&quot; if index &lt; 4 else &quot;treatment&quot;
+            user_id = f&quot;UB{index:03d}&quot;
+            assignments.append(
+                {
+                    &quot;experiment_id&quot;: self.protocol[&quot;experiment_id&quot;],
+                    &quot;assignment_unit_type&quot;: &quot;user_id&quot;,
+                    &quot;assignment_unit_id&quot;: user_id,
+                    &quot;user_id&quot;: user_id,
+                    &quot;variant_id&quot;: variant_id,
+                    &quot;bucket&quot;: str(index),
+                    &quot;assigned_at&quot;: &quot;2026-06-10T00:00:00+03:00&quot;,
+                    &quot;allocation_ratio&quot;: &quot;0.5&quot;,
+                    &quot;is_eligible&quot;: &quot;true&quot;,
+                    &quot;assignment_source&quot;: &quot;fixture&quot;,
+                }
+            )
+            pre_metrics.append(
+                {
+                    &quot;experiment_id&quot;: self.protocol[&quot;experiment_id&quot;],
+                    &quot;user_id&quot;: user_id,
+                    &quot;sessions_7d_pre&quot;: &quot;0&quot; if variant_id == &quot;control&quot; else &quot;100&quot;,
+                    &quot;activation_7d_pre&quot;: &quot;0&quot; if variant_id == &quot;control&quot; else &quot;1&quot;,
+                    &quot;support_tickets_7d_pre&quot;: &quot;0&quot;,
+                    &quot;realized_revenue_7d_pre&quot;: &quot;0.00&quot; if variant_id == &quot;control&quot; else &quot;100.00&quot;,
+                }
+            )
+        aa_check = DIAGNOSTIC.aa_pseudo_outcome_check(assignments, pre_metrics, self.protocol, self.health_spec)
+        self.assertEqual(aa_check[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(aa_check[&quot;valid&quot;])
+        sessions = next(item for item in aa_check[&quot;sample&quot;] if item[&quot;column&quot;] == &quot;sessions_7d_pre&quot;)
+        self.assertEqual(sessions[&quot;p_value&quot;], 0.028571)
+
+    def test_cli_writes_report_and_returns_zero_for_baseline(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            report_path = Path(directory) / &quot;health.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--assignments&quot;,
+                    DATA / &quot;assignments.csv&quot;,
+                    &quot;--exposures&quot;,
+                    DATA / &quot;exposures.csv&quot;,
+                    &quot;--pre-metrics&quot;,
+                    DATA / &quot;pre_experiment_metrics.csv&quot;,
+                    &quot;--protocol&quot;,
+                    PROTOCOL,
+                    &quot;--health-spec&quot;,
+                    HEALTH_SPEC,
+                    &quot;--output&quot;,
+                    report_path,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout), json.loads(report_path.read_text(encoding=&quot;utf-8&quot;)))
+
+    def test_cli_returns_nonzero_for_blocking_telemetry_loss(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            exposure_path = root / &quot;exposures.csv&quot;
+            exposures = [row for row in copy.deepcopy(self.exposures) if row[&quot;variant_id&quot;] != &quot;treatment&quot;]
+            write_rows(exposure_path, exposures, fieldnames=list(self.exposures[0]))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--assignments&quot;,
+                    DATA / &quot;assignments.csv&quot;,
+                    &quot;--exposures&quot;,
+                    exposure_path,
+                    &quot;--pre-metrics&quot;,
+                    DATA / &quot;pre_experiment_metrics.csv&quot;,
+                    &quot;--protocol&quot;,
+                    PROTOCOL,
+                    &quot;--health-spec&quot;,
+                    HEALTH_SPEC,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse(json.loads(result.stdout)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DATA = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+PROTOCOL = PHASE_ROOT / &quot;01-hypothesis-and-metric&quot; / &quot;outputs&quot; / &quot;experiment_protocol.json&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;randomization_health.py&quot;
+HEALTH_SPEC = ROOT / &quot;outputs&quot; / &quot;randomization_health_spec.json&quot;
+
+
+def load_diagnostic():
+    spec = importlib.util.spec_from_file_location(&quot;randomization_health&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    diagnostic = load_diagnostic()
+    report = diagnostic.run(
+        DATA / &quot;assignments.csv&quot;,
+        DATA / &quot;exposures.csv&quot;,
+        DATA / &quot;pre_experiment_metrics.csv&quot;,
+        PROTOCOL,
+        HEALTH_SPEC,
+    )
+    checks = {check[&quot;id&quot;]: check for check in report[&quot;checks&quot;]}
+    payload = {
+        &quot;ready_for_ab_analysis&quot;: report[&quot;ready_for_ab_analysis&quot;],
+        &quot;assignment_srm_p_value&quot;: checks[&quot;assignment_srm_chi_square&quot;][&quot;observed&quot;][&quot;p_value&quot;],
+        &quot;exposure_srm_p_value&quot;: checks[&quot;exposure_srm_chi_square&quot;][&quot;observed&quot;][&quot;p_value&quot;],
+        &quot;telemetry_missing_units&quot;: checks[&quot;telemetry_loss_by_variant&quot;][&quot;observed&quot;][&quot;missing_units&quot;],
+        &quot;warning_checks&quot;: report[&quot;summary&quot;][&quot;warning_checks&quot;],
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;randomization-health-diagnostic&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/randomization_health.py&quot;,
+  &quot;description&quot;: &quot;Проверяет A/A и randomization health до A/B-анализа: assignment/exposure SRM, telemetry loss, полноту pre-treatment metrics, covariate balance и exact permutation pseudo-outcomes.&quot;,
+  &quot;usage&quot;: &quot;python outputs/randomization_health.py --assignments ../data/tiny/assignments.csv --exposures ../data/tiny/exposures.csv --pre-metrics ../data/tiny/pre_experiment_metrics.csv --protocol ../01-hypothesis-and-metric/outputs/experiment_protocol.json --health-spec outputs/randomization_health_spec.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/randomization_health.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import itertools
+import json
+import math
+import sys
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+from scipy import stats
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        value = json.load(source)
+    if not isinstance(value, dict):
+        raise ValueError(f&quot;{path} must contain a JSON object&quot;)
+    return value
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_json(path: Path, payload: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def parse_float(value: str | int | float) -&gt; float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if value.strip() == &quot;&quot;:
+        raise ValueError(&quot;empty numeric value&quot;)
+    return float(value)
+
+
+def round_float(value: float, digits: int = 6) -&gt; float | str:
+    if math.isinf(value):
+        return &quot;inf&quot;
+    if math.isnan(value):
+        return &quot;nan&quot;
+    return round(value, digits)
+
+
+def check_result(
+    check_id: str,
+    severity: str,
+    valid: bool,
+    observed: Any = None,
+    expected: Any = None,
+    sample: list[Any] | None = None,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: valid,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def variant_ids(protocol: dict[str, Any]) -&gt; list[str]:
+    variants = protocol.get(&quot;variants&quot;)
+    if not isinstance(variants, list):
+        raise ValueError(&quot;protocol variants must be a list&quot;)
+    result = [str(item[&quot;variant_id&quot;]) for item in variants]
+    if len(result) &lt; 2:
+        raise ValueError(&quot;at least two variants are required&quot;)
+    return result
+
+
+def control_and_treatment(protocol: dict[str, Any]) -&gt; tuple[str, str]:
+    variants = protocol.get(&quot;variants&quot;, [])
+    control = next((str(item[&quot;variant_id&quot;]) for item in variants if item.get(&quot;is_control&quot;) is True), None)
+    ids = variant_ids(protocol)
+    treatment = next((variant_id for variant_id in ids if variant_id != control), None)
+    if control is None or treatment is None:
+        raise ValueError(&quot;exactly one control and at least one treatment variant are required&quot;)
+    return control, treatment
+
+
+def count_by_variant(rows: list[dict[str, Any]], variants: list[str]) -&gt; dict[str, int]:
+    counts = Counter(str(row.get(&quot;variant_id&quot;, &quot;&quot;)) for row in rows)
+    return {variant_id: counts.get(variant_id, 0) for variant_id in variants}
+
+
+def expected_counts(total: int, protocol: dict[str, Any], variants: list[str]) -&gt; dict[str, float]:
+    allocation = protocol.get(&quot;traffic_allocation&quot;)
+    if not isinstance(allocation, dict):
+        raise ValueError(&quot;protocol traffic_allocation must be an object&quot;)
+    return {variant_id: total * parse_float(allocation[variant_id]) for variant_id in variants}
+
+
+def srm_check(
+    rows: list[dict[str, Any]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+    check_id: str,
+) -&gt; dict[str, Any]:
+    variants = variant_ids(protocol)
+    observed = count_by_variant(rows, variants)
+    total = sum(observed.values())
+    if total == 0:
+        return check_result(check_id, &quot;error&quot;, False, observed, &quot;non-empty assignment or exposure rows&quot;)
+    expected = expected_counts(total, protocol, variants)
+    statistic, p_value = stats.chisquare(
+        f_obs=[observed[variant_id] for variant_id in variants],
+        f_exp=[expected[variant_id] for variant_id in variants],
+    )
+    alpha = parse_float(health_spec[&quot;srm_alpha&quot;])
+    min_expected = min(expected.values()) if expected else 0.0
+    sample = [
+        {
+            &quot;variant_id&quot;: variant_id,
+            &quot;observed&quot;: observed[variant_id],
+            &quot;expected&quot;: round_float(expected[variant_id]),
+            &quot;observed_share&quot;: round_float(observed[variant_id] / total),
+            &quot;expected_share&quot;: round_float(expected[variant_id] / total),
+        }
+        for variant_id in variants
+    ]
+    valid = float(p_value) &gt;= alpha
+    return check_result(
+        check_id,
+        &quot;error&quot;,
+        valid,
+        {
+            &quot;counts&quot;: observed,
+            &quot;total&quot;: total,
+            &quot;chi_square&quot;: round_float(float(statistic)),
+            &quot;p_value&quot;: round_float(float(p_value)),
+            &quot;min_expected_count&quot;: round_float(min_expected),
+        },
+        {&quot;alpha&quot;: alpha, &quot;allocation&quot;: protocol[&quot;traffic_allocation&quot;]},
+        sample,
+    )
+
+
+def telemetry_loss_check(
+    assignments: list[dict[str, Any]],
+    exposures: list[dict[str, Any]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    variants = variant_ids(protocol)
+    assigned_units = {str(row[&quot;assignment_unit_id&quot;]) for row in assignments}
+    exposed_units = [str(row.get(&quot;assignment_unit_id&quot;, &quot;&quot;)) for row in exposures]
+    exposure_counts = Counter(exposed_units)
+    duplicate_exposure_units = sorted(unit_id for unit_id, count in exposure_counts.items() if unit_id and count &gt; 1)
+    exposed_unit_set = {unit_id for unit_id in exposed_units if unit_id}
+    missing_units = sorted(assigned_units - exposed_unit_set)
+    extra_units = sorted(exposed_unit_set - assigned_units)
+    assignment_by_variant = count_by_variant(assignments, variants)
+    exposure_by_variant = count_by_variant(exposures, variants)
+    by_variant: list[dict[str, Any]] = []
+    missing_rates: list[float] = []
+    for variant_id in variants:
+        assigned = assignment_by_variant[variant_id]
+        exposed = exposure_by_variant[variant_id]
+        missing = max(assigned - exposed, 0)
+        missing_rate = missing / assigned if assigned else 0.0
+        missing_rates.append(missing_rate)
+        by_variant.append(
+            {
+                &quot;variant_id&quot;: variant_id,
+                &quot;assigned&quot;: assigned,
+                &quot;exposed&quot;: exposed,
+                &quot;missing&quot;: missing,
+                &quot;missing_rate&quot;: round_float(missing_rate),
+                &quot;exposure_rate&quot;: round_float(exposed / assigned if assigned else 0.0),
+            }
+        )
+    overall_missing_rate = len(missing_units) / len(assigned_units) if assigned_units else 0.0
+    variant_gap = max(missing_rates) - min(missing_rates) if missing_rates else 0.0
+    valid = (
+        not duplicate_exposure_units
+        and not extra_units
+        and overall_missing_rate &lt;= parse_float(health_spec[&quot;max_missing_exposure_rate&quot;])
+        and variant_gap &lt;= parse_float(health_spec[&quot;max_variant_missing_rate_gap&quot;])
+    )
+    return check_result(
+        &quot;telemetry_loss_by_variant&quot;,
+        &quot;error&quot;,
+        valid,
+        {
+            &quot;assigned_units&quot;: len(assigned_units),
+            &quot;exposed_units&quot;: len(exposed_unit_set),
+            &quot;missing_units&quot;: len(missing_units),
+            &quot;extra_exposure_units&quot;: len(extra_units),
+            &quot;duplicate_exposure_units&quot;: duplicate_exposure_units,
+            &quot;overall_missing_rate&quot;: round_float(overall_missing_rate),
+            &quot;variant_missing_rate_gap&quot;: round_float(variant_gap),
+        },
+        {
+            &quot;max_missing_exposure_rate&quot;: health_spec[&quot;max_missing_exposure_rate&quot;],
+            &quot;max_variant_missing_rate_gap&quot;: health_spec[&quot;max_variant_missing_rate_gap&quot;],
+        },
+        by_variant + [{&quot;missing_units&quot;: missing_units[:5], &quot;extra_units&quot;: extra_units[:5]}],
+    )
+
+
+def pre_metric_rows_by_user(
+    pre_metrics: list[dict[str, str]],
+    experiment_id: str,
+) -&gt; dict[str, dict[str, str]]:
+    return {row[&quot;user_id&quot;]: row for row in pre_metrics if row.get(&quot;experiment_id&quot;) == experiment_id}
+
+
+def pre_experiment_metrics_complete_check(
+    assignments: list[dict[str, Any]],
+    pre_metrics: list[dict[str, str]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    experiment_id = str(protocol[&quot;experiment_id&quot;])
+    metrics_by_user = pre_metric_rows_by_user(pre_metrics, experiment_id)
+    assigned_users = sorted(str(row[&quot;user_id&quot;]) for row in assignments)
+    columns = sorted(
+        set(health_spec[&quot;covariate_balance&quot;][&quot;columns&quot;])
+        | set(health_spec[&quot;aa_pseudo_outcomes&quot;][&quot;columns&quot;])
+    )
+    missing_users = [user_id for user_id in assigned_users if user_id not in metrics_by_user]
+    missing_columns = [
+        column
+        for column in columns
+        if any(column not in metrics_by_user.get(user_id, {}) for user_id in assigned_users if user_id in metrics_by_user)
+    ]
+    valid = not missing_users and not missing_columns
+    return check_result(
+        &quot;pre_experiment_metrics_complete&quot;,
+        &quot;error&quot;,
+        valid,
+        {&quot;assigned_users&quot;: len(assigned_users), &quot;metric_rows&quot;: len(metrics_by_user), &quot;missing_users&quot;: missing_users, &quot;missing_columns&quot;: missing_columns},
+        &quot;one pre-treatment metric row with declared columns for every assigned user&quot;,
+        [{&quot;missing_users&quot;: missing_users[:5], &quot;missing_columns&quot;: missing_columns[:5]}],
+    )
+
+
+def mean(values: list[float]) -&gt; float:
+    if not values:
+        raise ValueError(&quot;cannot calculate mean for empty values&quot;)
+    return sum(values) / len(values)
+
+
+def sample_variance(values: list[float]) -&gt; float:
+    if len(values) &lt; 2:
+        return 0.0
+    avg = mean(values)
+    return sum((value - avg) ** 2 for value in values) / (len(values) - 1)
+
+
+def standardized_mean_difference(control_values: list[float], treatment_values: list[float]) -&gt; float:
+    control_mean = mean(control_values)
+    treatment_mean = mean(treatment_values)
+    pooled_sd = math.sqrt((sample_variance(control_values) + sample_variance(treatment_values)) / 2)
+    diff = treatment_mean - control_mean
+    if pooled_sd == 0:
+        return 0.0 if diff == 0 else math.inf
+    return diff / pooled_sd
+
+
+def values_by_variant(
+    assignments: list[dict[str, Any]],
+    pre_metrics: list[dict[str, str]],
+    protocol: dict[str, Any],
+    column: str,
+) -&gt; dict[str, list[float]]:
+    experiment_id = str(protocol[&quot;experiment_id&quot;])
+    metrics_by_user = pre_metric_rows_by_user(pre_metrics, experiment_id)
+    result: dict[str, list[float]] = {variant_id: [] for variant_id in variant_ids(protocol)}
+    for assignment in assignments:
+        user_id = str(assignment[&quot;user_id&quot;])
+        metric_row = metrics_by_user[user_id]
+        result[str(assignment[&quot;variant_id&quot;])].append(parse_float(metric_row[column]))
+    return result
+
+
+def covariate_balance_check(
+    assignments: list[dict[str, Any]],
+    pre_metrics: list[dict[str, str]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    control, treatment = control_and_treatment(protocol)
+    balance_spec = health_spec[&quot;covariate_balance&quot;]
+    threshold = parse_float(balance_spec[&quot;max_abs_standardized_difference&quot;])
+    sample: list[dict[str, Any]] = []
+    offenders: list[str] = []
+    for column in balance_spec[&quot;columns&quot;]:
+        grouped = values_by_variant(assignments, pre_metrics, protocol, column)
+        control_values = grouped[control]
+        treatment_values = grouped[treatment]
+        if not control_values or not treatment_values:
+            offenders.append(column)
+            sample.append(
+                {
+                    &quot;column&quot;: column,
+                    &quot;reason&quot;: &quot;empty variant cell&quot;,
+                    &quot;control_n&quot;: len(control_values),
+                    &quot;treatment_n&quot;: len(treatment_values),
+                }
+            )
+            continue
+        smd = standardized_mean_difference(control_values, treatment_values)
+        row = {
+            &quot;column&quot;: column,
+            &quot;control_mean&quot;: round_float(mean(control_values)),
+            &quot;treatment_mean&quot;: round_float(mean(treatment_values)),
+            &quot;standardized_mean_difference&quot;: round_float(smd),
+            &quot;abs_standardized_mean_difference&quot;: round_float(abs(smd)),
+            &quot;control_n&quot;: len(control_values),
+            &quot;treatment_n&quot;: len(treatment_values),
+        }
+        if abs(smd) &gt; threshold:
+            offenders.append(column)
+        sample.append(row)
+    return check_result(
+        &quot;covariate_balance_standardized_difference&quot;,
+        str(balance_spec.get(&quot;severity&quot;, &quot;warning&quot;)),
+        not offenders,
+        {&quot;offending_columns&quot;: offenders, &quot;columns_checked&quot;: len(sample)},
+        f&quot;absolute standardized mean difference &lt;= {threshold}&quot;,
+        sample,
+    )
+
+
+def exact_permutation_p_value(control_values: list[float], treatment_values: list[float]) -&gt; tuple[float, int, float]:
+    values = control_values + treatment_values
+    n = len(values)
+    treatment_n = len(treatment_values)
+    observed = mean(treatment_values) - mean(control_values)
+    total = 0
+    extreme = 0
+    all_indices = range(n)
+    for treatment_indices_tuple in itertools.combinations(all_indices, treatment_n):
+        treatment_indices = set(treatment_indices_tuple)
+        perm_treatment = [values[index] for index in all_indices if index in treatment_indices]
+        perm_control = [values[index] for index in all_indices if index not in treatment_indices]
+        diff = mean(perm_treatment) - mean(perm_control)
+        total += 1
+        if abs(diff) &gt;= abs(observed) - 1e-12:
+            extreme += 1
+    return extreme / total, total, observed
+
+
+def aa_pseudo_outcome_check(
+    assignments: list[dict[str, Any]],
+    pre_metrics: list[dict[str, str]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    control, treatment = control_and_treatment(protocol)
+    aa_spec = health_spec[&quot;aa_pseudo_outcomes&quot;]
+    alpha = parse_float(health_spec[&quot;aa_alpha&quot;])
+    sample: list[dict[str, Any]] = []
+    offenders: list[str] = []
+    for column in aa_spec[&quot;columns&quot;]:
+        grouped = values_by_variant(assignments, pre_metrics, protocol, column)
+        control_values = grouped[control]
+        treatment_values = grouped[treatment]
+        if not control_values or not treatment_values:
+            offenders.append(column)
+            sample.append(
+                {
+                    &quot;column&quot;: column,
+                    &quot;reason&quot;: &quot;empty variant cell&quot;,
+                    &quot;control_n&quot;: len(control_values),
+                    &quot;treatment_n&quot;: len(treatment_values),
+                }
+            )
+            continue
+        p_value, permutations, observed_diff = exact_permutation_p_value(control_values, treatment_values)
+        row = {
+            &quot;column&quot;: column,
+            &quot;control_mean&quot;: round_float(mean(control_values)),
+            &quot;treatment_mean&quot;: round_float(mean(treatment_values)),
+            &quot;observed_difference&quot;: round_float(observed_diff),
+            &quot;p_value&quot;: round_float(p_value),
+            &quot;permutations&quot;: permutations,
+        }
+        if p_value &lt; alpha:
+            offenders.append(column)
+        sample.append(row)
+    return check_result(
+        &quot;aa_pre_experiment_pseudo_outcomes&quot;,
+        str(aa_spec.get(&quot;severity&quot;, &quot;warning&quot;)),
+        not offenders,
+        {&quot;offending_columns&quot;: offenders, &quot;columns_checked&quot;: len(sample)},
+        f&quot;exact two-sided permutation p-value &gt;= {alpha}&quot;,
+        sample,
+    )
+
+
+def build_report(
+    assignments: list[dict[str, Any]],
+    exposures: list[dict[str, Any]],
+    pre_metrics: list[dict[str, str]],
+    protocol: dict[str, Any],
+    health_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    checks = [
+        srm_check(assignments, protocol, health_spec, &quot;assignment_srm_chi_square&quot;),
+        srm_check(exposures, protocol, health_spec, &quot;exposure_srm_chi_square&quot;),
+        telemetry_loss_check(assignments, exposures, protocol, health_spec),
+        pre_experiment_metrics_complete_check(assignments, pre_metrics, protocol, health_spec),
+    ]
+    if checks[-1][&quot;valid&quot;]:
+        checks.append(covariate_balance_check(assignments, pre_metrics, protocol, health_spec))
+        checks.append(aa_pseudo_outcome_check(assignments, pre_metrics, protocol, health_spec))
+    blocking_failures = [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+    warnings = [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+    assignment_counts = count_by_variant(assignments, variant_ids(protocol))
+    exposure_counts = count_by_variant(exposures, variant_ids(protocol))
+    return {
+        &quot;valid&quot;: not blocking_failures,
+        &quot;ready_for_ab_analysis&quot;: not blocking_failures,
+        &quot;checks&quot;: checks,
+        &quot;summary&quot;: {
+            &quot;experiment_id&quot;: protocol[&quot;experiment_id&quot;],
+            &quot;assignment_units&quot;: len({str(row[&quot;assignment_unit_id&quot;]) for row in assignments}),
+            &quot;exposure_units&quot;: len({str(row[&quot;assignment_unit_id&quot;]) for row in exposures}),
+            &quot;assignment_variant_counts&quot;: assignment_counts,
+            &quot;exposure_variant_counts&quot;: exposure_counts,
+            &quot;blocking_failures&quot;: blocking_failures,
+            &quot;warning_checks&quot;: warnings,
+        },
+    }
+
+
+def run(
+    assignments_path: Path,
+    exposures_path: Path,
+    pre_metrics_path: Path,
+    protocol_path: Path,
+    health_spec_path: Path,
+) -&gt; dict[str, Any]:
+    assignments = read_csv(assignments_path)
+    exposures = read_csv(exposures_path)
+    pre_metrics = read_csv(pre_metrics_path)
+    protocol = read_json(protocol_path)
+    health_spec = read_json(health_spec_path)
+    if health_spec.get(&quot;experiment_id&quot;) != protocol.get(&quot;experiment_id&quot;):
+        raise ValueError(&quot;health spec experiment_id must match protocol&quot;)
+    return build_report(assignments, exposures, pre_metrics, protocol, health_spec)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Run A/A, SRM and randomization health diagnostics before A/B analysis&quot;)
+    parser.add_argument(&quot;--assignments&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--exposures&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--pre-metrics&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--protocol&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--health-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--allow-failures&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args(argv)
+    try:
+        report = run(args.assignments, args.exposures, args.pre_metrics, args.protocol, args.health_spec)
+    except (OSError, json.JSONDecodeError, KeyError, ValueError) as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    rendered = json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;
+    if args.output is not None:
+        write_json(args.output, report)
+    print(rendered, end=&quot;&quot;)
+    if report[&quot;valid&quot;] or args.allow_failures:
+        return 0
+    return 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/outputs/randomization_health.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/randomization_health_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;ready_for_ab_analysis&quot;: true,
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;assignment_srm_chi_square&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;counts&quot;: {
+          &quot;control&quot;: 3,
+          &quot;treatment&quot;: 2
+        },
+        &quot;total&quot;: 5,
+        &quot;chi_square&quot;: 0.2,
+        &quot;p_value&quot;: 0.654721,
+        &quot;min_expected_count&quot;: 2.5
+      },
+      &quot;expected&quot;: {
+        &quot;alpha&quot;: 0.001,
+        &quot;allocation&quot;: {
+          &quot;control&quot;: 0.5,
+          &quot;treatment&quot;: 0.5
+        }
+      },
+      &quot;sample&quot;: [
+        {
+          &quot;variant_id&quot;: &quot;control&quot;,
+          &quot;observed&quot;: 3,
+          &quot;expected&quot;: 2.5,
+          &quot;observed_share&quot;: 0.6,
+          &quot;expected_share&quot;: 0.5
+        },
+        {
+          &quot;variant_id&quot;: &quot;treatment&quot;,
+          &quot;observed&quot;: 2,
+          &quot;expected&quot;: 2.5,
+          &quot;observed_share&quot;: 0.4,
+          &quot;expected_share&quot;: 0.5
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;exposure_srm_chi_square&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;counts&quot;: {
+          &quot;control&quot;: 3,
+          &quot;treatment&quot;: 2
+        },
+        &quot;total&quot;: 5,
+        &quot;chi_square&quot;: 0.2,
+        &quot;p_value&quot;: 0.654721,
+        &quot;min_expected_count&quot;: 2.5
+      },
+      &quot;expected&quot;: {
+        &quot;alpha&quot;: 0.001,
+        &quot;allocation&quot;: {
+          &quot;control&quot;: 0.5,
+          &quot;treatment&quot;: 0.5
+        }
+      },
+      &quot;sample&quot;: [
+        {
+          &quot;variant_id&quot;: &quot;control&quot;,
+          &quot;observed&quot;: 3,
+          &quot;expected&quot;: 2.5,
+          &quot;observed_share&quot;: 0.6,
+          &quot;expected_share&quot;: 0.5
+        },
+        {
+          &quot;variant_id&quot;: &quot;treatment&quot;,
+          &quot;observed&quot;: 2,
+          &quot;expected&quot;: 2.5,
+          &quot;observed_share&quot;: 0.4,
+          &quot;expected_share&quot;: 0.5
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;telemetry_loss_by_variant&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;assigned_units&quot;: 5,
+        &quot;exposed_units&quot;: 5,
+        &quot;missing_units&quot;: 0,
+        &quot;extra_exposure_units&quot;: 0,
+        &quot;duplicate_exposure_units&quot;: [],
+        &quot;overall_missing_rate&quot;: 0.0,
+        &quot;variant_missing_rate_gap&quot;: 0.0
+      },
+      &quot;expected&quot;: {
+        &quot;max_missing_exposure_rate&quot;: 0.0,
+        &quot;max_variant_missing_rate_gap&quot;: 0.2
+      },
+      &quot;sample&quot;: [
+        {
+          &quot;variant_id&quot;: &quot;control&quot;,
+          &quot;assigned&quot;: 3,
+          &quot;exposed&quot;: 3,
+          &quot;missing&quot;: 0,
+          &quot;missing_rate&quot;: 0.0,
+          &quot;exposure_rate&quot;: 1.0
+        },
+        {
+          &quot;variant_id&quot;: &quot;treatment&quot;,
+          &quot;assigned&quot;: 2,
+          &quot;exposed&quot;: 2,
+          &quot;missing&quot;: 0,
+          &quot;missing_rate&quot;: 0.0,
+          &quot;exposure_rate&quot;: 1.0
+        },
+        {
+          &quot;missing_units&quot;: [],
+          &quot;extra_units&quot;: []
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;pre_experiment_metrics_complete&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;assigned_users&quot;: 5,
+        &quot;metric_rows&quot;: 8,
+        &quot;missing_users&quot;: [],
+        &quot;missing_columns&quot;: []
+      },
+      &quot;expected&quot;: &quot;one pre-treatment metric row with declared columns for every assigned user&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;missing_users&quot;: [],
+          &quot;missing_columns&quot;: []
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;covariate_balance_standardized_difference&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;offending_columns&quot;: [
+          &quot;sessions_7d_pre&quot;,
+          &quot;activation_7d_pre&quot;,
+          &quot;support_tickets_7d_pre&quot;,
+          &quot;realized_revenue_7d_pre&quot;
+        ],
+        &quot;columns_checked&quot;: 4
+      },
+      &quot;expected&quot;: &quot;absolute standardized mean difference &lt;= 0.5&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;column&quot;: &quot;sessions_7d_pre&quot;,
+          &quot;control_mean&quot;: 2.0,
+          &quot;treatment_mean&quot;: 4.5,
+          &quot;standardized_mean_difference&quot;: 2.886751,
+          &quot;abs_standardized_mean_difference&quot;: 2.886751,
+          &quot;control_n&quot;: 3,
+          &quot;treatment_n&quot;: 2
+        },
+        {
+          &quot;column&quot;: &quot;activation_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.333333,
+          &quot;treatment_mean&quot;: 1.0,
+          &quot;standardized_mean_difference&quot;: 1.632993,
+          &quot;abs_standardized_mean_difference&quot;: 1.632993,
+          &quot;control_n&quot;: 3,
+          &quot;treatment_n&quot;: 2
+        },
+        {
+          &quot;column&quot;: &quot;support_tickets_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.333333,
+          &quot;treatment_mean&quot;: 0.0,
+          &quot;standardized_mean_difference&quot;: -0.816497,
+          &quot;abs_standardized_mean_difference&quot;: 0.816497,
+          &quot;control_n&quot;: 3,
+          &quot;treatment_n&quot;: 2
+        },
+        {
+          &quot;column&quot;: &quot;realized_revenue_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.0,
+          &quot;treatment_mean&quot;: 174.0,
+          &quot;standardized_mean_difference&quot;: 2.32,
+          &quot;abs_standardized_mean_difference&quot;: 2.32,
+          &quot;control_n&quot;: 3,
+          &quot;treatment_n&quot;: 2
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;aa_pre_experiment_pseudo_outcomes&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;offending_columns&quot;: [],
+        &quot;columns_checked&quot;: 4
+      },
+      &quot;expected&quot;: &quot;exact two-sided permutation p-value &gt;= 0.05&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;column&quot;: &quot;sessions_7d_pre&quot;,
+          &quot;control_mean&quot;: 2.0,
+          &quot;treatment_mean&quot;: 4.5,
+          &quot;observed_difference&quot;: 2.5,
+          &quot;p_value&quot;: 0.2,
+          &quot;permutations&quot;: 10
+        },
+        {
+          &quot;column&quot;: &quot;activation_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.333333,
+          &quot;treatment_mean&quot;: 1.0,
+          &quot;observed_difference&quot;: 0.666667,
+          &quot;p_value&quot;: 0.4,
+          &quot;permutations&quot;: 10
+        },
+        {
+          &quot;column&quot;: &quot;support_tickets_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.333333,
+          &quot;treatment_mean&quot;: 0.0,
+          &quot;observed_difference&quot;: -0.333333,
+          &quot;p_value&quot;: 1.0,
+          &quot;permutations&quot;: 10
+        },
+        {
+          &quot;column&quot;: &quot;realized_revenue_7d_pre&quot;,
+          &quot;control_mean&quot;: 0.0,
+          &quot;treatment_mean&quot;: 174.0,
+          &quot;observed_difference&quot;: 174.0,
+          &quot;p_value&quot;: 0.1,
+          &quot;permutations&quot;: 10
+        }
+      ]
+    }
+  ],
+  &quot;summary&quot;: {
+    &quot;experiment_id&quot;: &quot;exp_paywall_onboarding_android_2026_06&quot;,
+    &quot;assignment_units&quot;: 5,
+    &quot;exposure_units&quot;: 5,
+    &quot;assignment_variant_counts&quot;: {
+      &quot;control&quot;: 3,
+      &quot;treatment&quot;: 2
+    },
+    &quot;exposure_variant_counts&quot;: {
+      &quot;control&quot;: 3,
+      &quot;treatment&quot;: 2
+    },
+    &quot;blocking_failures&quot;: [],
+    &quot;warning_checks&quot;: [
+      &quot;covariate_balance_standardized_difference&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/outputs/randomization_health_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/randomization_health_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;experiment_id&quot;: &quot;exp_paywall_onboarding_android_2026_06&quot;,
+  &quot;artifact_version&quot;: &quot;1.0.0&quot;,
+  &quot;srm_alpha&quot;: 0.001,
+  &quot;aa_alpha&quot;: 0.05,
+  &quot;min_expected_count_for_chisquare&quot;: 5,
+  &quot;max_missing_exposure_rate&quot;: 0.0,
+  &quot;max_variant_missing_rate_gap&quot;: 0.2,
+  &quot;covariate_balance&quot;: {
+    &quot;columns&quot;: [
+      &quot;sessions_7d_pre&quot;,
+      &quot;activation_7d_pre&quot;,
+      &quot;support_tickets_7d_pre&quot;,
+      &quot;realized_revenue_7d_pre&quot;
+    ],
+    &quot;max_abs_standardized_difference&quot;: 0.5,
+    &quot;severity&quot;: &quot;warning&quot;
+  },
+  &quot;aa_pseudo_outcomes&quot;: {
+    &quot;columns&quot;: [
+      &quot;sessions_7d_pre&quot;,
+      &quot;activation_7d_pre&quot;,
+      &quot;support_tickets_7d_pre&quot;,
+      &quot;realized_revenue_7d_pre&quot;
+    ],
+    &quot;severity&quot;: &quot;warning&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/10-experiments/03-aa-and-srm/outputs/randomization_health_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/10-experiments/03-aa-and-srm" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/experiments/randomization-unit/"><span>← Предыдущий урок</span><strong>Единица рандомизации</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/experiments/mde-and-power/"><span>Следующий урок →</span><strong>MDE, мощность и размер выборки</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

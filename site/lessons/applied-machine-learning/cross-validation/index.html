@@ -1,0 +1,2579 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 15/09 у нас есть несколько кандидатов: dummy baseline, logistic regression, одно дерево и random forest. Один validation split слишком мал, чтобы делать уверенный…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/cross-validation/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Cross-validation">
+  <meta property="og:description" content="После 15/09 у нас есть несколько кандидатов: dummy baseline, logistic regression, одно дерево и random forest. Один validation split слишком мал, чтобы делать уверенный…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/cross-validation/">
+  <meta name="twitter:card" content="summary">
+  <title>Cross-validation — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Cross-validation", "description": "После 15/09 у нас есть несколько кандидатов: dummy baseline, logistic regression, одно дерево и random forest. Один validation split слишком мал, чтобы делать уверенный…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/cross-validation/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 15: Прикладное машинное обучение", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=15"}, {"@type": "ListItem", "position": 3, "name": "Cross-validation", "item": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/cross-validation/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 15</p><h2>Прикладное машинное обучение</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/problem-framing/"><span>01</span>Постановка ML-задачи</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/data-splitting/"><span>02</span>Train, validation и test</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/metrics/"><span>03</span>Метрики и стоимость ошибки</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/preprocessing/"><span>04</span>Предобработка как часть модели</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/pipeline/"><span>05</span>scikit-learn Pipeline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/column-transformer/"><span>06</span>ColumnTransformer</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/linear-models/"><span>07</span>Линейные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/trees/"><span>08</span>Деревья решений</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/ensembles/"><span>09</span>Ансамбли деревьев</a><a class="lesson-sidebar-link is-active" href="../../../lessons/applied-machine-learning/cross-validation/"><span>10</span>Cross-validation</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>11</span>Несбалансированные классы</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/calibration/"><span>12</span>Калибровка вероятностей</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/leakage/"><span>13</span>Data leakage</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/error-analysis/"><span>14</span>Анализ ошибок по сегментам</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/model-card/"><span>15</span>Model card и ограничения</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 15 · Прикладное машинное обучение</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 166 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/15-applied-machine-learning/10-cross-validation" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должно остаться вне cross-validation, если у проекта уже есть финальный test split?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Финальный test split: он используется один раз после выбора модели и порога.</button><button type="button" class="quiz-option" data-choice="1">Train split: его нельзя использовать в folds.</button><button type="button" class="quiz-option" data-choice="2">Validation split: его всегда нужно удалить перед CV.</button><button type="button" class="quiz-option" data-choice="3">Все строки с положительным классом, чтобы precision была честнее.</button></div><p class="quiz-feedback" hidden>CV помогает выбирать модель на model-selection pool, но final holdout остается отдельной последней проверкой.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему для churn-задачи fold manifest должен учитывать `user_id` как group key?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Один и тот же пользователь не должен одновременно попадать в train и validation одного fold.</button><button type="button" class="quiz-option" data-choice="1">`user_id` нужен sklearn только для one-hot encoding.</button><button type="button" class="quiz-option" data-choice="2">Group key автоматически балансирует классы лучше, чем stratification.</button><button type="button" class="quiz-option" data-choice="3">Без `user_id` нельзя посчитать log loss.</button></div><p class="quiz-feedback" hidden>Если один пользователь есть в train и validation, модель может получить подсказку о поведении того же объекта и validation станет слишком оптимистичной.</p></article></section>
+        <article class="lesson-article"><h1 id="cross-validation">Cross-validation</h1>
+<blockquote>
+<p>Cross-validation полезна только тогда, когда folds повторяют реальный способ проверки:
+не смешивают пользователей, не тренируются на будущем и не трогают final holdout.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML<br />
+<strong>Пререквизиты:</strong> <code>15-applied-machine-learning/09-ensembles</code><br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> вы проектируете cross-validation folds, которые уважают group/time
+constraints, scoring policy и запрет test peeking.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличить model-selection pool от final holdout test.</li>
+<li>Описать CV contract: fold id, role, group key, time key, scoring и output files.</li>
+<li>Проверить, что один <code>user_id</code> не попадает одновременно в train и validation внутри fold.</li>
+<li>Fit-ить <code>Pipeline(ColumnTransformer, estimator)</code> отдельно на <code>cv_train</code> каждого fold.</li>
+<li>Выпустить fold-level score report, validation predictions, serialized spec и no-peeking audit.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>15/09</code> у нас есть несколько кандидатов: dummy baseline, logistic regression, одно
+дерево и random forest. Один validation split слишком мал, чтобы делать уверенный вывод:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">random_forest validation precision_at_budget = 0.0
+dummy_prior validation precision_at_budget = 0.5
+</code></pre></div><p>Но просто написать <code>cv=5</code> тоже нельзя. В churn-задаче строки имеют пользователей и время.
+Если один пользователь окажется в train и validation одного fold, validation станет слишком
+оптимистичной. Если fold обучается на строках позже validation, появится temporal leakage.
+Если CV затронет <code>test</code>, финальная проверка перестанет быть финальной.</p>
+<p>Значит задача урока - не &quot;включить cross-validation&quot;, а спроектировать проверяемый
+cross-validation contract.</p>
+<h2 id="концепция">Концепция</h2>
+<p>В этом курсе есть три уровня данных:</p>
+<table>
+<thead>
+<tr>
+<th>Уровень</th>
+<th>Роль</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>train</code></td>
+<td>Fit preprocessing и estimator.</td>
+</tr>
+<tr>
+<td><code>validation</code></td>
+<td>Model selection, threshold/budget selection, diagnostics.</td>
+</tr>
+<tr>
+<td><code>test</code></td>
+<td>Final once-only evaluation после выбора модели и протокола.</td>
+</tr>
+</tbody>
+</table>
+<p>Cross-validation живет внутри model-selection pool. Для tiny-profile этот pool состоит из
+<code>train</code> и <code>validation</code>, а <code>test</code> остается снаружи:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;model_selection_pool_splits&quot;: [&quot;train&quot;, &quot;validation&quot;],
+  &quot;final_holdout_split&quot;: &quot;test&quot;
+}
+</code></pre></div><p>Fold manifest делает это явным:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">fold_id, snapshot_id, original_split, cv_role, group_key, prediction_time
+cv_fold_1, S001, train, cv_train, U001, 2026-05-10
+cv_fold_1, S002, train, cv_train, U002, 2026-05-10
+cv_fold_1, S003, train, cv_validation, U003, 2026-05-10
+cv_fold_1, S004, train, cv_validation, U004, 2026-05-10
+cv_fold_2, S001, train, cv_train, U001, 2026-05-10
+cv_fold_2, S002, train, cv_train, U002, 2026-05-10
+cv_fold_2, S003, train, cv_train, U003, 2026-05-10
+cv_fold_2, S004, train, cv_train, U004, 2026-05-10
+cv_fold_2, S005, validation, cv_validation, U005, 2026-05-17
+cv_fold_2, S006, validation, cv_validation, U006, 2026-05-17
+cv_fold_2, S007, validation, cv_validation, U007, 2026-05-17
+</code></pre></div><p>Инварианты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">no original_split == test inside CV
+no group_key overlap between cv_train and cv_validation within a fold
+max(cv_train.prediction_time) &lt;= min(cv_validation.prediction_time)
+each fold role contains both classes
+primary metric equals the model-selection metric from tree_ensemble_spec
+Pipeline is fit only on cv_train for each fold
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>Сначала проверьте fold manifest без sklearn. Для каждого fold соберите train/validation
+groups:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">train_groups = {row[&quot;group_key&quot;] for row in rows if row[&quot;cv_role&quot;] == &quot;cv_train&quot;}
+validation_groups = {row[&quot;group_key&quot;] for row in rows if row[&quot;cv_role&quot;] == &quot;cv_validation&quot;}
+assert not (train_groups &amp; validation_groups)
+</code></pre></div><p>Затем проверьте время:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">max_train_time = max(row[&quot;prediction_time&quot;] for row in rows if row[&quot;cv_role&quot;] == &quot;cv_train&quot;)
+min_validation_time = min(
+    row[&quot;prediction_time&quot;] for row in rows if row[&quot;cv_role&quot;] == &quot;cv_validation&quot;
+)
+assert max_train_time &lt;= min_validation_time
+</code></pre></div><p>И только после этого fit-ьте модель. Внутри каждого fold:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pipeline = Pipeline(
+    steps=[
+        (&quot;preprocess&quot;, column_transformer),
+        (&quot;model&quot;, random_forest),
+    ]
+)
+pipeline.fit(X_train_fold, y_train_fold)
+scores = pipeline.predict_proba(X_validation_fold)[:, 1]
+</code></pre></div><p>Важно: <code>ColumnTransformer</code> тоже fit-ится внутри fold. Если fit-ить preprocessing на полном
+датасете до CV, категории, медианы, scaling и другие параметры уже увидят validation/test.</p>
+<p>На tiny-profile получаются такие fold scores:</p>
+<table>
+<thead>
+<tr>
+<th>fold</th>
+<th style="text-align:right">train rows</th>
+<th style="text-align:right">validation rows</th>
+<th>selected ids</th>
+<th style="text-align:right">precision@budget</th>
+<th style="text-align:right">log loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cv_fold_1</code></td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">2</td>
+<td><code>S003,S004</code></td>
+<td style="text-align:right">0.5</td>
+<td style="text-align:right">0.737454</td>
+</tr>
+<tr>
+<td><code>cv_fold_2</code></td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">3</td>
+<td><code>S005,S007</code></td>
+<td style="text-align:right">0.0</td>
+<td style="text-align:right">1.004659</td>
+</tr>
+</tbody>
+</table>
+<p>Средний результат:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">mean_precision_at_budget = 0.25
+mean_log_loss = 0.871057
+</code></pre></div><p>Это не делает random forest победителем. Это показывает, что результат нестабилен и перед
+production-решением нужны следующие уроки: imbalance, probability calibration и leakage
+audit.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Урок поставляет CLI <code>cross-validation-planner</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/cross_validation_planner.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --column-transformer-spec ../data/tiny/column_transformer_spec.json \
+  --linear-baseline-spec ../data/tiny/linear_baseline_spec.json \
+  --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json \
+  --tree-ensemble-spec ../data/tiny/tree_ensemble_spec.json \
+  --cv-plan-spec ../data/tiny/cv_plan_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --cv-fold-manifest ../data/tiny/ml_cv_fold_manifest.csv \
+  --output outputs/cv_report.json \
+  --fold-manifest-output outputs/cv_fold_manifest.csv \
+  --score-output outputs/cv_score_report.csv \
+  --predictions-output outputs/cv_predictions.csv \
+  --audit-output outputs/cv_no_peeking_audit.csv \
+  --serialized-spec-output outputs/cv_serialized_spec.json
+</code></pre></div><p>Короткий запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;cv_plan_id&quot;: &quot;trial-churn-cv-plan-v0&quot;,
+  &quot;fold_count&quot;: 2,
+  &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+  &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+  &quot;mean_precision_at_budget&quot;: 0.25,
+  &quot;mean_log_loss&quot;: 0.871057,
+  &quot;cv_validation_row_count&quot;: 5,
+  &quot;final_holdout_split&quot;: &quot;test&quot;,
+  &quot;test_used_in_cv&quot;: false,
+  &quot;warnings&quot;: [&quot;tiny_cv_fold_count_expected&quot;, &quot;tiny_cv_validation_sample_expected&quot;],
+  &quot;readiness_status&quot;: &quot;ready_for_imbalance_lesson&quot;
+}
+</code></pre></div><p>Артефакты:</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Зачем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cv_report.json</code></td>
+<td>Полный report: summary, fold manifest, scores, predictions, audit, serialized spec.</td>
+</tr>
+<tr>
+<td><code>cv_fold_manifest.csv</code></td>
+<td>Нормализованный fold manifest с числовым label.</td>
+</tr>
+<tr>
+<td><code>cv_score_report.csv</code></td>
+<td>Fold-level <code>precision_at_budget</code>, <code>recall_at_budget</code>, <code>log_loss</code>, selected ids.</td>
+</tr>
+<tr>
+<td><code>cv_predictions.csv</code></td>
+<td>Validation-only predictions каждого fold.</td>
+</tr>
+<tr>
+<td><code>cv_no_peeking_audit.csv</code></td>
+<td>Проверки no-test-peeking, group isolation, temporal order и scoring alignment.</td>
+</tr>
+<tr>
+<td><code>cv_serialized_spec.json</code></td>
+<td>sklearn version, model params, fold strategy, scoring и fit trace.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Добавьте test row в fold manifest:</p>
+<div class="code-block"><span class="code-language">csv</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-csv">cv_fold_1,1,S009,U009,2026-05-24T09:00:00+03:00,test,cv_train,U009,false
+</code></pre></div><p>Аудитор должен заблокировать отчет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cv_fold_manifest_excludes_final_test
+</code></pre></div><p>Другие failure modes:</p>
+<table>
+<thead>
+<tr>
+<th>Поломка</th>
+<th>Почему это ошибка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Одинаковый <code>group_key</code> в <code>cv_train</code> и <code>cv_validation</code></td>
+<td>Validation видит того же пользователя, что и train.</td>
+</tr>
+<tr>
+<td><code>cv_train.prediction_time</code> позже <code>cv_validation.prediction_time</code></td>
+<td>Модель учится на будущем.</td>
+</tr>
+<tr>
+<td>Fold role содержит только один класс</td>
+<td>Метрики классификации становятся хрупкими или неинтерпретируемыми.</td>
+</tr>
+<tr>
+<td><code>scoring.primary_metric</code> отличается от ensemble comparison</td>
+<td>CV уже не отвечает на тот же вопрос выбора модели.</td>
+</tr>
+<tr>
+<td><code>audit_policy.forbid_test_rows_in_cv = false</code></td>
+<td>Contract перестает защищать final holdout.</td>
+</tr>
+<tr>
+<td>Upstream ensemble audit invalid</td>
+<td>CV нельзя строить поверх неподтвержденного candidate handoff.</td>
+</tr>
+</tbody>
+</table>
+<p>Строгий режим может падать даже на warnings:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/cross_validation_planner.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --column-transformer-spec ../data/tiny/column_transformer_spec.json \
+  --linear-baseline-spec ../data/tiny/linear_baseline_spec.json \
+  --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json \
+  --tree-ensemble-spec ../data/tiny/tree_ensemble_spec.json \
+  --cv-plan-spec ../data/tiny/cv_plan_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --cv-fold-manifest ../data/tiny/ml_cv_fold_manifest.csv \
+  --fail-on-warning
+</code></pre></div><p>На tiny-profile это вернет non-zero из-за малого числа folds и маленьких validation samples.
+Для урока это warning, потому что no-peeking contract соблюден. Для production это сигнал
+увеличить историю, число групп и размер holdout.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest phases/15-applied-machine-learning/10-cross-validation/tests/test_main.py
+</code></pre></div><p>Проверки покрывают:</p>
+<ul>
+<li>happy path с <code>mean_precision_at_budget = 0.25</code>;</li>
+<li>отсутствие <code>test</code> строк в CV outputs;</li>
+<li>group isolation и temporal order;</li>
+<li>validation-only predictions;</li>
+<li>serialized fit trace без test ids;</li>
+<li>negative cases для test peeking, group overlap, future train rows и scoring mismatch;</li>
+<li>CLI non-zero для invalid spec и <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Дополнительная проверка данных:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/15-applied-machine-learning/data/generate_data.py \
+  --check \
+  --output phases/15-applied-machine-learning/data/tiny
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/cross_validation_planner.py
+</code></pre></div><p>Он принимает problem/pipeline/model specs, <code>ml_split_manifest.csv</code> и
+<code>ml_cv_fold_manifest.csv</code>, затем выпускает воспроизводимый CV package. Его можно
+переиспользовать для другого small ML case, если сохранить тот же contract:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">snapshot_id
+user_id
+prediction_time
+original_split
+cv_role
+group_key
+label
+</code></pre></div><p>Перед следующим уроком проверьте два поля:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">summary.test_used_in_cv == false
+summary.readiness_status == &quot;ready_for_imbalance_lesson&quot;
+</code></pre></div><h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте третий fold, где validation содержит новые группы из более позднего времени.</li>
+<li>Замените <code>primary_metric</code> на <code>average_precision</code> и посмотрите, какие checks блокируются.</li>
+<li>Сделайте fold с одним положительным классом только в train и объясните, почему это опасно.</li>
+<li>Добавьте в <code>cv_score_report.csv</code> <code>fold_positive_rate</code> и <code>validation_positive_rate</code>.</li>
+<li>Спроектируйте production-вариант: сколько минимум групп и validation rows вы потребуете
+перед тем, как warning станет error?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cross-validation</td>
+<td>Можно поставить <code>cv=5</code> в любой задаче.</td>
+<td>Повторная проверка модели на нескольких folds, где split strategy должна соответствовать данным.</td>
+</tr>
+<tr>
+<td>Fold manifest</td>
+<td>Вспомогательная таблица без методологии.</td>
+<td>Явный contract, какие строки входят в train/validation каждого fold и почему.</td>
+</tr>
+<tr>
+<td>Group-aware CV</td>
+<td>Просто stratification по классам.</td>
+<td>Split, который не допускает пересечения групп между train и validation внутри fold.</td>
+</tr>
+<tr>
+<td>Time-aware CV</td>
+<td>Любой случайный split с датой в данных.</td>
+<td>Проверка, где train не содержит строк позже validation.</td>
+</tr>
+<tr>
+<td>Final holdout</td>
+<td>Еще один fold для подбора модели.</td>
+<td>Отложенный test, который используется один раз после выбора протокола.</td>
+</tr>
+<tr>
+<td>Scoring policy</td>
+<td>Набор удобных метрик после факта.</td>
+<td>Предварительно объявленный критерий выбора и secondary diagnostics.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/cross_validation.html" target="_blank" rel="noopener">scikit-learn: Cross-validation</a> - прочитайте разделы про held-out test set, <code>cross_validate</code> и leakage через preprocessing.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_validate.html" target="_blank" rel="noopener">scikit-learn: <code>cross_validate</code></a> - посмотрите API для нескольких metrics и возврата estimator/indices, когда нужен расширенный audit trail.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupKFold.html" target="_blank" rel="noopener">scikit-learn: <code>GroupKFold</code></a> - сравните его с manifest-подходом урока: группы не пересекаются, но time order нужно контролировать отдельно.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.StratifiedGroupKFold.html" target="_blank" rel="noopener">scikit-learn: <code>StratifiedGroupKFold</code></a> - разберите компромисс между class balance и group isolation, особенно на маленьких данных.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Где должен fit-иться `ColumnTransformer` внутри каждого CV fold?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только на `cv_train` вместе с estimator внутри `Pipeline`.</button><button type="button" class="quiz-option" data-choice="1">На полном датасете до разбиения на folds.</button><button type="button" class="quiz-option" data-choice="2">На `cv_validation`, чтобы категории точно совпали.</button><button type="button" class="quiz-option" data-choice="3">Один раз на final test, затем переиспользоваться во всех folds.</button></div><p class="quiz-feedback" hidden>Preprocessing является частью обучения. Fit на validation или test переносит информацию из проверки в модель.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему CV planner сверяет primary metric с `tree_ensemble_spec.comparison.primary_metric`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы CV оценивал тот же критерий выбора модели, который был объявлен заранее.</button><button type="button" class="quiz-option" data-choice="1">Чтобы sklearn автоматически выбрал лучший classifier.</button><button type="button" class="quiz-option" data-choice="2">Чтобы заменить precision_at_budget на accuracy.</button><button type="button" class="quiz-option" data-choice="3">Чтобы посчитать feature importance без предупреждений.</button></div><p class="quiz-feedback" hidden>Если метрика CV отличается от метрики выбора модели, результат нельзя честно использовать как продолжение предыдущего решения.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему `tiny_cv_fold_count_expected` является warning, а не error?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Учебный tiny-набор намеренно мал, но production CV потребовал бы больше folds и строк.</button><button type="button" class="quiz-option" data-choice="1">Потому что два folds всегда лучше пяти.</button><button type="button" class="quiz-option" data-choice="2">Потому что warnings можно игнорировать при сдаче модели в production.</button><button type="button" class="quiz-option" data-choice="3">Потому что warning означает, что test был использован в CV.</button></div><p class="quiz-feedback" hidden>Контракт no-peeking соблюден, поэтому отчет валиден для урока; warning ограничивает интерпретацию маленькой выборки.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;cross_validation_planner.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+GENERATOR = PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from cross_validation_planner import run  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class CrossValidationPlannerTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **outputs: Path) -&gt; dict:
+        return run(
+            spec_path=root / &quot;problem_spec.json&quot;,
+            preprocessing_contract_path=root / &quot;preprocessing_contract.json&quot;,
+            pipeline_spec_path=root / &quot;pipeline_spec.json&quot;,
+            column_transformer_spec_path=root / &quot;column_transformer_spec.json&quot;,
+            linear_baseline_spec_path=root / &quot;linear_baseline_spec.json&quot;,
+            tree_diagnostic_spec_path=root / &quot;tree_diagnostic_spec.json&quot;,
+            tree_ensemble_spec_path=root / &quot;tree_ensemble_spec.json&quot;,
+            cv_plan_spec_path=root / &quot;cv_plan_spec.json&quot;,
+            features_path=root / &quot;ml_raw_features.csv&quot;,
+            labels_path=root / &quot;ml_labels.csv&quot;,
+            manifest_path=root / &quot;ml_split_manifest.csv&quot;,
+            cv_fold_manifest_path=root / &quot;ml_cv_fold_manifest.csv&quot;,
+            **outputs,
+        )
+
+    def copy_profile(self, directory: Path) -&gt; Path:
+        target = directory / &quot;tiny&quot;
+        shutil.copytree(DATA_ROOT, target)
+        return target
+
+    def test_valid_cv_plan_exports_group_time_aware_report(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;cv_plan_id&quot;], &quot;trial-churn-cv-plan-v0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;sklearn_version&quot;], &quot;1.9.0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fold_count&quot;], 2)
+        self.assertEqual(report[&quot;summary&quot;][&quot;model_id&quot;], &quot;random_forest_depth2&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;primary_metric&quot;], &quot;precision_at_budget&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;mean_precision_at_budget&quot;], 0.25)
+        self.assertEqual(report[&quot;summary&quot;][&quot;std_precision_at_budget&quot;], 0.25)
+        self.assertEqual(report[&quot;summary&quot;][&quot;mean_log_loss&quot;], 0.871057)
+        self.assertEqual(report[&quot;summary&quot;][&quot;cv_validation_row_count&quot;], 5)
+        self.assertEqual(report[&quot;summary&quot;][&quot;final_holdout_split&quot;], &quot;test&quot;)
+        self.assertFalse(report[&quot;summary&quot;][&quot;test_used_in_cv&quot;])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [&quot;tiny_cv_fold_count_expected&quot;, &quot;tiny_cv_validation_sample_expected&quot;],
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_imbalance_lesson&quot;)
+
+    def test_fold_manifest_excludes_test_and_preserves_group_time_contract(self) -&gt; None:
+        report = self.audit()
+        rows = report[&quot;fold_manifest&quot;]
+
+        self.assertEqual(len(rows), 11)
+        self.assertNotIn(&quot;test&quot;, {row[&quot;original_split&quot;] for row in rows})
+        self.assertEqual({row[&quot;cv_role&quot;] for row in rows}, {&quot;cv_train&quot;, &quot;cv_validation&quot;})
+        self.assertEqual(check(report, &quot;cv_fold_manifest_excludes_final_test&quot;)[&quot;valid&quot;], True)
+        self.assertEqual(check(report, &quot;cv_group_isolation_respected&quot;)[&quot;valid&quot;], True)
+        self.assertEqual(check(report, &quot;cv_temporal_order_respected&quot;)[&quot;valid&quot;], True)
+        self.assertEqual(check(report, &quot;upstream_tree_ensemble_audit_is_valid&quot;)[&quot;valid&quot;], True)
+
+    def test_scores_show_fold_level_metric_variation(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;fold_id&quot;]: row for row in report[&quot;scores&quot;]}
+
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;train_row_count&quot;], 2)
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;validation_row_count&quot;], 2)
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;precision_at_budget&quot;], 0.5)
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;recall_at_budget&quot;], 1.0)
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;log_loss&quot;], 0.737454)
+        self.assertEqual(rows[&quot;cv_fold_1&quot;][&quot;selected_ids&quot;], &quot;S003,S004&quot;)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;train_row_count&quot;], 4)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;validation_row_count&quot;], 3)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;precision_at_budget&quot;], 0.0)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;average_precision&quot;], 0.333333)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;error_cost_at_budget&quot;], 7.0)
+        self.assertEqual(rows[&quot;cv_fold_2&quot;][&quot;selected_ids&quot;], &quot;S005,S007&quot;)
+
+    def test_predictions_are_validation_only_and_record_training_role(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;snapshot_id&quot;]: row for row in report[&quot;predictions&quot;]}
+
+        self.assertEqual(set(rows), {&quot;S003&quot;, &quot;S004&quot;, &quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;})
+        self.assertEqual({row[&quot;cv_role&quot;] for row in rows.values()}, {&quot;cv_validation&quot;})
+        self.assertEqual({row[&quot;trained_on_role&quot;] for row in rows.values()}, {&quot;cv_train&quot;})
+        self.assertEqual(
+            {row[&quot;generated_at&quot;] for row in rows.values()},
+            {&quot;2026-07-02T14:00:00+03:00&quot;},
+        )
+        self.assertEqual(
+            {snapshot_id: row[&quot;score&quot;] for snapshot_id, row in rows.items()},
+            {&quot;S003&quot;: 0.48, &quot;S004&quot;: 0.44, &quot;S005&quot;: 0.62, &quot;S006&quot;: 0.38, &quot;S007&quot;: 0.66},
+        )
+        self.assertEqual(
+            {snapshot_id: row[&quot;selected_at_budget&quot;] for snapshot_id, row in rows.items()},
+            {&quot;S003&quot;: 1, &quot;S004&quot;: 1, &quot;S005&quot;: 1, &quot;S006&quot;: 0, &quot;S007&quot;: 1},
+        )
+
+    def test_serialized_spec_records_fold_fit_trace_without_holdout_peeking(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+        first_fit, second_fit = serialized[&quot;fit_trace&quot;]
+
+        self.assertEqual(serialized[&quot;tree_ensemble_id&quot;], &quot;trial-churn-tree-ensemble-v0&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;class&quot;], &quot;RandomForestClassifier&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;params&quot;][&quot;n_estimators&quot;], 25)
+        self.assertEqual(
+            serialized[&quot;fold_strategy&quot;][&quot;kind&quot;],
+            &quot;predeclared_time_ordered_group_folds&quot;,
+        )
+        self.assertTrue(serialized[&quot;scoring&quot;][&quot;requires_proba&quot;])
+        self.assertFalse(serialized[&quot;test_used_in_cv&quot;])
+        self.assertTrue(serialized[&quot;sklearn_cv_iterator_compatible&quot;])
+        self.assertEqual(first_fit[&quot;train_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;])
+        self.assertEqual(first_fit[&quot;validation_ids&quot;], [&quot;S003&quot;, &quot;S004&quot;])
+        self.assertEqual(second_fit[&quot;train_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertEqual(second_fit[&quot;validation_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertEqual(first_fit[&quot;test_ids_seen&quot;], [])
+        self.assertEqual(second_fit[&quot;test_ids_seen&quot;], [])
+
+    def test_code_example_writes_cv_artifacts(self) -&gt; None:
+        report_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_report.json&quot;
+        fold_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_fold_manifest.csv&quot;
+        score_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_score_report.csv&quot;
+        prediction_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_predictions.csv&quot;
+        audit_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_no_peeking_audit.csv&quot;
+        serialized_path = LESSON_ROOT / &quot;outputs&quot; / &quot;cv_serialized_spec.json&quot;
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;cv_plan_id&quot;], &quot;trial-churn-cv-plan-v0&quot;)
+        self.assertEqual(payload[&quot;fold_count&quot;], 2)
+        self.assertEqual(payload[&quot;mean_precision_at_budget&quot;], 0.25)
+        self.assertFalse(payload[&quot;test_used_in_cv&quot;])
+        self.assertEqual(read_json(report_path)[&quot;summary&quot;][&quot;cv_validation_row_count&quot;], 5)
+        self.assertEqual(len(read_csv(fold_path)), 11)
+        self.assertEqual(len(read_csv(score_path)), 2)
+        self.assertEqual(len(read_csv(prediction_path)), 5)
+        self.assertEqual(len(read_csv(audit_path)), 11)
+        self.assertEqual(read_json(serialized_path)[&quot;fold_strategy&quot;][&quot;n_splits&quot;], 2)
+
+    def test_data_generator_check_rebuilds_committed_cv_inputs(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, GENERATOR, &quot;--check&quot;, &quot;--output&quot;, DATA_ROOT],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+        self.assertTrue((DATA_ROOT / &quot;cv_plan_spec.json&quot;).exists())
+        self.assertTrue((DATA_ROOT / &quot;ml_cv_fold_manifest.csv&quot;).exists())
+
+    def test_test_holdout_rows_are_rejected_before_cv_fit(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_cv_fold_manifest.csv&quot;)
+            rows[0].update(
+                {
+                    &quot;snapshot_id&quot;: &quot;S009&quot;,
+                    &quot;user_id&quot;: &quot;U009&quot;,
+                    &quot;prediction_time&quot;: &quot;2026-05-24T09:00:00+03:00&quot;,
+                    &quot;original_split&quot;: &quot;test&quot;,
+                    &quot;group_key&quot;: &quot;U009&quot;,
+                    &quot;label&quot;: &quot;false&quot;,
+                }
+            )
+            write_csv(root / &quot;ml_cv_fold_manifest.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        holdout = check(report, &quot;cv_fold_manifest_excludes_final_test&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(holdout[&quot;valid&quot;])
+        self.assertIn(&quot;cv_fold_manifest_excludes_final_test&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_group_overlap_inside_a_fold_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_cv_fold_manifest.csv&quot;)
+            rows[2][&quot;group_key&quot;] = &quot;U001&quot;
+            write_csv(root / &quot;ml_cv_fold_manifest.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        group_check = check(report, &quot;cv_group_isolation_respected&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(group_check[&quot;valid&quot;])
+        self.assertEqual(group_check[&quot;sample&quot;], [{&quot;fold_id&quot;: &quot;cv_fold_1&quot;, &quot;overlap&quot;: [&quot;U001&quot;]}])
+
+    def test_future_train_rows_are_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_cv_fold_manifest.csv&quot;)
+            rows[0][&quot;prediction_time&quot;] = &quot;2026-05-24T09:00:00+03:00&quot;
+            write_csv(root / &quot;ml_cv_fold_manifest.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        temporal = check(report, &quot;cv_temporal_order_respected&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(temporal[&quot;valid&quot;])
+        self.assertEqual(temporal[&quot;sample&quot;][0][&quot;fold_id&quot;], &quot;cv_fold_1&quot;)
+
+    def test_scoring_policy_must_match_ensemble_model_selection_metric(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;cv_plan_spec.json&quot;)
+            spec[&quot;scoring&quot;][&quot;primary_metric&quot;] = &quot;roc_auc&quot;
+            write_json(root / &quot;cv_plan_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;)
+        alignment = check(report, &quot;cv_scoring_policy_matches_model_selection_metric&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertFalse(alignment[&quot;valid&quot;])
+        self.assertIn(
+            &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+            report[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_cv_plan(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;cv_plan_spec.json&quot;)
+            spec[&quot;audit_policy&quot;][&quot;forbid_test_rows_in_cv&quot;] = False
+            write_json(root / &quot;cv_plan_spec.json&quot;, spec)
+            output = Path(directory) / &quot;report.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    root / &quot;problem_spec.json&quot;,
+                    &quot;--preprocessing-contract&quot;,
+                    root / &quot;preprocessing_contract.json&quot;,
+                    &quot;--pipeline-spec&quot;,
+                    root / &quot;pipeline_spec.json&quot;,
+                    &quot;--column-transformer-spec&quot;,
+                    root / &quot;column_transformer_spec.json&quot;,
+                    &quot;--linear-baseline-spec&quot;,
+                    root / &quot;linear_baseline_spec.json&quot;,
+                    &quot;--tree-diagnostic-spec&quot;,
+                    root / &quot;tree_diagnostic_spec.json&quot;,
+                    &quot;--tree-ensemble-spec&quot;,
+                    root / &quot;tree_ensemble_spec.json&quot;,
+                    &quot;--cv-plan-spec&quot;,
+                    root / &quot;cv_plan_spec.json&quot;,
+                    &quot;--features&quot;,
+                    root / &quot;ml_raw_features.csv&quot;,
+                    &quot;--labels&quot;,
+                    root / &quot;ml_labels.csv&quot;,
+                    &quot;--manifest&quot;,
+                    root / &quot;ml_split_manifest.csv&quot;,
+                    &quot;--cv-fold-manifest&quot;,
+                    root / &quot;ml_cv_fold_manifest.csv&quot;,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            payload = read_json(output)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(payload[&quot;valid&quot;])
+        self.assertIn(
+            &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+            payload[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_cli_can_fail_on_warning_for_strict_gate(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--spec&quot;,
+                DATA_ROOT / &quot;problem_spec.json&quot;,
+                &quot;--preprocessing-contract&quot;,
+                DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+                &quot;--pipeline-spec&quot;,
+                DATA_ROOT / &quot;pipeline_spec.json&quot;,
+                &quot;--column-transformer-spec&quot;,
+                DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+                &quot;--linear-baseline-spec&quot;,
+                DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+                &quot;--tree-diagnostic-spec&quot;,
+                DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+                &quot;--tree-ensemble-spec&quot;,
+                DATA_ROOT / &quot;tree_ensemble_spec.json&quot;,
+                &quot;--cv-plan-spec&quot;,
+                DATA_ROOT / &quot;cv_plan_spec.json&quot;,
+                &quot;--features&quot;,
+                DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+                &quot;--labels&quot;,
+                DATA_ROOT / &quot;ml_labels.csv&quot;,
+                &quot;--manifest&quot;,
+                DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+                &quot;--cv-fold-manifest&quot;,
+                DATA_ROOT / &quot;ml_cv_fold_manifest.csv&quot;,
+                &quot;--fail-on-warning&quot;,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(&quot;tiny_cv_fold_count_expected&quot;, result.stdout)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+sys.path.insert(0, str(OUTPUT_ROOT))
+
+from cross_validation_planner import json_ready, run  # noqa: E402
+
+
+def main() -&gt; None:
+    report = run(
+        spec_path=DATA_ROOT / &quot;problem_spec.json&quot;,
+        preprocessing_contract_path=DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+        pipeline_spec_path=DATA_ROOT / &quot;pipeline_spec.json&quot;,
+        column_transformer_spec_path=DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+        linear_baseline_spec_path=DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+        tree_diagnostic_spec_path=DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+        tree_ensemble_spec_path=DATA_ROOT / &quot;tree_ensemble_spec.json&quot;,
+        cv_plan_spec_path=DATA_ROOT / &quot;cv_plan_spec.json&quot;,
+        features_path=DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+        labels_path=DATA_ROOT / &quot;ml_labels.csv&quot;,
+        manifest_path=DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+        cv_fold_manifest_path=DATA_ROOT / &quot;ml_cv_fold_manifest.csv&quot;,
+        report_output_path=OUTPUT_ROOT / &quot;cv_report.json&quot;,
+        fold_manifest_output_path=OUTPUT_ROOT / &quot;cv_fold_manifest.csv&quot;,
+        score_output_path=OUTPUT_ROOT / &quot;cv_score_report.csv&quot;,
+        predictions_output_path=OUTPUT_ROOT / &quot;cv_predictions.csv&quot;,
+        audit_output_path=OUTPUT_ROOT / &quot;cv_no_peeking_audit.csv&quot;,
+        serialized_spec_output_path=OUTPUT_ROOT / &quot;cv_serialized_spec.json&quot;,
+    )
+    summary = {
+        &quot;audit_valid&quot;: report[&quot;valid&quot;],
+        &quot;problem_id&quot;: report[&quot;problem_id&quot;],
+        &quot;cv_plan_id&quot;: report[&quot;summary&quot;][&quot;cv_plan_id&quot;],
+        &quot;sklearn_version&quot;: report[&quot;summary&quot;][&quot;sklearn_version&quot;],
+        &quot;fold_count&quot;: report[&quot;summary&quot;][&quot;fold_count&quot;],
+        &quot;model_id&quot;: report[&quot;summary&quot;][&quot;model_id&quot;],
+        &quot;primary_metric&quot;: report[&quot;summary&quot;][&quot;primary_metric&quot;],
+        &quot;mean_precision_at_budget&quot;: report[&quot;summary&quot;][&quot;mean_precision_at_budget&quot;],
+        &quot;mean_log_loss&quot;: report[&quot;summary&quot;][&quot;mean_log_loss&quot;],
+        &quot;cv_validation_row_count&quot;: report[&quot;summary&quot;][&quot;cv_validation_row_count&quot;],
+        &quot;final_holdout_split&quot;: report[&quot;summary&quot;][&quot;final_holdout_split&quot;],
+        &quot;test_used_in_cv&quot;: report[&quot;summary&quot;][&quot;test_used_in_cv&quot;],
+        &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+        &quot;readiness_status&quot;: report[&quot;summary&quot;][&quot;readiness_status&quot;],
+    }
+    print(json.dumps(json_ready(summary), ensure_ascii=False))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;cross-validation-planner&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/cross_validation_planner.py&quot;,
+  &quot;description&quot;: &quot;Проверяет predeclared group/time-aware CV fold manifest, запрещает final test peeking, сверяет scoring policy с model-selection metric, fit-ит RandomForestClassifier внутри Pipeline только на cv_train и экспортирует fold manifest, score report, validation predictions, no-peeking audit, serialized spec и CV report.&quot;,
+  &quot;usage&quot;: &quot;python outputs/cross_validation_planner.py --spec ../data/tiny/problem_spec.json --preprocessing-contract ../data/tiny/preprocessing_contract.json --pipeline-spec ../data/tiny/pipeline_spec.json --column-transformer-spec ../data/tiny/column_transformer_spec.json --linear-baseline-spec ../data/tiny/linear_baseline_spec.json --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json --tree-ensemble-spec ../data/tiny/tree_ensemble_spec.json --cv-plan-spec ../data/tiny/cv_plan_spec.json --features ../data/tiny/ml_raw_features.csv --labels ../data/tiny/ml_labels.csv --manifest ../data/tiny/ml_split_manifest.csv --cv-fold-manifest ../data/tiny/ml_cv_fold_manifest.csv --output outputs/cv_report.json --fold-manifest-output outputs/cv_fold_manifest.csv --score-output outputs/cv_score_report.csv --predictions-output outputs/cv_predictions.csv --audit-output outputs/cv_no_peeking_audit.csv --serialized-spec-output outputs/cv_serialized_spec.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cross_validation_planner.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402, I001
+
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import sklearn
+
+ENSEMBLE_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;09-ensembles&quot; / &quot;outputs&quot;
+LINEAR_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;07-linear-models&quot; / &quot;outputs&quot;
+COLUMN_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;06-column-transformer&quot; / &quot;outputs&quot;
+for output_root in (ENSEMBLE_OUTPUT_ROOT, LINEAR_OUTPUT_ROOT, COLUMN_OUTPUT_ROOT):
+    if str(output_root) not in sys.path:
+        sys.path.insert(0, str(output_root))
+
+from column_transformer_auditor import (  # noqa: E402
+    ColumnTransformerAuditError,
+    failed,
+    make_frame,
+    make_target,
+    passed,
+    read_csv,
+    read_json,
+    rounded,
+    rows_by_id,
+    write_json,
+)
+from linear_baseline_trainer import (  # noqa: E402
+    LinearBaselineError,
+    cost_weights,
+    selected_ids_at_budget,
+    selection_budget,
+    split_metric_row,
+)
+from tree_ensemble_comparator import (  # noqa: E402
+    TreeEnsembleError,
+    build_ensemble_pipeline,
+    positive_scores,
+    run as run_tree_ensemble_audit,
+)
+
+REQUIRED_FOLD_COLUMNS = {
+    &quot;fold_id&quot;,
+    &quot;fold_order&quot;,
+    &quot;snapshot_id&quot;,
+    &quot;user_id&quot;,
+    &quot;prediction_time&quot;,
+    &quot;original_split&quot;,
+    &quot;cv_role&quot;,
+    &quot;group_key&quot;,
+    &quot;label&quot;,
+    &quot;assigned_by_policy&quot;,
+}
+GENERATED_AT = &quot;2026-07-02T14:00:00+03:00&quot;
+TINY_FOLD_WARNING_THRESHOLD = 3
+TINY_VALIDATION_WARNING_THRESHOLD = 20
+
+
+class CrossValidationPlannerError(ValueError):
+    &quot;&quot;&quot;Raised when cross-validation planner inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def parse_label(value: str) -&gt; int:
+    normalized = value.strip().lower()
+    if normalized == &quot;true&quot;:
+        return 1
+    if normalized == &quot;false&quot;:
+        return 0
+    raise CrossValidationPlannerError(f&quot;expected boolean label, got {value!r}&quot;)
+
+
+def fold_ids(fold_rows: list[dict[str, str]]) -&gt; list[str]:
+    return sorted(
+        {row[&quot;fold_id&quot;] for row in fold_rows},
+        key=lambda fold: fold_order(fold_rows, fold),
+    )
+
+
+def fold_order(fold_rows: list[dict[str, str]], fold_id: str) -&gt; int:
+    orders = {int(row[&quot;fold_order&quot;]) for row in fold_rows if row[&quot;fold_id&quot;] == fold_id}
+    if len(orders) != 1:
+        raise CrossValidationPlannerError(f&quot;fold {fold_id!r} must have exactly one fold_order&quot;)
+    return orders.pop()
+
+
+def ids_for_fold(fold_rows: list[dict[str, str]], fold_id: str, role: str) -&gt; list[str]:
+    return [
+        row[&quot;snapshot_id&quot;]
+        for row in fold_rows
+        if row[&quot;fold_id&quot;] == fold_id and row[&quot;cv_role&quot;] == role
+    ]
+
+
+def label_values_for_ids(ids: list[str], labels_by_id: dict[str, dict[str, str]]) -&gt; list[int]:
+    return [parse_label(labels_by_id[snapshot_id][&quot;churned_14d&quot;]) for snapshot_id in ids]
+
+
+def validate_cv_plan_spec(
+    *,
+    problem_spec: dict[str, Any],
+    pipeline_spec: dict[str, Any],
+    column_transformer_spec: dict[str, Any],
+    linear_baseline_spec: dict[str, Any],
+    tree_diagnostic_spec: dict[str, Any],
+    tree_ensemble_spec: dict[str, Any],
+    cv_plan_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    expected_identity = {
+        &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+        &quot;pipeline_id&quot;: pipeline_spec.get(&quot;pipeline_id&quot;),
+        &quot;column_transformer_id&quot;: column_transformer_spec.get(&quot;column_transformer_id&quot;),
+        &quot;linear_baseline_id&quot;: linear_baseline_spec.get(&quot;linear_baseline_id&quot;),
+        &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec.get(&quot;tree_diagnostic_id&quot;),
+        &quot;tree_ensemble_id&quot;: tree_ensemble_spec.get(&quot;tree_ensemble_id&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if cv_plan_spec.get(field) != expected:
+            errors.append(
+                {&quot;field&quot;: field, &quot;observed&quot;: cv_plan_spec.get(field), &quot;expected&quot;: expected}
+            )
+
+    if cv_plan_spec.get(&quot;model_selection_pool_splits&quot;) != [&quot;train&quot;, &quot;validation&quot;]:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;model_selection_pool_splits&quot;,
+                &quot;observed&quot;: cv_plan_spec.get(&quot;model_selection_pool_splits&quot;),
+                &quot;expected&quot;: [&quot;train&quot;, &quot;validation&quot;],
+            }
+        )
+    if cv_plan_spec.get(&quot;final_holdout_split&quot;) != &quot;test&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;final_holdout_split&quot;,
+                &quot;observed&quot;: cv_plan_spec.get(&quot;final_holdout_split&quot;),
+                &quot;expected&quot;: &quot;test&quot;,
+            }
+        )
+    if cv_plan_spec.get(&quot;score_type&quot;) != column_transformer_spec.get(&quot;score_type&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;score_type&quot;,
+                &quot;observed&quot;: cv_plan_spec.get(&quot;score_type&quot;),
+                &quot;expected&quot;: column_transformer_spec.get(&quot;score_type&quot;),
+            }
+        )
+
+    strategy = cv_plan_spec.get(&quot;cv_strategy&quot;)
+    if not isinstance(strategy, dict):
+        errors.append({&quot;field&quot;: &quot;cv_strategy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        expected_strategy = {
+            &quot;kind&quot;: &quot;predeclared_time_ordered_group_folds&quot;,
+            &quot;train_role&quot;: &quot;cv_train&quot;,
+            &quot;validation_role&quot;: &quot;cv_validation&quot;,
+            &quot;group_key&quot;: &quot;user_id&quot;,
+            &quot;time_key&quot;: &quot;prediction_time&quot;,
+        }
+        for field, expected in expected_strategy.items():
+            if strategy.get(field) != expected:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;cv_strategy.{field}&quot;,
+                        &quot;observed&quot;: strategy.get(field),
+                        &quot;expected&quot;: expected,
+                    }
+                )
+        if not isinstance(strategy.get(&quot;n_splits&quot;), int) or strategy[&quot;n_splits&quot;] &lt; 2:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;cv_strategy.n_splits&quot;,
+                    &quot;observed&quot;: strategy.get(&quot;n_splits&quot;),
+                    &quot;expected&quot;: &quot;integer &gt;= 2&quot;,
+                }
+            )
+        if strategy.get(&quot;forbid_future_train_rows&quot;) is not True:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;cv_strategy.forbid_future_train_rows&quot;,
+                    &quot;observed&quot;: strategy.get(&quot;forbid_future_train_rows&quot;),
+                    &quot;expected&quot;: True,
+                }
+            )
+
+    scoring = cv_plan_spec.get(&quot;scoring&quot;)
+    if not isinstance(scoring, dict):
+        errors.append({&quot;field&quot;: &quot;scoring&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        if scoring.get(&quot;primary_metric&quot;) != &quot;precision_at_budget&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;scoring.primary_metric&quot;,
+                    &quot;observed&quot;: scoring.get(&quot;primary_metric&quot;),
+                    &quot;expected&quot;: &quot;precision_at_budget&quot;,
+                }
+            )
+        if scoring.get(&quot;primary_metric&quot;) != tree_ensemble_spec.get(&quot;comparison&quot;, {}).get(
+            &quot;primary_metric&quot;
+        ):
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;scoring.aligned_with&quot;,
+                    &quot;observed&quot;: scoring.get(&quot;primary_metric&quot;),
+                    &quot;expected&quot;: tree_ensemble_spec.get(&quot;comparison&quot;, {}).get(&quot;primary_metric&quot;),
+                }
+            )
+        if scoring.get(&quot;requires_proba&quot;) is not True:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;scoring.requires_proba&quot;,
+                    &quot;observed&quot;: scoring.get(&quot;requires_proba&quot;),
+                    &quot;expected&quot;: True,
+                }
+            )
+        if scoring.get(&quot;budget_source&quot;) != &quot;problem_spec.decision_budget.max_actions&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;scoring.budget_source&quot;,
+                    &quot;observed&quot;: scoring.get(&quot;budget_source&quot;),
+                    &quot;expected&quot;: &quot;problem_spec.decision_budget.max_actions&quot;,
+                }
+            )
+
+    candidate_source = cv_plan_spec.get(&quot;candidate_source&quot;)
+    if not isinstance(candidate_source, dict):
+        errors.append({&quot;field&quot;: &quot;candidate_source&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        expected_candidate = tree_ensemble_spec.get(&quot;candidate&quot;, {})
+        for field in (&quot;model_id&quot;, &quot;kind&quot;):
+            if candidate_source.get(field) != expected_candidate.get(field):
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;candidate_source.{field}&quot;,
+                        &quot;observed&quot;: candidate_source.get(field),
+                        &quot;expected&quot;: expected_candidate.get(field),
+                    }
+                )
+
+    audit_policy = cv_plan_spec.get(&quot;audit_policy&quot;)
+    if not isinstance(audit_policy, dict):
+        errors.append({&quot;field&quot;: &quot;audit_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;require_ensemble_handoff&quot;,
+            &quot;require_fold_manifest&quot;,
+            &quot;require_group_isolation&quot;,
+            &quot;require_temporal_order&quot;,
+            &quot;require_class_coverage_per_fold&quot;,
+            &quot;require_scoring_alignment&quot;,
+            &quot;forbid_test_rows_in_cv&quot;,
+            &quot;forbid_fit_on_cv_validation&quot;,
+            &quot;forbid_default_integer_cv&quot;,
+        ):
+            if audit_policy.get(field) is not True:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;audit_policy.{field}&quot;,
+                        &quot;observed&quot;: audit_policy.get(field),
+                        &quot;expected&quot;: True,
+                    }
+                )
+
+    output = cv_plan_spec.get(&quot;output&quot;)
+    if not isinstance(output, dict):
+        errors.append({&quot;field&quot;: &quot;output&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;fold_manifest_file&quot;,
+            &quot;score_file&quot;,
+            &quot;prediction_file&quot;,
+            &quot;audit_file&quot;,
+            &quot;report_file&quot;,
+            &quot;serialized_spec_file&quot;,
+        ):
+            if not output.get(field):
+                errors.append({&quot;field&quot;: f&quot;output.{field}&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    if errors:
+        return failed(
+            &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+            len(errors),
+            &quot;predeclared group/time folds, scoring policy and no-test-peeking contract&quot;,
+            errors,
+        )
+    return passed(
+        &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+        {
+            &quot;cv_plan_id&quot;: cv_plan_spec[&quot;cv_plan_id&quot;],
+            &quot;n_splits&quot;: cv_plan_spec[&quot;cv_strategy&quot;][&quot;n_splits&quot;],
+            &quot;primary_metric&quot;: cv_plan_spec[&quot;scoring&quot;][&quot;primary_metric&quot;],
+        },
+        &quot;cross-validation planning contract is explicit&quot;,
+    )
+
+
+def validate_fold_manifest_schema(
+    fold_rows: list[dict[str, str]],
+    columns: list[str],
+    cv_plan_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_FOLD_COLUMNS - set(columns))
+    if missing:
+        errors.append({&quot;reason&quot;: &quot;missing fold columns&quot;, &quot;sample&quot;: missing})
+    fold_id_values = sorted({row.get(&quot;fold_id&quot;, &quot;&quot;) for row in fold_rows if row.get(&quot;fold_id&quot;)})
+    if len(fold_id_values) != cv_plan_spec.get(&quot;cv_strategy&quot;, {}).get(&quot;n_splits&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;fold_id&quot;,
+                &quot;observed&quot;: fold_id_values,
+                &quot;expected&quot;: cv_plan_spec.get(&quot;cv_strategy&quot;, {}).get(&quot;n_splits&quot;),
+            }
+        )
+    for fold_id in fold_id_values:
+        roles = {row.get(&quot;cv_role&quot;) for row in fold_rows if row.get(&quot;fold_id&quot;) == fold_id}
+        if roles != {&quot;cv_train&quot;, &quot;cv_validation&quot;}:
+            errors.append({&quot;fold_id&quot;: fold_id, &quot;observed_roles&quot;: sorted(roles)})
+    if errors:
+        return failed(
+            &quot;cv_fold_manifest_has_required_shape&quot;,
+            len(errors),
+            &quot;fold rows with train and validation roles for every declared fold&quot;,
+            errors,
+        )
+    return passed(
+        &quot;cv_fold_manifest_has_required_shape&quot;,
+        {&quot;folds&quot;: fold_id_values, &quot;rows&quot;: len(fold_rows)},
+        &quot;fold manifest has the required shape&quot;,
+    )
+
+
+def validate_no_test_rows(
+    fold_rows: list[dict[str, str]], manifest_rows: list[dict[str, str]]
+) -&gt; dict[str, Any]:
+    test_ids = {row[&quot;snapshot_id&quot;] for row in manifest_rows if row[&quot;split&quot;] == &quot;test&quot;}
+    bad_rows = [
+        {
+            &quot;fold_id&quot;: row[&quot;fold_id&quot;],
+            &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+            &quot;original_split&quot;: row[&quot;original_split&quot;],
+        }
+        for row in fold_rows
+        if row[&quot;snapshot_id&quot;] in test_ids or row[&quot;original_split&quot;] == &quot;test&quot;
+    ]
+    if bad_rows:
+        return failed(
+            &quot;cv_fold_manifest_excludes_final_test&quot;,
+            len(bad_rows),
+            &quot;no final holdout test rows inside cross-validation folds&quot;,
+            bad_rows,
+        )
+    return passed(
+        &quot;cv_fold_manifest_excludes_final_test&quot;,
+        {&quot;test_ids_excluded&quot;: sorted(test_ids), &quot;cv_rows&quot;: len(fold_rows)},
+        &quot;final holdout test rows are not used in CV&quot;,
+    )
+
+
+def validate_group_isolation(fold_rows: list[dict[str, str]]) -&gt; dict[str, Any]:
+    violations: list[dict[str, Any]] = []
+    for fold_id in fold_ids(fold_rows):
+        train_groups = {
+            row[&quot;group_key&quot;]
+            for row in fold_rows
+            if row[&quot;fold_id&quot;] == fold_id and row[&quot;cv_role&quot;] == &quot;cv_train&quot;
+        }
+        validation_groups = {
+            row[&quot;group_key&quot;]
+            for row in fold_rows
+            if row[&quot;fold_id&quot;] == fold_id and row[&quot;cv_role&quot;] == &quot;cv_validation&quot;
+        }
+        overlap = sorted(train_groups &amp; validation_groups)
+        if overlap:
+            violations.append({&quot;fold_id&quot;: fold_id, &quot;overlap&quot;: overlap})
+    if violations:
+        return failed(
+            &quot;cv_group_isolation_respected&quot;,
+            len(violations),
+            &quot;no group appears in both train and validation for a fold&quot;,
+            violations,
+        )
+    return passed(
+        &quot;cv_group_isolation_respected&quot;,
+        {&quot;folds&quot;: fold_ids(fold_rows)},
+        &quot;groups are isolated inside every fold&quot;,
+    )
+
+
+def validate_temporal_order(fold_rows: list[dict[str, str]]) -&gt; dict[str, Any]:
+    violations: list[dict[str, Any]] = []
+    observed: list[dict[str, Any]] = []
+    for fold_id in fold_ids(fold_rows):
+        train_times = [
+            row[&quot;prediction_time&quot;]
+            for row in fold_rows
+            if row[&quot;fold_id&quot;] == fold_id and row[&quot;cv_role&quot;] == &quot;cv_train&quot;
+        ]
+        validation_times = [
+            row[&quot;prediction_time&quot;]
+            for row in fold_rows
+            if row[&quot;fold_id&quot;] == fold_id and row[&quot;cv_role&quot;] == &quot;cv_validation&quot;
+        ]
+        max_train_time = max(train_times)
+        min_validation_time = min(validation_times)
+        observed.append(
+            {
+                &quot;fold_id&quot;: fold_id,
+                &quot;max_train_time&quot;: max_train_time,
+                &quot;min_validation_time&quot;: min_validation_time,
+            }
+        )
+        if max_train_time &gt; min_validation_time:
+            violations.append(observed[-1])
+    if violations:
+        return failed(
+            &quot;cv_temporal_order_respected&quot;,
+            len(violations),
+            &quot;no fold trains on rows later than its validation rows&quot;,
+            violations,
+        )
+    return passed(
+        &quot;cv_temporal_order_respected&quot;,
+        observed,
+        &quot;folds do not train on future rows&quot;,
+    )
+
+
+def validate_class_coverage(
+    fold_rows: list[dict[str, str]], labels_by_id: dict[str, dict[str, str]]
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    observed: list[dict[str, Any]] = []
+    for fold_id in fold_ids(fold_rows):
+        for role in (&quot;cv_train&quot;, &quot;cv_validation&quot;):
+            ids = ids_for_fold(fold_rows, fold_id, role)
+            labels = label_values_for_ids(ids, labels_by_id)
+            label_set = sorted(set(labels))
+            observed.append({&quot;fold_id&quot;: fold_id, &quot;cv_role&quot;: role, &quot;labels&quot;: label_set})
+            if label_set != [0, 1]:
+                errors.append({&quot;fold_id&quot;: fold_id, &quot;cv_role&quot;: role, &quot;labels&quot;: label_set})
+    if errors:
+        return failed(
+            &quot;cv_folds_have_binary_class_coverage&quot;,
+            len(errors),
+            &quot;each train and validation fold contains both classes&quot;,
+            errors,
+        )
+    return passed(
+        &quot;cv_folds_have_binary_class_coverage&quot;,
+        observed,
+        &quot;each fold role contains both target classes&quot;,
+    )
+
+
+def validate_fold_labels(
+    fold_rows: list[dict[str, str]], labels_by_id: dict[str, dict[str, str]]
+) -&gt; dict[str, Any]:
+    mismatches: list[dict[str, Any]] = []
+    for row in fold_rows:
+        expected = labels_by_id[row[&quot;snapshot_id&quot;]][&quot;churned_14d&quot;].lower()
+        if row[&quot;label&quot;].lower() != expected:
+            mismatches.append(
+                {
+                    &quot;fold_id&quot;: row[&quot;fold_id&quot;],
+                    &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                    &quot;observed&quot;: row[&quot;label&quot;],
+                    &quot;expected&quot;: expected,
+                }
+            )
+    if mismatches:
+        return failed(
+            &quot;cv_fold_labels_match_target_table&quot;,
+            len(mismatches),
+            &quot;fold manifest labels match ml_labels.csv&quot;,
+            mismatches,
+        )
+    return passed(
+        &quot;cv_fold_labels_match_target_table&quot;,
+        {&quot;rows&quot;: len(fold_rows)},
+        &quot;fold labels match target table&quot;,
+    )
+
+
+def validate_scoring_alignment(
+    cv_plan_spec: dict[str, Any], tree_ensemble_spec: dict[str, Any]
+) -&gt; dict[str, Any]:
+    observed = cv_plan_spec[&quot;scoring&quot;][&quot;primary_metric&quot;]
+    expected = tree_ensemble_spec[&quot;comparison&quot;][&quot;primary_metric&quot;]
+    if observed != expected:
+        return failed(
+            &quot;cv_scoring_policy_matches_model_selection_metric&quot;,
+            observed,
+            expected,
+        )
+    return passed(
+        &quot;cv_scoring_policy_matches_model_selection_metric&quot;,
+        {&quot;primary_metric&quot;: observed, &quot;requires_proba&quot;: cv_plan_spec[&quot;scoring&quot;][&quot;requires_proba&quot;]},
+        &quot;CV scoring aligns with model-selection metric&quot;,
+    )
+
+
+def build_audit_rows(checks: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for check in checks:
+        rows.append(
+            {
+                &quot;check_id&quot;: check[&quot;id&quot;],
+                &quot;severity&quot;: check[&quot;severity&quot;],
+                &quot;valid&quot;: check[&quot;valid&quot;],
+                &quot;observed&quot;: json.dumps(json_ready(check[&quot;observed&quot;]), ensure_ascii=False),
+                &quot;expected&quot;: json.dumps(json_ready(check[&quot;expected&quot;]), ensure_ascii=False),
+            }
+        )
+    return rows
+
+
+def normalized_fold_rows(fold_rows: list[dict[str, str]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    role_order = {&quot;cv_train&quot;: 0, &quot;cv_validation&quot;: 1}
+    for row in sorted(
+        fold_rows,
+        key=lambda item: (
+            int(item[&quot;fold_order&quot;]),
+            role_order[item[&quot;cv_role&quot;]],
+            item[&quot;snapshot_id&quot;],
+        ),
+    ):
+        rows.append(
+            {
+                &quot;fold_id&quot;: row[&quot;fold_id&quot;],
+                &quot;fold_order&quot;: int(row[&quot;fold_order&quot;]),
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;user_id&quot;: row[&quot;user_id&quot;],
+                &quot;prediction_time&quot;: row[&quot;prediction_time&quot;],
+                &quot;original_split&quot;: row[&quot;original_split&quot;],
+                &quot;cv_role&quot;: row[&quot;cv_role&quot;],
+                &quot;group_key&quot;: row[&quot;group_key&quot;],
+                &quot;label&quot;: int(parse_label(row[&quot;label&quot;])),
+                &quot;assigned_by_policy&quot;: row[&quot;assigned_by_policy&quot;],
+            }
+        )
+    return rows
+
+
+def run(
+    *,
+    spec_path: Path,
+    preprocessing_contract_path: Path,
+    pipeline_spec_path: Path,
+    column_transformer_spec_path: Path,
+    linear_baseline_spec_path: Path,
+    tree_diagnostic_spec_path: Path,
+    tree_ensemble_spec_path: Path,
+    cv_plan_spec_path: Path,
+    features_path: Path,
+    labels_path: Path,
+    manifest_path: Path,
+    cv_fold_manifest_path: Path,
+    report_output_path: Path | None = None,
+    fold_manifest_output_path: Path | None = None,
+    score_output_path: Path | None = None,
+    predictions_output_path: Path | None = None,
+    audit_output_path: Path | None = None,
+    serialized_spec_output_path: Path | None = None,
+) -&gt; dict[str, Any]:
+    problem_spec = read_json(spec_path)
+    pipeline_spec = read_json(pipeline_spec_path)
+    column_transformer_spec = read_json(column_transformer_spec_path)
+    linear_baseline_spec = read_json(linear_baseline_spec_path)
+    tree_diagnostic_spec = read_json(tree_diagnostic_spec_path)
+    tree_ensemble_spec = read_json(tree_ensemble_spec_path)
+    cv_plan_spec = read_json(cv_plan_spec_path)
+    feature_rows, _feature_columns = read_csv(features_path)
+    labels, _label_columns = read_csv(labels_path)
+    manifest_rows, _manifest_columns = read_csv(manifest_path)
+    fold_rows, fold_columns = read_csv(cv_fold_manifest_path)
+
+    labels_by_id = rows_by_id(labels)
+    checks: list[dict[str, Any]] = [
+        validate_cv_plan_spec(
+            problem_spec=problem_spec,
+            pipeline_spec=pipeline_spec,
+            column_transformer_spec=column_transformer_spec,
+            linear_baseline_spec=linear_baseline_spec,
+            tree_diagnostic_spec=tree_diagnostic_spec,
+            tree_ensemble_spec=tree_ensemble_spec,
+            cv_plan_spec=cv_plan_spec,
+        ),
+        validate_fold_manifest_schema(fold_rows, fold_columns, cv_plan_spec),
+        validate_no_test_rows(fold_rows, manifest_rows),
+        validate_group_isolation(fold_rows),
+        validate_temporal_order(fold_rows),
+        validate_class_coverage(fold_rows, labels_by_id),
+        validate_fold_labels(fold_rows, labels_by_id),
+        validate_scoring_alignment(cv_plan_spec, tree_ensemble_spec),
+    ]
+    ensemble_report = run_tree_ensemble_audit(
+        spec_path=spec_path,
+        preprocessing_contract_path=preprocessing_contract_path,
+        pipeline_spec_path=pipeline_spec_path,
+        column_transformer_spec_path=column_transformer_spec_path,
+        linear_baseline_spec_path=linear_baseline_spec_path,
+        tree_diagnostic_spec_path=tree_diagnostic_spec_path,
+        tree_ensemble_spec_path=tree_ensemble_spec_path,
+        features_path=features_path,
+        labels_path=labels_path,
+        manifest_path=manifest_path,
+    )
+    if ensemble_report.get(&quot;valid&quot;):
+        checks.append(
+            passed(
+                &quot;upstream_tree_ensemble_audit_is_valid&quot;,
+                {
+                    &quot;tree_ensemble_id&quot;: tree_ensemble_spec.get(&quot;tree_ensemble_id&quot;),
+                    &quot;readiness_status&quot;: ensemble_report[&quot;summary&quot;].get(&quot;readiness_status&quot;),
+                },
+                &quot;tree ensemble handoff is valid&quot;,
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;upstream_tree_ensemble_audit_is_valid&quot;,
+                ensemble_report.get(&quot;summary&quot;, {}).get(&quot;blocking_errors&quot;, []),
+                &quot;valid tree ensemble report before cross-validation planning&quot;,
+                ensemble_report.get(&quot;checks&quot;, []),
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    if blocking_errors:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;cv_plan_id&quot;: cv_plan_spec.get(&quot;cv_plan_id&quot;),
+                &quot;blocking_errors&quot;: blocking_errors,
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_cv_fit&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+        if report_output_path is not None:
+            write_json(report_output_path, report)
+        return report
+
+    feature_rows_by_id = rows_by_id(feature_rows)
+    budget = selection_budget(problem_spec)
+    false_positive_cost, false_negative_cost = cost_weights(problem_spec)
+    model_id = tree_ensemble_spec[&quot;candidate&quot;][&quot;model_id&quot;]
+    model_kind = tree_ensemble_spec[&quot;candidate&quot;][&quot;kind&quot;]
+    score_rows: list[dict[str, Any]] = []
+    prediction_rows: list[dict[str, Any]] = []
+    fit_trace: list[dict[str, Any]] = []
+
+    for fold_id in fold_ids(fold_rows):
+        order = fold_order(fold_rows, fold_id)
+        train_ids = ids_for_fold(fold_rows, fold_id, &quot;cv_train&quot;)
+        validation_ids = ids_for_fold(fold_rows, fold_id, &quot;cv_validation&quot;)
+        X_train = make_frame(train_ids, feature_rows_by_id, column_transformer_spec)
+        y_train = make_target(train_ids, labels_by_id, problem_spec)
+        X_validation = make_frame(validation_ids, feature_rows_by_id, column_transformer_spec)
+        y_validation = make_target(validation_ids, labels_by_id, problem_spec)
+        pipeline = build_ensemble_pipeline(tree_ensemble_spec, column_transformer_spec)
+        pipeline.fit(X_train, y_train)
+        scores = positive_scores(pipeline, X_validation)
+        selected_ids = sorted(selected_ids_at_budget(validation_ids, scores, budget))
+        metric = split_metric_row(
+            model_id=model_id,
+            model_kind=model_kind,
+            split=&quot;cv_validation&quot;,
+            ids=validation_ids,
+            y_true=y_validation,
+            scores=scores,
+            budget=min(budget, len(validation_ids)),
+            false_positive_cost=false_positive_cost,
+            false_negative_cost=false_negative_cost,
+        )
+        score_rows.append(
+            {
+                &quot;fold_id&quot;: fold_id,
+                &quot;fold_order&quot;: order,
+                &quot;model_id&quot;: model_id,
+                &quot;model_kind&quot;: model_kind,
+                &quot;train_row_count&quot;: len(train_ids),
+                &quot;validation_row_count&quot;: len(validation_ids),
+                &quot;train_positive_count&quot;: int(y_train.sum()),
+                &quot;validation_positive_count&quot;: int(y_validation.sum()),
+                &quot;selection_budget&quot;: min(budget, len(validation_ids)),
+                &quot;precision_at_budget&quot;: metric[&quot;precision_at_budget&quot;],
+                &quot;recall_at_budget&quot;: metric[&quot;recall_at_budget&quot;],
+                &quot;average_precision&quot;: metric[&quot;average_precision&quot;],
+                &quot;roc_auc&quot;: metric[&quot;roc_auc&quot;],
+                &quot;log_loss&quot;: metric[&quot;log_loss&quot;],
+                &quot;error_cost_at_budget&quot;: metric[&quot;error_cost_at_budget&quot;],
+                &quot;accuracy_at_0_5&quot;: metric[&quot;accuracy_at_0_5&quot;],
+                &quot;selected_ids&quot;: &quot;,&quot;.join(selected_ids),
+            }
+        )
+        fit_trace.append(
+            {
+                &quot;event&quot;: &quot;pipeline.fit&quot;,
+                &quot;fold_id&quot;: fold_id,
+                &quot;model_id&quot;: model_id,
+                &quot;train_ids&quot;: train_ids,
+                &quot;validation_ids&quot;: validation_ids,
+                &quot;fits_column_transformer&quot;: True,
+                &quot;fits_estimator&quot;: True,
+                &quot;test_ids_seen&quot;: [],
+            }
+        )
+        selected_set = set(selected_ids)
+        for snapshot_id, label, score in zip(
+            validation_ids, y_validation.tolist(), scores.tolist(), strict=True
+        ):
+            prediction_rows.append(
+                {
+                    &quot;fold_id&quot;: fold_id,
+                    &quot;fold_order&quot;: order,
+                    &quot;snapshot_id&quot;: snapshot_id,
+                    &quot;model_id&quot;: model_id,
+                    &quot;model_kind&quot;: model_kind,
+                    &quot;cv_role&quot;: &quot;cv_validation&quot;,
+                    &quot;score&quot;: rounded(float(score)),
+                    &quot;score_type&quot;: cv_plan_spec[&quot;score_type&quot;],
+                    &quot;actual_label&quot;: int(label),
+                    &quot;selected_at_budget&quot;: int(snapshot_id in selected_set),
+                    &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+                    &quot;generated_at&quot;: GENERATED_AT,
+                }
+            )
+
+    if len(score_rows) &lt; TINY_FOLD_WARNING_THRESHOLD:
+        checks.append(
+            failed(
+                &quot;tiny_cv_fold_count_expected&quot;,
+                len(score_rows),
+                f&quot;&gt;= {TINY_FOLD_WARNING_THRESHOLD} folds for production CV&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    small_validation_folds = [
+        row for row in score_rows if row[&quot;validation_row_count&quot;] &lt; TINY_VALIDATION_WARNING_THRESHOLD
+    ]
+    if small_validation_folds:
+        checks.append(
+            failed(
+                &quot;tiny_cv_validation_sample_expected&quot;,
+                [
+                    {&quot;fold_id&quot;: row[&quot;fold_id&quot;], &quot;validation_row_count&quot;: row[&quot;validation_row_count&quot;]}
+                    for row in small_validation_folds
+                ],
+                f&quot;&gt;= {TINY_VALIDATION_WARNING_THRESHOLD} validation rows per production fold&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    valid = not blocking_errors
+    precision_values = [float(row[&quot;precision_at_budget&quot;]) for row in score_rows]
+    log_loss_values = [float(row[&quot;log_loss&quot;]) for row in score_rows]
+    serialized_spec = {
+        &quot;cv_plan_id&quot;: cv_plan_spec[&quot;cv_plan_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;tree_ensemble_id&quot;: tree_ensemble_spec[&quot;tree_ensemble_id&quot;],
+        &quot;model&quot;: {
+            &quot;model_id&quot;: model_id,
+            &quot;class&quot;: &quot;RandomForestClassifier&quot;,
+            &quot;params&quot;: tree_ensemble_spec[&quot;candidate&quot;][&quot;params&quot;],
+        },
+        &quot;fold_strategy&quot;: cv_plan_spec[&quot;cv_strategy&quot;],
+        &quot;scoring&quot;: cv_plan_spec[&quot;scoring&quot;],
+        &quot;fit_trace&quot;: fit_trace,
+        &quot;test_used_in_cv&quot;: False,
+        &quot;sklearn_cv_iterator_compatible&quot;: True,
+    }
+    summary = {
+        &quot;cv_plan_id&quot;: cv_plan_spec[&quot;cv_plan_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;fold_count&quot;: len(score_rows),
+        &quot;model_id&quot;: model_id,
+        &quot;primary_metric&quot;: cv_plan_spec[&quot;scoring&quot;][&quot;primary_metric&quot;],
+        &quot;mean_precision_at_budget&quot;: rounded(float(np.mean(precision_values))),
+        &quot;std_precision_at_budget&quot;: rounded(float(np.std(precision_values))),
+        &quot;mean_log_loss&quot;: rounded(float(np.mean(log_loss_values))),
+        &quot;cv_validation_row_count&quot;: len(prediction_rows),
+        &quot;final_holdout_split&quot;: cv_plan_spec[&quot;final_holdout_split&quot;],
+        &quot;test_used_in_cv&quot;: False,
+        &quot;blocking_errors&quot;: blocking_errors,
+        &quot;warnings&quot;: warnings,
+        &quot;readiness_status&quot;: &quot;ready_for_imbalance_lesson&quot;
+        if valid
+        else &quot;blocked_by_cv_plan_audit&quot;,
+    }
+    report = {
+        &quot;valid&quot;: valid,
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;fold_manifest&quot;: normalized_fold_rows(fold_rows),
+        &quot;scores&quot;: score_rows,
+        &quot;predictions&quot;: prediction_rows,
+        &quot;audit&quot;: build_audit_rows(checks),
+        &quot;serialized_spec&quot;: serialized_spec,
+        &quot;checks&quot;: checks,
+    }
+
+    if fold_manifest_output_path is not None:
+        write_csv(
+            fold_manifest_output_path,
+            report[&quot;fold_manifest&quot;],
+            [
+                &quot;fold_id&quot;,
+                &quot;fold_order&quot;,
+                &quot;snapshot_id&quot;,
+                &quot;user_id&quot;,
+                &quot;prediction_time&quot;,
+                &quot;original_split&quot;,
+                &quot;cv_role&quot;,
+                &quot;group_key&quot;,
+                &quot;label&quot;,
+                &quot;assigned_by_policy&quot;,
+            ],
+        )
+    if score_output_path is not None:
+        write_csv(
+            score_output_path,
+            score_rows,
+            [
+                &quot;fold_id&quot;,
+                &quot;fold_order&quot;,
+                &quot;model_id&quot;,
+                &quot;model_kind&quot;,
+                &quot;train_row_count&quot;,
+                &quot;validation_row_count&quot;,
+                &quot;train_positive_count&quot;,
+                &quot;validation_positive_count&quot;,
+                &quot;selection_budget&quot;,
+                &quot;precision_at_budget&quot;,
+                &quot;recall_at_budget&quot;,
+                &quot;average_precision&quot;,
+                &quot;roc_auc&quot;,
+                &quot;log_loss&quot;,
+                &quot;error_cost_at_budget&quot;,
+                &quot;accuracy_at_0_5&quot;,
+                &quot;selected_ids&quot;,
+            ],
+        )
+    if predictions_output_path is not None:
+        write_csv(
+            predictions_output_path,
+            prediction_rows,
+            [
+                &quot;fold_id&quot;,
+                &quot;fold_order&quot;,
+                &quot;snapshot_id&quot;,
+                &quot;model_id&quot;,
+                &quot;model_kind&quot;,
+                &quot;cv_role&quot;,
+                &quot;score&quot;,
+                &quot;score_type&quot;,
+                &quot;actual_label&quot;,
+                &quot;selected_at_budget&quot;,
+                &quot;trained_on_role&quot;,
+                &quot;generated_at&quot;,
+            ],
+        )
+    if audit_output_path is not None:
+        write_csv(
+            audit_output_path,
+            report[&quot;audit&quot;],
+            [&quot;check_id&quot;, &quot;severity&quot;, &quot;valid&quot;, &quot;observed&quot;, &quot;expected&quot;],
+        )
+    if serialized_spec_output_path is not None:
+        write_json(serialized_spec_output_path, json_ready(serialized_spec))
+    if report_output_path is not None:
+        write_json(report_output_path, json_ready(report))
+    return report
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Plan and audit group/time-aware CV folds&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--preprocessing-contract&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--pipeline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--column-transformer-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--linear-baseline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--tree-diagnostic-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--tree-ensemble-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--cv-plan-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--features&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--labels&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--cv-fold-manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--fold-manifest-output&quot;, type=Path)
+    parser.add_argument(&quot;--score-output&quot;, type=Path)
+    parser.add_argument(&quot;--predictions-output&quot;, type=Path)
+    parser.add_argument(&quot;--audit-output&quot;, type=Path)
+    parser.add_argument(&quot;--serialized-spec-output&quot;, type=Path)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args(argv)
+
+    try:
+        report = run(
+            spec_path=args.spec,
+            preprocessing_contract_path=args.preprocessing_contract,
+            pipeline_spec_path=args.pipeline_spec,
+            column_transformer_spec_path=args.column_transformer_spec,
+            linear_baseline_spec_path=args.linear_baseline_spec,
+            tree_diagnostic_spec_path=args.tree_diagnostic_spec,
+            tree_ensemble_spec_path=args.tree_ensemble_spec,
+            cv_plan_spec_path=args.cv_plan_spec,
+            features_path=args.features,
+            labels_path=args.labels,
+            manifest_path=args.manifest,
+            cv_fold_manifest_path=args.cv_fold_manifest,
+            report_output_path=args.output,
+            fold_manifest_output_path=args.fold_manifest_output,
+            score_output_path=args.score_output,
+            predictions_output_path=args.predictions_output,
+            audit_output_path=args.audit_output,
+            serialized_spec_output_path=args.serialized_spec_output,
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+        ColumnTransformerAuditError,
+        LinearBaselineError,
+        TreeEnsembleError,
+        CrossValidationPlannerError,
+        KeyError,
+        ValueError,
+    ) as error:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;summary&quot;: {
+                &quot;blocking_errors&quot;: [&quot;cv_planner_runtime_error&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;runtime_error&quot;,
+            },
+            &quot;checks&quot;: [
+                failed(
+                    &quot;cv_planner_runtime_error&quot;,
+                    str(error),
+                    &quot;readable inputs and fit-able group/time-aware cross-validation folds&quot;,
+                )
+            ],
+        }
+        if args.output is not None:
+            write_json(args.output, report)
+
+    if args.output is None:
+        print(json.dumps(json_ready(report), ensure_ascii=False, indent=2))
+
+    has_errors = any(
+        check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    has_warnings = any(
+        check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    if has_errors or (args.fail_on_warning and has_warnings):
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cross_validation_planner.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_fold_manifest.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>fold_id,fold_order,snapshot_id,user_id,prediction_time,original_split,cv_role,group_key,label,assigned_by_policy
+cv_fold_1,1,S001,U001,2026-05-10T09:00:00+03:00,train,cv_train,U001,1,predeclared_time_ordered_group_cv
+cv_fold_1,1,S002,U002,2026-05-10T09:00:00+03:00,train,cv_train,U002,0,predeclared_time_ordered_group_cv
+cv_fold_1,1,S003,U003,2026-05-10T09:00:00+03:00,train,cv_validation,U003,0,predeclared_time_ordered_group_cv
+cv_fold_1,1,S004,U004,2026-05-10T09:00:00+03:00,train,cv_validation,U004,1,predeclared_time_ordered_group_cv
+cv_fold_2,2,S001,U001,2026-05-10T09:00:00+03:00,train,cv_train,U001,1,predeclared_time_ordered_group_cv
+cv_fold_2,2,S002,U002,2026-05-10T09:00:00+03:00,train,cv_train,U002,0,predeclared_time_ordered_group_cv
+cv_fold_2,2,S003,U003,2026-05-10T09:00:00+03:00,train,cv_train,U003,0,predeclared_time_ordered_group_cv
+cv_fold_2,2,S004,U004,2026-05-10T09:00:00+03:00,train,cv_train,U004,1,predeclared_time_ordered_group_cv
+cv_fold_2,2,S005,U005,2026-05-17T09:00:00+03:00,validation,cv_validation,U005,0,predeclared_time_ordered_group_cv
+cv_fold_2,2,S006,U006,2026-05-17T09:00:00+03:00,validation,cv_validation,U006,1,predeclared_time_ordered_group_cv
+cv_fold_2,2,S007,U007,2026-05-17T09:00:00+03:00,validation,cv_validation,U007,0,predeclared_time_ordered_group_cv
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_fold_manifest.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_no_peeking_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>check_id,severity,valid,observed,expected
+cv_plan_spec_declares_group_time_scoring_contract,error,True,&quot;{&quot;&quot;cv_plan_id&quot;&quot;: &quot;&quot;trial-churn-cv-plan-v0&quot;&quot;, &quot;&quot;n_splits&quot;&quot;: 2, &quot;&quot;primary_metric&quot;&quot;: &quot;&quot;precision_at_budget&quot;&quot;}&quot;,&quot;&quot;&quot;cross-validation planning contract is explicit&quot;&quot;&quot;
+cv_fold_manifest_has_required_shape,error,True,&quot;{&quot;&quot;folds&quot;&quot;: [&quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;cv_fold_2&quot;&quot;], &quot;&quot;rows&quot;&quot;: 11}&quot;,&quot;&quot;&quot;fold manifest has the required shape&quot;&quot;&quot;
+cv_fold_manifest_excludes_final_test,error,True,&quot;{&quot;&quot;test_ids_excluded&quot;&quot;: [&quot;&quot;S009&quot;&quot;, &quot;&quot;S010&quot;&quot;, &quot;&quot;S011&quot;&quot;, &quot;&quot;S012&quot;&quot;, &quot;&quot;S013&quot;&quot;], &quot;&quot;cv_rows&quot;&quot;: 11}&quot;,&quot;&quot;&quot;final holdout test rows are not used in CV&quot;&quot;&quot;
+cv_group_isolation_respected,error,True,&quot;{&quot;&quot;folds&quot;&quot;: [&quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;cv_fold_2&quot;&quot;]}&quot;,&quot;&quot;&quot;groups are isolated inside every fold&quot;&quot;&quot;
+cv_temporal_order_respected,error,True,&quot;[{&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;max_train_time&quot;&quot;: &quot;&quot;2026-05-10T09:00:00+03:00&quot;&quot;, &quot;&quot;min_validation_time&quot;&quot;: &quot;&quot;2026-05-10T09:00:00+03:00&quot;&quot;}, {&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_2&quot;&quot;, &quot;&quot;max_train_time&quot;&quot;: &quot;&quot;2026-05-10T09:00:00+03:00&quot;&quot;, &quot;&quot;min_validation_time&quot;&quot;: &quot;&quot;2026-05-17T09:00:00+03:00&quot;&quot;}]&quot;,&quot;&quot;&quot;folds do not train on future rows&quot;&quot;&quot;
+cv_folds_have_binary_class_coverage,error,True,&quot;[{&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;cv_role&quot;&quot;: &quot;&quot;cv_train&quot;&quot;, &quot;&quot;labels&quot;&quot;: [0, 1]}, {&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;cv_role&quot;&quot;: &quot;&quot;cv_validation&quot;&quot;, &quot;&quot;labels&quot;&quot;: [0, 1]}, {&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_2&quot;&quot;, &quot;&quot;cv_role&quot;&quot;: &quot;&quot;cv_train&quot;&quot;, &quot;&quot;labels&quot;&quot;: [0, 1]}, {&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_2&quot;&quot;, &quot;&quot;cv_role&quot;&quot;: &quot;&quot;cv_validation&quot;&quot;, &quot;&quot;labels&quot;&quot;: [0, 1]}]&quot;,&quot;&quot;&quot;each fold role contains both target classes&quot;&quot;&quot;
+cv_fold_labels_match_target_table,error,True,&quot;{&quot;&quot;rows&quot;&quot;: 11}&quot;,&quot;&quot;&quot;fold labels match target table&quot;&quot;&quot;
+cv_scoring_policy_matches_model_selection_metric,error,True,&quot;{&quot;&quot;primary_metric&quot;&quot;: &quot;&quot;precision_at_budget&quot;&quot;, &quot;&quot;requires_proba&quot;&quot;: true}&quot;,&quot;&quot;&quot;CV scoring aligns with model-selection metric&quot;&quot;&quot;
+upstream_tree_ensemble_audit_is_valid,error,True,&quot;{&quot;&quot;tree_ensemble_id&quot;&quot;: &quot;&quot;trial-churn-tree-ensemble-v0&quot;&quot;, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_cross_validation_lesson&quot;&quot;}&quot;,&quot;&quot;&quot;tree ensemble handoff is valid&quot;&quot;&quot;
+tiny_cv_fold_count_expected,warning,False,2,&quot;&quot;&quot;&gt;= 3 folds for production CV&quot;&quot;&quot;
+tiny_cv_validation_sample_expected,warning,False,&quot;[{&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_1&quot;&quot;, &quot;&quot;validation_row_count&quot;&quot;: 2}, {&quot;&quot;fold_id&quot;&quot;: &quot;&quot;cv_fold_2&quot;&quot;, &quot;&quot;validation_row_count&quot;&quot;: 3}]&quot;,&quot;&quot;&quot;&gt;= 20 validation rows per production fold&quot;&quot;&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_no_peeking_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>fold_id,fold_order,snapshot_id,model_id,model_kind,cv_role,score,score_type,actual_label,selected_at_budget,trained_on_role,generated_at
+cv_fold_1,1,S003,random_forest_depth2,random_forest_classifier,cv_validation,0.48,churn_risk_probability,0,1,cv_train,2026-07-02T14:00:00+03:00
+cv_fold_1,1,S004,random_forest_depth2,random_forest_classifier,cv_validation,0.44,churn_risk_probability,1,1,cv_train,2026-07-02T14:00:00+03:00
+cv_fold_2,2,S005,random_forest_depth2,random_forest_classifier,cv_validation,0.62,churn_risk_probability,0,1,cv_train,2026-07-02T14:00:00+03:00
+cv_fold_2,2,S006,random_forest_depth2,random_forest_classifier,cv_validation,0.38,churn_risk_probability,1,0,cv_train,2026-07-02T14:00:00+03:00
+cv_fold_2,2,S007,random_forest_depth2,random_forest_classifier,cv_validation,0.66,churn_risk_probability,0,1,cv_train,2026-07-02T14:00:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;cv_plan_id&quot;: &quot;trial-churn-cv-plan-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;fold_count&quot;: 2,
+    &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+    &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+    &quot;mean_precision_at_budget&quot;: 0.25,
+    &quot;std_precision_at_budget&quot;: 0.25,
+    &quot;mean_log_loss&quot;: 0.871057,
+    &quot;cv_validation_row_count&quot;: 5,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;test_used_in_cv&quot;: false,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;tiny_cv_fold_count_expected&quot;,
+      &quot;tiny_cv_validation_sample_expected&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_imbalance_lesson&quot;
+  },
+  &quot;fold_manifest&quot;: [
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S001&quot;,
+      &quot;user_id&quot;: &quot;U001&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U001&quot;,
+      &quot;label&quot;: 1,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S002&quot;,
+      &quot;user_id&quot;: &quot;U002&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U002&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;user_id&quot;: &quot;U003&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;U003&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;user_id&quot;: &quot;U004&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;U004&quot;,
+      &quot;label&quot;: 1,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S001&quot;,
+      &quot;user_id&quot;: &quot;U001&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U001&quot;,
+      &quot;label&quot;: 1,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S002&quot;,
+      &quot;user_id&quot;: &quot;U002&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U002&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;user_id&quot;: &quot;U003&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U003&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;user_id&quot;: &quot;U004&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;train&quot;,
+      &quot;cv_role&quot;: &quot;cv_train&quot;,
+      &quot;group_key&quot;: &quot;U004&quot;,
+      &quot;label&quot;: 1,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;user_id&quot;: &quot;U005&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;validation&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;U005&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;user_id&quot;: &quot;U006&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;validation&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;U006&quot;,
+      &quot;label&quot;: 1,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;user_id&quot;: &quot;U007&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;original_split&quot;: &quot;validation&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;U007&quot;,
+      &quot;label&quot;: 0,
+      &quot;assigned_by_policy&quot;: &quot;predeclared_time_ordered_group_cv&quot;
+    }
+  ],
+  &quot;scores&quot;: [
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;train_row_count&quot;: 2,
+      &quot;validation_row_count&quot;: 2,
+      &quot;train_positive_count&quot;: 1,
+      &quot;validation_positive_count&quot;: 1,
+      &quot;selection_budget&quot;: 2,
+      &quot;precision_at_budget&quot;: 0.5,
+      &quot;recall_at_budget&quot;: 1.0,
+      &quot;average_precision&quot;: 0.5,
+      &quot;roc_auc&quot;: 0.0,
+      &quot;log_loss&quot;: 0.737454,
+      &quot;error_cost_at_budget&quot;: 1.0,
+      &quot;accuracy_at_0_5&quot;: 0.5,
+      &quot;selected_ids&quot;: &quot;S003,S004&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;train_row_count&quot;: 4,
+      &quot;validation_row_count&quot;: 3,
+      &quot;train_positive_count&quot;: 2,
+      &quot;validation_positive_count&quot;: 1,
+      &quot;selection_budget&quot;: 2,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;average_precision&quot;: 0.333333,
+      &quot;roc_auc&quot;: 0.0,
+      &quot;log_loss&quot;: 1.004659,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.0,
+      &quot;selected_ids&quot;: &quot;S005,S007&quot;
+    }
+  ],
+  &quot;predictions&quot;: [
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;score&quot;: 0.48,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T14:00:00+03:00&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;fold_order&quot;: 1,
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;score&quot;: 0.44,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T14:00:00+03:00&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;score&quot;: 0.62,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T14:00:00+03:00&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;score&quot;: 0.38,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T14:00:00+03:00&quot;
+    },
+    {
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;fold_order&quot;: 2,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;cv_role&quot;: &quot;cv_validation&quot;,
+      &quot;score&quot;: 0.66,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_role&quot;: &quot;cv_train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T14:00:00+03:00&quot;
+    }
+  ],
+  &quot;audit&quot;: [
+    {
+      &quot;check_id&quot;: &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;cv_plan_id\&quot;: \&quot;trial-churn-cv-plan-v0\&quot;, \&quot;n_splits\&quot;: 2, \&quot;primary_metric\&quot;: \&quot;precision_at_budget\&quot;}&quot;,
+      &quot;expected&quot;: &quot;\&quot;cross-validation planning contract is explicit\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_fold_manifest_has_required_shape&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;folds\&quot;: [\&quot;cv_fold_1\&quot;, \&quot;cv_fold_2\&quot;], \&quot;rows\&quot;: 11}&quot;,
+      &quot;expected&quot;: &quot;\&quot;fold manifest has the required shape\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_fold_manifest_excludes_final_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;test_ids_excluded\&quot;: [\&quot;S009\&quot;, \&quot;S010\&quot;, \&quot;S011\&quot;, \&quot;S012\&quot;, \&quot;S013\&quot;], \&quot;cv_rows\&quot;: 11}&quot;,
+      &quot;expected&quot;: &quot;\&quot;final holdout test rows are not used in CV\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_group_isolation_respected&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;folds\&quot;: [\&quot;cv_fold_1\&quot;, \&quot;cv_fold_2\&quot;]}&quot;,
+      &quot;expected&quot;: &quot;\&quot;groups are isolated inside every fold\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_temporal_order_respected&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;[{\&quot;fold_id\&quot;: \&quot;cv_fold_1\&quot;, \&quot;max_train_time\&quot;: \&quot;2026-05-10T09:00:00+03:00\&quot;, \&quot;min_validation_time\&quot;: \&quot;2026-05-10T09:00:00+03:00\&quot;}, {\&quot;fold_id\&quot;: \&quot;cv_fold_2\&quot;, \&quot;max_train_time\&quot;: \&quot;2026-05-10T09:00:00+03:00\&quot;, \&quot;min_validation_time\&quot;: \&quot;2026-05-17T09:00:00+03:00\&quot;}]&quot;,
+      &quot;expected&quot;: &quot;\&quot;folds do not train on future rows\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_folds_have_binary_class_coverage&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;[{\&quot;fold_id\&quot;: \&quot;cv_fold_1\&quot;, \&quot;cv_role\&quot;: \&quot;cv_train\&quot;, \&quot;labels\&quot;: [0, 1]}, {\&quot;fold_id\&quot;: \&quot;cv_fold_1\&quot;, \&quot;cv_role\&quot;: \&quot;cv_validation\&quot;, \&quot;labels\&quot;: [0, 1]}, {\&quot;fold_id\&quot;: \&quot;cv_fold_2\&quot;, \&quot;cv_role\&quot;: \&quot;cv_train\&quot;, \&quot;labels\&quot;: [0, 1]}, {\&quot;fold_id\&quot;: \&quot;cv_fold_2\&quot;, \&quot;cv_role\&quot;: \&quot;cv_validation\&quot;, \&quot;labels\&quot;: [0, 1]}]&quot;,
+      &quot;expected&quot;: &quot;\&quot;each fold role contains both target classes\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_fold_labels_match_target_table&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;rows\&quot;: 11}&quot;,
+      &quot;expected&quot;: &quot;\&quot;fold labels match target table\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;cv_scoring_policy_matches_model_selection_metric&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;primary_metric\&quot;: \&quot;precision_at_budget\&quot;, \&quot;requires_proba\&quot;: true}&quot;,
+      &quot;expected&quot;: &quot;\&quot;CV scoring aligns with model-selection metric\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;upstream_tree_ensemble_audit_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;tree_ensemble_id\&quot;: \&quot;trial-churn-tree-ensemble-v0\&quot;, \&quot;readiness_status\&quot;: \&quot;ready_for_cross_validation_lesson\&quot;}&quot;,
+      &quot;expected&quot;: &quot;\&quot;tree ensemble handoff is valid\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;tiny_cv_fold_count_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;2&quot;,
+      &quot;expected&quot;: &quot;\&quot;&gt;= 3 folds for production CV\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;tiny_cv_validation_sample_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;[{\&quot;fold_id\&quot;: \&quot;cv_fold_1\&quot;, \&quot;validation_row_count\&quot;: 2}, {\&quot;fold_id\&quot;: \&quot;cv_fold_2\&quot;, \&quot;validation_row_count\&quot;: 3}]&quot;,
+      &quot;expected&quot;: &quot;\&quot;&gt;= 20 validation rows per production fold\&quot;&quot;
+    }
+  ],
+  &quot;serialized_spec&quot;: {
+    &quot;cv_plan_id&quot;: &quot;trial-churn-cv-plan-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;tree_ensemble_id&quot;: &quot;trial-churn-tree-ensemble-v0&quot;,
+    &quot;model&quot;: {
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;class&quot;: &quot;RandomForestClassifier&quot;,
+      &quot;params&quot;: {
+        &quot;n_estimators&quot;: 25,
+        &quot;criterion&quot;: &quot;gini&quot;,
+        &quot;max_depth&quot;: 2,
+        &quot;min_samples_split&quot;: 2,
+        &quot;min_samples_leaf&quot;: 1,
+        &quot;max_features&quot;: &quot;sqrt&quot;,
+        &quot;bootstrap&quot;: true,
+        &quot;class_weight&quot;: null,
+        &quot;random_state&quot;: 0,
+        &quot;n_jobs&quot;: 1
+      }
+    },
+    &quot;fold_strategy&quot;: {
+      &quot;kind&quot;: &quot;predeclared_time_ordered_group_folds&quot;,
+      &quot;n_splits&quot;: 2,
+      &quot;fold_id_column&quot;: &quot;fold_id&quot;,
+      &quot;train_role&quot;: &quot;cv_train&quot;,
+      &quot;validation_role&quot;: &quot;cv_validation&quot;,
+      &quot;group_key&quot;: &quot;user_id&quot;,
+      &quot;time_key&quot;: &quot;prediction_time&quot;,
+      &quot;allow_same_prediction_time_within_fold&quot;: true,
+      &quot;forbid_future_train_rows&quot;: true
+    },
+    &quot;scoring&quot;: {
+      &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+      &quot;aligned_with&quot;: &quot;tree_ensemble_spec.comparison.primary_metric&quot;,
+      &quot;budget_source&quot;: &quot;problem_spec.decision_budget.max_actions&quot;,
+      &quot;requires_proba&quot;: true,
+      &quot;selected_ids_tie_breaker&quot;: &quot;score_desc_snapshot_id_asc&quot;,
+      &quot;secondary_metrics&quot;: [
+        &quot;recall_at_budget&quot;,
+        &quot;average_precision&quot;,
+        &quot;log_loss&quot;
+      ]
+    },
+    &quot;fit_trace&quot;: [
+      {
+        &quot;event&quot;: &quot;pipeline.fit&quot;,
+        &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+        &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+        &quot;train_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;
+        ],
+        &quot;validation_ids&quot;: [
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ],
+        &quot;fits_column_transformer&quot;: true,
+        &quot;fits_estimator&quot;: true,
+        &quot;test_ids_seen&quot;: []
+      },
+      {
+        &quot;event&quot;: &quot;pipeline.fit&quot;,
+        &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+        &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+        &quot;train_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ],
+        &quot;validation_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;fits_column_transformer&quot;: true,
+        &quot;fits_estimator&quot;: true,
+        &quot;test_ids_seen&quot;: []
+      }
+    ],
+    &quot;test_used_in_cv&quot;: false,
+    &quot;sklearn_cv_iterator_compatible&quot;: true
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;cv_plan_spec_declares_group_time_scoring_contract&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;cv_plan_id&quot;: &quot;trial-churn-cv-plan-v0&quot;,
+        &quot;n_splits&quot;: 2,
+        &quot;primary_metric&quot;: &quot;precision_at_budget&quot;
+      },
+      &quot;expected&quot;: &quot;cross-validation planning contract is explicit&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_fold_manifest_has_required_shape&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;folds&quot;: [
+          &quot;cv_fold_1&quot;,
+          &quot;cv_fold_2&quot;
+        ],
+        &quot;rows&quot;: 11
+      },
+      &quot;expected&quot;: &quot;fold manifest has the required shape&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_fold_manifest_excludes_final_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;test_ids_excluded&quot;: [
+          &quot;S009&quot;,
+          &quot;S010&quot;,
+          &quot;S011&quot;,
+          &quot;S012&quot;,
+          &quot;S013&quot;
+        ],
+        &quot;cv_rows&quot;: 11
+      },
+      &quot;expected&quot;: &quot;final holdout test rows are not used in CV&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_group_isolation_respected&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;folds&quot;: [
+          &quot;cv_fold_1&quot;,
+          &quot;cv_fold_2&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;groups are isolated inside every fold&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_temporal_order_respected&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+          &quot;max_train_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+          &quot;min_validation_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;
+        },
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+          &quot;max_train_time&quot;: &quot;2026-05-10T09:00:00+03:00&quot;,
+          &quot;min_validation_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;
+        }
+      ],
+      &quot;expected&quot;: &quot;folds do not train on future rows&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_folds_have_binary_class_coverage&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+          &quot;cv_role&quot;: &quot;cv_train&quot;,
+          &quot;labels&quot;: [
+            0,
+            1
+          ]
+        },
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+          &quot;cv_role&quot;: &quot;cv_validation&quot;,
+          &quot;labels&quot;: [
+            0,
+            1
+          ]
+        },
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+          &quot;cv_role&quot;: &quot;cv_train&quot;,
+          &quot;labels&quot;: [
+            0,
+            1
+          ]
+        },
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+          &quot;cv_role&quot;: &quot;cv_validation&quot;,
+          &quot;labels&quot;: [
+            0,
+            1
+          ]
+        }
+      ],
+      &quot;expected&quot;: &quot;each fold role contains both target classes&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_fold_labels_match_target_table&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 11
+      },
+      &quot;expected&quot;: &quot;fold labels match target table&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cv_scoring_policy_matches_model_selection_metric&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+        &quot;requires_proba&quot;: true
+      },
+      &quot;expected&quot;: &quot;CV scoring aligns with model-selection metric&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_tree_ensemble_audit_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;tree_ensemble_id&quot;: &quot;trial-churn-tree-ensemble-v0&quot;,
+        &quot;readiness_status&quot;: &quot;ready_for_cross_validation_lesson&quot;
+      },
+      &quot;expected&quot;: &quot;tree ensemble handoff is valid&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_cv_fold_count_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: &quot;&gt;= 3 folds for production CV&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_cv_validation_sample_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+          &quot;validation_row_count&quot;: 2
+        },
+        {
+          &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+          &quot;validation_row_count&quot;: 3
+        }
+      ],
+      &quot;expected&quot;: &quot;&gt;= 20 validation rows per production fold&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_score_report.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>fold_id,fold_order,model_id,model_kind,train_row_count,validation_row_count,train_positive_count,validation_positive_count,selection_budget,precision_at_budget,recall_at_budget,average_precision,roc_auc,log_loss,error_cost_at_budget,accuracy_at_0_5,selected_ids
+cv_fold_1,1,random_forest_depth2,random_forest_classifier,2,2,1,1,2,0.5,1.0,0.5,0.0,0.737454,1.0,0.5,&quot;S003,S004&quot;
+cv_fold_2,2,random_forest_depth2,random_forest_classifier,4,3,2,1,2,0.0,0.0,0.333333,0.0,1.004659,7.0,0.0,&quot;S005,S007&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_score_report.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/cv_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;cv_plan_id&quot;: &quot;trial-churn-cv-plan-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;tree_ensemble_id&quot;: &quot;trial-churn-tree-ensemble-v0&quot;,
+  &quot;model&quot;: {
+    &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+    &quot;class&quot;: &quot;RandomForestClassifier&quot;,
+    &quot;params&quot;: {
+      &quot;n_estimators&quot;: 25,
+      &quot;criterion&quot;: &quot;gini&quot;,
+      &quot;max_depth&quot;: 2,
+      &quot;min_samples_split&quot;: 2,
+      &quot;min_samples_leaf&quot;: 1,
+      &quot;max_features&quot;: &quot;sqrt&quot;,
+      &quot;bootstrap&quot;: true,
+      &quot;class_weight&quot;: null,
+      &quot;random_state&quot;: 0,
+      &quot;n_jobs&quot;: 1
+    }
+  },
+  &quot;fold_strategy&quot;: {
+    &quot;kind&quot;: &quot;predeclared_time_ordered_group_folds&quot;,
+    &quot;n_splits&quot;: 2,
+    &quot;fold_id_column&quot;: &quot;fold_id&quot;,
+    &quot;train_role&quot;: &quot;cv_train&quot;,
+    &quot;validation_role&quot;: &quot;cv_validation&quot;,
+    &quot;group_key&quot;: &quot;user_id&quot;,
+    &quot;time_key&quot;: &quot;prediction_time&quot;,
+    &quot;allow_same_prediction_time_within_fold&quot;: true,
+    &quot;forbid_future_train_rows&quot;: true
+  },
+  &quot;scoring&quot;: {
+    &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+    &quot;aligned_with&quot;: &quot;tree_ensemble_spec.comparison.primary_metric&quot;,
+    &quot;budget_source&quot;: &quot;problem_spec.decision_budget.max_actions&quot;,
+    &quot;requires_proba&quot;: true,
+    &quot;selected_ids_tie_breaker&quot;: &quot;score_desc_snapshot_id_asc&quot;,
+    &quot;secondary_metrics&quot;: [
+      &quot;recall_at_budget&quot;,
+      &quot;average_precision&quot;,
+      &quot;log_loss&quot;
+    ]
+  },
+  &quot;fit_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;pipeline.fit&quot;,
+      &quot;fold_id&quot;: &quot;cv_fold_1&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;train_ids&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;
+      ],
+      &quot;validation_ids&quot;: [
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;fits_column_transformer&quot;: true,
+      &quot;fits_estimator&quot;: true,
+      &quot;test_ids_seen&quot;: []
+    },
+    {
+      &quot;event&quot;: &quot;pipeline.fit&quot;,
+      &quot;fold_id&quot;: &quot;cv_fold_2&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2&quot;,
+      &quot;train_ids&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;,
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;validation_ids&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;fits_column_transformer&quot;: true,
+      &quot;fits_estimator&quot;: true,
+      &quot;test_ids_seen&quot;: []
+    }
+  ],
+  &quot;test_used_in_cv&quot;: false,
+  &quot;sklearn_cv_iterator_compatible&quot;: true
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/10-cross-validation/outputs/cv_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/10-cross-validation" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/applied-machine-learning/ensembles/"><span>← Предыдущий урок</span><strong>Ансамбли деревьев</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>Следующий урок →</span><strong>Несбалансированные классы</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

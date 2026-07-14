@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Если витрина и ее контроль используют один и тот же join и формулу, общий дефект останется незамеченным. Один гигантский SQL с boolean-флагами также плохо показывает…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/sql-checks/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Проверки SQL-витрин">
+  <meta property="og:description" content="Если витрина и ее контроль используют один и тот же join и формулу, общий дефект останется незамеченным. Один гигантский SQL с boolean-флагами также плохо показывает…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/sql-checks/">
+  <meta name="twitter:card" content="summary">
+  <title>Проверки SQL-витрин — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Проверки SQL-витрин", "description": "Если витрина и ее контроль используют один и тот же join и формулу, общий дефект останется незамеченным. Один гигантский SQL с boolean-флагами также плохо показывает…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/sql-checks/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 07: Надежная аналитика", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=7"}, {"@type": "ListItem", "position": 3, "name": "Проверки SQL-витрин", "item": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/sql-checks/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 07</p><h2>Надежная аналитика</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/invariants/"><span>01</span>Инварианты аналитического расчета</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/unit-tests/"><span>02</span>Тесты на границах преобразований</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/defect-matrix/"><span>03</span>Минимальные контрпримеры и матрица дефектов</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/property-based-testing/"><span>04</span>Property-based testing с Hypothesis</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/pandera/"><span>05</span>Контракты DataFrame с Pandera</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/pydantic/"><span>06</span>Валидация конфигурации с Pydantic</a><a class="lesson-sidebar-link is-active" href="../../../lessons/reliable-analytics/sql-checks/"><span>07</span>Проверки SQL-витрин</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/golden-datasets/"><span>08</span>Golden datasets и regression tests</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/observability/"><span>09</span>Наблюдаемость и мониторинг качества данных</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/quality-gates/"><span>10</span>Интеграционный quality gate</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 07 · Надежная аналитика</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 76 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/07-reliable-analytics/07-sql-checks" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должен возвращать violation query при валидных данных?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ноль строк</button><button type="button" class="quiz-option" data-choice="1">Все строки</button><button type="button" class="quiz-option" data-choice="2">Одну случайную строку</button><button type="button" class="quiz-option" data-choice="3">Только count таблицы</button></div><p class="quiz-feedback" hidden>Запрос формулируется как поиск контрпримеров контракту.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему контрольный SQL должен быть независим от production transform?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы общий дефект формулы не прошел обе ветки</button><button type="button" class="quiz-option" data-choice="1">Чтобы использовать больше памяти</button><button type="button" class="quiz-option" data-choice="2">Чтобы исключить stable IDs</button><button type="button" class="quiz-option" data-choice="3">Чтобы не читать source</button></div><p class="quiz-feedback" hidden>Независимая реализация повышает шанс обнаружить ошибку production logic.</p></article></section>
+        <article class="lesson-article"><h1 id="проверки-sql-витрин">Проверки SQL-витрин</h1>
+<blockquote>
+<p>Независимый SQL-контроль особенно ценен, когда production-преобразование написано не на SQL.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> core<br />
+<strong>Пререквизиты:</strong> 07/06<br />
+<strong>Время:</strong> ~90 минут</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>писать отдельные запросы для grain, domain, relationships и reconciliation;</li>
+<li>возвращать violation count и диагностический sample;</li>
+<li>не смешивать проверку с production query.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Если витрина и ее контроль используют один и тот же join и формулу, общий дефект
+останется незамеченным. Один гигантский SQL с boolean-флагами также плохо показывает
+причину.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Каждый SQL check возвращает только нарушающие строки. Пустой результат означает pass.
+DuckDB регистрирует исходные таблицы и независимо проверяет ключи, foreign keys,
+status/amount domain и сумму <code>quantity * unit_price_rub</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Откройте список <code>CHECKS</code> в <code>outputs/sql_quality_checks.py</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/07-reliable-analytics/07-sql-checks/outputs/sql_quality_checks.py \
+  --data-dir phases/07-reliable-analytics/data/tiny \
+  --output /tmp/sql-checks.json
+</code></pre></div><p>Каждый результат содержит stable ID, <code>violation_count</code> и не более пяти примеров.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запускайте SQL suite после schema checks, но до публикации. <code>try_cast</code> позволяет
+представить плохой amount как нарушение домена, а не аварийно оборвать весь отчет.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Повторите order, создайте orphan user и увеличьте цену одной строки на копейку.
+Убедитесь, что каждый запрос возвращает конкретную нарушающую строку.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/07-reliable-analytics/07-sql-checks/tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Результат: <code>outputs/sql_quality_checks.py</code>, самостоятельный DuckDB quality suite с
+единым машинным отчетом.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте check «каждый order имеет хотя бы один item».</li>
+<li>Проверьте, что paid revenue в mart совпадает с независимой суммой source orders.</li>
+<li>Добавьте sample policy, скрывающую чувствительные поля.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Violation query</td>
+<td>Возвращает все валидные строки</td>
+<td>Возвращает только контрпримеры контракту</td>
+</tr>
+<tr>
+<td>Reconciliation</td>
+<td>Повтор production query</td>
+<td>Независимая сверка двух представлений одного факта</td>
+</tr>
+<tr>
+<td>Relationship check</td>
+<td>Проверка типа ключа</td>
+<td>Проверка существования ссылки в родительском grain</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/stable/clients/python/overview" target="_blank" rel="noopener">DuckDB Python API</a> — соединение, выполнение SQL и интеграция с pandas.</li>
+<li><a href="https://duckdb.org/docs/stable/sql/expressions/cast.html" target="_blank" rel="noopener">DuckDB casting</a> — <code>CAST</code> и <code>TRY_CAST</code> для диагностируемой проверки типов.</li>
+<li><a href="https://duckdb.org/docs/stable/sql/functions/aggregates.html" target="_blank" rel="noopener">DuckDB aggregate functions</a> — группировки для grain и reconciliation checks.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Как проверить orphan users?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">LEFT JOIN orders к users и выбрать отсутствующих родителей</button><button type="button" class="quiz-option" data-choice="1">Посчитать длину status</button><button type="button" class="quiz-option" data-choice="2">Отсортировать amount</button><button type="button" class="quiz-option" data-choice="3">Сравнить имена файлов</button></div><p class="quiz-feedback" hidden>Relationship violation проявляется как ссылка без строки родителя.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем TRY_CAST в domain check?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы плохой тип стал диагностируемым нарушением, а не аварией suite</button><button type="button" class="quiz-option" data-choice="1">Чтобы округлить деньги</button><button type="button" class="quiz-option" data-choice="2">Чтобы удалить NULL</button><button type="button" class="quiz-option" data-choice="3">Чтобы обновить CSV</button></div><p class="quiz-feedback" hidden>TRY_CAST возвращает NULL и позволяет запросу сообщить проблемную строку.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что сверяет orders.items_reconcile?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Order amount и сумму quantity * unit price</button><button type="button" class="quiz-option" data-choice="1">Order count и user count</button><button type="button" class="quiz-option" data-choice="2">Status и currency</button><button type="button" class="quiz-option" data-choice="3">Timestamp и filename</button></div><p class="quiz-feedback" hidden>Это независимая денежная сверка заголовка заказа и его строк.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;sql_quality_checks.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;sql_quality_checks&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+SQL = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(SQL)
+
+
+def quality_check(report, check_id: str):
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def copy_data(target: Path) -&gt; None:
+    for name in (&quot;users.csv&quot;, &quot;orders.csv&quot;, &quot;order_items.csv&quot;):
+        (target / name).write_bytes((DATA / name).read_bytes())
+
+
+class SqlQualityChecksTest(unittest.TestCase):
+    def test_valid_baseline_passes_all_sql_checks(self) -&gt; None:
+        report = SQL.run_checks(DATA)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(len(report[&quot;checks&quot;]), 8)
+        self.assertEqual(report[&quot;row_counts&quot;][&quot;orders&quot;], 10)
+
+    def test_duplicate_order_is_exposed_with_sample(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            copy_data(target)
+            orders = pd.read_csv(target / &quot;orders.csv&quot;, dtype=str)
+            orders = pd.concat([orders, orders.iloc[[0]]], ignore_index=True)
+            orders.to_csv(target / &quot;orders.csv&quot;, index=False)
+            report = SQL.run_checks(target)
+        defect = quality_check(report, &quot;orders.order_id_unique&quot;)
+        self.assertEqual(defect[&quot;violation_count&quot;], 1)
+        self.assertEqual(defect[&quot;sample&quot;][0][&quot;order_id&quot;], &quot;O001&quot;)
+
+    def test_orphan_user_fails_relationship_query(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            copy_data(target)
+            orders = pd.read_csv(target / &quot;orders.csv&quot;, dtype=str)
+            orders.loc[0, &quot;user_id&quot;] = &quot;U999&quot;
+            orders.to_csv(target / &quot;orders.csv&quot;, index=False)
+            report = SQL.run_checks(target)
+        self.assertEqual(quality_check(report, &quot;orders.user_fk&quot;)[&quot;violation_count&quot;], 1)
+
+    def test_item_total_mismatch_fails_reconciliation(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            copy_data(target)
+            items = pd.read_csv(target / &quot;order_items.csv&quot;, dtype=str)
+            items.loc[0, &quot;unit_price_rub&quot;] = &quot;700.01&quot;
+            items.to_csv(target / &quot;order_items.csv&quot;, index=False)
+            report = SQL.run_checks(target)
+        mismatch = quality_check(report, &quot;orders.items_reconcile&quot;)
+        self.assertEqual(mismatch[&quot;sample&quot;][0][&quot;order_id&quot;], &quot;O001&quot;)
+
+    def test_cli_writes_machine_readable_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            copy_data(target)
+            orders = pd.read_csv(target / &quot;orders.csv&quot;, dtype=str)
+            orders.loc[0, &quot;status&quot;] = &quot;complete&quot;
+            orders.to_csv(target / &quot;orders.csv&quot;, index=False)
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--data-dir&quot;, target],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(quality_check(payload, &quot;orders.status_domain&quot;)[&quot;violation_count&quot;], 1)
+            self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from outputs.sql_quality_checks import run_checks
+
+
+def main() -&gt; None:
+    lesson_root = Path(__file__).resolve().parents[1]
+    data_dir = lesson_root.parent / &quot;data&quot; / &quot;tiny&quot;
+    print(json.dumps(run_checks(data_dir), ensure_ascii=False, indent=2, default=str))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;duckdb-quality-checks&quot;,
+  &quot;type&quot;: &quot;test-suite&quot;,
+  &quot;path&quot;: &quot;outputs/sql_quality_checks.py&quot;,
+  &quot;description&quot;: &quot;Выполняет независимые DuckDB-запросы для grain, foreign keys, domain checks и сверки сумм заказов со строками.&quot;,
+  &quot;usage&quot;: &quot;python outputs/sql_quality_checks.py --data-dir ../data/tiny --output sql-checks.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/sql_quality_checks.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import pandas as pd
+
+CHECKS = [
+    (
+        &quot;users.user_id_unique&quot;,
+        &quot;&quot;&quot;
+        SELECT user_id, count(*) AS occurrences
+        FROM users
+        GROUP BY user_id
+        HAVING user_id IS NULL OR trim(user_id) = &#x27;&#x27; OR count(*) &gt; 1
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;orders.order_id_unique&quot;,
+        &quot;&quot;&quot;
+        SELECT order_id, count(*) AS occurrences
+        FROM orders
+        GROUP BY order_id
+        HAVING order_id IS NULL OR trim(order_id) = &#x27;&#x27; OR count(*) &gt; 1
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;order_items.key_unique&quot;,
+        &quot;&quot;&quot;
+        SELECT order_id, line_number, count(*) AS occurrences
+        FROM order_items
+        GROUP BY order_id, line_number
+        HAVING order_id IS NULL OR line_number IS NULL OR count(*) &gt; 1
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;orders.user_fk&quot;,
+        &quot;&quot;&quot;
+        SELECT o.order_id, o.user_id
+        FROM orders AS o
+        LEFT JOIN users AS u USING (user_id)
+        WHERE u.user_id IS NULL
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;order_items.order_fk&quot;,
+        &quot;&quot;&quot;
+        SELECT i.order_id, i.line_number
+        FROM order_items AS i
+        LEFT JOIN orders AS o USING (order_id)
+        WHERE o.order_id IS NULL
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;orders.status_domain&quot;,
+        &quot;&quot;&quot;
+        SELECT order_id, status
+        FROM orders
+        WHERE status NOT IN (&#x27;paid&#x27;, &#x27;refunded&#x27;, &#x27;cancelled&#x27;, &#x27;pending&#x27;) OR status IS NULL
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;orders.amount_domain&quot;,
+        &quot;&quot;&quot;
+        SELECT order_id, amount_rub
+        FROM orders
+        WHERE try_cast(amount_rub AS DECIMAL(18, 2)) IS NULL
+           OR try_cast(amount_rub AS DECIMAL(18, 2)) &lt; 0
+        &quot;&quot;&quot;,
+    ),
+    (
+        &quot;orders.items_reconcile&quot;,
+        &quot;&quot;&quot;
+        WITH item_totals AS (
+            SELECT
+                order_id,
+                sum(
+                    try_cast(quantity AS BIGINT)
+                    * try_cast(unit_price_rub AS DECIMAL(18, 2))
+                ) AS item_total
+            FROM order_items
+            GROUP BY order_id
+        )
+        SELECT
+            o.order_id,
+            o.amount_rub AS order_total,
+            coalesce(i.item_total, 0) AS item_total
+        FROM orders AS o
+        LEFT JOIN item_totals AS i USING (order_id)
+        WHERE try_cast(o.amount_rub AS DECIMAL(18, 2)) IS DISTINCT FROM
+              coalesce(i.item_total, 0)
+        &quot;&quot;&quot;,
+    ),
+]
+
+
+def load_tables(connection: duckdb.DuckDBPyConnection, data_dir: str | Path) -&gt; dict[str, int]:
+    root = Path(data_dir)
+    counts: dict[str, int] = {}
+    for name in (&quot;users&quot;, &quot;orders&quot;, &quot;order_items&quot;):
+        frame = pd.read_csv(root / f&quot;{name}.csv&quot;, dtype=str)
+        connection.register(name, frame)
+        counts[name] = len(frame)
+    return counts
+
+
+def run_checks(data_dir: str | Path) -&gt; dict[str, Any]:
+    connection = duckdb.connect()
+    try:
+        row_counts = load_tables(connection, data_dir)
+        results: list[dict[str, Any]] = []
+        for check_id, query in CHECKS:
+            failures = connection.execute(query).fetchdf()
+            results.append(
+                {
+                    &quot;id&quot;: check_id,
+                    &quot;passed&quot;: failures.empty,
+                    &quot;violation_count&quot;: len(failures),
+                    &quot;sample&quot;: failures.head(5).to_dict(orient=&quot;records&quot;),
+                }
+            )
+    finally:
+        connection.close()
+    return {
+        &quot;valid&quot;: all(result[&quot;passed&quot;] for result in results),
+        &quot;engine&quot;: f&quot;duckdb-{duckdb.__version__}&quot;,
+        &quot;row_counts&quot;: row_counts,
+        &quot;checks&quot;: results,
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Run independent SQL quality checks&quot;)
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        report = run_checks(args.data_dir)
+    except (OSError, duckdb.Error, ValueError) as error:
+        report = {&quot;valid&quot;: False, &quot;error&quot;: {&quot;class&quot;: &quot;system_failure&quot;, &quot;message&quot;: str(error)}}
+    text = json.dumps(report, ensure_ascii=False, indent=2, default=str) + &quot;\n&quot;
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding=&quot;utf-8&quot;)
+    print(text, end=&quot;&quot;)
+    raise SystemExit(0 if report[&quot;valid&quot;] else 1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/07-sql-checks/outputs/sql_quality_checks.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/07-sql-checks" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/reliable-analytics/pydantic/"><span>← Предыдущий урок</span><strong>Валидация конфигурации с Pydantic</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/reliable-analytics/golden-datasets/"><span>Следующий урок →</span><strong>Golden datasets и regression tests</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

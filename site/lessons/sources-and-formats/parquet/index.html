@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CSV заказов каждый читатель типизирует по-своему. Один превращает amount во float, другой теряет timezone, третий считает пустой comment строкой. Требуется…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/parquet/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Parquet и колоночное хранение">
+  <meta property="og:description" content="CSV заказов каждый читатель типизирует по-своему. Один превращает amount во float, другой теряет timezone, третий считает пустой comment строкой. Требуется…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/parquet/">
+  <meta name="twitter:card" content="summary">
+  <title>Parquet и колоночное хранение — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Parquet и колоночное хранение", "description": "CSV заказов каждый читатель типизирует по-своему. Один превращает amount во float, другой теряет timezone, третий считает пустой comment строкой. Требуется…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/parquet/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Parquet и колоночное хранение", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/parquet/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 55 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/08-parquet" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Хранит ли CSV тип decimal128?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, только текстовые поля и диалект</button><button type="button" class="quiz-option" data-choice="2">Только с UTF-8</button><button type="button" class="quiz-option" data-choice="3">Только после zip</button></div><p class="quiz-feedback" hidden>Типизация CSV существует во внешнем контракте, а не внутри файла.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Почему Parquet называют колоночным форматом?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Файл имеет одну строку</button><button type="button" class="quiz-option" data-choice="1">Значения организованы по колонкам и группам строк</button><button type="button" class="quiz-option" data-choice="2">Он не имеет схемы</button><button type="button" class="quiz-option" data-choice="3">Он хранит только числа</button></div><p class="quiz-feedback" hidden>Такая организация позволяет читать выбранные колонки и применять metadata.</p></article></section>
+        <article class="lesson-article"><h1 id="parquet-и-колоночное-хранение">Parquet и колоночное хранение</h1>
+<blockquote>
+<p>Parquet переносит схему внутрь файла, но схема должна быть выбрана до записи.</p>
+</blockquote>
+<p><strong>Тип:</strong> Learn<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 05/07<br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> записывает и читает Parquet с явной схемой, nullable-типами и сжатием и
+сравнивает его контракт с CSV.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Различать текстовый CSV и типизированный Parquet.</li>
+<li>Строить Arrow schema с decimal, timestamp и nullable.</li>
+<li>Проверять metadata и roundtrip после записи.</li>
+<li>Не сводить выбор формата только к размеру tiny-файла.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>CSV заказов каждый читатель типизирует по-своему. Один превращает amount во float, другой
+теряет timezone, третий считает пустой comment строкой. Требуется reusable-файл для
+аналитических движков.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Parquet хранит:</p>
+<ul>
+<li>физические и логические типы;</li>
+<li>column chunks внутри row groups;</li>
+<li>encoding и compression;</li>
+<li>statistics и другую metadata.</li>
+</ul>
+<p>Колоночная организация помогает projection и filtering, но маленький Parquet может быть
+больше CSV из-за metadata. Формат выбирают по схеме и workload, а не по одному размеру.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>До чтения CSV объявите:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">schema = pa.schema([
+    pa.field(&quot;order_id&quot;, pa.string(), nullable=False),
+    pa.field(&quot;amount&quot;, pa.decimal128(12, 2), nullable=False),
+    pa.field(&quot;ordered_at&quot;, pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;), nullable=False),
+])
+</code></pre></div><p>Преобразуйте строки в Decimal и timezone-aware datetime. Затем создайте Arrow Table именно
+с этой schema. Ошибка приведения должна назвать строку и поле.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>PyArrow записывает типизированную таблицу:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pq.write_table(
+    table,
+    &quot;orders.parquet&quot;,
+    compression=&quot;zstd&quot;,
+    write_statistics=True,
+)
+</code></pre></div><p>После записи прочитайте файл обратно и сравните schema, row count и null counts.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/parquet_converter.py \
+  --input ../data/tiny/orders_typed.csv \
+  --output orders.parquet \
+  --schema ../data/parquet_schema.json \
+  --manifest manifest.json
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Переименуйте <code>order_id</code> в CSV.</li>
+<li>Запишите нечисловой amount.</li>
+<li>Уберите timezone из timestamp.</li>
+<li>Сделайте пустым non-null user_id.</li>
+<li>Измените scale decimal с 2 на 1.</li>
+</ol>
+<p>Каждый дефект должен остановить публикацию финального Parquet.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li>amount имеет <code>decimal128(12, 2)</code>;</li>
+<li>ordered_at имеет UTC timezone;</li>
+<li>сумма равна Decimal <code>3226.59</code>;</li>
+<li>два пустых comment становятся null;</li>
+<li>compression metadata равна ZSTD;</li>
+<li>source и output имеют SHA-256;</li>
+<li>DuckDB читает projection и filter;</li>
+<li>header drift отклоняется.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/parquet_converter.py</code> атомарно публикует Parquet и по запросу записывает manifest.
+Артефакт подходит как граница между внешним текстовым источником и типизированным
+аналитическим хранением.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Сравните ZSTD, Snappy и отсутствие compression на sample-наборе.</li>
+<li>Запишите несколько row groups и исследуйте metadata.</li>
+<li>Добавьте enum/domain check валюты до конвертации.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Columnar format</td>
+<td>Таблица, показанная колонками</td>
+<td>Физическая организация значений по columns/chunks</td>
+</tr>
+<tr>
+<td>Row group</td>
+<td>Отдельная таблица</td>
+<td>Горизонтальный блок строк с column chunks</td>
+</tr>
+<tr>
+<td>Logical type</td>
+<td>Python dtype</td>
+<td>Семантика поверх физического представления</td>
+</tr>
+<tr>
+<td>Compression</td>
+<td>Замена schema</td>
+<td>Сжатие encoded pages без изменения типов</td>
+</tr>
+<tr>
+<td>Projection</td>
+<td>SELECT всех полей</td>
+<td>Чтение только требуемых колонок</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://arrow.apache.org/docs/python/parquet.html" target="_blank" rel="noopener">PyArrow: Parquet</a> — изучите schema, compression, row groups и metadata.</li>
+<li><a href="https://parquet.apache.org/docs/file-format/" target="_blank" rel="noopener">Apache Parquet format</a> — свяжите row groups, column chunks и pages.</li>
+<li><a href="https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html" target="_blank" rel="noopener">pandas: <code>read_parquet</code></a> — разберите columns, filters и dtype backend.</li>
+<li><a href="https://duckdb.org/docs/stable/data/parquet/overview" target="_blank" rel="noopener">DuckDB: Parquet</a> — изучите direct query, projection и filter pushdown.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Зачем передавать Arrow schema при записи?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для имени файла</button><button type="button" class="quiz-option" data-choice="1">Чтобы зафиксировать типы и nullable независимо от inference</button><button type="button" class="quiz-option" data-choice="2">Чтобы отключить compression</button><button type="button" class="quiz-option" data-choice="3">Чтобы добавить HTML</button></div><p class="quiz-feedback" hidden>Явная schema предотвращает случайное изменение физических и логических типов.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Гарантированно ли маленький Parquet меньше маленького CSV?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, metadata может быть дороже на tiny-файле</button><button type="button" class="quiz-option" data-choice="2">Только на Windows</button><button type="button" class="quiz-option" data-choice="3">Parquet не сжимается</button></div><p class="quiz-feedback" hidden>Преимущества columnar encoding проявляются на достаточном объеме и workload.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Что нужно проверить после записи Parquet?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только существование файла</button><button type="button" class="quiz-option" data-choice="1">Roundtrip schema, rows, nulls, compression и checksum</button><button type="button" class="quiz-option" data-choice="2">Только размер</button><button type="button" class="quiz-option" data-choice="3">Только расширение</button></div><p class="quiz-feedback" hidden>Успешный write не заменяет проверку фактической metadata и данных.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import duckdb
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;parquet_converter.py&quot;
+DATA = ROOT.parent / &quot;data&quot;
+CSV = DATA / &quot;tiny&quot; / &quot;orders_typed.csv&quot;
+SCHEMA = DATA / &quot;parquet_schema.json&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;parquet_converter&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+CONVERTER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(CONVERTER)
+
+
+class ParquetConverterTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.directory = TemporaryDirectory()
+        self.output = Path(self.directory.name) / &quot;orders.parquet&quot;
+        self.manifest = CONVERTER.convert_csv(CSV, self.output, SCHEMA)
+
+    def tearDown(self) -&gt; None:
+        self.directory.cleanup()
+
+    def test_explicit_schema_is_preserved(self) -&gt; None:
+        table = pq.read_table(self.output)
+        self.assertEqual(table.schema.field(&quot;amount&quot;).type, pa.decimal128(12, 2))
+        self.assertEqual(table.schema.field(&quot;ordered_at&quot;).type, pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;))
+
+    def test_decimal_values_roundtrip_exactly(self) -&gt; None:
+        values = pq.read_table(self.output, columns=[&quot;amount&quot;]).column(&quot;amount&quot;).to_pylist()
+        self.assertEqual(values[0], Decimal(&quot;1200.50&quot;))
+        self.assertEqual(sum(values), Decimal(&quot;3226.59&quot;))
+
+    def test_nullable_string_preserves_empty_as_null(self) -&gt; None:
+        comments = pq.read_table(self.output, columns=[&quot;comment&quot;]).column(&quot;comment&quot;)
+        self.assertEqual(comments.null_count, 2)
+
+    def test_zstd_compression_is_recorded(self) -&gt; None:
+        self.assertEqual(self.manifest[&quot;output&quot;][&quot;compression&quot;], [&quot;ZSTD&quot;])
+
+    def test_manifest_contains_source_and_output_checksums(self) -&gt; None:
+        self.assertEqual(len(self.manifest[&quot;source&quot;][&quot;sha256&quot;]), 64)
+        self.assertEqual(len(self.manifest[&quot;output&quot;][&quot;sha256&quot;]), 64)
+        self.assertTrue(self.manifest[&quot;summary&quot;][&quot;valid&quot;])
+
+    def test_duckdb_reads_projection_without_csv_parsing(self) -&gt; None:
+        rows = duckdb.sql(
+            &quot;SELECT order_id, amount FROM read_parquet(?) WHERE amount &gt;= 900 ORDER BY order_id&quot;,
+            params=[str(self.output)],
+        ).fetchall()
+        self.assertEqual([row[0] for row in rows], [&quot;O2401&quot;, &quot;O2402&quot;, &quot;O2405&quot;])
+
+    def test_header_drift_is_rejected(self) -&gt; None:
+        broken = Path(self.directory.name) / &quot;broken.csv&quot;
+        broken.write_text(&quot;id,amount\nO1,1.00\n&quot;, encoding=&quot;utf-8&quot;)
+        with self.assertRaisesRegex(CONVERTER.ParquetContractError, &quot;header differs&quot;):
+            CONVERTER.convert_csv(broken, self.output, SCHEMA)
+
+    def test_cli_writes_parquet_and_manifest(self) -&gt; None:
+        output = Path(self.directory.name) / &quot;cli.parquet&quot;
+        manifest = Path(self.directory.name) / &quot;manifest.json&quot;
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                CSV,
+                &quot;--output&quot;,
+                output,
+                &quot;--schema&quot;,
+                SCHEMA,
+                &quot;--manifest&quot;,
+                manifest,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertTrue(output.is_file())
+        self.assertTrue(manifest.is_file())
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from decimal import Decimal
+
+import pyarrow as pa
+
+schema = pa.schema(
+    [
+        pa.field(&quot;order_id&quot;, pa.string(), nullable=False),
+        pa.field(&quot;amount&quot;, pa.decimal128(12, 2), nullable=False),
+        pa.field(&quot;comment&quot;, pa.string(), nullable=True),
+    ]
+)
+table = pa.Table.from_pylist(
+    [
+        {&quot;order_id&quot;: &quot;O1&quot;, &quot;amount&quot;: Decimal(&quot;1200.50&quot;), &quot;comment&quot;: None},
+        {&quot;order_id&quot;: &quot;O2&quot;, &quot;amount&quot;: Decimal(&quot;25.99&quot;), &quot;comment&quot;: &quot;promo&quot;},
+    ],
+    schema=schema,
+)
+print(table.schema)
+print(&quot;Rows:&quot;, table.num_rows, &quot;Null comments:&quot;, table.column(&quot;comment&quot;).null_count)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;csv-to-parquet&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/parquet_converter.py&quot;,
+  &quot;description&quot;: &quot;Конвертирует CSV в атомарно опубликованный Parquet с явной Arrow schema и schema-manifest.&quot;,
+  &quot;usage&quot;: &quot;python outputs/parquet_converter.py --input ../data/tiny/orders_typed.csv --output orders.parquet --schema ../data/parquet_schema.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/parquet_converter.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import os
+import re
+import sys
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+DECIMAL_PATTERN = re.compile(r&quot;decimal128\((\d+),\s*(\d+)\)&quot;)
+
+
+class ParquetContractError(ValueError):
+    &quot;&quot;&quot;Raised when CSV data cannot satisfy the declared Parquet schema.&quot;&quot;&quot;
+
+
+def load_contract(path: str | Path) -&gt; dict[str, Any]:
+    contract_path = Path(path)
+    if not contract_path.is_file():
+        raise ParquetContractError(f&quot;schema file does not exist: {contract_path}&quot;)
+    try:
+        contract = json.loads(contract_path.read_text(encoding=&quot;utf-8&quot;))
+    except json.JSONDecodeError as error:
+        raise ParquetContractError(f&quot;invalid schema JSON: {error.msg}&quot;) from error
+    if not isinstance(contract.get(&quot;columns&quot;), dict) or not contract[&quot;columns&quot;]:
+        raise ParquetContractError(&quot;schema must declare columns&quot;)
+    return contract
+
+
+def arrow_type(type_name: str) -&gt; pa.DataType:
+    if type_name == &quot;string&quot;:
+        return pa.string()
+    if type_name == &quot;timestamp[us, tz=UTC]&quot;:
+        return pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;)
+    match = DECIMAL_PATTERN.fullmatch(type_name)
+    if match:
+        return pa.decimal128(int(match.group(1)), int(match.group(2)))
+    raise ParquetContractError(f&quot;unsupported Arrow type: {type_name}&quot;)
+
+
+def build_schema(contract: dict[str, Any]) -&gt; pa.Schema:
+    return pa.schema(
+        [
+            pa.field(name, arrow_type(column[&quot;type&quot;]), nullable=column[&quot;nullable&quot;])
+            for name, column in contract[&quot;columns&quot;].items()
+        ]
+    )
+
+
+def parse_value(raw: str, field: pa.Field) -&gt; Any:
+    if raw == &quot;&quot; and field.nullable:
+        return None
+    if pa.types.is_string(field.type):
+        return raw
+    if pa.types.is_decimal(field.type):
+        try:
+            return Decimal(raw)
+        except InvalidOperation as error:
+            raise ParquetContractError(f&quot;invalid decimal for {field.name}: {raw!r}&quot;) from error
+    if pa.types.is_timestamp(field.type):
+        try:
+            return datetime.fromisoformat(raw.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+        except ValueError as error:
+            raise ParquetContractError(f&quot;invalid timestamp for {field.name}: {raw!r}&quot;) from error
+    raise ParquetContractError(f&quot;unsupported field type: {field.type}&quot;)
+
+
+def read_csv_records(path: Path, schema: pa.Schema) -&gt; list[dict[str, Any]]:
+    if not path.is_file():
+        raise ParquetContractError(f&quot;input CSV does not exist: {path}&quot;)
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        if reader.fieldnames != schema.names:
+            raise ParquetContractError(
+                f&quot;CSV header differs: expected {schema.names}, got {reader.fieldnames}&quot;
+            )
+        records = []
+        for line, row in enumerate(reader, start=2):
+            try:
+                records.append(
+                    {field.name: parse_value(row[field.name], field) for field in schema}
+                )
+            except ParquetContractError as error:
+                raise ParquetContractError(f&quot;line {line}: {error}&quot;) from error
+    return records
+
+
+def sha256(path: Path) -&gt; str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def convert_csv(
+    input_path: str | Path,
+    output_path: str | Path,
+    schema_path: str | Path,
+) -&gt; dict[str, Any]:
+    source = Path(input_path)
+    output = Path(output_path)
+    contract = load_contract(schema_path)
+    schema = build_schema(contract)
+    records = read_csv_records(source, schema)
+    try:
+        table = pa.Table.from_pylist(records, schema=schema)
+    except (pa.ArrowInvalid, pa.ArrowTypeError) as error:
+        raise ParquetContractError(f&quot;records do not match Arrow schema: {error}&quot;) from error
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_name(f&quot;.{output.name}.part&quot;)
+    try:
+        pq.write_table(
+            table,
+            temporary,
+            compression=contract[&quot;compression&quot;],
+            write_statistics=True,
+        )
+        roundtrip = pq.read_table(temporary)
+        checks = {
+            &quot;schema_matches&quot;: roundtrip.schema == schema,
+            &quot;row_count_matches&quot;: roundtrip.num_rows == len(records),
+            &quot;null_counts_match&quot;: all(
+                roundtrip.column(name).null_count == sum(record[name] is None for record in records)
+                for name in schema.names
+            ),
+        }
+        if not all(checks.values()):
+            raise ParquetContractError(f&quot;written Parquet failed checks: {checks}&quot;)
+        os.replace(temporary, output)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+    parquet_file = pq.ParquetFile(output)
+    compressions = sorted(
+        {
+            parquet_file.metadata.row_group(group).column(column).compression
+            for group in range(parquet_file.metadata.num_row_groups)
+            for column in range(parquet_file.metadata.num_columns)
+        }
+    )
+    return {
+        &quot;source&quot;: {
+            &quot;path&quot;: str(source),
+            &quot;bytes&quot;: source.stat().st_size,
+            &quot;sha256&quot;: sha256(source),
+        },
+        &quot;output&quot;: {
+            &quot;path&quot;: str(output),
+            &quot;bytes&quot;: output.stat().st_size,
+            &quot;sha256&quot;: sha256(output),
+            &quot;compression&quot;: compressions,
+            &quot;row_groups&quot;: parquet_file.metadata.num_row_groups,
+        },
+        &quot;schema&quot;: [
+            {&quot;name&quot;: field.name, &quot;type&quot;: str(field.type), &quot;nullable&quot;: field.nullable}
+            for field in schema
+        ],
+        &quot;rows&quot;: len(records),
+        &quot;checks&quot;: checks,
+        &quot;summary&quot;: {&quot;valid&quot;: all(checks.values())},
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Convert CSV to schema-bound Parquet&quot;)
+    parser.add_argument(&quot;--input&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--output&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--schema&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--manifest&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        manifest = convert_csv(args.input, args.output, args.schema)
+    except ParquetContractError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        raise SystemExit(2) from error
+    if args.manifest:
+        args.manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.manifest.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;,
+            encoding=&quot;utf-8&quot;,
+        )
+    json.dump(manifest, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write(&quot;\n&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/08-parquet/outputs/parquet_converter.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/08-parquet" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>← Предыдущий урок</span><strong>Подключение к БД через SQLAlchemy</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/arrow/"><span>Следующий урок →</span><strong>Arrow как контракт обмена таблицами</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

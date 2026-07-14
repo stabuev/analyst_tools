@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Проверки вида assert &quot;orderid&quot; in df не ловят лишние столбцы, duplicate grain, неизвестный status и несколько дефектов одновременно. Первый exception заставляет чинить…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/pandera/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Контракты DataFrame с Pandera">
+  <meta property="og:description" content="Проверки вида assert &quot;orderid&quot; in df не ловят лишние столбцы, duplicate grain, неизвестный status и несколько дефектов одновременно. Первый exception заставляет чинить…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/pandera/">
+  <meta name="twitter:card" content="summary">
+  <title>Контракты DataFrame с Pandera — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Контракты DataFrame с Pandera", "description": "Проверки вида assert \"orderid\" in df не ловят лишние столбцы, duplicate grain, неизвестный status и несколько дефектов одновременно. Первый exception заставляет чинить…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/pandera/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 07: Надежная аналитика", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=7"}, {"@type": "ListItem", "position": 3, "name": "Контракты DataFrame с Pandera", "item": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/pandera/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 07</p><h2>Надежная аналитика</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/invariants/"><span>01</span>Инварианты аналитического расчета</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/unit-tests/"><span>02</span>Тесты на границах преобразований</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/defect-matrix/"><span>03</span>Минимальные контрпримеры и матрица дефектов</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/property-based-testing/"><span>04</span>Property-based testing с Hypothesis</a><a class="lesson-sidebar-link is-active" href="../../../lessons/reliable-analytics/pandera/"><span>05</span>Контракты DataFrame с Pandera</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/pydantic/"><span>06</span>Валидация конфигурации с Pydantic</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/sql-checks/"><span>07</span>Проверки SQL-витрин</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/golden-datasets/"><span>08</span>Golden datasets и regression tests</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/observability/"><span>09</span>Наблюдаемость и мониторинг качества данных</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/quality-gates/"><span>10</span>Интеграционный quality gate</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 07 · Надежная аналитика</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 74 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/07-reliable-analytics/05-pandera" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что проверяет strict DataFrame schema?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Точное множество разрешенных столбцов</button><button type="button" class="quiz-option" data-choice="1">Только число строк</button><button type="button" class="quiz-option" data-choice="2">Только имя файла</button><button type="button" class="quiz-option" data-choice="3">Только скорость чтения</button></div><p class="quiz-feedback" hidden>Strict schema ловит как отсутствующие, так и неожиданные столбцы.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем использовать lazy validation?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы собрать несколько нарушений за один запуск</button><button type="button" class="quiz-option" data-choice="1">Чтобы не выполнять checks</button><button type="button" class="quiz-option" data-choice="2">Чтобы изменить данные</button><button type="button" class="quiz-option" data-choice="3">Чтобы скрыть stack trace</button></div><p class="quiz-feedback" hidden>Lazy mode возвращает полный доступный error report вместо первой ошибки.</p></article></section>
+        <article class="lesson-article"><h1 id="контракты-dataframe-с-pandera">Контракты DataFrame с Pandera</h1>
+<blockquote>
+<p>DataFrame-контракт проверяет форму и домены данных, но не отменяет межтабличные бизнес-инварианты.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> core<br />
+<strong>Пререквизиты:</strong> 07/04<br />
+<strong>Время:</strong> ~90 минут</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>описывать strict schema, nullable policy, uniqueness и checks;</li>
+<li>собирать несколько нарушений через <code>lazy=True</code>;</li>
+<li>отделять DataFrame schema от foreign key и reconciliation.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Проверки вида <code>assert &quot;order_id&quot; in df</code> не ловят лишние столбцы, duplicate grain,
+неизвестный status и несколько дефектов одновременно. Первый exception заставляет
+чинить выгрузку итерациями.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Pandera превращает ожидания к DataFrame в версионированную схему. <code>strict=True</code>
+запрещает drift столбцов, Column checks задают домены, а lazy validation возвращает
+полную таблицу failure cases. Foreign keys и сверка сумм остаются явными отдельными
+checks, потому что охватывают несколько таблиц.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p><code>outputs/dataframe_contract.py</code> определяет схемы <code>users</code>, <code>orders</code>, <code>order_items</code> и
+контракт версии <code>1.0.0</code>. Для Pandera используется рекомендованный импорт
+<code>pandera.pandas</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/07-reliable-analytics/05-pandera/outputs/dataframe_contract.py \
+  --data-dir phases/07-reliable-analytics/data/tiny \
+  --output /tmp/schema-report.json
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Сначала анализируйте <code>schema.*</code>, затем relationship checks. Stable IDs принадлежат
+вашему контракту; сырые сообщения библиотеки сохраняются только как диагностические
+failure cases.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Удалите <code>currency</code>, добавьте <code>extra</code>, установите status <code>complete</code> и amount <code>-1.001</code>.
+Lazy report должен показать несколько нарушений за один запуск. Затем создайте orphan
+user: individual schemas пройдут, но <code>orders.user_fk</code> упадет.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/07-reliable-analytics/05-pandera/tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Результат: <code>outputs/dataframe_contract.py</code> с версией контракта, тремя schemas,
+межтабличными checks и единым JSON report.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте допустимый домен country и обсудите цену его поддержки.</li>
+<li>Запретите заказ без хотя бы одной строки.</li>
+<li>Подготовьте migration note для schema version <code>1.1.0</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Strict schema</td>
+<td>Только строгие типы</td>
+<td>Точное множество разрешенных столбцов</td>
+</tr>
+<tr>
+<td>Lazy validation</td>
+<td>Ленивое вычисление pandas</td>
+<td>Сбор всех доступных ошибок вместо остановки на первой</td>
+</tr>
+<tr>
+<td>Data contract</td>
+<td>Полная бизнес-логика pipeline</td>
+<td>Версионированные ожидания к данным и их изменению</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://pandera.readthedocs.io/en/stable/dataframe_schemas.html" target="_blank" rel="noopener">Pandera DataFrame schemas</a> — основные Column и DataFrame checks.</li>
+<li><a href="https://pandera.readthedocs.io/en/stable/data_validation.html" target="_blank" rel="noopener">Pandera data validation</a> — validation workflow и поддерживаемые типы.</li>
+<li><a href="https://pandera.readthedocs.io/en/stable/error_report.html" target="_blank" rel="noopener">Pandera error reports</a> — структура lazy validation errors.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой контракт не выражается схемой одной таблицы orders?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Каждый user_id существует в users</button><button type="button" class="quiz-option" data-choice="1">status входит в домен</button><button type="button" class="quiz-option" data-choice="2">order_id уникален</button><button type="button" class="quiz-option" data-choice="3">currency равна RUB</button></div><p class="quiz-feedback" hidden>Foreign key требует сравнения как минимум двух таблиц.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему stable check ID лучше текста Pandera exception?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он принадлежит вашему контракту и устойчив для автоматизации</button><button type="button" class="quiz-option" data-choice="1">Он всегда длиннее</button><button type="button" class="quiz-option" data-choice="2">Он заменяет failure cases</button><button type="button" class="quiz-option" data-choice="3">Он отключает schema</button></div><p class="quiz-feedback" hidden>Текст библиотеки может меняться, а ID является вашим публичным интерфейсом.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что должно произойти при лишнем столбце в strict schema?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Schema check падает</button><button type="button" class="quiz-option" data-choice="1">Столбец молча удаляется</button><button type="button" class="quiz-option" data-choice="2">Строки сортируются</button><button type="button" class="quiz-option" data-choice="3">Golden обновляется</button></div><p class="quiz-feedback" hidden>Необъявленный столбец является schema drift.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;dataframe_contract.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;dataframe_contract&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+CONTRACT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(CONTRACT)
+
+
+def check(report, check_id: str):
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class DataFrameContractTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.frames = CONTRACT.load_frames(DATA)
+
+    def test_valid_baseline_passes_versioned_contract(self) -&gt; None:
+        report = CONTRACT.validate_frames(self.frames)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;contract_version&quot;], &quot;1.0.0&quot;)
+        self.assertEqual(report[&quot;row_counts&quot;], {&quot;users&quot;: 6, &quot;orders&quot;: 10, &quot;order_items&quot;: 12})
+
+    def test_lazy_validation_collects_multiple_order_failures(self) -&gt; None:
+        self.frames[&quot;orders&quot;].loc[0, &quot;status&quot;] = &quot;complete&quot;
+        self.frames[&quot;orders&quot;].loc[1, &quot;amount_rub&quot;] = &quot;-1.001&quot;
+        report = CONTRACT.validate_frames(self.frames)
+        failures = check(report, &quot;schema.orders&quot;)[&quot;failure_cases&quot;]
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertGreaterEqual(len(failures), 2)
+        self.assertEqual({item[&quot;column&quot;] for item in failures}, {&quot;status&quot;, &quot;amount_rub&quot;})
+
+    def test_strict_schema_rejects_missing_and_extra_columns(self) -&gt; None:
+        self.frames[&quot;orders&quot;] = self.frames[&quot;orders&quot;].drop(columns=[&quot;currency&quot;]).assign(extra=&quot;x&quot;)
+        report = CONTRACT.validate_frames(self.frames)
+        failures = check(report, &quot;schema.orders&quot;)[&quot;failure_cases&quot;]
+        observed = {item[&quot;failure_case&quot;] for item in failures}
+        self.assertIn(&quot;currency&quot;, observed)
+        self.assertIn(&quot;extra&quot;, observed)
+
+    def test_relationship_check_rejects_orphan_user(self) -&gt; None:
+        self.frames[&quot;orders&quot;].loc[0, &quot;user_id&quot;] = &quot;U999&quot;
+        report = CONTRACT.validate_frames(self.frames)
+        relation = check(report, &quot;orders.user_fk&quot;)
+        self.assertFalse(relation[&quot;passed&quot;])
+        self.assertEqual(relation[&quot;failure_cases&quot;], [&quot;U999&quot;])
+
+    def test_reconciliation_is_separate_from_dataframe_shape(self) -&gt; None:
+        self.frames[&quot;order_items&quot;].loc[0, &quot;unit_price_rub&quot;] = &quot;700.01&quot;
+        report = CONTRACT.validate_frames(self.frames)
+        self.assertTrue(check(report, &quot;schema.order_items&quot;)[&quot;passed&quot;])
+        self.assertEqual(check(report, &quot;orders.items_reconcile&quot;)[&quot;failure_cases&quot;], [&quot;O001&quot;])
+
+    def test_cli_returns_nonzero_and_full_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            for name, frame in self.frames.items():
+                frame.to_csv(target / f&quot;{name}.csv&quot;, index=False)
+            orders = pd.read_csv(target / &quot;orders.csv&quot;, dtype=str)
+            orders.loc[0, &quot;status&quot;] = &quot;complete&quot;
+            orders.to_csv(target / &quot;orders.csv&quot;, index=False)
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--data-dir&quot;, target],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse(json.loads(result.stdout)[&quot;valid&quot;])
+            self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from outputs.dataframe_contract import load_frames, validate_frames
+
+
+def main() -&gt; None:
+    lesson_root = Path(__file__).resolve().parents[1]
+    data_dir = lesson_root.parent / &quot;data&quot; / &quot;tiny&quot;
+    print(json.dumps(validate_frames(load_frames(data_dir)), ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;order-dataframe-contract&quot;,
+  &quot;type&quot;: &quot;data-contract&quot;,
+  &quot;path&quot;: &quot;outputs/dataframe_contract.py&quot;,
+  &quot;description&quot;: &quot;Версионированный Pandera-контракт трех входных DataFrame с lazy schema errors, foreign keys и reconciliation.&quot;,
+  &quot;usage&quot;: &quot;python outputs/dataframe_contract.py --data-dir ../data/tiny --output schema-report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/dataframe_contract.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+import pandera.pandas as pa
+
+CONTRACT_VERSION = &quot;1.0.0&quot;
+STATUSES = {&quot;paid&quot;, &quot;refunded&quot;, &quot;cancelled&quot;, &quot;pending&quot;}
+PLANS = {&quot;trial&quot;, &quot;basic&quot;, &quot;premium&quot;}
+
+
+def valid_money(value: Any) -&gt; bool:
+    try:
+        amount = Decimal(str(value))
+    except InvalidOperation:
+        return False
+    return amount.is_finite() and amount &gt;= 0 and amount.as_tuple().exponent &gt;= -2
+
+
+def positive_integer(value: Any) -&gt; bool:
+    try:
+        return int(str(value)) &gt; 0 and str(value).strip() == str(int(str(value)))
+    except ValueError:
+        return False
+
+
+def timezone_aware_iso(value: Any) -&gt; bool:
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None and parsed.utcoffset() is not None
+
+
+USERS_SCHEMA = pa.DataFrameSchema(
+    {
+        &quot;user_id&quot;: pa.Column(str, nullable=False, unique=True),
+        &quot;registered_at&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(timezone_aware_iso, element_wise=True)
+        ),
+        &quot;country&quot;: pa.Column(str, nullable=False, checks=pa.Check.str_length(2, 2)),
+        &quot;plan&quot;: pa.Column(str, nullable=False, checks=pa.Check.isin(PLANS)),
+    },
+    strict=True,
+    coerce=True,
+    name=&quot;users&quot;,
+)
+
+ORDERS_SCHEMA = pa.DataFrameSchema(
+    {
+        &quot;order_id&quot;: pa.Column(str, nullable=False, unique=True),
+        &quot;user_id&quot;: pa.Column(str, nullable=False),
+        &quot;ordered_at&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(timezone_aware_iso, element_wise=True)
+        ),
+        &quot;status&quot;: pa.Column(str, nullable=False, checks=pa.Check.isin(STATUSES)),
+        &quot;currency&quot;: pa.Column(str, nullable=False, checks=pa.Check.eq(&quot;RUB&quot;)),
+        &quot;amount_rub&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(valid_money, element_wise=True)
+        ),
+    },
+    strict=True,
+    coerce=True,
+    name=&quot;orders&quot;,
+)
+
+ITEMS_SCHEMA = pa.DataFrameSchema(
+    {
+        &quot;order_id&quot;: pa.Column(str, nullable=False),
+        &quot;line_number&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(positive_integer, element_wise=True)
+        ),
+        &quot;product_id&quot;: pa.Column(str, nullable=False),
+        &quot;quantity&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(positive_integer, element_wise=True)
+        ),
+        &quot;unit_price_rub&quot;: pa.Column(
+            str, nullable=False, checks=pa.Check(valid_money, element_wise=True)
+        ),
+    },
+    checks=pa.Check(
+        lambda frame: ~frame[[&quot;order_id&quot;, &quot;line_number&quot;]].duplicated(),
+        error=&quot;order_id,line_number must be unique&quot;,
+    ),
+    strict=True,
+    coerce=True,
+    name=&quot;order_items&quot;,
+)
+
+SCHEMAS = {&quot;users&quot;: USERS_SCHEMA, &quot;orders&quot;: ORDERS_SCHEMA, &quot;order_items&quot;: ITEMS_SCHEMA}
+
+
+def normalize_failure_cases(error: pa.errors.SchemaErrors) -&gt; list[dict[str, Any]]:
+    columns = [&quot;schema_context&quot;, &quot;column&quot;, &quot;check&quot;, &quot;failure_case&quot;, &quot;index&quot;]
+    records: list[dict[str, Any]] = []
+    for raw in error.failure_cases.to_dict(orient=&quot;records&quot;):
+        records.append(
+            {
+                column: None if pd.isna(raw.get(column)) else str(raw.get(column))
+                for column in columns
+            }
+        )
+    return records
+
+
+def relation_checks(frames: dict[str, pd.DataFrame]) -&gt; list[dict[str, Any]]:
+    users = frames[&quot;users&quot;]
+    orders = frames[&quot;orders&quot;]
+    items = frames[&quot;order_items&quot;]
+    checks: list[dict[str, Any]] = []
+    if {&quot;user_id&quot;}.issubset(users) and {&quot;user_id&quot;}.issubset(orders):
+        unknown_users = sorted(set(orders[&quot;user_id&quot;].dropna()) - set(users[&quot;user_id&quot;].dropna()))
+        checks.append(
+            {
+                &quot;id&quot;: &quot;orders.user_fk&quot;,
+                &quot;passed&quot;: not unknown_users,
+                &quot;failure_cases&quot;: unknown_users,
+            }
+        )
+    if {&quot;order_id&quot;}.issubset(orders) and {&quot;order_id&quot;}.issubset(items):
+        unknown_orders = sorted(set(items[&quot;order_id&quot;].dropna()) - set(orders[&quot;order_id&quot;].dropna()))
+        checks.append(
+            {
+                &quot;id&quot;: &quot;order_items.order_fk&quot;,
+                &quot;passed&quot;: not unknown_orders,
+                &quot;failure_cases&quot;: unknown_orders,
+            }
+        )
+    required_orders = {&quot;order_id&quot;, &quot;amount_rub&quot;}
+    required_items = {&quot;order_id&quot;, &quot;quantity&quot;, &quot;unit_price_rub&quot;}
+    if required_orders.issubset(orders) and required_items.issubset(items):
+        try:
+            totals: dict[str, Decimal] = {}
+            for row in items.to_dict(orient=&quot;records&quot;):
+                totals.setdefault(str(row[&quot;order_id&quot;]), Decimal(&quot;0&quot;))
+                totals[str(row[&quot;order_id&quot;])] += Decimal(str(row[&quot;quantity&quot;])) * Decimal(
+                    str(row[&quot;unit_price_rub&quot;])
+                )
+            mismatches = [
+                str(row[&quot;order_id&quot;])
+                for row in orders.to_dict(orient=&quot;records&quot;)
+                if valid_money(row[&quot;amount_rub&quot;])
+                and totals.get(str(row[&quot;order_id&quot;]), Decimal(&quot;0&quot;))
+                != Decimal(str(row[&quot;amount_rub&quot;]))
+            ]
+        except (InvalidOperation, ValueError):
+            mismatches = [&quot;unparseable item total&quot;]
+        checks.append(
+            {
+                &quot;id&quot;: &quot;orders.items_reconcile&quot;,
+                &quot;passed&quot;: not mismatches,
+                &quot;failure_cases&quot;: mismatches,
+            }
+        )
+    return checks
+
+
+def validate_frames(frames: dict[str, pd.DataFrame]) -&gt; dict[str, Any]:
+    schema_results: list[dict[str, Any]] = []
+    validated: dict[str, pd.DataFrame] = {}
+    for name, schema in SCHEMAS.items():
+        try:
+            validated[name] = schema.validate(frames[name], lazy=True)
+        except pa.errors.SchemaErrors as error:
+            schema_results.append(
+                {
+                    &quot;id&quot;: f&quot;schema.{name}&quot;,
+                    &quot;passed&quot;: False,
+                    &quot;failure_cases&quot;: normalize_failure_cases(error),
+                }
+            )
+            validated[name] = frames[name]
+        else:
+            schema_results.append({&quot;id&quot;: f&quot;schema.{name}&quot;, &quot;passed&quot;: True, &quot;failure_cases&quot;: []})
+    relations = relation_checks(validated)
+    checks = schema_results + relations
+    return {
+        &quot;contract_version&quot;: CONTRACT_VERSION,
+        &quot;valid&quot;: all(check[&quot;passed&quot;] for check in checks),
+        &quot;checks&quot;: checks,
+        &quot;row_counts&quot;: {name: len(frame) for name, frame in frames.items()},
+    }
+
+
+def load_frames(data_dir: str | Path) -&gt; dict[str, pd.DataFrame]:
+    root = Path(data_dir)
+    return {
+        name: pd.read_csv(root / f&quot;{name}.csv&quot;, dtype=str)
+        for name in (&quot;users&quot;, &quot;orders&quot;, &quot;order_items&quot;)
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Validate versioned DataFrame contracts&quot;)
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        report = validate_frames(load_frames(args.data_dir))
+    except (OSError, KeyError) as error:
+        report = {&quot;contract_version&quot;: CONTRACT_VERSION, &quot;valid&quot;: False, &quot;error&quot;: str(error)}
+    text = json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding=&quot;utf-8&quot;)
+    print(text, end=&quot;&quot;)
+    raise SystemExit(0 if report[&quot;valid&quot;] else 1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/05-pandera/outputs/dataframe_contract.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/05-pandera" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/reliable-analytics/property-based-testing/"><span>← Предыдущий урок</span><strong>Property-based testing с Hypothesis</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/reliable-analytics/pydantic/"><span>Следующий урок →</span><strong>Валидация конфигурации с Pydantic</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

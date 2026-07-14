@@ -1,0 +1,2618 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В прошлом уроке CatBoost-кандидат не прошел decision gate. Его top-k cost на validation равен 7, baseline top-k cost равен 1, а true positive S006 выпадает из action…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/optuna/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Optuna и честный подбор параметров">
+  <meta property="og:description" content="В прошлом уроке CatBoost-кандидат не прошел decision gate. Его top-k cost на validation равен 7, baseline top-k cost равен 1, а true positive S006 выпадает из action…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/optuna/">
+  <meta name="twitter:card" content="summary">
+  <title>Optuna и честный подбор параметров — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Optuna и честный подбор параметров", "description": "В прошлом уроке CatBoost-кандидат не прошел decision gate. Его top-k cost на validation равен 7, baseline top-k cost равен 1, а true positive S006 выпадает из action…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/optuna/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Optuna и честный подбор параметров", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/optuna/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 180 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/09-optuna" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему search space нужно объявить до запуска tuning study?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы trial budget и набор проверенных параметров были воспроизводимыми и проверяемыми</button><button type="button" class="quiz-option" data-choice="1">Чтобы Optuna могла оптимизировать test split быстрее</button><button type="button" class="quiz-option" data-choice="2">Чтобы CatBoost не использовал categorical features</button><button type="button" class="quiz-option" data-choice="3">Чтобы можно было скрыть неудачные trial&#x27;ы</button></div><p class="quiz-feedback" hidden>Заранее объявленный search space делает tuning audit честным: видно, какие параметры могли быть выбраны и сколько попыток было разрешено.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какой split используется для выбора лучшего Optuna trial в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Validation split; final holdout test не участвует в objective</button><button type="button" class="quiz-option" data-choice="1">Test split; он нужен для выбора лучшей модели</button><button type="button" class="quiz-option" data-choice="2">Train split; на нем модель обучается и выбирает параметры</button><button type="button" class="quiz-option" data-choice="3">Все split сразу; так objective устойчивее</button></div><p class="quiz-feedback" hidden>Policy фиксирует `selection_data=validation`. Test можно скорить только после выбора best trial.</p></article></section>
+        <article class="lesson-article"><h1 id="optuna-и-честный-подбор-параметров">Optuna и честный подбор параметров</h1>
+<blockquote>
+<p>Подбор параметров честен только тогда, когда search space, бюджет trial'ов, seed и objective split объявлены до запуска, а test не участвует в выборе лучшего trial.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML, Delivery, Decision<br />
+<strong>Пререквизиты:</strong> <code>16-tabular-ml/08-cost-sensitive-decisions</code><br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> Optuna tuning auditor, который запускает fixed-budget study, сохраняет полный trial ledger, проверяет no-test-objective boundary и передает tuned CatBoost candidate в MLflow-урок.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Зафиксировать search space, direction, objective metric, trial budget и seed до запуска study.</li>
+<li>Запустить Optuna <code>GridSampler</code> так, чтобы все trial'ы были воспроизводимы.</li>
+<li>Считать objective только на validation split и не использовать final holdout для выбора лучшего trial.</li>
+<li>Сохранить полный trial ledger, а не только best params.</li>
+<li>Сравнить лучший trial с source CatBoost и cost-sensitive baseline без подмены бизнес-вывода.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В прошлом уроке CatBoost-кандидат не прошел decision gate. Его top-k cost на validation равен <code>7</code>, baseline top-k cost равен <code>1</code>, а true positive <code>S006</code> выпадает из action set. Но это еще не конец исследования: возможно, у CatBoost были неудачные параметры.</p>
+<p>Опасный путь выглядит так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">1. Перебирать параметры до тех пор, пока test станет красивым.
+2. Записать только best params.
+3. Забыть, сколько было попыток и какие варианты не сработали.
+4. Назвать результат production-ready, хотя бизнес-cost все еще хуже baseline.
+</code></pre></div><p>Этот урок строит другой путь: маленький, но честный Optuna-аудит. Мы заранее объявляем grid из шести trial'ов, оптимизируем <code>validation_logloss</code>, сохраняем каждую попытку и отдельно показываем, что улучшение logloss не спасает cost-sensitive gate.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Hyperparameter tuning - это эксперимент с собственным риском утечки. Даже если модель не видит <code>target</code> test напрямую, test становится частью обучения решений, если вы смотрите на него после каждой попытки и выбираете параметры по лучшему test-результату.</p>
+<p>Поэтому tuning policy фиксирует четыре границы:</p>
+<table>
+<thead>
+<tr>
+<th>Граница</th>
+<th>В этом уроке</th>
+<th>Зачем нужна</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fit data</td>
+<td><code>train</code></td>
+<td>Только эти строки используются для fit модели</td>
+</tr>
+<tr>
+<td>Objective data</td>
+<td><code>validation</code></td>
+<td>Только здесь Optuna сравнивает trial'ы</td>
+</tr>
+<tr>
+<td>Final holdout</td>
+<td><code>test</code></td>
+<td>Можно скорить после выбора best trial, нельзя использовать для selection</td>
+</tr>
+<tr>
+<td>Trial budget</td>
+<td><code>6</code></td>
+<td>Нельзя “еще чуть-чуть поискать”, когда результат не нравится</td>
+</tr>
+</tbody>
+</table>
+<p>Search space специально маленький:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;depth&quot;: [1, 2],
+  &quot;learning_rate&quot;: [0.05, 0.2, 0.4]
+}
+</code></pre></div><p>Это не production tuning. Это учебный audit pattern: на маленьком fixture видно, где проходят границы, какие файлы нужно сохранить и почему “best trial” не равен “готовая бизнес-модель”.</p>
+<h3 id="что-оптимизирует-optuna">Что оптимизирует Optuna</h3>
+<p>Objective возвращает <code>validation_logloss</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">direction = minimize
+objective_metric = validation_logloss
+</code></pre></div><p>Cost-sensitive метрики считаются рядом, но не становятся objective. Это важное разделение:</p>
+<ul>
+<li><code>validation_logloss</code> отвечает на вопрос “улучшилась ли вероятностная модель на validation?”;</li>
+<li><code>validation_top_k_total_error_cost</code> отвечает на вопрос “улучшилось ли действие при бюджете двух offers?”;</li>
+<li><code>test</code> отвечает только на вопрос “как выглядит уже выбранный кандидат на финальном holdout?”.</li>
+</ul>
+<p>В результате лучший trial слегка улучшает logloss:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source CatBoost validation_logloss = 0.698394
+best Optuna trial validation_logloss = 0.696531
+</code></pre></div><p>Но business gate остается плохим:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">best Optuna trial top-k cost = 7
+calibrated baseline top-k cost = 1
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-объявите-tuning-policy">Шаг 1. Объявите tuning policy</h3>
+<p>Policy должна жить рядом с данными, а не в голове исследователя:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;study&quot;: {
+    &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+    &quot;direction&quot;: &quot;minimize&quot;,
+    &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+    &quot;n_trials&quot;: 6,
+    &quot;sampler&quot;: {&quot;name&quot;: &quot;GridSampler&quot;, &quot;seed&quot;: 1609}
+  },
+  &quot;objective_policy&quot;: {
+    &quot;fit_data&quot;: &quot;train&quot;,
+    &quot;selection_data&quot;: &quot;validation&quot;,
+    &quot;forbid_objective_on_test&quot;: true
+  }
+}
+</code></pre></div><p>Evaluator проверяет, что:</p>
+<ul>
+<li><code>selection_data</code> совпадает с validation split;</li>
+<li><code>final_holdout_split</code> не совпадает с objective split;</li>
+<li>размер grid равен <code>n_trials</code>;</li>
+<li>seed CatBoost совпадает с seed sampler;</li>
+<li>feature contract совпадает с предыдущим CatBoost spec.</li>
+</ul>
+<h3 id="шаг-2-соберите-ledger-без-optuna">Шаг 2. Соберите ledger без Optuna</h3>
+<p>До библиотеки полезно представить ledger как обычную таблицу:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">trial</th>
+<th style="text-align:right">depth</th>
+<th style="text-align:right">learning_rate</th>
+<th style="text-align:right">objective_value</th>
+<th>selected_ids</th>
+<th>is_best</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.05</td>
+<td style="text-align:right">0.698842</td>
+<td><code>S007,S005</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.2</td>
+<td style="text-align:right">0.717590</td>
+<td><code>S007,S005</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">0.2</td>
+<td style="text-align:right">0.707280</td>
+<td><code>S007,S005</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.4</td>
+<td style="text-align:right">0.746454</td>
+<td><code>S007,S005</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">0.05</td>
+<td style="text-align:right">0.696531</td>
+<td><code>S007,S005</code></td>
+<td>true</td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">0.4</td>
+<td style="text-align:right">0.723010</td>
+<td><code>S007,S005</code></td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>Это главный артефакт tuning-аудита. Если у вас есть только <code>best_params</code>, вы не знаете:</p>
+<ul>
+<li>сколько попыток было сделано;</li>
+<li>какие параметры проиграли;</li>
+<li>был ли search space объявлен заранее;</li>
+<li>мог ли кто-то руками остановить поиск на удобном результате.</li>
+</ul>
+<h3 id="шаг-3-проверьте-no-test-boundary">Шаг 3. Проверьте no-test boundary</h3>
+<p>Для каждого split auditor пишет роль:</p>
+<table>
+<thead>
+<tr>
+<th>split</th>
+<th>role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>train</td>
+<td>fit</td>
+</tr>
+<tr>
+<td>validation</td>
+<td>objective и best trial selection</td>
+</tr>
+<tr>
+<td>test</td>
+<td>final holdout after selection</td>
+</tr>
+</tbody>
+</table>
+<p>Test-прогнозы в этом уроке создаются, но у них стоят флаги:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">used_for_objective = False
+test_used_for_best_trial_selection = False
+used_for_final_holdout_reporting = True
+</code></pre></div><p>Такой отчет можно читать после выбора best trial. По нему нельзя возвращаться назад и менять search space.</p>
+<h3 id="шаг-4-сформулируйте-честный-outcome">Шаг 4. Сформулируйте честный outcome</h3>
+<p>Лучший trial:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">trial_number = 4
+depth = 2
+learning_rate = 0.05
+validation_logloss = 0.696531
+</code></pre></div><p>Но selected top-k rows не изменились:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">S007,S005
+</code></pre></div><p>А false negative все еще:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">S006
+</code></pre></div><p>Поэтому корректный статус:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">decision_status = tuned_candidate_ready_for_mlflow_tracking
+readiness_status = ready_for_mlflow_lesson
+</code></pre></div><p>Не “promote model”, а “можно переходить к tracking и packaging, сохранив ограничения”.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите урок из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/09-optuna/code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+  &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+  &quot;n_trials&quot;: 6,
+  &quot;objective_split&quot;: &quot;validation&quot;,
+  &quot;test_used_for_objective&quot;: false,
+  &quot;source_validation_logloss&quot;: 0.698394,
+  &quot;best_trial_number&quot;: 4,
+  &quot;best_validation_logloss&quot;: 0.696531,
+  &quot;best_depth&quot;: 2,
+  &quot;best_learning_rate&quot;: 0.05,
+  &quot;best_trial_validation_top_k_cost&quot;: 7.0,
+  &quot;cost_gate_still_fails_vs_baseline&quot;: true,
+  &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+  &quot;readiness_status&quot;: &quot;ready_for_mlflow_lesson&quot;
+}
+</code></pre></div><p>Основные файлы:</p>
+<ul>
+<li><code>outputs/optuna_tuning_report.json</code> - полный audit report с checks, warnings и summary.</li>
+<li><code>outputs/optuna_trial_ledger.csv</code> - все trial'ы, параметры, objective value и validation cost.</li>
+<li><code>outputs/optuna_best_trial_trace.csv</code> - сравнение source CatBoost, best Optuna trial и calibrated baseline gate.</li>
+<li><code>outputs/optuna_tuned_predictions.csv</code> - train, validation и test scores с флагами использования.</li>
+<li><code>outputs/optuna_search_space_audit.csv</code> - объявленный search space и размер grid.</li>
+<li><code>outputs/optuna_objective_audit.csv</code> - роли train/validation/test.</li>
+<li><code>outputs/optuna_tuning_serialized_spec.json</code> - handoff в следующий MLflow-урок.</li>
+</ul>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-перенести-objective-на-test">Ошибка 1. Перенести objective на test</h3>
+<p>Измените policy:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;objective_policy&quot;: {
+  &quot;selection_data&quot;: &quot;test&quot;
+}
+</code></pre></div><p>Evaluator вернет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">valid = false
+blocking_errors = objective_uses_validation_and_excludes_test
+readiness_status = blocked_before_optuna_tuning
+</code></pre></div><p>Важно: auditor блокирует запуск study до обучения trial'ов. Так дешевле и чище, чем потом объяснять, почему test уже испорчен.</p>
+<h3 id="ошибка-2-сохранить-только-best-params">Ошибка 2. Сохранить только best params</h3>
+<p>Если удалить <code>optuna_trial_ledger.csv</code>, следующий ревьюер не увидит полный эксперимент. Best params без ledger не отвечают на вопрос, был ли tuning fixed-budget и reproducible.</p>
+<h3 id="ошибка-3-объявить-business-win-по-logloss">Ошибка 3. Объявить business win по logloss</h3>
+<p>Лучший trial улучшил validation logloss, но не улучшил top-k action set. В lesson fixture это ожидаемый warning:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">best_trial_logloss_improves_but_cost_gate_still_fails
+</code></pre></div><p>Нельзя превращать метрику модели в claim про бизнес-решение без decision layer.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/09-optuna/tests
+</code></pre></div><p>Что проверяют тесты:</p>
+<ul>
+<li>summary фиксирует Optuna <code>4.9.0</code>, <code>GridSampler</code>, seed <code>1609</code> и <code>6</code> complete trials;</li>
+<li>objective split равен validation, test не используется для objective;</li>
+<li>trial ledger содержит все шесть попыток и ровно один best trial;</li>
+<li>search space audit показывает grid <code>2 x 3 = 6</code>;</li>
+<li>objective audit показывает train/validation/test роли;</li>
+<li>prediction rows для test помечены только как final holdout reporting;</li>
+<li>best trial trace сравнивает source, tuned candidate и baseline;</li>
+<li>policy с <code>selection_data=test</code> становится blocking error.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/optuna_tuning_auditor.py
+</code></pre></div><p>Standalone запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_auditor.py \
+  --output-root phases/16-tabular-ml/09-optuna/outputs
+</code></pre></div><p>Артефакт можно переиспользовать как pre-MLflow audit step:</p>
+<ol>
+<li>Подайте policy с fixed search space, metric direction, sampler seed и budget.</li>
+<li>Подайте upstream CatBoost spec и decision report.</li>
+<li>Запустите auditor и сохраните все CSV/JSON outputs.</li>
+<li>Передавайте в MLflow только serialized spec с полным trial ledger рядом.</li>
+</ol>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Уменьшите search space до одного <code>learning_rate</code> и объясните, почему check <code>study_declares_fixed_budget_seed_and_grid</code> должен измениться.</li>
+<li>Поменяйте objective metric в policy на <code>validation_auc</code> и перечислите, какие части evaluator нужно переписать.</li>
+<li>Добавьте в search space <code>l2_leaf_reg</code> и расширьте тесты так, чтобы grid size проверялся автоматически.</li>
+<li>Сформулируйте MLflow tags, которые должны попасть в следующий урок из <code>optuna_tuning_serialized_spec.json</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search space</td>
+<td>Можно менять во время tuning</td>
+<td>Набор параметров и значений, объявленный до study</td>
+</tr>
+<tr>
+<td>Trial budget</td>
+<td>Просто технический лимит</td>
+<td>Часть методологии, защищающая от бесконечного перебора до удобного результата</td>
+</tr>
+<tr>
+<td>Objective split</td>
+<td>Любой split, где есть labels</td>
+<td>Split, по которому выбирают лучший trial; в этом уроке только validation</td>
+</tr>
+<tr>
+<td>Final holdout</td>
+<td>Еще один validation</td>
+<td>Закрытая выборка для reporting после выбора модели</td>
+</tr>
+<tr>
+<td>Trial ledger</td>
+<td>Лог для отладки</td>
+<td>Основной audit artifact tuning-эксперимента</td>
+</tr>
+<tr>
+<td>Best trial</td>
+<td>Готовая production-модель</td>
+<td>Лучшая попытка по objective, которую еще нужно проверить по decision, tracking и packaging</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://optuna.readthedocs.io/en/stable/" target="_blank" rel="noopener">Optuna documentation: Key Features</a> - посмотрите базовую модель <code>study</code>, <code>trial</code>, sampler и pruning, чтобы связать API с ledger из урока.</li>
+<li><a href="https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html" target="_blank" rel="noopener">Optuna API: <code>create_study</code></a> - проверьте параметры <code>direction</code>, <code>sampler</code>, <code>pruner</code> и <code>study_name</code>.</li>
+<li><a href="https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GridSampler.html" target="_blank" rel="noopener">Optuna API: <code>GridSampler</code></a> - разберите, почему маленький declared grid удобен для воспроизводимого учебного аудита.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/parameter-tuning" target="_blank" rel="noopener">CatBoost documentation: parameter tuning</a> - используйте как справочник по тому, какие параметры CatBoost имеет смысл выносить в search space.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какие параметры имеет лучший trial в fixture урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`depth=2`, `learning_rate=0.05`, `validation_logloss=0.696531`</button><button type="button" class="quiz-option" data-choice="1">`depth=1`, `learning_rate=0.4`, `validation_logloss=0.746454`</button><button type="button" class="quiz-option" data-choice="2">`depth=2`, `learning_rate=0.2`, `validation_logloss=0.707280`</button><button type="button" class="quiz-option" data-choice="3">`depth=1`, `learning_rate=0.05`, `validation_logloss=0.698842`</button></div><p class="quiz-feedback" hidden>Trial 4 дает минимальный validation logloss в объявленном grid.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем сохранять `optuna_trial_ledger.csv`, если уже есть best params?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ledger показывает все trial&#x27;ы, параметры, objective values и проверяет fixed-budget характер study</button><button type="button" class="quiz-option" data-choice="1">Ledger нужен только для красивой визуализации</button><button type="button" class="quiz-option" data-choice="2">Без ledger CatBoost не сможет делать predict</button><button type="button" class="quiz-option" data-choice="3">Ledger заменяет train/validation/test split</button></div><p class="quiz-feedback" hidden>Полный ledger делает эксперимент ревьюируемым: видно не только победителя, но и весь разрешенный поиск.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что должно произойти, если в policy поставить `objective_policy.selection_data = test`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Auditor должен заблокировать запуск с `objective_uses_validation_and_excludes_test`</button><button type="button" class="quiz-option" data-choice="1">Auditor должен выбрать лучший trial по test и пометить его production-ready</button><button type="button" class="quiz-option" data-choice="2">Optuna должна автоматически перенести objective на train</button><button type="button" class="quiz-option" data-choice="3">Ничего; split не влияет на tuning</button></div><p class="quiz-feedback" hidden>Test не может использоваться для выбора trial. В уроке это blocking error до запуска study.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Почему лучший Optuna trial не означает бизнес-победу?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он улучшает validation logloss, но top-k cost остается `7` против baseline cost `1`</button><button type="button" class="quiz-option" data-choice="1">Он использует меньше trial&#x27;ов, чем baseline</button><button type="button" class="quiz-option" data-choice="2">Он не может выдавать вероятности</button><button type="button" class="quiz-option" data-choice="3">Он выбирает test split как objective</button></div><p class="quiz-feedback" hidden>Objective улучшился с `0.698394` до `0.696531`, но action set остался `S007,S005`, а false negative `S006` не исправлен.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Что означает `readiness_status=ready_for_mlflow_lesson`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Tuning audit валиден и его можно трекать дальше, но это не promotion в бизнес-решение</button><button type="button" class="quiz-option" data-choice="1">Модель уже готова к production deployment</button><button type="button" class="quiz-option" data-choice="2">Test использован для выбора best trial</button><button type="button" class="quiz-option" data-choice="3">Cost-sensitive gate больше не нужен</button></div><p class="quiz-feedback" hidden>Урок передает честно описанного tuned candidate в следующий шаг tracking/package, сохраняя warnings про cost gate.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;optuna_tuning_auditor.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from optuna_tuning_auditor import run, write_outputs  # noqa: E402
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class OptunaTuningAuditorTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **paths: Path) -&gt; dict:
+        return run(policy_path=paths.get(&quot;policy_path&quot;, root / &quot;optuna_tuning_policy_spec.json&quot;))
+
+    def test_valid_summary_locks_fixed_budget_validation_only_study(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;optuna_tuning_audit_id&quot;], &quot;trial-churn-optuna-tuning-audit-v0&quot;)
+        self.assertEqual(summary[&quot;optuna_version&quot;], &quot;4.9.0&quot;)
+        self.assertEqual(summary[&quot;study_name&quot;], &quot;trial_churn_catboost_fixed_budget_v0&quot;)
+        self.assertEqual(summary[&quot;sampler&quot;], &quot;GridSampler&quot;)
+        self.assertEqual(summary[&quot;sampler_seed&quot;], 1609)
+        self.assertEqual(summary[&quot;n_trials&quot;], 6)
+        self.assertEqual(summary[&quot;complete_trial_count&quot;], 6)
+        self.assertEqual(summary[&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(summary[&quot;objective_split&quot;], &quot;validation&quot;)
+        self.assertEqual(summary[&quot;final_holdout_split&quot;], &quot;test&quot;)
+        self.assertFalse(summary[&quot;test_used_for_objective&quot;])
+        self.assertEqual(summary[&quot;source_validation_logloss&quot;], 0.698394)
+        self.assertEqual(summary[&quot;best_trial_number&quot;], 4)
+        self.assertEqual(summary[&quot;best_validation_logloss&quot;], 0.696531)
+        self.assertEqual(summary[&quot;best_depth&quot;], 2)
+        self.assertEqual(summary[&quot;best_learning_rate&quot;], 0.05)
+        self.assertTrue(summary[&quot;objective_improved_vs_source&quot;])
+        self.assertEqual(summary[&quot;best_trial_validation_top_k_cost&quot;], 7.0)
+        self.assertEqual(summary[&quot;baseline_validation_top_k_cost&quot;], 1.0)
+        self.assertTrue(summary[&quot;cost_gate_still_fails_vs_baseline&quot;])
+        self.assertEqual(summary[&quot;decision_status&quot;], &quot;tuned_candidate_ready_for_mlflow_tracking&quot;)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_mlflow_lesson&quot;)
+
+    def test_trial_ledger_contains_all_complete_trials_and_best_trace(self) -&gt; None:
+        report = self.audit()
+        ledger = report[&quot;trial_ledger&quot;]
+
+        self.assertEqual([row[&quot;trial_number&quot;] for row in ledger], [0, 1, 2, 3, 4, 5])
+        self.assertEqual([row[&quot;depth&quot;] for row in ledger], [1, 1, 2, 1, 2, 2])
+        self.assertEqual([row[&quot;learning_rate&quot;] for row in ledger], [0.05, 0.2, 0.2, 0.4, 0.05, 0.4])
+        self.assertEqual([row[&quot;objective_value&quot;] for row in ledger], [0.698842, 0.71759, 0.70728, 0.746454, 0.696531, 0.72301])
+        self.assertEqual([row[&quot;is_best_trial&quot;] for row in ledger], [False, False, False, False, True, False])
+        self.assertTrue(all(row[&quot;state&quot;] == &quot;COMPLETE&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;objective_metric&quot;] == &quot;validation_logloss&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;direction&quot;] == &quot;minimize&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;fit_split&quot;] == &quot;train&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;objective_split&quot;] == &quot;validation&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;final_holdout_used_for_objective&quot;] is False for row in ledger))
+        self.assertTrue(all(row[&quot;validation_top_k_selected_ids&quot;] == &quot;S007,S005&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;validation_top_k_false_negative_ids&quot;] == &quot;S006&quot; for row in ledger))
+        self.assertTrue(all(row[&quot;validation_fixed_threshold_0_5_total_error_cost&quot;] == 6.0 for row in ledger))
+        self.assertTrue(check(report, &quot;trial_ledger_contains_all_trials&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;best_trial_matches_min_validation_objective&quot;)[&quot;valid&quot;])
+
+    def test_search_space_and_objective_audits_make_no_test_boundary_visible(self) -&gt; None:
+        report = self.audit()
+        search = {row[&quot;parameter&quot;]: row for row in report[&quot;search_space_audit&quot;]}
+        objective = {row[&quot;split&quot;]: row for row in report[&quot;objective_audit&quot;]}
+
+        self.assertEqual(search[&quot;depth&quot;][&quot;values&quot;], [1, 2])
+        self.assertEqual(search[&quot;depth&quot;][&quot;value_count&quot;], 2)
+        self.assertEqual(search[&quot;learning_rate&quot;][&quot;values&quot;], [0.05, 0.2, 0.4])
+        self.assertEqual(search[&quot;learning_rate&quot;][&quot;value_count&quot;], 3)
+        self.assertEqual(search[&quot;__grid__&quot;][&quot;value_count&quot;], 6)
+        self.assertTrue(all(row[&quot;declared_before_study&quot;] for row in report[&quot;search_space_audit&quot;]))
+        self.assertTrue(all(not row[&quot;hidden_search&quot;] for row in report[&quot;search_space_audit&quot;]))
+
+        self.assertEqual(objective[&quot;train&quot;][&quot;snapshot_ids&quot;], &quot;S001,S002,S003,S004&quot;)
+        self.assertTrue(objective[&quot;train&quot;][&quot;used_for_fit&quot;])
+        self.assertFalse(objective[&quot;train&quot;][&quot;used_for_objective&quot;])
+        self.assertEqual(objective[&quot;validation&quot;][&quot;snapshot_ids&quot;], &quot;S005,S006,S007&quot;)
+        self.assertTrue(objective[&quot;validation&quot;][&quot;used_for_objective&quot;])
+        self.assertTrue(objective[&quot;validation&quot;][&quot;used_for_best_trial_selection&quot;])
+        self.assertEqual(objective[&quot;test&quot;][&quot;snapshot_ids&quot;], &quot;S009,S010,S011,S012,S013&quot;)
+        self.assertFalse(objective[&quot;test&quot;][&quot;used_for_objective&quot;])
+        self.assertFalse(objective[&quot;test&quot;][&quot;used_for_best_trial_selection&quot;])
+        self.assertTrue(objective[&quot;test&quot;][&quot;used_after_selection_for_reporting&quot;])
+        self.assertTrue(check(report, &quot;objective_uses_validation_and_excludes_test&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;final_holdout_not_used_for_objective&quot;)[&quot;valid&quot;])
+
+    def test_predictions_score_final_holdout_only_after_best_trial_selection(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;split&quot;], row[&quot;snapshot_id&quot;]): row for row in report[&quot;predictions&quot;]}
+
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;S005&quot;)][&quot;score&quot;], 0.495)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;S006&quot;)][&quot;score&quot;], 0.495)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;S007&quot;)][&quot;score&quot;], 0.505)
+        self.assertTrue(rows[(&quot;validation&quot;, &quot;S006&quot;)][&quot;used_for_objective&quot;])
+        self.assertFalse(rows[(&quot;validation&quot;, &quot;S006&quot;)][&quot;used_for_final_holdout_reporting&quot;])
+
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S009&quot;)][&quot;score&quot;], 0.505)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S010&quot;)][&quot;score&quot;], 0.495)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S013&quot;)][&quot;score&quot;], 0.495)
+        test_rows = [row for row in report[&quot;predictions&quot;] if row[&quot;split&quot;] == &quot;test&quot;]
+        self.assertTrue(test_rows)
+        self.assertTrue(all(row[&quot;used_for_final_holdout_reporting&quot;] for row in test_rows))
+        self.assertTrue(all(not row[&quot;used_for_objective&quot;] for row in test_rows))
+        self.assertTrue(all(not row[&quot;test_used_for_best_trial_selection&quot;] for row in test_rows))
+        self.assertTrue(check(report, &quot;test_predictions_are_after_selection_only&quot;)[&quot;valid&quot;])
+
+    def test_best_trial_trace_keeps_source_best_and_baseline_comparison(self) -&gt; None:
+        report = self.audit()
+        trace = {row[&quot;trace_role&quot;]: row for row in report[&quot;best_trial_trace&quot;]}
+
+        source = trace[&quot;source_early_stopped_catboost&quot;]
+        best = trace[&quot;best_optuna_trial&quot;]
+        baseline = trace[&quot;calibrated_phase15_baseline_cost_gate&quot;]
+        self.assertEqual(source[&quot;validation_logloss&quot;], 0.698394)
+        self.assertEqual(source[&quot;validation_top_k_total_error_cost&quot;], 7.0)
+        self.assertEqual(best[&quot;trial_number&quot;], 4)
+        self.assertEqual(best[&quot;validation_logloss&quot;], 0.696531)
+        self.assertEqual(best[&quot;validation_top_k_total_error_cost&quot;], 7.0)
+        self.assertEqual(best[&quot;validation_top_k_selected_ids&quot;], &quot;S007,S005&quot;)
+        self.assertEqual(baseline[&quot;validation_top_k_total_error_cost&quot;], 1.0)
+        self.assertEqual(baseline[&quot;validation_top_k_selected_ids&quot;], &quot;S006,S005&quot;)
+        self.assertFalse(source[&quot;test_used_for_selection&quot;])
+        self.assertFalse(best[&quot;test_used_for_selection&quot;])
+        self.assertFalse(baseline[&quot;test_used_for_selection&quot;])
+        self.assertTrue(check(report, &quot;best_trial_improves_validation_logloss&quot;)[&quot;valid&quot;])
+
+    def test_warnings_document_tiny_study_and_business_gate_limits(self) -&gt; None:
+        report = self.audit()
+
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [
+                &quot;tiny_fixed_budget_study_expected&quot;,
+                &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+                &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+                &quot;no_test_objective_boundary_visible&quot;,
+            ],
+        )
+        self.assertEqual(check(report, &quot;tiny_fixed_budget_study_expected&quot;)[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertEqual(
+            check(report, &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;)[&quot;observed&quot;],
+            {&quot;best_trial_validation_top_k_cost&quot;: 7.0, &quot;baseline_validation_top_k_cost&quot;: 1.0},
+        )
+
+    def test_serialized_spec_preserves_search_space_best_trial_and_upstream_handoff(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;objective_split&quot;], &quot;validation&quot;)
+        self.assertEqual(serialized[&quot;final_holdout_split&quot;], &quot;test&quot;)
+        self.assertEqual(serialized[&quot;study&quot;][&quot;sampler&quot;][&quot;name&quot;], &quot;GridSampler&quot;)
+        self.assertEqual(serialized[&quot;study&quot;][&quot;sampler&quot;][&quot;seed&quot;], 1609)
+        self.assertEqual(serialized[&quot;study&quot;][&quot;n_trials&quot;], 6)
+        self.assertEqual(serialized[&quot;search_space&quot;][&quot;depth&quot;][&quot;values&quot;], [1, 2])
+        self.assertEqual(serialized[&quot;search_space&quot;][&quot;learning_rate&quot;][&quot;values&quot;], [0.05, 0.2, 0.4])
+        self.assertEqual(serialized[&quot;best_trial&quot;][&quot;trial_number&quot;], 4)
+        self.assertEqual(serialized[&quot;best_trial&quot;][&quot;objective_value&quot;], 0.696531)
+        self.assertEqual(serialized[&quot;best_trial&quot;][&quot;validation_top_k_total_error_cost&quot;], 7.0)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;early_stopping_readiness_status&quot;], &quot;ready_for_feature_importance_lesson&quot;)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;cost_sensitive_readiness_status&quot;], &quot;ready_for_optuna_lesson&quot;)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;cost_sensitive_decision_status&quot;], &quot;do_not_promote_catboost_candidate&quot;)
+
+    def test_policy_blocks_objective_selection_on_final_holdout(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            policy_path = Path(directory) / &quot;optuna_tuning_policy_spec.json&quot;
+            policy = read_json(DATA_ROOT / &quot;optuna_tuning_policy_spec.json&quot;)
+            policy[&quot;objective_policy&quot;][&quot;selection_data&quot;] = &quot;test&quot;
+            write_json(policy_path, policy)
+
+            report = self.audit(policy_path=policy_path)
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;blocked_before_optuna_tuning&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;objective_uses_validation_and_excludes_test&quot;])
+        self.assertFalse(check(report, &quot;objective_uses_validation_and_excludes_test&quot;)[&quot;valid&quot;])
+        self.assertEqual(report[&quot;trial_ledger&quot;], [])
+
+    def test_writer_and_lesson_cli_export_expected_outputs(self) -&gt; None:
+        report = self.audit()
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            output_spec = read_json(DATA_ROOT / &quot;optuna_tuning_policy_spec.json&quot;)[&quot;output&quot;]
+            write_outputs(report, output_root, output_spec)
+
+            ledger_rows = read_csv(output_root / &quot;optuna_trial_ledger.csv&quot;)
+            objective_rows = read_csv(output_root / &quot;optuna_objective_audit.csv&quot;)
+            exported_report = read_json(output_root / &quot;optuna_tuning_report.json&quot;)
+
+        self.assertEqual(len(ledger_rows), 6)
+        self.assertEqual(len(objective_rows), 3)
+        self.assertEqual(exported_report[&quot;summary&quot;][&quot;best_trial_number&quot;], 4)
+
+        completed = subprocess.run(
+            [sys.executable, str(CODE)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        payload = json.loads(completed.stdout)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;best_trial_number&quot;], 4)
+        self.assertEqual(payload[&quot;best_validation_logloss&quot;], 0.696531)
+        self.assertEqual(payload[&quot;best_trial_validation_top_k_cost&quot;], 7.0)
+        self.assertTrue(payload[&quot;cost_gate_still_fails_vs_baseline&quot;])
+        self.assertEqual(payload[&quot;readiness_status&quot;], &quot;ready_for_mlflow_lesson&quot;)
+
+    def test_artifact_cli_output_root_writes_all_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            completed = subprocess.run(
+                [sys.executable, str(ARTIFACT), &quot;--output-root&quot;, str(output_root)],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.stdout, &quot;&quot;)
+            self.assertTrue((output_root / &quot;optuna_tuning_report.json&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_trial_ledger.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_best_trial_trace.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_tuned_predictions.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_search_space_audit.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_objective_audit.csv&quot;).is_file())
+            self.assertTrue((output_root / &quot;optuna_tuning_serialized_spec.json&quot;).is_file())
+            self.assertEqual(read_json(output_root / &quot;optuna_tuning_report.json&quot;)[&quot;summary&quot;][&quot;decision_status&quot;], &quot;tuned_candidate_ready_for_mlflow_tracking&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from optuna_tuning_auditor import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; int:
+    result = run()
+    output_spec = read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;]
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, output_spec)
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;optuna_tuning_audit_id&quot;: summary[&quot;optuna_tuning_audit_id&quot;],
+                &quot;study_name&quot;: summary[&quot;study_name&quot;],
+                &quot;n_trials&quot;: summary[&quot;n_trials&quot;],
+                &quot;objective_split&quot;: summary[&quot;objective_split&quot;],
+                &quot;test_used_for_objective&quot;: summary[&quot;test_used_for_objective&quot;],
+                &quot;source_validation_logloss&quot;: summary[&quot;source_validation_logloss&quot;],
+                &quot;best_trial_number&quot;: summary[&quot;best_trial_number&quot;],
+                &quot;best_validation_logloss&quot;: summary[&quot;best_validation_logloss&quot;],
+                &quot;best_depth&quot;: summary[&quot;best_depth&quot;],
+                &quot;best_learning_rate&quot;: summary[&quot;best_learning_rate&quot;],
+                &quot;best_trial_validation_top_k_cost&quot;: summary[&quot;best_trial_validation_top_k_cost&quot;],
+                &quot;cost_gate_still_fails_vs_baseline&quot;: summary[&quot;cost_gate_still_fails_vs_baseline&quot;],
+                &quot;decision_status&quot;: summary[&quot;decision_status&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;optuna-tuning-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/optuna_tuning_auditor.py&quot;,
+  &quot;description&quot;: &quot;Запускает fixed-budget Optuna GridSampler study для CatBoost-кандидата, сохраняет полный trial ledger, проверяет validation-only objective и no-test-selection boundary.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_auditor.py --output-root phases/16-tabular-ml/09-optuna/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_best_trial_trace.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>trace_role,model_id,trial_number,validation_logloss,validation_top_k_total_error_cost,validation_top_k_selected_ids,depth,learning_rate,objective_split,test_used_for_selection
+source_early_stopped_catboost,catboost_depth2_native_categories_es_logloss,,0.698394,7.0,&quot;S007,S005&quot;,2,0.2,validation,False
+best_optuna_trial,catboost_optuna_fixed_budget_logloss,4,0.696531,7.0,&quot;S007,S005&quot;,2,0.05,validation,False
+calibrated_phase15_baseline_cost_gate,trial-churn-ml-baseline-package-v0,,,1.0,&quot;S006,S005&quot;,,,validation,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_objective_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,snapshot_ids,row_count,used_for_fit,used_for_objective,used_for_best_trial_selection,used_after_selection_for_reporting,allowed_role
+train,&quot;S001,S002,S003,S004&quot;,4,True,False,False,False,fit
+validation,&quot;S005,S006,S007&quot;,3,False,True,True,False,objective
+test,&quot;S009,S010,S011,S012,S013&quot;,5,False,False,False,True,final_holdout_after_selection
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_objective_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_search_space_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>parameter,type,values,value_count,declared_before_study,hidden_search
+depth,categorical,&quot;[1, 2]&quot;,2,True,False
+learning_rate,categorical,&quot;[0.05, 0.2, 0.4]&quot;,3,True,False
+__grid__,cartesian_product,&quot;[&quot;&quot;depth&quot;&quot;, &quot;&quot;learning_rate&quot;&quot;]&quot;,6,True,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_search_space_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_trial_ledger.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>study_name,trial_number,state,is_best_trial,objective_metric,objective_value,direction,depth,learning_rate,fit_split,objective_split,final_holdout_used_for_objective,validation_top_k_total_error_cost,validation_top_k_selected_ids,validation_top_k_false_negative_ids,validation_fixed_threshold_0_5_total_error_cost,tree_count,best_iteration,generated_at
+trial_churn_catboost_fixed_budget_v0,0,COMPLETE,False,validation_logloss,0.698842,minimize,1,0.05,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+trial_churn_catboost_fixed_budget_v0,1,COMPLETE,False,validation_logloss,0.71759,minimize,1,0.2,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+trial_churn_catboost_fixed_budget_v0,2,COMPLETE,False,validation_logloss,0.70728,minimize,2,0.2,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+trial_churn_catboost_fixed_budget_v0,3,COMPLETE,False,validation_logloss,0.746454,minimize,1,0.4,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+trial_churn_catboost_fixed_budget_v0,4,COMPLETE,True,validation_logloss,0.696531,minimize,2,0.05,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+trial_churn_catboost_fixed_budget_v0,5,COMPLETE,False,validation_logloss,0.72301,minimize,2,0.4,train,validation,False,7.0,&quot;S007,S005&quot;,S006,6.0,1,0,2026-07-06T11:30:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_trial_ledger.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_tuned_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>model_id,split,snapshot_id,score,actual_label,used_for_fit,used_for_objective,used_for_final_holdout_reporting,test_used_for_best_trial_selection,generated_at
+catboost_optuna_fixed_budget_logloss,train,S001,0.505,1,True,False,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,train,S002,0.495,0,True,False,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,train,S003,0.495,0,True,False,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,train,S004,0.505,1,True,False,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,validation,S005,0.495,0,False,True,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,validation,S006,0.495,1,False,True,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,validation,S007,0.505,0,False,True,False,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,test,S009,0.505,0,False,False,True,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,test,S010,0.495,1,False,False,True,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,test,S011,0.495,0,False,False,True,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,test,S012,0.505,0,False,False,True,False,2026-07-06T11:30:00+03:00
+catboost_optuna_fixed_budget_logloss,test,S013,0.495,0,False,False,True,False,2026-07-06T11:30:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_tuned_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_tuning_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import optuna
+import pandas as pd
+from catboost import CatBoostClassifier, Pool
+from sklearn.metrics import log_loss
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;optuna_tuning_policy_spec.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_EARLY_STOPPING_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;
+)
+DEFAULT_EARLY_STOPPING_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_serialized_spec.json&quot;
+)
+DEFAULT_COST_REPORT_PATH = (
+    PHASE_16_ROOT
+    / &quot;08-cost-sensitive-decisions&quot;
+    / &quot;outputs&quot;
+    / &quot;cost_sensitive_decision_report.json&quot;
+)
+DEFAULT_COST_SPEC_PATH = (
+    PHASE_16_ROOT
+    / &quot;08-cost-sensitive-decisions&quot;
+    / &quot;outputs&quot;
+    / &quot;cost_sensitive_decision_serialized_spec.json&quot;
+)
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+
+GENERATED_AT = &quot;2026-07-06T11:30:00+03:00&quot;
+
+
+class OptunaTuningAuditError(ValueError):
+    &quot;&quot;&quot;Raised when Optuna tuning audit inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int) and value in (0, 1):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise OptunaTuningAuditError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def validate_policy(
+    *,
+    policy: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    early_report: dict[str, Any],
+    early_spec: dict[str, Any],
+    cost_report: dict[str, Any],
+    cost_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    required = {
+        &quot;optuna_tuning_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;baseline_package_id&quot;,
+        &quot;source_candidate_model_id&quot;,
+        &quot;tuned_candidate_model_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;early_stopping_audit_id&quot;,
+        &quot;cost_sensitive_decision_audit_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;objective_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;study&quot;,
+        &quot;search_space&quot;,
+        &quot;fixed_catboost_params&quot;,
+        &quot;feature_contract&quot;,
+        &quot;objective_policy&quot;,
+        &quot;cost_policy&quot;,
+        &quot;decision_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        checks.append(failed(&quot;optuna_policy_has_required_fields&quot;, missing, &quot;no missing fields&quot;))
+    else:
+        checks.append(passed(&quot;optuna_policy_has_required_fields&quot;, sorted(required), &quot;required policy fields&quot;))
+
+    handoff_errors: list[dict[str, Any]] = []
+    expected_identity = {
+        &quot;problem_id&quot;: catboost_spec.get(&quot;problem_id&quot;),
+        &quot;baseline_package_id&quot;: catboost_spec.get(&quot;baseline_package_id&quot;),
+        &quot;catboost_baseline_id&quot;: catboost_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;source_candidate_model_id&quot;: early_spec.get(&quot;early_stopping_model_id&quot;),
+        &quot;early_stopping_audit_id&quot;: early_spec.get(&quot;early_stopping_audit_id&quot;),
+        &quot;cost_sensitive_decision_audit_id&quot;: cost_spec.get(&quot;cost_sensitive_decision_audit_id&quot;),
+        &quot;fit_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;fit_split&quot;),
+        &quot;objective_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;eval_split&quot;),
+        &quot;final_holdout_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;final_holdout_split&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if policy.get(field) != expected:
+            handoff_errors.append({&quot;field&quot;: field, &quot;observed&quot;: policy.get(field), &quot;expected&quot;: expected})
+
+    if early_report.get(&quot;valid&quot;) is not True:
+        handoff_errors.append({&quot;field&quot;: &quot;early_report.valid&quot;, &quot;observed&quot;: early_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if early_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_feature_importance_lesson&quot;:
+        handoff_errors.append(
+            {
+                &quot;field&quot;: &quot;early_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: early_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_feature_importance_lesson&quot;,
+            }
+        )
+    if cost_report.get(&quot;valid&quot;) is not True:
+        handoff_errors.append({&quot;field&quot;: &quot;cost_report.valid&quot;, &quot;observed&quot;: cost_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if cost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_optuna_lesson&quot;:
+        handoff_errors.append(
+            {
+                &quot;field&quot;: &quot;cost_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: cost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_optuna_lesson&quot;,
+            }
+        )
+    if handoff_errors:
+        checks.append(failed(&quot;optuna_policy_matches_upstream_handoff&quot;, handoff_errors, &quot;same CatBoost, cost decision and split handoffs&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;optuna_policy_matches_upstream_handoff&quot;,
+                {
+                    &quot;optuna_tuning_audit_id&quot;: policy[&quot;optuna_tuning_audit_id&quot;],
+                    &quot;source_candidate_model_id&quot;: policy[&quot;source_candidate_model_id&quot;],
+                    &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+                },
+                &quot;same CatBoost, cost decision and split handoffs&quot;,
+            )
+        )
+
+    objective_errors: list[dict[str, Any]] = []
+    objective_policy = policy.get(&quot;objective_policy&quot;, {})
+    if policy.get(&quot;fit_split&quot;) != objective_policy.get(&quot;fit_data&quot;):
+        objective_errors.append({&quot;field&quot;: &quot;objective_policy.fit_data&quot;, &quot;observed&quot;: objective_policy.get(&quot;fit_data&quot;), &quot;expected&quot;: policy.get(&quot;fit_split&quot;)})
+    if policy.get(&quot;objective_split&quot;) != objective_policy.get(&quot;selection_data&quot;):
+        objective_errors.append(
+            {
+                &quot;field&quot;: &quot;objective_policy.selection_data&quot;,
+                &quot;observed&quot;: objective_policy.get(&quot;selection_data&quot;),
+                &quot;expected&quot;: policy.get(&quot;objective_split&quot;),
+            }
+        )
+    if objective_policy.get(&quot;forbid_objective_on_test&quot;) is not True:
+        objective_errors.append(
+            {
+                &quot;field&quot;: &quot;objective_policy.forbid_objective_on_test&quot;,
+                &quot;observed&quot;: objective_policy.get(&quot;forbid_objective_on_test&quot;),
+                &quot;expected&quot;: True,
+            }
+        )
+    if policy.get(&quot;objective_split&quot;) == policy.get(&quot;final_holdout_split&quot;):
+        objective_errors.append(
+            {
+                &quot;field&quot;: &quot;objective_split&quot;,
+                &quot;observed&quot;: policy.get(&quot;objective_split&quot;),
+                &quot;expected&quot;: f&quot;not {policy.get(&#x27;final_holdout_split&#x27;)}&quot;,
+            }
+        )
+    if objective_errors:
+        checks.append(failed(&quot;objective_uses_validation_and_excludes_test&quot;, objective_errors, &quot;train fit, validation objective, test invisible&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;objective_uses_validation_and_excludes_test&quot;,
+                {
+                    &quot;fit_split&quot;: policy[&quot;fit_split&quot;],
+                    &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+                    &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+                },
+                &quot;train fit, validation objective, test invisible&quot;,
+            )
+        )
+
+    study_errors: list[dict[str, Any]] = []
+    study = policy.get(&quot;study&quot;, {})
+    if study.get(&quot;direction&quot;) != &quot;minimize&quot;:
+        study_errors.append({&quot;field&quot;: &quot;study.direction&quot;, &quot;observed&quot;: study.get(&quot;direction&quot;), &quot;expected&quot;: &quot;minimize&quot;})
+    if study.get(&quot;objective_metric&quot;) != &quot;validation_logloss&quot;:
+        study_errors.append({&quot;field&quot;: &quot;study.objective_metric&quot;, &quot;observed&quot;: study.get(&quot;objective_metric&quot;), &quot;expected&quot;: &quot;validation_logloss&quot;})
+    if int(study.get(&quot;n_trials&quot;, 0)) &lt;= 0 or int(study.get(&quot;n_trials&quot;, 0)) &gt; int(study.get(&quot;max_trials_allowed&quot;, 0)):
+        study_errors.append(
+            {
+                &quot;field&quot;: &quot;study.n_trials&quot;,
+                &quot;observed&quot;: study.get(&quot;n_trials&quot;),
+                &quot;expected&quot;: f&quot;1..{study.get(&#x27;max_trials_allowed&#x27;)}&quot;,
+            }
+        )
+    if study.get(&quot;sampler&quot;, {}).get(&quot;name&quot;) != &quot;GridSampler&quot;:
+        study_errors.append({&quot;field&quot;: &quot;study.sampler.name&quot;, &quot;observed&quot;: study.get(&quot;sampler&quot;, {}).get(&quot;name&quot;), &quot;expected&quot;: &quot;GridSampler&quot;})
+    if not isinstance(study.get(&quot;sampler&quot;, {}).get(&quot;seed&quot;), int):
+        study_errors.append({&quot;field&quot;: &quot;study.sampler.seed&quot;, &quot;observed&quot;: study.get(&quot;sampler&quot;, {}).get(&quot;seed&quot;), &quot;expected&quot;: &quot;integer seed&quot;})
+    if policy.get(&quot;fixed_catboost_params&quot;, {}).get(&quot;random_seed&quot;) != study.get(&quot;sampler&quot;, {}).get(&quot;seed&quot;):
+        study_errors.append(
+            {
+                &quot;field&quot;: &quot;fixed_catboost_params.random_seed&quot;,
+                &quot;observed&quot;: policy.get(&quot;fixed_catboost_params&quot;, {}).get(&quot;random_seed&quot;),
+                &quot;expected&quot;: study.get(&quot;sampler&quot;, {}).get(&quot;seed&quot;),
+            }
+        )
+    grid_size = search_space_grid_size(policy.get(&quot;search_space&quot;, {}))
+    if grid_size != study.get(&quot;n_trials&quot;):
+        study_errors.append({&quot;field&quot;: &quot;search_space.grid_size&quot;, &quot;observed&quot;: grid_size, &quot;expected&quot;: study.get(&quot;n_trials&quot;)})
+    if study_errors:
+        checks.append(failed(&quot;study_declares_fixed_budget_seed_and_grid&quot;, study_errors, &quot;fixed budget, reproducible seed and fully covered grid&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;study_declares_fixed_budget_seed_and_grid&quot;,
+                {
+                    &quot;n_trials&quot;: study[&quot;n_trials&quot;],
+                    &quot;sampler&quot;: study[&quot;sampler&quot;][&quot;name&quot;],
+                    &quot;seed&quot;: study[&quot;sampler&quot;][&quot;seed&quot;],
+                    &quot;grid_size&quot;: grid_size,
+                },
+                &quot;fixed budget, reproducible seed and fully covered grid&quot;,
+            )
+        )
+
+    feature_errors: list[dict[str, Any]] = []
+    contract = catboost_spec.get(&quot;feature_contract&quot;, {})
+    policy_contract = policy.get(&quot;feature_contract&quot;, {})
+    for field in (&quot;numeric_features&quot;, &quot;categorical_features&quot;, &quot;missing_category_token&quot;):
+        if policy_contract.get(field) != contract.get(field):
+            feature_errors.append({&quot;field&quot;: f&quot;feature_contract.{field}&quot;, &quot;observed&quot;: policy_contract.get(field), &quot;expected&quot;: contract.get(field)})
+    if feature_errors:
+        checks.append(failed(&quot;feature_contract_matches_catboost_spec&quot;, feature_errors, &quot;same feature order and categorical policy&quot;))
+    else:
+        checks.append(passed(&quot;feature_contract_matches_catboost_spec&quot;, policy_contract, &quot;same feature order and categorical policy&quot;))
+
+    output = policy.get(&quot;output&quot;, {})
+    missing_outputs = [
+        field
+        for field in (
+            &quot;report_file&quot;,
+            &quot;trial_ledger_file&quot;,
+            &quot;best_trial_trace_file&quot;,
+            &quot;prediction_file&quot;,
+            &quot;search_space_audit_file&quot;,
+            &quot;objective_audit_file&quot;,
+            &quot;serialized_spec_file&quot;,
+        )
+        if not output.get(field)
+    ]
+    if missing_outputs:
+        checks.append(failed(&quot;output_contract_names_all_artifacts&quot;, missing_outputs, &quot;all output filenames are declared&quot;))
+    else:
+        checks.append(passed(&quot;output_contract_names_all_artifacts&quot;, sorted(output), &quot;all output filenames are declared&quot;))
+    return checks
+
+
+def search_space_grid_size(search_space: dict[str, Any]) -&gt; int:
+    if not search_space:
+        return 0
+    size = 1
+    for spec in search_space.values():
+        values = spec.get(&quot;values&quot;) if isinstance(spec, dict) else None
+        if not isinstance(values, list) or not values:
+            return 0
+        size *= len(values)
+    return size
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+    for frame_name, frame in {&quot;features&quot;: features, &quot;labels&quot;: labels, &quot;manifest&quot;: manifest}.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise OptunaTuningAuditError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise OptunaTuningAuditError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;]], on=&quot;snapshot_id&quot;, how=&quot;inner&quot;)
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def prepare_features(frame: pd.DataFrame, policy: dict[str, Any]) -&gt; pd.DataFrame:
+    contract = policy[&quot;feature_contract&quot;]
+    numeric_features = list(contract[&quot;numeric_features&quot;])
+    categorical_features = list(contract[&quot;categorical_features&quot;])
+    missing_category_token = contract.get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;)
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def split_ids(frame: pd.DataFrame, split: str) -&gt; list[str]:
+    return frame.loc[frame[&quot;split&quot;] == split, &quot;snapshot_id&quot;].tolist()
+
+
+def selection_metrics(
+    *,
+    snapshot_ids: list[str],
+    scores: list[float],
+    actual: list[int],
+    max_actions: int,
+    false_positive_cost: float,
+    false_negative_cost: float,
+    threshold: float | None = None,
+) -&gt; dict[str, Any]:
+    rows = [
+        {&quot;snapshot_id&quot;: snapshot_id, &quot;score&quot;: float(score), &quot;actual&quot;: int(label)}
+        for snapshot_id, score, label in zip(snapshot_ids, scores, actual, strict=True)
+    ]
+    rows = sorted(rows, key=lambda row: (-row[&quot;score&quot;], row[&quot;snapshot_id&quot;]))
+    if threshold is None:
+        selected_ids = {row[&quot;snapshot_id&quot;] for row in rows[:max_actions]}
+    else:
+        selected_ids = {row[&quot;snapshot_id&quot;] for row in rows if row[&quot;score&quot;] &gt;= threshold}
+    selected_ordered = [row[&quot;snapshot_id&quot;] for row in rows if row[&quot;snapshot_id&quot;] in selected_ids]
+    fp = sum(1 for row in rows if row[&quot;snapshot_id&quot;] in selected_ids and row[&quot;actual&quot;] == 0)
+    fn = sum(1 for row in rows if row[&quot;snapshot_id&quot;] not in selected_ids and row[&quot;actual&quot;] == 1)
+    tp = sum(1 for row in rows if row[&quot;snapshot_id&quot;] in selected_ids and row[&quot;actual&quot;] == 1)
+    total_cost = rounded(fp * false_positive_cost + fn * false_negative_cost)
+    return {
+        &quot;action_count&quot;: len(selected_ordered),
+        &quot;tp&quot;: tp,
+        &quot;fp&quot;: fp,
+        &quot;fn&quot;: fn,
+        &quot;total_error_cost&quot;: total_cost,
+        &quot;selected_ids&quot;: &quot;,&quot;.join(selected_ordered),
+        &quot;false_positive_ids&quot;: &quot;,&quot;.join(row[&quot;snapshot_id&quot;] for row in rows if row[&quot;snapshot_id&quot;] in selected_ids and row[&quot;actual&quot;] == 0),
+        &quot;false_negative_ids&quot;: &quot;,&quot;.join(row[&quot;snapshot_id&quot;] for row in rows if row[&quot;snapshot_id&quot;] not in selected_ids and row[&quot;actual&quot;] == 1),
+    }
+
+
+def catboost_params_for_trial(policy: dict[str, Any], trial: optuna.trial.Trial) -&gt; dict[str, Any]:
+    params = dict(policy[&quot;fixed_catboost_params&quot;])
+    for name, spec in policy[&quot;search_space&quot;].items():
+        if spec[&quot;type&quot;] != &quot;categorical&quot;:
+            raise OptunaTuningAuditError(f&quot;Unsupported search-space type for {name}: {spec[&#x27;type&#x27;]}&quot;)
+        params[name] = trial.suggest_categorical(name, spec[&quot;values&quot;])
+    return params
+
+
+def fit_model(
+    *,
+    policy: dict[str, Any],
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    params: dict[str, Any],
+) -&gt; CatBoostClassifier:
+    categorical_features = list(policy[&quot;feature_contract&quot;][&quot;categorical_features&quot;])
+    fit_mask = frame[&quot;split&quot;] == policy[&quot;fit_split&quot;]
+    objective_mask = frame[&quot;split&quot;] == policy[&quot;objective_split&quot;]
+    model = CatBoostClassifier(**params)
+    model.fit(
+        Pool(matrix.loc[fit_mask], label=frame.loc[fit_mask, &quot;target&quot;].astype(int), cat_features=categorical_features),
+        eval_set=Pool(
+            matrix.loc[objective_mask],
+            label=frame.loc[objective_mask, &quot;target&quot;].astype(int),
+            cat_features=categorical_features,
+        ),
+    )
+    return model
+
+
+def run_study(*, policy: dict[str, Any], frame: pd.DataFrame, matrix: pd.DataFrame) -&gt; tuple[optuna.study.Study, list[dict[str, Any]]]:
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    search_space = {name: spec[&quot;values&quot;] for name, spec in policy[&quot;search_space&quot;].items()}
+    sampler = optuna.samplers.GridSampler(search_space, seed=int(policy[&quot;study&quot;][&quot;sampler&quot;][&quot;seed&quot;]))
+    pruner = optuna.pruners.NopPruner()
+    study = optuna.create_study(
+        study_name=policy[&quot;study&quot;][&quot;study_name&quot;],
+        direction=policy[&quot;study&quot;][&quot;direction&quot;],
+        sampler=sampler,
+        pruner=pruner,
+    )
+    cost_policy = policy[&quot;cost_policy&quot;]
+    objective_mask = frame[&quot;split&quot;] == policy[&quot;objective_split&quot;]
+    objective_ids = frame.loc[objective_mask, &quot;snapshot_id&quot;].tolist()
+    objective_actual = frame.loc[objective_mask, &quot;target&quot;].astype(int).tolist()
+
+    def objective(trial: optuna.trial.Trial) -&gt; float:
+        params = catboost_params_for_trial(policy, trial)
+        model = fit_model(policy=policy, frame=frame, matrix=matrix, params=params)
+        probabilities = model.predict_proba(
+            Pool(matrix.loc[objective_mask], cat_features=policy[&quot;feature_contract&quot;][&quot;categorical_features&quot;])
+        )[:, 1]
+        objective_value = float(log_loss(objective_actual, probabilities, labels=[0, 1]))
+        top_k = selection_metrics(
+            snapshot_ids=objective_ids,
+            scores=probabilities.tolist(),
+            actual=objective_actual,
+            max_actions=int(cost_policy[&quot;max_actions&quot;]),
+            false_positive_cost=float(cost_policy[&quot;false_positive_cost&quot;]),
+            false_negative_cost=float(cost_policy[&quot;false_negative_cost&quot;]),
+        )
+        fixed_threshold = selection_metrics(
+            snapshot_ids=objective_ids,
+            scores=probabilities.tolist(),
+            actual=objective_actual,
+            max_actions=int(cost_policy[&quot;max_actions&quot;]),
+            false_positive_cost=float(cost_policy[&quot;false_positive_cost&quot;]),
+            false_negative_cost=float(cost_policy[&quot;false_negative_cost&quot;]),
+            threshold=0.5,
+        )
+        trial.set_user_attr(&quot;fit_split&quot;, policy[&quot;fit_split&quot;])
+        trial.set_user_attr(&quot;objective_split&quot;, policy[&quot;objective_split&quot;])
+        trial.set_user_attr(&quot;final_holdout_used_for_objective&quot;, False)
+        trial.set_user_attr(&quot;validation_top_k_total_error_cost&quot;, top_k[&quot;total_error_cost&quot;])
+        trial.set_user_attr(&quot;validation_top_k_selected_ids&quot;, top_k[&quot;selected_ids&quot;])
+        trial.set_user_attr(&quot;validation_top_k_false_negative_ids&quot;, top_k[&quot;false_negative_ids&quot;])
+        trial.set_user_attr(&quot;validation_fixed_threshold_0_5_total_error_cost&quot;, fixed_threshold[&quot;total_error_cost&quot;])
+        trial.set_user_attr(&quot;tree_count&quot;, int(model.tree_count_))
+        trial.set_user_attr(&quot;best_iteration&quot;, model.get_best_iteration())
+        return objective_value
+
+    study.optimize(objective, n_trials=int(policy[&quot;study&quot;][&quot;n_trials&quot;]))
+    return study, trial_ledger(policy=policy, study=study)
+
+
+def trial_ledger(*, policy: dict[str, Any], study: optuna.study.Study) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for trial in sorted(study.trials, key=lambda item: item.number):
+        row = {
+            &quot;study_name&quot;: policy[&quot;study&quot;][&quot;study_name&quot;],
+            &quot;trial_number&quot;: trial.number,
+            &quot;state&quot;: trial.state.name,
+            &quot;objective_metric&quot;: policy[&quot;study&quot;][&quot;objective_metric&quot;],
+            &quot;objective_value&quot;: rounded(trial.value),
+            &quot;direction&quot;: policy[&quot;study&quot;][&quot;direction&quot;],
+            &quot;fit_split&quot;: trial.user_attrs.get(&quot;fit_split&quot;),
+            &quot;objective_split&quot;: trial.user_attrs.get(&quot;objective_split&quot;),
+            &quot;final_holdout_used_for_objective&quot;: trial.user_attrs.get(&quot;final_holdout_used_for_objective&quot;),
+            &quot;validation_top_k_total_error_cost&quot;: trial.user_attrs.get(&quot;validation_top_k_total_error_cost&quot;),
+            &quot;validation_top_k_selected_ids&quot;: trial.user_attrs.get(&quot;validation_top_k_selected_ids&quot;),
+            &quot;validation_top_k_false_negative_ids&quot;: trial.user_attrs.get(&quot;validation_top_k_false_negative_ids&quot;),
+            &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: trial.user_attrs.get(&quot;validation_fixed_threshold_0_5_total_error_cost&quot;),
+            &quot;tree_count&quot;: trial.user_attrs.get(&quot;tree_count&quot;),
+            &quot;best_iteration&quot;: trial.user_attrs.get(&quot;best_iteration&quot;),
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        for name in policy[&quot;search_space&quot;]:
+            row[name] = trial.params.get(name)
+        rows.append(row)
+    best_number = study.best_trial.number
+    for row in rows:
+        row[&quot;is_best_trial&quot;] = row[&quot;trial_number&quot;] == best_number
+    return rows
+
+
+def build_predictions(
+    *,
+    policy: dict[str, Any],
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    best_params: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    model = fit_model(policy=policy, frame=frame, matrix=matrix, params=best_params)
+    probabilities = model.predict_proba(Pool(matrix, cat_features=policy[&quot;feature_contract&quot;][&quot;categorical_features&quot;]))[:, 1]
+    rows: list[dict[str, Any]] = []
+    for row, score in zip(frame.to_dict(&quot;records&quot;), probabilities, strict=True):
+        split = row[&quot;split&quot;]
+        rows.append(
+            {
+                &quot;model_id&quot;: policy[&quot;tuned_candidate_model_id&quot;],
+                &quot;split&quot;: split,
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;score&quot;: rounded(float(score)),
+                &quot;actual_label&quot;: int(row[&quot;target&quot;]),
+                &quot;used_for_fit&quot;: split == policy[&quot;fit_split&quot;],
+                &quot;used_for_objective&quot;: split == policy[&quot;objective_split&quot;],
+                &quot;used_for_final_holdout_reporting&quot;: split == policy[&quot;final_holdout_split&quot;],
+                &quot;test_used_for_best_trial_selection&quot;: False,
+                &quot;generated_at&quot;: GENERATED_AT,
+            }
+        )
+    return rows
+
+
+def build_search_space_audit(policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for name, spec in policy[&quot;search_space&quot;].items():
+        rows.append(
+            {
+                &quot;parameter&quot;: name,
+                &quot;type&quot;: spec[&quot;type&quot;],
+                &quot;values&quot;: spec[&quot;values&quot;],
+                &quot;value_count&quot;: len(spec[&quot;values&quot;]),
+                &quot;declared_before_study&quot;: True,
+                &quot;hidden_search&quot;: False,
+            }
+        )
+    rows.append(
+        {
+            &quot;parameter&quot;: &quot;__grid__&quot;,
+            &quot;type&quot;: &quot;cartesian_product&quot;,
+            &quot;values&quot;: list(policy[&quot;search_space&quot;]),
+            &quot;value_count&quot;: search_space_grid_size(policy[&quot;search_space&quot;]),
+            &quot;declared_before_study&quot;: True,
+            &quot;hidden_search&quot;: False,
+        }
+    )
+    return rows
+
+
+def build_objective_audit(policy: dict[str, Any], frame: pd.DataFrame) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for split in (&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;):
+        ids = split_ids(frame, split)
+        rows.append(
+            {
+                &quot;split&quot;: split,
+                &quot;snapshot_ids&quot;: &quot;,&quot;.join(ids),
+                &quot;row_count&quot;: len(ids),
+                &quot;used_for_fit&quot;: split == policy[&quot;fit_split&quot;],
+                &quot;used_for_objective&quot;: split == policy[&quot;objective_split&quot;],
+                &quot;used_for_best_trial_selection&quot;: split == policy[&quot;objective_split&quot;],
+                &quot;used_after_selection_for_reporting&quot;: split == policy[&quot;final_holdout_split&quot;],
+                &quot;allowed_role&quot;: &quot;fit&quot; if split == policy[&quot;fit_split&quot;] else (&quot;objective&quot; if split == policy[&quot;objective_split&quot;] else &quot;final_holdout_after_selection&quot;),
+            }
+        )
+    return rows
+
+
+def build_best_trial_trace(
+    *,
+    policy: dict[str, Any],
+    ledger: list[dict[str, Any]],
+    early_report: dict[str, Any],
+    cost_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    best = next(row for row in ledger if row[&quot;is_best_trial&quot;])
+    cost_summary = cost_report[&quot;summary&quot;]
+    return [
+        {
+            &quot;trace_role&quot;: &quot;source_early_stopped_catboost&quot;,
+            &quot;model_id&quot;: policy[&quot;source_candidate_model_id&quot;],
+            &quot;trial_number&quot;: &quot;&quot;,
+            &quot;validation_logloss&quot;: early_report[&quot;summary&quot;][&quot;best_validation_logloss&quot;],
+            &quot;validation_top_k_total_error_cost&quot;: cost_summary[&quot;catboost_top_k_total_error_cost&quot;],
+            &quot;validation_top_k_selected_ids&quot;: cost_summary[&quot;catboost_top_k_selected_ids&quot;],
+            &quot;depth&quot;: 2,
+            &quot;learning_rate&quot;: 0.2,
+            &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+            &quot;test_used_for_selection&quot;: False,
+        },
+        {
+            &quot;trace_role&quot;: &quot;best_optuna_trial&quot;,
+            &quot;model_id&quot;: policy[&quot;tuned_candidate_model_id&quot;],
+            &quot;trial_number&quot;: best[&quot;trial_number&quot;],
+            &quot;validation_logloss&quot;: best[&quot;objective_value&quot;],
+            &quot;validation_top_k_total_error_cost&quot;: best[&quot;validation_top_k_total_error_cost&quot;],
+            &quot;validation_top_k_selected_ids&quot;: best[&quot;validation_top_k_selected_ids&quot;],
+            &quot;depth&quot;: best[&quot;depth&quot;],
+            &quot;learning_rate&quot;: best[&quot;learning_rate&quot;],
+            &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+            &quot;test_used_for_selection&quot;: False,
+        },
+        {
+            &quot;trace_role&quot;: &quot;calibrated_phase15_baseline_cost_gate&quot;,
+            &quot;model_id&quot;: policy[&quot;baseline_package_id&quot;],
+            &quot;trial_number&quot;: &quot;&quot;,
+            &quot;validation_logloss&quot;: &quot;&quot;,
+            &quot;validation_top_k_total_error_cost&quot;: cost_summary[&quot;baseline_top_k_total_error_cost&quot;],
+            &quot;validation_top_k_selected_ids&quot;: cost_summary[&quot;baseline_top_k_selected_ids&quot;],
+            &quot;depth&quot;: &quot;&quot;,
+            &quot;learning_rate&quot;: &quot;&quot;,
+            &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+            &quot;test_used_for_selection&quot;: False,
+        },
+    ]
+
+
+def add_result_checks(
+    *,
+    checks: list[dict[str, Any]],
+    policy: dict[str, Any],
+    ledger: list[dict[str, Any]],
+    predictions: list[dict[str, Any]],
+    best_trial_trace: list[dict[str, Any]],
+    cost_report: dict[str, Any],
+) -&gt; None:
+    expected_trials = int(policy[&quot;study&quot;][&quot;n_trials&quot;])
+    complete_count = len([row for row in ledger if row[&quot;state&quot;] == &quot;COMPLETE&quot;])
+    if len(ledger) == expected_trials and complete_count == expected_trials and len([row for row in ledger if row[&quot;is_best_trial&quot;]]) == 1:
+        checks.append(passed(&quot;trial_ledger_contains_all_trials&quot;, {&quot;row_count&quot;: len(ledger), &quot;complete_count&quot;: complete_count}, {&quot;row_count&quot;: expected_trials, &quot;complete_count&quot;: expected_trials}))
+    else:
+        checks.append(failed(&quot;trial_ledger_contains_all_trials&quot;, {&quot;row_count&quot;: len(ledger), &quot;complete_count&quot;: complete_count}, {&quot;row_count&quot;: expected_trials, &quot;complete_count&quot;: expected_trials}))
+
+    if not any(row[&quot;final_holdout_used_for_objective&quot;] for row in ledger):
+        checks.append(passed(&quot;final_holdout_not_used_for_objective&quot;, False, False))
+    else:
+        checks.append(failed(&quot;final_holdout_not_used_for_objective&quot;, True, False))
+
+    best = next(row for row in ledger if row[&quot;is_best_trial&quot;])
+    minimum = min(float(row[&quot;objective_value&quot;]) for row in ledger)
+    if float(best[&quot;objective_value&quot;]) == minimum:
+        checks.append(passed(&quot;best_trial_matches_min_validation_objective&quot;, {&quot;best_trial&quot;: best[&quot;trial_number&quot;], &quot;best_value&quot;: best[&quot;objective_value&quot;]}, &quot;minimum objective value&quot;))
+    else:
+        checks.append(failed(&quot;best_trial_matches_min_validation_objective&quot;, {&quot;best_trial&quot;: best[&quot;trial_number&quot;], &quot;best_value&quot;: best[&quot;objective_value&quot;], &quot;minimum&quot;: minimum}, &quot;minimum objective value&quot;))
+
+    test_prediction_rows = [row for row in predictions if row[&quot;split&quot;] == policy[&quot;final_holdout_split&quot;]]
+    if test_prediction_rows and not any(row[&quot;used_for_objective&quot;] or row[&quot;test_used_for_best_trial_selection&quot;] for row in test_prediction_rows):
+        checks.append(passed(&quot;test_predictions_are_after_selection_only&quot;, len(test_prediction_rows), &quot;test rows scored but not used for objective&quot;))
+    else:
+        checks.append(failed(&quot;test_predictions_are_after_selection_only&quot;, test_prediction_rows, &quot;test rows scored but not used for objective&quot;))
+
+    if float(best_trial_trace[1][&quot;validation_logloss&quot;]) &lt; float(best_trial_trace[0][&quot;validation_logloss&quot;]):
+        checks.append(passed(&quot;best_trial_improves_validation_logloss&quot;, {&quot;source&quot;: best_trial_trace[0][&quot;validation_logloss&quot;], &quot;best&quot;: best_trial_trace[1][&quot;validation_logloss&quot;]}, &quot;best Optuna value &lt; source value&quot;))
+    else:
+        checks.append(failed(&quot;best_trial_improves_validation_logloss&quot;, {&quot;source&quot;: best_trial_trace[0][&quot;validation_logloss&quot;], &quot;best&quot;: best_trial_trace[1][&quot;validation_logloss&quot;]}, &quot;best Optuna value &lt; source value&quot;, severity=&quot;warning&quot;))
+
+    if policy[&quot;warning_policy&quot;][&quot;warn_on_tiny_trial_budget&quot;]:
+        checks.append(
+            failed(
+                &quot;tiny_fixed_budget_study_expected&quot;,
+                {&quot;n_trials&quot;: expected_trials, &quot;grid_size&quot;: search_space_grid_size(policy[&quot;search_space&quot;])},
+                &quot;production tuning would use a larger predeclared budget&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    if policy[&quot;warning_policy&quot;][&quot;warn_if_upstream_candidate_not_promoted&quot;] and cost_report[&quot;summary&quot;][&quot;decision_status&quot;] != &quot;promote_catboost_candidate_for_review&quot;:
+        checks.append(
+            failed(
+                &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+                cost_report[&quot;summary&quot;][&quot;decision_status&quot;],
+                &quot;upstream candidate promoted before tuning&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    best_cost = float(best[&quot;validation_top_k_total_error_cost&quot;])
+    baseline_cost = float(cost_report[&quot;summary&quot;][&quot;baseline_top_k_total_error_cost&quot;])
+    if policy[&quot;warning_policy&quot;][&quot;warn_if_best_trial_cost_not_better_than_baseline_cost&quot;] and best_cost &gt; baseline_cost:
+        checks.append(
+            failed(
+                &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+                {
+                    &quot;best_trial_validation_top_k_cost&quot;: best_cost,
+                    &quot;baseline_validation_top_k_cost&quot;: baseline_cost,
+                },
+                &quot;best trial cost &lt;= baseline cost&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    if policy[&quot;warning_policy&quot;][&quot;require_no_test_objective_boundary&quot;]:
+        checks.append(
+            failed(
+                &quot;no_test_objective_boundary_visible&quot;,
+                &quot;objective split is validation; final holdout is scored only after best trial selection&quot;,
+                &quot;report must not optimize on test&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+
+def build_serialized_spec(
+    *,
+    policy: dict[str, Any],
+    ledger: list[dict[str, Any]],
+    best_trial_trace: list[dict[str, Any]],
+    early_report: dict[str, Any],
+    cost_report: dict[str, Any],
+) -&gt; dict[str, Any]:
+    best = next(row for row in ledger if row[&quot;is_best_trial&quot;])
+    return {
+        &quot;optuna_tuning_audit_id&quot;: policy[&quot;optuna_tuning_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;source_candidate_model_id&quot;: policy[&quot;source_candidate_model_id&quot;],
+        &quot;tuned_candidate_model_id&quot;: policy[&quot;tuned_candidate_model_id&quot;],
+        &quot;fit_split&quot;: policy[&quot;fit_split&quot;],
+        &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+        &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+        &quot;study&quot;: policy[&quot;study&quot;],
+        &quot;search_space&quot;: policy[&quot;search_space&quot;],
+        &quot;fixed_catboost_params&quot;: policy[&quot;fixed_catboost_params&quot;],
+        &quot;best_trial&quot;: {
+            &quot;trial_number&quot;: best[&quot;trial_number&quot;],
+            &quot;objective_value&quot;: best[&quot;objective_value&quot;],
+            &quot;depth&quot;: best[&quot;depth&quot;],
+            &quot;learning_rate&quot;: best[&quot;learning_rate&quot;],
+            &quot;validation_top_k_total_error_cost&quot;: best[&quot;validation_top_k_total_error_cost&quot;],
+            &quot;validation_top_k_selected_ids&quot;: best[&quot;validation_top_k_selected_ids&quot;],
+        },
+        &quot;best_trial_trace&quot;: best_trial_trace,
+        &quot;upstream_handoff&quot;: {
+            &quot;early_stopping_audit_id&quot;: early_report[&quot;summary&quot;][&quot;early_stopping_audit_id&quot;],
+            &quot;early_stopping_readiness_status&quot;: early_report[&quot;summary&quot;][&quot;readiness_status&quot;],
+            &quot;cost_sensitive_decision_audit_id&quot;: cost_report[&quot;summary&quot;][&quot;cost_sensitive_decision_audit_id&quot;],
+            &quot;cost_sensitive_readiness_status&quot;: cost_report[&quot;summary&quot;][&quot;readiness_status&quot;],
+            &quot;cost_sensitive_decision_status&quot;: cost_report[&quot;summary&quot;][&quot;decision_status&quot;],
+        },
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+
+def build_summary(
+    *,
+    policy: dict[str, Any],
+    ledger: list[dict[str, Any]],
+    best_trial_trace: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+    cost_report: dict[str, Any],
+) -&gt; dict[str, Any]:
+    best = next(row for row in ledger if row[&quot;is_best_trial&quot;])
+    errors = blocking_errors(checks)
+    return {
+        &quot;optuna_tuning_audit_id&quot;: policy[&quot;optuna_tuning_audit_id&quot;],
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;optuna_version&quot;: optuna.__version__,
+        &quot;catboost_version&quot;: catboost.__version__,
+        &quot;study_name&quot;: policy[&quot;study&quot;][&quot;study_name&quot;],
+        &quot;sampler&quot;: policy[&quot;study&quot;][&quot;sampler&quot;][&quot;name&quot;],
+        &quot;sampler_seed&quot;: policy[&quot;study&quot;][&quot;sampler&quot;][&quot;seed&quot;],
+        &quot;n_trials&quot;: policy[&quot;study&quot;][&quot;n_trials&quot;],
+        &quot;complete_trial_count&quot;: len([row for row in ledger if row[&quot;state&quot;] == &quot;COMPLETE&quot;]),
+        &quot;fit_split&quot;: policy[&quot;fit_split&quot;],
+        &quot;objective_split&quot;: policy[&quot;objective_split&quot;],
+        &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+        &quot;test_used_for_objective&quot;: any(row[&quot;final_holdout_used_for_objective&quot;] for row in ledger),
+        &quot;source_validation_logloss&quot;: best_trial_trace[0][&quot;validation_logloss&quot;],
+        &quot;best_trial_number&quot;: best[&quot;trial_number&quot;],
+        &quot;best_validation_logloss&quot;: best[&quot;objective_value&quot;],
+        &quot;best_depth&quot;: best[&quot;depth&quot;],
+        &quot;best_learning_rate&quot;: best[&quot;learning_rate&quot;],
+        &quot;source_catboost_validation_top_k_cost&quot;: cost_report[&quot;summary&quot;][&quot;catboost_top_k_total_error_cost&quot;],
+        &quot;best_trial_validation_top_k_cost&quot;: best[&quot;validation_top_k_total_error_cost&quot;],
+        &quot;baseline_validation_top_k_cost&quot;: cost_report[&quot;summary&quot;][&quot;baseline_top_k_total_error_cost&quot;],
+        &quot;best_trial_validation_top_k_selected_ids&quot;: best[&quot;validation_top_k_selected_ids&quot;],
+        &quot;objective_improved_vs_source&quot;: float(best[&quot;objective_value&quot;]) &lt; float(best_trial_trace[0][&quot;validation_logloss&quot;]),
+        &quot;cost_gate_still_fails_vs_baseline&quot;: float(best[&quot;validation_top_k_total_error_cost&quot;]) &gt; float(cost_report[&quot;summary&quot;][&quot;baseline_top_k_total_error_cost&quot;]),
+        &quot;decision_status&quot;: policy[&quot;decision_policy&quot;][&quot;outcome_if_valid&quot;] if not errors else &quot;blocked_before_optuna_tuning&quot;,
+        &quot;blocking_errors&quot;: errors,
+        &quot;warnings&quot;: warning_ids(checks),
+        &quot;readiness_status&quot;: &quot;blocked_before_optuna_tuning&quot; if errors else policy[&quot;decision_policy&quot;][&quot;next_lesson_readiness&quot;],
+    }
+
+
+def empty_invalid_report(file_check: dict[str, Any]) -&gt; dict[str, Any]:
+    return {
+        &quot;valid&quot;: False,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;optuna_tuning_audit_id&quot;: None,
+            &quot;blocking_errors&quot;: blocking_errors([file_check]),
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_before_optuna_tuning&quot;,
+        },
+        &quot;trial_ledger&quot;: [],
+        &quot;best_trial_trace&quot;: [],
+        &quot;predictions&quot;: [],
+        &quot;search_space_audit&quot;: [],
+        &quot;objective_audit&quot;: [],
+        &quot;checks&quot;: [file_check],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    early_stopping_report_path: Path = DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    early_stopping_spec_path: Path = DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    cost_report_path: Path = DEFAULT_COST_REPORT_PATH,
+    cost_spec_path: Path = DEFAULT_COST_SPEC_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+) -&gt; dict[str, Any]:
+    paths = {
+        &quot;policy&quot;: policy_path,
+        &quot;catboost_spec&quot;: catboost_spec_path,
+        &quot;early_stopping_report&quot;: early_stopping_report_path,
+        &quot;early_stopping_spec&quot;: early_stopping_spec_path,
+        &quot;cost_report&quot;: cost_report_path,
+        &quot;cost_spec&quot;: cost_spec_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+    }
+    file_check = validate_required_files(paths)
+    if not file_check[&quot;valid&quot;]:
+        return empty_invalid_report(file_check)
+
+    policy = read_json(policy_path)
+    catboost_spec = read_json(catboost_spec_path)
+    early_report = read_json(early_stopping_report_path)
+    early_spec = read_json(early_stopping_spec_path)
+    cost_report = read_json(cost_report_path)
+    cost_spec = read_json(cost_spec_path)
+    checks = [file_check]
+    checks.extend(
+        validate_policy(
+            policy=policy,
+            catboost_spec=catboost_spec,
+            early_report=early_report,
+            early_spec=early_spec,
+            cost_report=cost_report,
+            cost_spec=cost_spec,
+        )
+    )
+    if blocking_errors(checks):
+        return {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;optuna_tuning_audit_id&quot;: policy.get(&quot;optuna_tuning_audit_id&quot;),
+                &quot;blocking_errors&quot;: blocking_errors(checks),
+                &quot;warnings&quot;: warning_ids(checks),
+                &quot;readiness_status&quot;: &quot;blocked_before_optuna_tuning&quot;,
+            },
+            &quot;trial_ledger&quot;: [],
+            &quot;best_trial_trace&quot;: [],
+            &quot;predictions&quot;: [],
+            &quot;search_space_audit&quot;: build_search_space_audit(policy) if &quot;search_space&quot; in policy else [],
+            &quot;objective_audit&quot;: [],
+            &quot;checks&quot;: checks,
+            &quot;serialized_spec&quot;: {},
+        }
+
+    frame = joined_frame(features_path, labels_path, manifest_path)
+    matrix = prepare_features(frame, policy)
+    study, ledger = run_study(policy=policy, frame=frame, matrix=matrix)
+    best_params = dict(policy[&quot;fixed_catboost_params&quot;])
+    best_params.update(study.best_trial.params)
+    predictions = build_predictions(policy=policy, frame=frame, matrix=matrix, best_params=best_params)
+    search_space_audit = build_search_space_audit(policy)
+    objective_audit = build_objective_audit(policy, frame)
+    best_trial_trace = build_best_trial_trace(
+        policy=policy,
+        ledger=ledger,
+        early_report=early_report,
+        cost_report=cost_report,
+    )
+    add_result_checks(
+        checks=checks,
+        policy=policy,
+        ledger=ledger,
+        predictions=predictions,
+        best_trial_trace=best_trial_trace,
+        cost_report=cost_report,
+    )
+    serialized_spec = build_serialized_spec(
+        policy=policy,
+        ledger=ledger,
+        best_trial_trace=best_trial_trace,
+        early_report=early_report,
+        cost_report=cost_report,
+    )
+    summary = build_summary(
+        policy=policy,
+        ledger=ledger,
+        best_trial_trace=best_trial_trace,
+        checks=checks,
+        cost_report=cost_report,
+    )
+    return {
+        &quot;valid&quot;: not blocking_errors(checks),
+        &quot;problem_id&quot;: policy[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;trial_ledger&quot;: ledger,
+        &quot;best_trial_trace&quot;: best_trial_trace,
+        &quot;predictions&quot;: predictions,
+        &quot;search_space_audit&quot;: search_space_audit,
+        &quot;objective_audit&quot;: objective_audit,
+        &quot;checks&quot;: checks,
+        &quot;serialized_spec&quot;: serialized_spec,
+    }
+
+
+def write_outputs(result: dict[str, Any], output_root: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_root / output_spec[&quot;report_file&quot;], {key: value for key, value in result.items() if key != &quot;serialized_spec&quot;})
+    write_json(output_root / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+    write_csv(
+        output_root / output_spec[&quot;trial_ledger_file&quot;],
+        result[&quot;trial_ledger&quot;],
+        [
+            &quot;study_name&quot;,
+            &quot;trial_number&quot;,
+            &quot;state&quot;,
+            &quot;is_best_trial&quot;,
+            &quot;objective_metric&quot;,
+            &quot;objective_value&quot;,
+            &quot;direction&quot;,
+            &quot;depth&quot;,
+            &quot;learning_rate&quot;,
+            &quot;fit_split&quot;,
+            &quot;objective_split&quot;,
+            &quot;final_holdout_used_for_objective&quot;,
+            &quot;validation_top_k_total_error_cost&quot;,
+            &quot;validation_top_k_selected_ids&quot;,
+            &quot;validation_top_k_false_negative_ids&quot;,
+            &quot;validation_fixed_threshold_0_5_total_error_cost&quot;,
+            &quot;tree_count&quot;,
+            &quot;best_iteration&quot;,
+            &quot;generated_at&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;best_trial_trace_file&quot;],
+        result[&quot;best_trial_trace&quot;],
+        [
+            &quot;trace_role&quot;,
+            &quot;model_id&quot;,
+            &quot;trial_number&quot;,
+            &quot;validation_logloss&quot;,
+            &quot;validation_top_k_total_error_cost&quot;,
+            &quot;validation_top_k_selected_ids&quot;,
+            &quot;depth&quot;,
+            &quot;learning_rate&quot;,
+            &quot;objective_split&quot;,
+            &quot;test_used_for_selection&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;prediction_file&quot;],
+        result[&quot;predictions&quot;],
+        [
+            &quot;model_id&quot;,
+            &quot;split&quot;,
+            &quot;snapshot_id&quot;,
+            &quot;score&quot;,
+            &quot;actual_label&quot;,
+            &quot;used_for_fit&quot;,
+            &quot;used_for_objective&quot;,
+            &quot;used_for_final_holdout_reporting&quot;,
+            &quot;test_used_for_best_trial_selection&quot;,
+            &quot;generated_at&quot;,
+        ],
+    )
+    write_csv(
+        output_root / output_spec[&quot;search_space_audit_file&quot;],
+        result[&quot;search_space_audit&quot;],
+        [&quot;parameter&quot;, &quot;type&quot;, &quot;values&quot;, &quot;value_count&quot;, &quot;declared_before_study&quot;, &quot;hidden_search&quot;],
+    )
+    write_csv(
+        output_root / output_spec[&quot;objective_audit_file&quot;],
+        result[&quot;objective_audit&quot;],
+        [
+            &quot;split&quot;,
+            &quot;snapshot_ids&quot;,
+            &quot;row_count&quot;,
+            &quot;used_for_fit&quot;,
+            &quot;used_for_objective&quot;,
+            &quot;used_for_best_trial_selection&quot;,
+            &quot;used_after_selection_for_reporting&quot;,
+            &quot;allowed_role&quot;,
+        ],
+    )
+
+
+def main() -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Run and audit a fixed-budget Optuna study for the CatBoost candidate.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--early-stopping-report&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_REPORT_PATH)
+    parser.add_argument(&quot;--early-stopping-spec&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_SPEC_PATH)
+    parser.add_argument(&quot;--cost-report&quot;, type=Path, default=DEFAULT_COST_REPORT_PATH)
+    parser.add_argument(&quot;--cost-spec&quot;, type=Path, default=DEFAULT_COST_SPEC_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--output-root&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    args = parser.parse_args()
+
+    result = run(
+        policy_path=args.policy,
+        catboost_spec_path=args.catboost_spec,
+        early_stopping_report_path=args.early_stopping_report,
+        early_stopping_spec_path=args.early_stopping_spec,
+        cost_report_path=args.cost_report,
+        cost_spec_path=args.cost_spec,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+    )
+    output_spec = read_json(args.policy)[&quot;output&quot;] if args.policy.is_file() else {
+        &quot;report_file&quot;: &quot;optuna_tuning_report.json&quot;,
+        &quot;trial_ledger_file&quot;: &quot;optuna_trial_ledger.csv&quot;,
+        &quot;best_trial_trace_file&quot;: &quot;optuna_best_trial_trace.csv&quot;,
+        &quot;prediction_file&quot;: &quot;optuna_tuned_predictions.csv&quot;,
+        &quot;search_space_audit_file&quot;: &quot;optuna_search_space_audit.csv&quot;,
+        &quot;objective_audit_file&quot;: &quot;optuna_objective_audit.csv&quot;,
+        &quot;serialized_spec_file&quot;: &quot;optuna_tuning_serialized_spec.json&quot;,
+    }
+    write_outputs(result, args.output_root, output_spec)
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_tuning_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;optuna_version&quot;: &quot;4.9.0&quot;,
+    &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+    &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+    &quot;sampler&quot;: &quot;GridSampler&quot;,
+    &quot;sampler_seed&quot;: 1609,
+    &quot;n_trials&quot;: 6,
+    &quot;complete_trial_count&quot;: 6,
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;objective_split&quot;: &quot;validation&quot;,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;test_used_for_objective&quot;: false,
+    &quot;source_validation_logloss&quot;: 0.698394,
+    &quot;best_trial_number&quot;: 4,
+    &quot;best_validation_logloss&quot;: 0.696531,
+    &quot;best_depth&quot;: 2,
+    &quot;best_learning_rate&quot;: 0.05,
+    &quot;source_catboost_validation_top_k_cost&quot;: 7.0,
+    &quot;best_trial_validation_top_k_cost&quot;: 7.0,
+    &quot;baseline_validation_top_k_cost&quot;: 1.0,
+    &quot;best_trial_validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+    &quot;objective_improved_vs_source&quot;: true,
+    &quot;cost_gate_still_fails_vs_baseline&quot;: true,
+    &quot;decision_status&quot;: &quot;tuned_candidate_ready_for_mlflow_tracking&quot;,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;tiny_fixed_budget_study_expected&quot;,
+      &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+      &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+      &quot;no_test_objective_boundary_visible&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_mlflow_lesson&quot;
+  },
+  &quot;trial_ledger&quot;: [
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 0,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.698842,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 1,
+      &quot;learning_rate&quot;: 0.05,
+      &quot;is_best_trial&quot;: false
+    },
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 1,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.71759,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 1,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;is_best_trial&quot;: false
+    },
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 2,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.70728,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;is_best_trial&quot;: false
+    },
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 3,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.746454,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 1,
+      &quot;learning_rate&quot;: 0.4,
+      &quot;is_best_trial&quot;: false
+    },
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 4,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.696531,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.05,
+      &quot;is_best_trial&quot;: true
+    },
+    {
+      &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+      &quot;trial_number&quot;: 5,
+      &quot;state&quot;: &quot;COMPLETE&quot;,
+      &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+      &quot;objective_value&quot;: 0.72301,
+      &quot;direction&quot;: &quot;minimize&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;final_holdout_used_for_objective&quot;: false,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;validation_top_k_false_negative_ids&quot;: &quot;S006&quot;,
+      &quot;validation_fixed_threshold_0_5_total_error_cost&quot;: 6.0,
+      &quot;tree_count&quot;: 1,
+      &quot;best_iteration&quot;: 0,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.4,
+      &quot;is_best_trial&quot;: false
+    }
+  ],
+  &quot;best_trial_trace&quot;: [
+    {
+      &quot;trace_role&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;trial_number&quot;: &quot;&quot;,
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    },
+    {
+      &quot;trace_role&quot;: &quot;best_optuna_trial&quot;,
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;trial_number&quot;: 4,
+      &quot;validation_logloss&quot;: 0.696531,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.05,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    },
+    {
+      &quot;trace_role&quot;: &quot;calibrated_phase15_baseline_cost_gate&quot;,
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;trial_number&quot;: &quot;&quot;,
+      &quot;validation_logloss&quot;: &quot;&quot;,
+      &quot;validation_top_k_total_error_cost&quot;: 1.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S006,S005&quot;,
+      &quot;depth&quot;: &quot;&quot;,
+      &quot;learning_rate&quot;: &quot;&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    }
+  ],
+  &quot;predictions&quot;: [
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_id&quot;: &quot;S001&quot;,
+      &quot;score&quot;: 0.505,
+      &quot;actual_label&quot;: 1,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_id&quot;: &quot;S002&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;score&quot;: 0.505,
+      &quot;actual_label&quot;: 1,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: true,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 1,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: true,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;score&quot;: 0.505,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: true,
+      &quot;used_for_final_holdout_reporting&quot;: false,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S009&quot;,
+      &quot;score&quot;: 0.505,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: true,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 1,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: true,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S011&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: true,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S012&quot;,
+      &quot;score&quot;: 0.505,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: true,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S013&quot;,
+      &quot;score&quot;: 0.495,
+      &quot;actual_label&quot;: 0,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_final_holdout_reporting&quot;: true,
+      &quot;test_used_for_best_trial_selection&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+    }
+  ],
+  &quot;search_space_audit&quot;: [
+    {
+      &quot;parameter&quot;: &quot;depth&quot;,
+      &quot;type&quot;: &quot;categorical&quot;,
+      &quot;values&quot;: [
+        1,
+        2
+      ],
+      &quot;value_count&quot;: 2,
+      &quot;declared_before_study&quot;: true,
+      &quot;hidden_search&quot;: false
+    },
+    {
+      &quot;parameter&quot;: &quot;learning_rate&quot;,
+      &quot;type&quot;: &quot;categorical&quot;,
+      &quot;values&quot;: [
+        0.05,
+        0.2,
+        0.4
+      ],
+      &quot;value_count&quot;: 3,
+      &quot;declared_before_study&quot;: true,
+      &quot;hidden_search&quot;: false
+    },
+    {
+      &quot;parameter&quot;: &quot;__grid__&quot;,
+      &quot;type&quot;: &quot;cartesian_product&quot;,
+      &quot;values&quot;: [
+        &quot;depth&quot;,
+        &quot;learning_rate&quot;
+      ],
+      &quot;value_count&quot;: 6,
+      &quot;declared_before_study&quot;: true,
+      &quot;hidden_search&quot;: false
+    }
+  ],
+  &quot;objective_audit&quot;: [
+    {
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_ids&quot;: &quot;S001,S002,S003,S004&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_best_trial_selection&quot;: false,
+      &quot;used_after_selection_for_reporting&quot;: false,
+      &quot;allowed_role&quot;: &quot;fit&quot;
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_ids&quot;: &quot;S005,S006,S007&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: true,
+      &quot;used_for_best_trial_selection&quot;: true,
+      &quot;used_after_selection_for_reporting&quot;: false,
+      &quot;allowed_role&quot;: &quot;objective&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_ids&quot;: &quot;S009,S010,S011,S012,S013&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_for_objective&quot;: false,
+      &quot;used_for_best_trial_selection&quot;: false,
+      &quot;used_after_selection_for_reporting&quot;: true,
+      &quot;allowed_role&quot;: &quot;final_holdout_after_selection&quot;
+    }
+  ],
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;catboost_spec&quot;,
+        &quot;cost_report&quot;,
+        &quot;cost_spec&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;early_stopping_spec&quot;,
+        &quot;features&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;,
+        &quot;policy&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;optuna_policy_has_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;baseline_package_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;cost_policy&quot;,
+        &quot;cost_sensitive_decision_audit_id&quot;,
+        &quot;decision_policy&quot;,
+        &quot;early_stopping_audit_id&quot;,
+        &quot;feature_contract&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;fit_split&quot;,
+        &quot;fixed_catboost_params&quot;,
+        &quot;objective_policy&quot;,
+        &quot;objective_split&quot;,
+        &quot;optuna_tuning_audit_id&quot;,
+        &quot;output&quot;,
+        &quot;problem_id&quot;,
+        &quot;search_space&quot;,
+        &quot;source_candidate_model_id&quot;,
+        &quot;study&quot;,
+        &quot;tuned_candidate_model_id&quot;,
+        &quot;warning_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;required policy fields&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;optuna_policy_matches_upstream_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+        &quot;source_candidate_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+        &quot;objective_split&quot;: &quot;validation&quot;
+      },
+      &quot;expected&quot;: &quot;same CatBoost, cost decision and split handoffs&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;objective_uses_validation_and_excludes_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;objective_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;
+      },
+      &quot;expected&quot;: &quot;train fit, validation objective, test invisible&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;study_declares_fixed_budget_seed_and_grid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;n_trials&quot;: 6,
+        &quot;sampler&quot;: &quot;GridSampler&quot;,
+        &quot;seed&quot;: 1609,
+        &quot;grid_size&quot;: 6
+      },
+      &quot;expected&quot;: &quot;fixed budget, reproducible seed and fully covered grid&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_contract_matches_catboost_spec&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;key&quot;: &quot;snapshot_id&quot;,
+        &quot;numeric_features&quot;: [
+          &quot;sessions_14d&quot;,
+          &quot;active_days_14d&quot;,
+          &quot;support_tickets_14d&quot;,
+          &quot;revenue_30d&quot;,
+          &quot;days_since_signup&quot;,
+          &quot;had_support_ticket_14d&quot;
+        ],
+        &quot;categorical_features&quot;: [
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;country&quot;,
+          &quot;acquisition_channel&quot;
+        ],
+        &quot;missing_category_token&quot;: &quot;__MISSING__&quot;
+      },
+      &quot;expected&quot;: &quot;same feature order and categorical policy&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;output_contract_names_all_artifacts&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;best_trial_trace_file&quot;,
+        &quot;objective_audit_file&quot;,
+        &quot;prediction_file&quot;,
+        &quot;report_file&quot;,
+        &quot;search_space_audit_file&quot;,
+        &quot;serialized_spec_file&quot;,
+        &quot;trial_ledger_file&quot;
+      ],
+      &quot;expected&quot;: &quot;all output filenames are declared&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;trial_ledger_contains_all_trials&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;row_count&quot;: 6,
+        &quot;complete_count&quot;: 6
+      },
+      &quot;expected&quot;: {
+        &quot;row_count&quot;: 6,
+        &quot;complete_count&quot;: 6
+      },
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;final_holdout_not_used_for_objective&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: false,
+      &quot;expected&quot;: false,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;best_trial_matches_min_validation_objective&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;best_trial&quot;: 4,
+        &quot;best_value&quot;: 0.696531
+      },
+      &quot;expected&quot;: &quot;minimum objective value&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;test_predictions_are_after_selection_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: &quot;test rows scored but not used for objective&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;best_trial_improves_validation_logloss&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;source&quot;: 0.698394,
+        &quot;best&quot;: 0.696531
+      },
+      &quot;expected&quot;: &quot;best Optuna value &lt; source value&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_fixed_budget_study_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;n_trials&quot;: 6,
+        &quot;grid_size&quot;: 6
+      },
+      &quot;expected&quot;: &quot;production tuning would use a larger predeclared budget&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_candidate_not_promoted_before_tuning&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;do_not_promote_catboost_candidate&quot;,
+      &quot;expected&quot;: &quot;upstream candidate promoted before tuning&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;best_trial_logloss_improves_but_cost_gate_still_fails&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;best_trial_validation_top_k_cost&quot;: 7.0,
+        &quot;baseline_validation_top_k_cost&quot;: 1.0
+      },
+      &quot;expected&quot;: &quot;best trial cost &lt;= baseline cost&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;no_test_objective_boundary_visible&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;objective split is validation; final holdout is scored only after best trial selection&quot;,
+      &quot;expected&quot;: &quot;report must not optimize on test&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/optuna_tuning_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;optuna_tuning_audit_id&quot;: &quot;trial-churn-optuna-tuning-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;source_candidate_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;tuned_candidate_model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+  &quot;fit_split&quot;: &quot;train&quot;,
+  &quot;objective_split&quot;: &quot;validation&quot;,
+  &quot;final_holdout_split&quot;: &quot;test&quot;,
+  &quot;study&quot;: {
+    &quot;study_name&quot;: &quot;trial_churn_catboost_fixed_budget_v0&quot;,
+    &quot;direction&quot;: &quot;minimize&quot;,
+    &quot;objective_metric&quot;: &quot;validation_logloss&quot;,
+    &quot;storage&quot;: &quot;in_memory_for_lesson&quot;,
+    &quot;sampler&quot;: {
+      &quot;name&quot;: &quot;GridSampler&quot;,
+      &quot;seed&quot;: 1609
+    },
+    &quot;pruner&quot;: {
+      &quot;name&quot;: &quot;NopPruner&quot;,
+      &quot;reason&quot;: &quot;tiny fixed-grid lesson keeps every trial in the ledger&quot;
+    },
+    &quot;n_trials&quot;: 6,
+    &quot;max_trials_allowed&quot;: 10,
+    &quot;require_all_trials_in_ledger&quot;: true
+  },
+  &quot;search_space&quot;: {
+    &quot;depth&quot;: {
+      &quot;type&quot;: &quot;categorical&quot;,
+      &quot;values&quot;: [
+        1,
+        2
+      ]
+    },
+    &quot;learning_rate&quot;: {
+      &quot;type&quot;: &quot;categorical&quot;,
+      &quot;values&quot;: [
+        0.05,
+        0.2,
+        0.4
+      ]
+    }
+  },
+  &quot;fixed_catboost_params&quot;: {
+    &quot;iterations&quot;: 40,
+    &quot;l2_leaf_reg&quot;: 1.0,
+    &quot;loss_function&quot;: &quot;Logloss&quot;,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;random_seed&quot;: 1609,
+    &quot;allow_writing_files&quot;: false,
+    &quot;verbose&quot;: false,
+    &quot;thread_count&quot;: 1,
+    &quot;bootstrap_type&quot;: &quot;No&quot;,
+    &quot;random_strength&quot;: 0,
+    &quot;use_best_model&quot;: true,
+    &quot;od_type&quot;: &quot;Iter&quot;,
+    &quot;od_wait&quot;: 3
+  },
+  &quot;best_trial&quot;: {
+    &quot;trial_number&quot;: 4,
+    &quot;objective_value&quot;: 0.696531,
+    &quot;depth&quot;: 2,
+    &quot;learning_rate&quot;: 0.05,
+    &quot;validation_top_k_total_error_cost&quot;: 7.0,
+    &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;
+  },
+  &quot;best_trial_trace&quot;: [
+    {
+      &quot;trace_role&quot;: &quot;source_early_stopped_catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;trial_number&quot;: &quot;&quot;,
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    },
+    {
+      &quot;trace_role&quot;: &quot;best_optuna_trial&quot;,
+      &quot;model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+      &quot;trial_number&quot;: 4,
+      &quot;validation_logloss&quot;: 0.696531,
+      &quot;validation_top_k_total_error_cost&quot;: 7.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.05,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    },
+    {
+      &quot;trace_role&quot;: &quot;calibrated_phase15_baseline_cost_gate&quot;,
+      &quot;model_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+      &quot;trial_number&quot;: &quot;&quot;,
+      &quot;validation_logloss&quot;: &quot;&quot;,
+      &quot;validation_top_k_total_error_cost&quot;: 1.0,
+      &quot;validation_top_k_selected_ids&quot;: &quot;S006,S005&quot;,
+      &quot;depth&quot;: &quot;&quot;,
+      &quot;learning_rate&quot;: &quot;&quot;,
+      &quot;objective_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    }
+  ],
+  &quot;upstream_handoff&quot;: {
+    &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+    &quot;early_stopping_readiness_status&quot;: &quot;ready_for_feature_importance_lesson&quot;,
+    &quot;cost_sensitive_decision_audit_id&quot;: &quot;trial-churn-cost-sensitive-decision-audit-v0&quot;,
+    &quot;cost_sensitive_readiness_status&quot;: &quot;ready_for_optuna_lesson&quot;,
+    &quot;cost_sensitive_decision_status&quot;: &quot;do_not_promote_catboost_candidate&quot;
+  },
+  &quot;generated_at&quot;: &quot;2026-07-06T11:30:00+03:00&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/09-optuna" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>← Предыдущий урок</span><strong>Порог и стоимость решения для сильной модели</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/mlflow/"><span>Следующий урок →</span><strong>MLflow для истории экспериментов</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

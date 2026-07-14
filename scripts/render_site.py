@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from course_model import ROOT, lesson_dir_name, load_curriculum, phase_dir_name
+from render_lesson_pages import build_lesson_page_outputs, lesson_site_url
 
 REPOSITORY_URL = "https://github.com/stabuev/analyst_tools"
 BRANCH = "main"
-SITE_URL = "https://stabuev.github.io/analyst_tools/"
+SITE_URL = "https://datascience.xyz/courses/analyst-tools/"
 INDEXED_PAGES = ("", "catalog.html", "routes.html", "glossary.html")
 STATUS_LABELS = {
     "complete": "Готов",
@@ -98,6 +99,7 @@ def build_site_data(
                 "tracks": metadata.get("tracks", phase["tracks"]),
                 "path": relative_path,
                 "available": available,
+                "site_url": lesson_site_url(phase, lesson) if available else None,
                 "url": (
                     f"{REPOSITORY_URL}/tree/{BRANCH}/{relative_path}"
                     if available
@@ -186,13 +188,10 @@ def render_catalog_rows(data: dict[str, Any]) -> str:
     rows: list[str] = []
     for phase in data["phases"]:
         for lesson in phase["lessons"]:
-            link = lesson["docs_url"] or lesson["url"]
+            link = lesson["site_url"]
             title = escape(lesson["title"])
             if link:
-                title = (
-                    f'<a href="{escape(link, quote=True)}" target="_blank" '
-                    f'rel="noopener">{title}</a>'
-                )
+                title = f'<a href="{escape(link, quote=True)}">{title}</a>'
             source = "—"
             if lesson["url"]:
                 source = (
@@ -257,9 +256,16 @@ def replace_generated_block(content: str, name: str, rendered: str) -> str:
     return updated
 
 
-def render_sitemap() -> str:
+def render_sitemap(data: dict[str, Any]) -> str:
+    pages = list(INDEXED_PAGES)
+    pages.extend(
+        lesson["site_url"]
+        for phase in data["phases"]
+        for lesson in phase["lessons"]
+        if lesson["site_url"]
+    )
     urls = "\n".join(
-        f"  <url><loc>{escape(SITE_URL + page)}</loc></url>" for page in INDEXED_PAGES
+        f"  <url><loc>{escape(SITE_URL + page)}</loc></url>" for page in pages
     )
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -281,7 +287,7 @@ def build_site_outputs(
     site_root = root / "site"
     outputs = {
         site_root / "data.js": render_site_data(data),
-        site_root / "sitemap.xml": render_sitemap(),
+        site_root / "sitemap.xml": render_sitemap(data),
         site_root / "robots.txt": render_robots(),
     }
     renderers = {
@@ -296,6 +302,7 @@ def build_site_outputs(
             name,
             renderer(data),
         )
+    outputs.update(build_lesson_page_outputs(data, root, SITE_URL))
     return outputs
 
 
@@ -303,7 +310,7 @@ def write_site_data(root: Path = ROOT) -> None:
     for output, content in build_site_outputs(
         load_curriculum(root / "curriculum.json"), root
     ).items():
-        output.parent.mkdir(exist_ok=True)
+        output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(content, encoding="utf-8")
 
 

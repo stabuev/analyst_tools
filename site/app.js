@@ -43,15 +43,15 @@
 
   function lessonRow(lesson) {
     var title = ui.escapeHtml(lesson.title);
-    var primary = lesson.docs_url || lesson.url;
+    var primary = lesson.site_url;
     var titleHtml = primary
-      ? '<a href="' + primary + '" target="_blank" rel="noopener">' + title + "</a>"
+      ? '<a href="' + primary + '">' + title + "</a>"
       : "<span>" + title + "</span>";
     var actions = "";
     if (lesson.available) {
       var done = progress.isComplete(lesson.path);
       actions =
-        '<a class="text-link" href="' + lesson.url + '" target="_blank" rel="noopener">GitHub</a>' +
+        '<a class="text-link" href="' + lesson.site_url + '#lesson-files">Файлы</a>' +
         '<button class="progress-toggle' + (done ? " is-done" : "") +
         '" type="button" title="Ручная отметка после практики, поломки и итогового квиза"' +
         ' data-progress-path="' + lesson.path + '">' +

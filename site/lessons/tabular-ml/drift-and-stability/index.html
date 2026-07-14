@@ -1,0 +1,2496 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="К концу фазы 16 у нас есть сильная табличная цепочка:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/drift-and-stability/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Drift, стабильность и interpretation package">
+  <meta property="og:description" content="К концу фазы 16 у нас есть сильная табличная цепочка:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/drift-and-stability/">
+  <meta name="twitter:card" content="summary">
+  <title>Drift, стабильность и interpretation package — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Drift, стабильность и interpretation package", "description": "К концу фазы 16 у нас есть сильная табличная цепочка:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/drift-and-stability/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT105M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Drift, стабильность и interpretation package", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/drift-and-stability/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 182 из 201</span>
+          <span>105 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/11-drift-and-stability" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что означает drift warning в финальном package?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Модель автоматически плохая и ее нужно удалить.</button><button type="button" class="quiz-option" data-choice="1">Распределение входов, score или объяснений изменилось и claim нужно ограничить.</button><button type="button" class="quiz-option" data-choice="2">Нужно подобрать больше Optuna trials на test split.</button><button type="button" class="quiz-option" data-choice="3">SHAP стал причинным доказательством изменения поведения пользователя.</button></div><p class="quiz-feedback" hidden>Drift warning не доказывает, что модель бесполезна. Он меняет статус решения и требует мониторинга, пересмотра или дополнительных данных.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Зачем финальному уроку checksum manifest?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы заменить все тесты одним hash.</button><button type="button" class="quiz-option" data-choice="1">Чтобы сделать package воспроизводимым и показать, какие inputs и generated outputs были собраны.</button><button type="button" class="quiz-option" data-choice="2">Чтобы скрыть upstream warnings от ревьюера.</button><button type="button" class="quiz-option" data-choice="3">Чтобы зафиксировать случайный MLflow run_id как постоянный ключ.</button></div><p class="quiz-feedback" hidden>Manifest не заменяет проверки, а связывает конкретную поставку с входными отчетами, таблицами и generated outputs через sha256.</p></article></section>
+        <article class="lesson-article"><h1 id="drift-стабильность-и-interpretation-package">Drift, стабильность и interpretation package</h1>
+<blockquote>
+<p>Финальный ML-пакет нужен не для красивого лидерборда, а для честного решения: что можно утверждать, что нельзя и какие evidence это доказывают.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML, Delivery<br />
+<strong>Пререквизиты:</strong> <code>16-tabular-ml/10-mlflow</code><br />
+<strong>Время:</strong> ~105 минут<br />
+<strong>Результат:</strong> tabular ML interpretation package с upstream evidence matrix, drift/stability diagnostics, decision report и checksum manifest.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Собрать CatBoost, interpretation, cost decision, Optuna и MLflow outputs в один проверяемый package.</li>
+<li>Разделить score drift, feature drift, importance stability и segment stability.</li>
+<li>Показать disagreement между built-in importance, permutation importance и SHAP без причинного overclaim.</li>
+<li>Принять финальный decision status из evidence, а не из одной метрики.</li>
+<li>Выпустить sha256 manifest для inputs и generated outputs.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>К концу фазы 16 у нас есть сильная табличная цепочка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">CatBoost candidate
+categorical feature audit
+early stopping trace
+built-in importance
+permutation importance
+SHAP explanations
+segment analysis
+cost-sensitive decision gate
+Optuna trial ledger
+MLflow experiment ledger
+</code></pre></div><p>Но цепочка еще не поставка. Если передать заказчику только &quot;Optuna улучшила logloss&quot;,
+получится опасно короткий вывод:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">best validation logloss: 0.696531
+source validation logloss: 0.698394
+</code></pre></div><p>В соседних evidence уже видно, почему такой вывод нельзя превращать в promotion:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">candidate top-k cost: 7
+baseline top-k cost: 1
+hidden failure slices: 13
+unseen acquisition_channel categories after train: 3
+importance methods disagree on direction
+</code></pre></div><p>Финальный package собирает все это в один артефакт и говорит: держим baseline, CatBoost
+остается diagnostic candidate, а drift/stability watch обязателен перед новым claim.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Финальный пакет похож на маленький model governance dossier. Он не обучает новую модель,
+а проверяет, можно ли доверять уже собранной evidence chain.</p>
+<table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Что проверяет</th>
+<th>Типичная ошибка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Upstream evidence</td>
+<td>Все отчеты валидны и относятся к одному problem id</td>
+<td>Потерять warning из раннего урока</td>
+</tr>
+<tr>
+<td>Score drift</td>
+<td>Похожи ли распределения score между train/validation/test</td>
+<td>Объявить drift только по среднему score</td>
+</tr>
+<tr>
+<td>Feature drift</td>
+<td>Есть ли новые категории и high-cardinality risk</td>
+<td>Считать native CatBoost categories магической защитой</td>
+</tr>
+<tr>
+<td>Importance stability</td>
+<td>Совпадают ли top feature, направление и смысл методов</td>
+<td>Смешать SHAP, permutation и built-in importance в один &quot;эффект&quot;</td>
+</tr>
+<tr>
+<td>Segment stability</td>
+<td>Не ухудшился ли важный срез</td>
+<td>Спрятать hidden failure за средним score</td>
+</tr>
+<tr>
+<td>Decision report</td>
+<td>Что можно делать с моделью</td>
+<td>Сделать production или causal claim из offline evidence</td>
+</tr>
+<tr>
+<td>Manifest</td>
+<td>Какие inputs и outputs входят в поставку</td>
+<td>Получить неревьюируемый набор файлов</td>
+</tr>
+</tbody>
+</table>
+<p>В этом уроке итоговый status:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">decision_status = keep_baseline
+monitoring_status = drift_watch_required
+</code></pre></div><p>Это не поражение модели. Это честная поставка: CatBoost evidence сохранена, но promotion
+заблокирован cost, segment and stability gates.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-объявите-package-spec">Шаг 1. Объявите package spec</h3>
+<p>Spec находится в <code>phases/16-tabular-ml/data/tiny/tabular_ml_package_spec.json</code>. В нем
+зафиксированы:</p>
+<ul>
+<li><code>package_id</code>;</li>
+<li>upstream reports и evidence files;</li>
+<li>drift thresholds;</li>
+<li>stability policy;</li>
+<li>allowed decision statuses;</li>
+<li>список generated outputs.</li>
+</ul>
+<p>Ключевой фрагмент:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;decision_policy&quot;: {
+    &quot;candidate_failed_gate_status&quot;: &quot;keep_baseline&quot;,
+    &quot;monitoring_status_with_warnings&quot;: &quot;drift_watch_required&quot;,
+    &quot;production_ready_allowed&quot;: false,
+    &quot;causal_claim_allowed&quot;: false,
+    &quot;serving_release_allowed&quot;: false
+  }
+}
+</code></pre></div><p>Если поменять <code>candidate_failed_gate_status</code> на <code>promote_candidate_with_limits</code>, тесты
+заблокируют package, потому что required promotion gates уже провалены.</p>
+<h3 id="шаг-2-проверьте-upstream-reports">Шаг 2. Проверьте upstream reports</h3>
+<p>Packager читает 11 отчетов:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">baseline_package_report
+catboost_report
+categorical_report
+early_stopping_report
+built_in_importance_report
+permutation_importance_report
+shap_report
+segment_report
+cost_report
+optuna_report
+mlflow_report
+</code></pre></div><p>Каждый report должен быть <code>valid=true</code>, без blocking errors и с тем же <code>problem_id</code>.
+MLflow handoff обязан иметь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">readiness_status = ready_for_drift_and_stability_lesson
+</code></pre></div><h3 id="шаг-3-посчитайте-score-drift">Шаг 3. Посчитайте score drift</h3>
+<p>Score drift считается по <code>optuna_tuned_predictions.csv</code>. Reference split - train.</p>
+<p>В tiny fixture score распределение почти не меняется:</p>
+<table>
+<thead>
+<tr>
+<th>split</th>
+<th style="text-align:right">mean_score</th>
+<th style="text-align:right">mean_delta_vs_train</th>
+<th>status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>train</td>
+<td style="text-align:right">0.500000</td>
+<td style="text-align:right">0.000000</td>
+<td>stable</td>
+</tr>
+<tr>
+<td>validation</td>
+<td style="text-align:right">0.498333</td>
+<td style="text-align:right">-0.001667</td>
+<td>stable</td>
+</tr>
+<tr>
+<td>test</td>
+<td style="text-align:right">0.499000</td>
+<td style="text-align:right">-0.001000</td>
+<td>stable</td>
+</tr>
+</tbody>
+</table>
+<p>Это важно: score drift спокойный, но итоговый package все равно не обязан быть stable.
+Модель может ломаться через feature mix, explanation disagreement или сегменты.</p>
+<h3 id="шаг-4-посчитайте-feature-drift">Шаг 4. Посчитайте feature drift</h3>
+<p>Feature drift берется из <code>categorical_inventory.csv</code>.</p>
+<p><code>acquisition_channel</code> получает watch:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">after_train_row_count = 8
+unseen_after_train_count = 3
+unseen_after_train_rate = 0.375
+high_cardinality_feature = true
+stability_status = watch
+</code></pre></div><p>CatBoost умеет принимать новые категории, но это не отменяет мониторинг. Native categorical
+handling - не пропуск через drift gate.</p>
+<h3 id="шаг-5-проверьте-importance-stability">Шаг 5. Проверьте importance stability</h3>
+<p>В package попадают четыре explanation views:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">CatBoost PredictionValuesChange
+CatBoost LossFunctionChange
+Permutation importance
+Tree SHAP mean_abs
+</code></pre></div><p>Все называют <code>platform</code> top feature, но направления разные:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">loss_decrease_when_permuted,mixed,negative,positive
+</code></pre></div><p>Значит interpretation остается diagnostic-only. Мы не прячем disagreement и не превращаем
+top feature в причинное утверждение.</p>
+<h3 id="шаг-6-перенесите-segment-failures">Шаг 6. Перенесите segment failures</h3>
+<p>Segment stability читает <code>strong_model_segment_deltas.csv</code>.</p>
+<p>В tiny fixture:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">segment rows = 19
+hidden failure slices = 13
+overall candidate worse than baseline = true
+</code></pre></div><p>Это напрямую блокирует promotion. Даже если средняя метрика или objective улучшились,
+нельзя выпускать candidate, который ухудшает важные срезы и добавляет новые false
+positives/false negatives.</p>
+<h3 id="шаг-7-выпустите-manifest">Шаг 7. Выпустите manifest</h3>
+<p>Manifest хэширует:</p>
+<ul>
+<li>package spec;</li>
+<li>baseline package inputs;</li>
+<li>upstream reports;</li>
+<li>upstream evidence tables;</li>
+<li>generated package outputs.</li>
+</ul>
+<p>Он не хэширует сам себя, чтобы не получить рекурсивный hash. В committed package:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">manifest inputs = 37
+manifest outputs = 10
+hash algorithm = sha256
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Запустите урок из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/11-drift-and-stability/code/main.py
+</code></pre></div><p>Ожидаемый summary:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;package_valid&quot;: true,
+  &quot;package_id&quot;: &quot;trial-churn-tabular-ml-interpretation-package-v0&quot;,
+  &quot;decision_status&quot;: &quot;keep_baseline&quot;,
+  &quot;monitoring_status&quot;: &quot;drift_watch_required&quot;,
+  &quot;evidence_row_count&quot;: 16,
+  &quot;feature_drift_watch_count&quot;: 1,
+  &quot;importance_stability_watch_count&quot;: 4,
+  &quot;hidden_failure_slice_count&quot;: 13,
+  &quot;production_ready&quot;: false,
+  &quot;readiness_status&quot;: &quot;phase_16_complete_tabular_ml_interpretation_package&quot;
+}
+</code></pre></div><p>CLI artifact можно запускать отдельно:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_interpretation_packager.py \
+  --output-dir phases/16-tabular-ml/11-drift-and-stability/outputs
+</code></pre></div><p>Для CI-gate, который должен падать на warnings:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_interpretation_packager.py \
+  --fail-on-warning
+</code></pre></div><p>В этом уроке команда возвращает code <code>2</code>, потому что warnings намеренно видимы.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-продвинуть-candidate-при-проваленных-gates">Ошибка 1. Продвинуть candidate при проваленных gates</h3>
+<p>Измените spec:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;candidate_failed_gate_status&quot;: &quot;promote_candidate_with_limits&quot;
+</code></pre></div><p>Package станет invalid:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">candidate_cannot_be_promoted_when_required_decision_gates_fail
+</code></pre></div><h3 id="ошибка-2-разрешить-production-claim">Ошибка 2. Разрешить production claim</h3>
+<p>Измените:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;production_ready_allowed&quot;: true
+</code></pre></div><p>Package блокируется до сборки:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">decision_policy_blocks_production_causal_and_serving_claims
+</code></pre></div><h3 id="ошибка-3-удалить-mlflow-run-table">Ошибка 3. Удалить MLflow run table</h3>
+<p>Если <code>mlflow_run_table.csv</code> отсутствует, package не может доказать experiment lineage:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">required_upstream_evidence_files_exist
+</code></pre></div><h3 id="ошибка-4-сделать-upstream-report-invalid">Ошибка 4. Сделать upstream report invalid</h3>
+<p>Если любой upstream report получает <code>valid=false</code>, итоговая сборка не должна прятать
+проблему:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">upstream_reports_are_valid
+</code></pre></div><h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты запускаются так:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/11-drift-and-stability/tests
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>итоговый <code>keep_baseline</code> и отсутствие production claim;</li>
+<li>score drift отдельно от feature drift;</li>
+<li>watch по unseen <code>acquisition_channel</code>;</li>
+<li>disagreement между built-in, permutation и SHAP;</li>
+<li>перенос 13 hidden failure slices;</li>
+<li>evidence matrix с MLflow handoff;</li>
+<li>sha256 manifest inputs and outputs;</li>
+<li>блокировки для invalid upstream, missing evidence и неверной decision policy.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Урок поставляет CLI:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/tabular_ml_interpretation_packager.py
+</code></pre></div><p>Он пишет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">tabular_ml_package.json
+tabular_ml_package_report.json
+tabular_ml_evidence_matrix.csv
+score_drift.csv
+feature_drift.csv
+importance_stability.csv
+segment_stability.csv
+stability_report.json
+interpretation_report.md
+decision_report.md
+tabular_ml_package_manifest.json
+</code></pre></div><p>Главный потребитель - следующий delivery layer. Он получает не &quot;лучшую модель&quot;, а
+ограниченный и проверяемый handoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">baseline stays selected
+CatBoost remains diagnostic candidate
+drift/stability watch is required
+no causal or serving claim is made
+</code></pre></div><h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Измените threshold <code>feature_watch_unseen_after_train_rate</code> с <code>0.2</code> на <code>0.5</code> и объясните,
+почему это меняет feature drift warning, но не segment decision.</li>
+<li>Добавьте в evidence matrix отдельную строку для <code>mlflow_artifact_inventory.csv</code> и
+проверьте, что manifest output hash изменился.</li>
+<li>Сымитируйте stable interpretation: измените <code>explanation_disagreement.csv</code> в temp-copy
+так, чтобы все методы имели одно направление, и сравните warnings.</li>
+<li>Добавьте новый allowed status <code>needs_more_data</code> и опишите, чем он отличается от
+<code>keep_baseline</code> в этом package.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Score drift</td>
+<td>Любое изменение score означает плохую модель</td>
+<td>Изменение распределения score, которое требует диагностики, но не заменяет quality gate</td>
+</tr>
+<tr>
+<td>Feature drift</td>
+<td>CatBoost решает drift за счет native categories</td>
+<td>Новые категории и high-cardinality mix остаются monitoring risk</td>
+</tr>
+<tr>
+<td>Importance stability</td>
+<td>Один top feature делает объяснение стабильным</td>
+<td>Нужно сравнивать вопрос метода, направление, split и uncertainty</td>
+</tr>
+<tr>
+<td>Hidden segment failure</td>
+<td>Small-n slice можно не показывать</td>
+<td>Small-n slice diagnostic-only, но скрывать ухудшение нельзя</td>
+</tr>
+<tr>
+<td>Decision status</td>
+<td>Это просто лучший metric</td>
+<td>Это ограниченный вывод из всей evidence chain</td>
+</tr>
+<tr>
+<td>Checksum manifest</td>
+<td>Формальность в конце</td>
+<td>Воспроизводимый список inputs/outputs с sha256</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/permutation_importance.html" target="_blank" rel="noopener">scikit-learn: Permutation feature importance</a> - перечитайте разделы про model reliance, held-out data и ограничения при коррелированных признаках.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/fstr" target="_blank" rel="noopener">CatBoost: Feature importance</a> - сравните смысл PredictionValuesChange и LossFunctionChange, чтобы не смешивать их в одно объяснение.</li>
+<li><a href="https://shap.readthedocs.io/en/stable/generated/shap.TreeExplainer.html" target="_blank" rel="noopener">SHAP TreeExplainer</a> - проверьте параметры <code>model_output</code>, background data и additivity для tree models.</li>
+<li><a href="https://mlflow.org/docs/latest/ml/tracking/" target="_blank" rel="noopener">MLflow Tracking</a> - посмотрите, как runs, params, metrics, tags и artifacts образуют experiment ledger.</li>
+<li><a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener">NIST AI Risk Management Framework</a> - используйте как общий контекст для ограничения claims, traceability и governance, не как замену локальным тестам.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему package может иметь stable score drift, но feature drift watch?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Score drift и feature drift проверяют разные поверхности модели.</button><button type="button" class="quiz-option" data-choice="1">Feature drift всегда считается только по train rows.</button><button type="button" class="quiz-option" data-choice="2">Score drift отменяет все предупреждения по категориям.</button><button type="button" class="quiz-option" data-choice="3">Feature drift невозможен для CatBoost, потому что он нативно принимает категории.</button></div><p class="quiz-feedback" hidden>Score distribution может быть похожим, но unseen categories или high-cardinality changes в отдельных признаках все равно требуют мониторинга.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">02</p><h3>Как правильно интерпретировать ситуацию, где built-in importance, permutation importance и SHAP называют один top feature, но дают разные направления?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Нужно оставить только SHAP, потому что он всегда главный.</button><button type="button" class="quiz-option" data-choice="1">Нужно скрыть disagreement, чтобы отчет был проще.</button><button type="button" class="quiz-option" data-choice="2">Это evidence instability: методы отвечают на разные вопросы, claim должен быть diagnostic-only.</button><button type="button" class="quiz-option" data-choice="3">Это доказывает причинный эффект top feature.</button></div><p class="quiz-feedback" hidden>Совпадение top feature не делает объяснение стабильным, если смысл и направление метода расходятся. Package обязан показать disagreement.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Почему итоговый decision status остается `keep_baseline`, хотя Optuna улучшила validation logloss?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Logloss нельзя считать на validation.</button><button type="button" class="quiz-option" data-choice="1">MLflow запрещает продвигать CatBoost-модель.</button><button type="button" class="quiz-option" data-choice="2">Cost gate, segment hidden failures и calibration boundary важнее одиночного улучшения objective.</button><button type="button" class="quiz-option" data-choice="3">CatBoost всегда хуже random forest для табличных данных.</button></div><p class="quiz-feedback" hidden>Финальный package принимает решение по всей evidence chain: objective, cost, segments, calibration, drift, stability and claim boundaries.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;tabular_ml_interpretation_packager.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from tabular_ml_interpretation_packager import (  # noqa: E402
+    DEFAULT_REPORT_PATHS,
+    DEFAULT_TABLE_PATHS,
+    build_tabular_ml_package,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class TabularMLInterpretationPackagerTest(TestCase):
+    def build(
+        self,
+        *,
+        spec_path: Path | None = None,
+        report_paths: dict[str, Path] | None = None,
+        table_paths: dict[str, Path] | None = None,
+    ) -&gt; dict:
+        return build_tabular_ml_package(
+            spec_path=spec_path or DATA_ROOT / &quot;tabular_ml_package_spec.json&quot;,
+            report_paths=report_paths or DEFAULT_REPORT_PATHS,
+            table_paths=table_paths or DEFAULT_TABLE_PATHS,
+        )
+
+    def test_valid_package_keeps_baseline_and_closes_phase(self) -&gt; None:
+        result = self.build()
+        report = result[&quot;report&quot;]
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;package_id&quot;], &quot;trial-churn-tabular-ml-interpretation-package-v0&quot;)
+        self.assertEqual(report[&quot;decision_status&quot;], &quot;keep_baseline&quot;)
+        self.assertEqual(summary[&quot;monitoring_status&quot;], &quot;drift_watch_required&quot;)
+        self.assertEqual(summary[&quot;evidence_row_count&quot;], 16)
+        self.assertEqual(summary[&quot;upstream_report_count&quot;], 11)
+        self.assertEqual(summary[&quot;upstream_warning_count&quot;], 49)
+        self.assertEqual(summary[&quot;feature_drift_watch_count&quot;], 1)
+        self.assertEqual(summary[&quot;importance_stability_watch_count&quot;], 4)
+        self.assertEqual(summary[&quot;hidden_failure_slice_count&quot;], 13)
+        self.assertEqual(summary[&quot;failed_promotion_gate_count&quot;], 4)
+        self.assertFalse(summary[&quot;production_ready&quot;])
+        self.assertEqual(summary[&quot;blocking_errors&quot;], [])
+        self.assertEqual(
+            summary[&quot;warnings&quot;],
+            [
+                &quot;feature_drift_watch_required&quot;,
+                &quot;unstable_explanations_require_review&quot;,
+                &quot;segment_hidden_failures_block_candidate_promotion&quot;,
+                &quot;candidate_not_promoted_due_to_cost_and_segment_gate&quot;,
+                &quot;local_tracking_store_not_serving_release&quot;,
+            ],
+        )
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;phase_16_complete_tabular_ml_interpretation_package&quot;)
+
+    def test_score_drift_is_separate_from_feature_drift(self) -&gt; None:
+        rows = {row[&quot;split&quot;]: row for row in self.build()[&quot;score_drift&quot;]}
+
+        self.assertEqual(rows[&quot;train&quot;][&quot;mean_score&quot;], 0.5)
+        self.assertEqual(rows[&quot;validation&quot;][&quot;mean_score&quot;], 0.498333)
+        self.assertEqual(rows[&quot;validation&quot;][&quot;mean_delta_vs_reference&quot;], -0.001667)
+        self.assertEqual(rows[&quot;validation&quot;][&quot;ks_like_gap_vs_reference&quot;], 0.166667)
+        self.assertEqual(rows[&quot;test&quot;][&quot;positive_rate&quot;], 0.2)
+        self.assertTrue(all(row[&quot;stability_status&quot;] == &quot;stable&quot; for row in rows.values()))
+
+    def test_feature_drift_flags_unseen_acquisition_channel(self) -&gt; None:
+        rows = {row[&quot;feature_name&quot;]: row for row in self.build()[&quot;feature_drift&quot;]}
+        acquisition = rows[&quot;acquisition_channel&quot;]
+
+        self.assertEqual(acquisition[&quot;after_train_row_count&quot;], 8)
+        self.assertEqual(acquisition[&quot;unseen_after_train_count&quot;], 3)
+        self.assertEqual(acquisition[&quot;unseen_after_train_rate&quot;], 0.375)
+        self.assertEqual(acquisition[&quot;missing_after_train_count&quot;], 1)
+        self.assertTrue(acquisition[&quot;high_cardinality_feature&quot;])
+        self.assertEqual(acquisition[&quot;stability_status&quot;], &quot;watch&quot;)
+        self.assertEqual(rows[&quot;platform&quot;][&quot;stability_status&quot;], &quot;stable&quot;)
+        self.assertFalse(check(self.build()[&quot;report&quot;], &quot;feature_drift_watch_required&quot;)[&quot;valid&quot;])
+
+    def test_importance_stability_preserves_method_disagreement(self) -&gt; None:
+        rows = self.build()[&quot;importance_stability&quot;]
+
+        self.assertEqual(len(rows), 4)
+        self.assertTrue(all(row[&quot;top_feature_name&quot;] == &quot;platform&quot; for row in rows))
+        self.assertTrue(all(row[&quot;same_top_feature_across_methods&quot;] for row in rows))
+        self.assertEqual(rows[0][&quot;direction_set&quot;], &quot;loss_decrease_when_permuted,mixed,negative,positive&quot;)
+        self.assertTrue(all(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in rows))
+        methods = {row[&quot;method&quot;] for row in rows}
+        self.assertIn(&quot;CatBoost PredictionValuesChange&quot;, methods)
+        self.assertIn(&quot;Permutation importance&quot;, methods)
+        self.assertIn(&quot;Tree SHAP mean_abs&quot;, methods)
+
+    def test_segment_stability_carries_hidden_failures_and_blocks_promotion(self) -&gt; None:
+        result = self.build()
+        rows = result[&quot;segment_stability&quot;]
+        hidden = [row for row in rows if row[&quot;hidden_failure_candidate&quot;]]
+        overall = next(row for row in rows if row[&quot;dimension&quot;] == &quot;overall&quot;)
+
+        self.assertEqual(len(rows), 19)
+        self.assertEqual(len(hidden), 13)
+        self.assertEqual(overall[&quot;stability_status&quot;], &quot;watch&quot;)
+        self.assertTrue(overall[&quot;candidate_worse_than_baseline&quot;])
+        self.assertIn(&quot;new_false_negative_ids:S006&quot;, overall[&quot;hidden_failure_reasons&quot;])
+        self.assertFalse(check(result[&quot;report&quot;], &quot;segment_hidden_failures_block_candidate_promotion&quot;)[&quot;valid&quot;])
+
+    def test_evidence_matrix_links_upstream_and_generated_diagnostics(self) -&gt; None:
+        rows = {row[&quot;evidence_id&quot;]: row for row in self.build()[&quot;evidence_matrix&quot;]}
+
+        self.assertEqual(len(rows), 16)
+        self.assertTrue(rows[&quot;baseline_package_manifest&quot;][&quot;valid&quot;])
+        self.assertEqual(rows[&quot;mlflow_report&quot;][&quot;warning_count&quot;], 3)
+        self.assertEqual(rows[&quot;mlflow_report&quot;][&quot;package_section&quot;], &quot;upstream&quot;)
+        self.assertEqual(rows[&quot;feature_drift&quot;][&quot;warning_count&quot;], 1)
+        self.assertEqual(rows[&quot;segment_stability&quot;][&quot;key_summary&quot;][&quot;hidden_failure_count&quot;], 13)
+        self.assertIn(&quot;phases/16-tabular-ml/10-mlflow&quot;, rows[&quot;mlflow_report&quot;][&quot;source_path&quot;])
+
+    def test_reports_preserve_interpretation_and_serving_boundaries(self) -&gt; None:
+        result = self.build()
+        interpretation = result[&quot;interpretation_report&quot;]
+        decision = result[&quot;decision_report&quot;]
+
+        self.assertIn(&quot;CatBoost built-in importance, permutation importance and Tree SHAP&quot;, interpretation)
+        self.assertIn(&quot;`platform`&quot;, interpretation)
+        self.assertIn(&quot;model behavior evidence, not a causal claim&quot;, interpretation)
+        self.assertIn(&quot;Decision status: `keep_baseline`&quot;, decision)
+        self.assertIn(&quot;does not make a causal claim&quot;, decision)
+        self.assertIn(&quot;not a production serving release&quot;, decision)
+        self.assertIn(&quot;not online monitoring&quot;, decision)
+
+    def test_manifest_hashes_inputs_and_generated_outputs(self) -&gt; None:
+        result = self.build()
+        manifest = result[&quot;manifest&quot;]
+        spec_hash = hashlib.sha256((DATA_ROOT / &quot;tabular_ml_package_spec.json&quot;).read_bytes()).hexdigest()
+
+        self.assertEqual(manifest[&quot;hash_algorithm&quot;], &quot;sha256&quot;)
+        self.assertEqual(manifest[&quot;inputs&quot;][&quot;package_spec&quot;][&quot;sha256&quot;], spec_hash)
+        self.assertEqual(len(manifest[&quot;inputs&quot;]), 37)
+        self.assertEqual(set(manifest[&quot;outputs&quot;]), {
+            &quot;decision_report.md&quot;,
+            &quot;feature_drift.csv&quot;,
+            &quot;importance_stability.csv&quot;,
+            &quot;interpretation_report.md&quot;,
+            &quot;score_drift.csv&quot;,
+            &quot;segment_stability.csv&quot;,
+            &quot;stability_report.json&quot;,
+            &quot;tabular_ml_evidence_matrix.csv&quot;,
+            &quot;tabular_ml_package.json&quot;,
+            &quot;tabular_ml_package_report.json&quot;,
+        })
+        self.assertTrue(all(len(item[&quot;sha256&quot;]) == 64 for item in manifest[&quot;outputs&quot;].values()))
+        self.assertTrue(check(result[&quot;report&quot;], &quot;manifest_hashes_inputs_and_generated_outputs&quot;)[&quot;valid&quot;])
+
+    def test_invalid_upstream_report_blocks_package(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            report_path = Path(directory) / &quot;mlflow_experiment_report.json&quot;
+            report = read_json(DEFAULT_REPORT_PATHS[&quot;mlflow_report&quot;])
+            report[&quot;valid&quot;] = False
+            report[&quot;summary&quot;][&quot;blocking_errors&quot;] = [&quot;synthetic_tracking_failure&quot;]
+            write_json(report_path, report)
+            report_paths = dict(DEFAULT_REPORT_PATHS)
+            report_paths[&quot;mlflow_report&quot;] = report_path
+
+            result = self.build(report_paths=report_paths)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(&quot;upstream_reports_are_valid&quot;, result[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_promotion_status_is_rejected_when_decision_gates_fail(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            spec_path = Path(directory) / &quot;tabular_ml_package_spec.json&quot;
+            spec = read_json(DATA_ROOT / &quot;tabular_ml_package_spec.json&quot;)
+            spec[&quot;decision_policy&quot;][&quot;candidate_failed_gate_status&quot;] = &quot;promote_candidate_with_limits&quot;
+            write_json(spec_path, spec)
+
+            result = self.build(spec_path=spec_path)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(
+            &quot;candidate_cannot_be_promoted_when_required_decision_gates_fail&quot;,
+            result[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_production_or_causal_policy_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            spec_path = Path(directory) / &quot;tabular_ml_package_spec.json&quot;
+            spec = read_json(DATA_ROOT / &quot;tabular_ml_package_spec.json&quot;)
+            spec[&quot;decision_policy&quot;][&quot;production_ready_allowed&quot;] = True
+            write_json(spec_path, spec)
+
+            result = self.build(spec_path=spec_path)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(
+            &quot;decision_policy_blocks_production_causal_and_serving_claims&quot;,
+            result[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_missing_required_evidence_file_blocks_before_package_build(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            missing_path = Path(directory) / &quot;missing_mlflow_run_table.csv&quot;
+            table_paths = dict(DEFAULT_TABLE_PATHS)
+            table_paths[&quot;mlflow_run_table&quot;] = missing_path
+
+            result = self.build(table_paths=table_paths)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(&quot;required_upstream_evidence_files_exist&quot;, result[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_code_example_and_artifact_cli_write_expected_outputs(self) -&gt; None:
+        completed = subprocess.run([sys.executable, str(CODE)], check=True, capture_output=True, text=True)
+        payload = json.loads(completed.stdout)
+
+        self.assertTrue(payload[&quot;package_valid&quot;])
+        self.assertEqual(payload[&quot;decision_status&quot;], &quot;keep_baseline&quot;)
+        self.assertEqual(payload[&quot;feature_drift_watch_count&quot;], 1)
+        self.assertEqual(payload[&quot;importance_stability_watch_count&quot;], 4)
+        self.assertFalse(payload[&quot;production_ready&quot;])
+        for filename in [
+            &quot;tabular_ml_package.json&quot;,
+            &quot;tabular_ml_package_report.json&quot;,
+            &quot;tabular_ml_evidence_matrix.csv&quot;,
+            &quot;score_drift.csv&quot;,
+            &quot;feature_drift.csv&quot;,
+            &quot;importance_stability.csv&quot;,
+            &quot;segment_stability.csv&quot;,
+            &quot;stability_report.json&quot;,
+            &quot;interpretation_report.md&quot;,
+            &quot;decision_report.md&quot;,
+            &quot;tabular_ml_package_manifest.json&quot;,
+        ]:
+            self.assertTrue((LESSON_ROOT / &quot;outputs&quot; / filename).is_file(), filename)
+
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;package&quot;
+            normal = subprocess.run(
+                [sys.executable, str(ARTIFACT), &quot;--output-dir&quot;, str(output_dir)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            strict = subprocess.run(
+                [sys.executable, str(ARTIFACT), &quot;--output-dir&quot;, str(output_dir), &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue((output_dir / &quot;tabular_ml_package_manifest.json&quot;).is_file())
+
+        self.assertEqual(normal.stdout, &quot;&quot;)
+        self.assertEqual(strict.returncode, 2)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from tabular_ml_interpretation_packager import build_tabular_ml_package, write_outputs  # noqa: E402
+
+
+def main() -&gt; None:
+    result = build_tabular_ml_package()
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, result[&quot;output&quot;])
+    report = result[&quot;report&quot;]
+    summary = report[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;package_valid&quot;: report[&quot;valid&quot;],
+                &quot;package_id&quot;: summary[&quot;package_id&quot;],
+                &quot;decision_status&quot;: report[&quot;decision_status&quot;],
+                &quot;monitoring_status&quot;: summary[&quot;monitoring_status&quot;],
+                &quot;evidence_row_count&quot;: summary[&quot;evidence_row_count&quot;],
+                &quot;feature_drift_watch_count&quot;: summary[&quot;feature_drift_watch_count&quot;],
+                &quot;importance_stability_watch_count&quot;: summary[&quot;importance_stability_watch_count&quot;],
+                &quot;hidden_failure_slice_count&quot;: summary[&quot;hidden_failure_slice_count&quot;],
+                &quot;production_ready&quot;: summary[&quot;production_ready&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;tabular-ml-interpretation-packager&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/tabular_ml_interpretation_packager.py&quot;,
+  &quot;description&quot;: &quot;Собирает финальный tabular ML interpretation package: upstream evidence matrix, score/feature drift, importance and segment stability diagnostics, decision report и checksum manifest.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_interpretation_packager.py --output-dir phases/16-tabular-ml/11-drift-and-stability/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/decision_report.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Tabular ML decision report
+
+Decision status: `keep_baseline`.
+Monitoring status: `drift_watch_required`.
+
+## Decision
+
+Keep `random_forest_depth2_class_weight_balanced` as the selected baseline for the course handoff.
+Do not promote `catboost_optuna_fixed_budget_logloss` because required promotion gates failed.
+
+## Failed gates
+
+- `candidate_threshold_cost_lte_baseline_best`
+- `candidate_top_k_cost_lte_baseline_top_k`
+- `candidate_has_approved_calibration`
+- `segment_hidden_failures_absent`
+
+## Boundaries
+
+- This package does not make a causal claim about the retention offer.
+- This package is not a production serving release or model registry approval.
+- Drift and stability diagnostics are local offline checks, not online monitoring.
+
+## Stability notes
+
+- Feature drift status: `watch`.
+- Importance stability status: `watch`.
+- Segment stability status: `blocked_for_promotion`.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/decision_report.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/feature_drift.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_name,category_row_count,after_train_row_count,unseen_after_train_count,unseen_after_train_rate,missing_after_train_count,high_cardinality_feature,unknown_category_policy,stability_status,interpretation
+acquisition_channel,6,8,3,0.375,1,True,allow_native_catboost_unseen_value_and_monitor,watch,new_categories_require_monitoring
+country,2,8,0,0.0,0,False,allow_native_catboost_unseen_value_and_monitor,stable,known_category_mix_within_policy
+plan_id,2,8,0,0.0,0,False,allow_native_catboost_unseen_value_and_monitor,stable,known_category_mix_within_policy
+platform,3,8,0,0.0,0,False,allow_native_catboost_unseen_value_and_monitor,stable,known_category_mix_within_policy
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/feature_drift.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/importance_stability.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>method,source_audit_id,top_feature_name,rank_basis,raw_value,direction,split,output_space,same_top_feature_across_methods,direction_set,stability_status,interpretation
+CatBoost PredictionValuesChange,trial-churn-built-in-importance-audit-v0,platform,normalized_absolute_importance,100.0,positive,model_structure,model_internal_prediction_change,True,&quot;loss_decrease_when_permuted,mixed,negative,positive&quot;,watch,same_feature_but_conflicting_method_meaning
+CatBoost LossFunctionChange,trial-churn-built-in-importance-audit-v0,platform,normalized_absolute_importance,-0.005247,negative,validation,validation_loss_delta_when_feature_is_removed,True,&quot;loss_decrease_when_permuted,mixed,negative,positive&quot;,watch,same_feature_but_conflicting_method_meaning
+Permutation importance,trial-churn-permutation-importance-audit-v0,platform,largest_absolute_mean_delta,-0.011722,loss_decrease_when_permuted,validation,validation_neg_log_loss_delta,True,&quot;loss_decrease_when_permuted,mixed,negative,positive&quot;,watch,same_feature_but_conflicting_method_meaning
+Tree SHAP mean_abs,trial-churn-shap-explanation-audit-v0,platform,mean_abs_shap,0.030769,mixed,validation,raw_margin,True,&quot;loss_decrease_when_permuted,mixed,negative,positive&quot;,watch,same_feature_but_conflicting_method_meaning
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/importance_stability.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/interpretation_report.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Tabular ML interpretation report
+
+Package: `trial-churn-tabular-ml-interpretation-package-v0`.
+
+## Explanation stack
+
+- CatBoost built-in importance, permutation importance and Tree SHAP are included as separate evidence views.
+- All methods point to `platform` as the main diagnostic feature.
+- Direction set: `loss_decrease_when_permuted,mixed,negative,positive`.
+- This is model behavior evidence, not a causal claim about retention offers.
+
+## Stability limits
+
+- SHAP output space: `raw_margin`.
+- SHAP background rows: `4`.
+- Feature drift watch features: `acquisition_channel`.
+- Segment hidden failure slices: `13`.
+
+## Method disagreement
+
+- `CatBoost PredictionValuesChange`: top feature `platform`, direction `positive`, status `watch`.
+- `CatBoost LossFunctionChange`: top feature `platform`, direction `negative`, status `watch`.
+- `Permutation importance`: top feature `platform`, direction `loss_decrease_when_permuted`, status `watch`.
+- `Tree SHAP mean_abs`: top feature `platform`, direction `mixed`, status `watch`.
+
+Interpretation is therefore diagnostic-only until larger validation data, stable feature mix and segment review are available.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/interpretation_report.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/score_drift.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,reference_split,row_count,mean_score,std_score,min_score,max_score,positive_rate,mean_delta_vs_reference,ks_like_gap_vs_reference,stability_status,interpretation
+train,train,4,0.5,0.005774,0.495,0.505,0.5,0.0,0.0,stable,tiny_score_distribution_stable
+validation,train,3,0.498333,0.005774,0.495,0.505,0.333333,-0.001667,0.166667,stable,tiny_score_distribution_stable
+test,train,5,0.499,0.005477,0.495,0.505,0.2,-0.001,0.1,stable,tiny_score_distribution_stable
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/score_drift.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/segment_stability.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>dimension,slice_value,baseline_row_count,candidate_row_count,precision_delta,recall_delta,error_rate_delta,candidate_worse_than_baseline,hidden_failure_candidate,small_n_warning,hidden_failure_reasons,stability_status
+overall,all,3,3,-0.5,-1.0,0.666667,True,False,False,&quot;error_rate_worse,precision_worse,recall_worse,new_false_positive_ids:S005,new_false_negative_ids:S006&quot;,watch
+segment_id,android_kz,1,1,0.0,,0.0,False,False,True,,diagnostic_small_n
+segment_id,ios_ru,1,1,,,1.0,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005&quot;,blocked_for_promotion
+segment_id,web_ru,1,1,,-1.0,1.0,True,True,True,&quot;error_rate_worse,recall_worse,new_false_negative_ids:S006&quot;,blocked_for_promotion
+platform,android,1,1,0.0,,0.0,False,False,True,,diagnostic_small_n
+platform,ios,1,1,,,1.0,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005&quot;,blocked_for_promotion
+platform,web,1,1,,-1.0,1.0,True,True,True,&quot;error_rate_worse,recall_worse,new_false_negative_ids:S006&quot;,blocked_for_promotion
+country,KZ,1,1,0.0,,0.0,False,False,True,,diagnostic_small_n
+country,RU,2,2,-1.0,-1.0,1.0,True,True,True,&quot;error_rate_worse,precision_worse,recall_worse,new_false_positive_ids:S005,new_false_negative_ids:S006&quot;,blocked_for_promotion
+plan_id,trial_basic,2,2,0.0,,0.5,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005&quot;,blocked_for_promotion
+plan_id,trial_pro,1,1,,-1.0,1.0,True,True,True,&quot;error_rate_worse,recall_worse,new_false_negative_ids:S006&quot;,blocked_for_promotion
+acquisition_channel,__MISSING__,1,1,0.0,,0.0,False,False,True,,diagnostic_small_n
+acquisition_channel,influencer,1,1,,-1.0,1.0,True,True,True,&quot;error_rate_worse,recall_worse,new_false_negative_ids:S006&quot;,blocked_for_promotion
+acquisition_channel,organic,1,1,,,1.0,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005&quot;,blocked_for_promotion
+business_cohort,trial_basic:KZ,1,1,0.0,,0.0,False,False,True,,diagnostic_small_n
+business_cohort,trial_basic:RU,1,1,,,1.0,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005&quot;,blocked_for_promotion
+business_cohort,trial_pro:RU,1,1,,-1.0,1.0,True,True,True,&quot;error_rate_worse,recall_worse,new_false_negative_ids:S006&quot;,blocked_for_promotion
+score_band,high,2,1,-0.5,,0.5,True,True,True,&quot;error_rate_worse,precision_worse&quot;,blocked_for_promotion
+score_band,medium,1,2,,,1.0,True,True,True,&quot;error_rate_worse,new_false_positive_ids:S005,new_false_negative_ids:S006&quot;,blocked_for_promotion
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/segment_stability.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/stability_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;generated_at&quot;: &quot;2026-07-06T14:00:00+03:00&quot;,
+  &quot;overall_status&quot;: &quot;watch_required&quot;,
+  &quot;score_drift&quot;: {
+    &quot;status&quot;: &quot;stable&quot;,
+    &quot;row_count&quot;: 3,
+    &quot;max_abs_mean_delta&quot;: 0.001667,
+    &quot;watch_splits&quot;: []
+  },
+  &quot;feature_drift&quot;: {
+    &quot;status&quot;: &quot;watch&quot;,
+    &quot;row_count&quot;: 4,
+    &quot;watch_features&quot;: [
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;max_unseen_after_train_rate&quot;: 0.375
+  },
+  &quot;importance_stability&quot;: {
+    &quot;status&quot;: &quot;watch&quot;,
+    &quot;row_count&quot;: 4,
+    &quot;top_feature&quot;: &quot;platform&quot;,
+    &quot;direction_set&quot;: &quot;loss_decrease_when_permuted,mixed,negative,positive&quot;
+  },
+  &quot;segment_stability&quot;: {
+    &quot;status&quot;: &quot;blocked_for_promotion&quot;,
+    &quot;row_count&quot;: 19,
+    &quot;hidden_failure_slice_count&quot;: 13,
+    &quot;small_n_slice_count&quot;: 18
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/stability_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tabular_ml_evidence_matrix.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>evidence_id,package_section,source_path,valid,warning_count,blocking_error_count,key_summary
+baseline_package_manifest,input,phases/15-applied-machine-learning/15-model-card/outputs/ml_baseline_package_manifest.json,True,0,0,&quot;{&quot;&quot;sha256&quot;&quot;: &quot;&quot;c77823f140a3d97046abf0a27c05dfc65e78ee1580ef7fcb839d3c65bf64a5f0&quot;&quot;}&quot;
+baseline_package_report,upstream,phases/15-applied-machine-learning/15-model-card/outputs/ml_baseline_package_report.json,True,4,0,&quot;{&quot;&quot;decision_status&quot;&quot;: &quot;&quot;review_required_before_production&quot;&quot;, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;phase_15_complete_baseline_package&quot;&quot;}&quot;
+catboost_report,upstream,phases/16-tabular-ml/01-catboost/outputs/catboost_report.json,True,3,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: &quot;&quot;catboost_depth2_native_categories&quot;&quot;, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_categorical_feature_lesson&quot;&quot;}&quot;
+categorical_report,upstream,phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json,True,4,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_early_stopping_lesson&quot;&quot;}&quot;
+early_stopping_report,upstream,phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json,True,3,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_feature_importance_lesson&quot;&quot;}&quot;
+built_in_importance_report,upstream,phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_report.json,True,4,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_permutation_importance_lesson&quot;&quot;}&quot;
+permutation_importance_report,upstream,phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_report.json,True,5,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_shap_lesson&quot;&quot;}&quot;
+shap_report,upstream,phases/16-tabular-ml/06-shap/outputs/shap_explanation_report.json,True,8,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_segment_analysis_lesson&quot;&quot;}&quot;
+segment_report,upstream,phases/16-tabular-ml/07-segment-analysis/outputs/strong_model_segment_report.json,True,5,0,&quot;{&quot;&quot;decision_status&quot;&quot;: null, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_cost_sensitive_decision_lesson&quot;&quot;}&quot;
+cost_report,upstream,phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_report.json,True,6,0,&quot;{&quot;&quot;decision_status&quot;&quot;: &quot;&quot;do_not_promote_catboost_candidate&quot;&quot;, &quot;&quot;model_id&quot;&quot;: &quot;&quot;catboost_depth2_native_categories_es_logloss&quot;&quot;, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_optuna_lesson&quot;&quot;}&quot;
+optuna_report,upstream,phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_report.json,True,4,0,&quot;{&quot;&quot;decision_status&quot;&quot;: &quot;&quot;tuned_candidate_ready_for_mlflow_tracking&quot;&quot;, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_mlflow_lesson&quot;&quot;}&quot;
+mlflow_report,upstream,phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_report.json,True,3,0,&quot;{&quot;&quot;decision_status&quot;&quot;: &quot;&quot;mlflow_ledger_ready_for_stability_package&quot;&quot;, &quot;&quot;model_id&quot;&quot;: null, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_drift_and_stability_lesson&quot;&quot;}&quot;
+score_drift,stability,score_drift.csv,True,0,0,&quot;{&quot;&quot;row_count&quot;&quot;: 3, &quot;&quot;watch_count&quot;&quot;: 0}&quot;
+feature_drift,stability,feature_drift.csv,True,1,0,&quot;{&quot;&quot;row_count&quot;&quot;: 4, &quot;&quot;watch_count&quot;&quot;: 1}&quot;
+importance_stability,interpretation,importance_stability.csv,True,4,0,&quot;{&quot;&quot;row_count&quot;&quot;: 4, &quot;&quot;watch_count&quot;&quot;: 4}&quot;
+segment_stability,stability,segment_stability.csv,True,13,0,&quot;{&quot;&quot;hidden_failure_count&quot;&quot;: 13, &quot;&quot;row_count&quot;&quot;: 19}&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_evidence_matrix.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tabular_ml_interpretation_packager.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import io
+import json
+import math
+from pathlib import Path
+from typing import Any
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+PHASE15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE15_OUTPUT_ROOT = PHASE15_ROOT / &quot;15-model-card&quot; / &quot;outputs&quot;
+PHASE15_DATA_ROOT = PHASE15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_SPEC_PATH = DATA_ROOT / &quot;tabular_ml_package_spec.json&quot;
+DEFAULT_INPUT_PATHS = {
+    &quot;baseline_package_manifest&quot;: PHASE15_OUTPUT_ROOT / &quot;ml_baseline_package_manifest.json&quot;,
+    &quot;baseline_package&quot;: PHASE15_OUTPUT_ROOT / &quot;ml_baseline_package.json&quot;,
+    &quot;baseline_decision_report&quot;: PHASE15_OUTPUT_ROOT / &quot;decision_report.md&quot;,
+    &quot;problem_spec&quot;: PHASE15_DATA_ROOT / &quot;problem_spec.json&quot;,
+    &quot;catboost_model_spec&quot;: DATA_ROOT / &quot;catboost_model_spec.json&quot;,
+    &quot;categorical_feature_contract&quot;: DATA_ROOT / &quot;categorical_feature_contract.json&quot;,
+    &quot;mlflow_tracking_policy&quot;: DATA_ROOT / &quot;mlflow_tracking_policy_spec.json&quot;,
+}
+DEFAULT_REPORT_PATHS = {
+    &quot;baseline_package_report&quot;: PHASE15_OUTPUT_ROOT / &quot;ml_baseline_package_report.json&quot;,
+    &quot;catboost_report&quot;: PHASE_ROOT / &quot;01-catboost&quot; / &quot;outputs&quot; / &quot;catboost_report.json&quot;,
+    &quot;categorical_report&quot;: PHASE_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;,
+    &quot;early_stopping_report&quot;: PHASE_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;,
+    &quot;built_in_importance_report&quot;: PHASE_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance_report.json&quot;,
+    &quot;permutation_importance_report&quot;: PHASE_ROOT / &quot;05-permutation-importance&quot; / &quot;outputs&quot; / &quot;permutation_importance_report.json&quot;,
+    &quot;shap_report&quot;: PHASE_ROOT / &quot;06-shap&quot; / &quot;outputs&quot; / &quot;shap_explanation_report.json&quot;,
+    &quot;segment_report&quot;: PHASE_ROOT / &quot;07-segment-analysis&quot; / &quot;outputs&quot; / &quot;strong_model_segment_report.json&quot;,
+    &quot;cost_report&quot;: PHASE_ROOT / &quot;08-cost-sensitive-decisions&quot; / &quot;outputs&quot; / &quot;cost_sensitive_decision_report.json&quot;,
+    &quot;optuna_report&quot;: PHASE_ROOT / &quot;09-optuna&quot; / &quot;outputs&quot; / &quot;optuna_tuning_report.json&quot;,
+    &quot;mlflow_report&quot;: PHASE_ROOT / &quot;10-mlflow&quot; / &quot;outputs&quot; / &quot;mlflow_experiment_report.json&quot;,
+}
+DEFAULT_TABLE_PATHS = {
+    &quot;catboost_comparison&quot;: PHASE_ROOT / &quot;01-catboost&quot; / &quot;outputs&quot; / &quot;catboost_comparison.csv&quot;,
+    &quot;catboost_training_trace&quot;: PHASE_ROOT / &quot;01-catboost&quot; / &quot;outputs&quot; / &quot;catboost_training_trace.csv&quot;,
+    &quot;categorical_inventory&quot;: PHASE_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_inventory.csv&quot;,
+    &quot;categorical_leakage_audit&quot;: PHASE_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_leakage_audit.csv&quot;,
+    &quot;categorical_unknowns&quot;: PHASE_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_unknowns.csv&quot;,
+    &quot;built_in_importance&quot;: PHASE_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance.csv&quot;,
+    &quot;permutation_importance&quot;: PHASE_ROOT / &quot;05-permutation-importance&quot; / &quot;outputs&quot; / &quot;permutation_importance.csv&quot;,
+    &quot;shap_global_summary&quot;: PHASE_ROOT / &quot;06-shap&quot; / &quot;outputs&quot; / &quot;shap_global_summary.csv&quot;,
+    &quot;explanation_disagreement&quot;: PHASE_ROOT / &quot;06-shap&quot; / &quot;outputs&quot; / &quot;explanation_disagreement.csv&quot;,
+    &quot;strong_model_segment_deltas&quot;: PHASE_ROOT / &quot;07-segment-analysis&quot; / &quot;outputs&quot; / &quot;strong_model_segment_deltas.csv&quot;,
+    &quot;strong_model_hidden_failure_slices&quot;: PHASE_ROOT / &quot;07-segment-analysis&quot; / &quot;outputs&quot; / &quot;strong_model_hidden_failure_slices.csv&quot;,
+    &quot;decision_gate&quot;: PHASE_ROOT / &quot;08-cost-sensitive-decisions&quot; / &quot;outputs&quot; / &quot;decision_gate.csv&quot;,
+    &quot;threshold_comparison&quot;: PHASE_ROOT / &quot;08-cost-sensitive-decisions&quot; / &quot;outputs&quot; / &quot;threshold_comparison.csv&quot;,
+    &quot;optuna_trial_ledger&quot;: PHASE_ROOT / &quot;09-optuna&quot; / &quot;outputs&quot; / &quot;optuna_trial_ledger.csv&quot;,
+    &quot;optuna_best_trial_trace&quot;: PHASE_ROOT / &quot;09-optuna&quot; / &quot;outputs&quot; / &quot;optuna_best_trial_trace.csv&quot;,
+    &quot;optuna_tuned_predictions&quot;: PHASE_ROOT / &quot;09-optuna&quot; / &quot;outputs&quot; / &quot;optuna_tuned_predictions.csv&quot;,
+    &quot;mlflow_run_table&quot;: PHASE_ROOT / &quot;10-mlflow&quot; / &quot;outputs&quot; / &quot;mlflow_run_table.csv&quot;,
+    &quot;mlflow_artifact_inventory&quot;: PHASE_ROOT / &quot;10-mlflow&quot; / &quot;outputs&quot; / &quot;mlflow_artifact_inventory.csv&quot;,
+}
+EXPECTED_OUTPUT_FIELDS = {
+    &quot;package_file&quot;,
+    &quot;report_file&quot;,
+    &quot;evidence_matrix_file&quot;,
+    &quot;score_drift_file&quot;,
+    &quot;feature_drift_file&quot;,
+    &quot;importance_stability_file&quot;,
+    &quot;segment_stability_file&quot;,
+    &quot;stability_report_file&quot;,
+    &quot;interpretation_report_file&quot;,
+    &quot;decision_report_file&quot;,
+    &quot;manifest_file&quot;,
+}
+REQUIRED_SPEC_FIELDS = {
+    &quot;package_id&quot;,
+    &quot;problem_id&quot;,
+    &quot;source_baseline_package_id&quot;,
+    &quot;source_mlflow_tracking_audit_id&quot;,
+    &quot;candidate_model_id&quot;,
+    &quot;source_catboost_model_id&quot;,
+    &quot;baseline_model_id&quot;,
+    &quot;required_upstream_reports&quot;,
+    &quot;required_evidence_files&quot;,
+    &quot;drift_policy&quot;,
+    &quot;stability_policy&quot;,
+    &quot;decision_policy&quot;,
+    &quot;output&quot;,
+}
+GENERATED_AT = &quot;2026-07-06T14:00:00+03:00&quot;
+
+
+class TabularMLPackageError(ValueError):
+    &quot;&quot;&quot;Raised when the tabular ML interpretation package cannot be built.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    payload = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(payload, dict):
+        raise TabularMLPackageError(f&quot;{path.name} must contain a JSON object&quot;)
+    return payload
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def stringify(value: Any) -&gt; str:
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(round_float(value))
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if value is None:
+        return &quot;&quot;
+    return str(value)
+
+
+def json_text(payload: dict[str, Any]) -&gt; str:
+    return json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;
+
+
+def csv_text(rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; str:
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({field: stringify(row.get(field, &quot;&quot;)) for field in fieldnames})
+    return buffer.getvalue()
+
+
+def write_json(path: Path, payload: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json_text(payload), encoding=&quot;utf-8&quot;)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(csv_text(rows, fieldnames), encoding=&quot;utf-8&quot;)
+
+
+def sha256_bytes(payload: bytes) -&gt; str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def sha256_path(path: Path) -&gt; str:
+    return sha256_bytes(path.read_bytes())
+
+
+def path_label(path: Path) -&gt; str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def round_float(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    if math.isnan(value):
+        return None
+    return round(float(value), digits)
+
+
+def as_float(value: Any, default: float = 0.0) -&gt; float:
+    if value in (&quot;&quot;, None):
+        return default
+    return float(value)
+
+
+def as_bool(value: Any) -&gt; bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() == &quot;true&quot;
+
+
+def mean(values: list[float]) -&gt; float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def stddev(values: list[float]) -&gt; float:
+    if len(values) &lt; 2:
+        return 0.0
+    avg = mean(values)
+    return math.sqrt(sum((value - avg) ** 2 for value in values) / (len(values) - 1))
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: list[Any] | None = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def blocking_checks(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def warning_checks(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def report_warnings(report: dict[str, Any]) -&gt; list[str]:
+    return list(report.get(&quot;summary&quot;, {}).get(&quot;warnings&quot;, []))
+
+
+def report_blocking_errors(report: dict[str, Any]) -&gt; list[str]:
+    return list(report.get(&quot;summary&quot;, {}).get(&quot;blocking_errors&quot;, []))
+
+
+def validate_spec(spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SPEC_FIELDS - set(spec))
+    if missing:
+        checks.append(failed(&quot;package_spec_required_fields&quot;, missing, &quot;all required fields&quot;))
+        return checks
+    checks.append(passed(&quot;package_spec_required_fields&quot;, len(REQUIRED_SPEC_FIELDS), len(REQUIRED_SPEC_FIELDS)))
+
+    output = spec.get(&quot;output&quot;, {})
+    missing_outputs = sorted(EXPECTED_OUTPUT_FIELDS - set(output))
+    if missing_outputs:
+        checks.append(failed(&quot;package_output_contract_complete&quot;, missing_outputs, &quot;all output filenames&quot;))
+    else:
+        checks.append(passed(&quot;package_output_contract_complete&quot;, sorted(output.values()), &quot;all output filenames&quot;))
+
+    decision_policy = spec.get(&quot;decision_policy&quot;, {})
+    allowed_statuses = set(decision_policy.get(&quot;allowed_statuses&quot;, []))
+    status = decision_policy.get(&quot;candidate_failed_gate_status&quot;)
+    forbidden_flags = {
+        &quot;production_ready_allowed&quot;: decision_policy.get(&quot;production_ready_allowed&quot;),
+        &quot;causal_claim_allowed&quot;: decision_policy.get(&quot;causal_claim_allowed&quot;),
+        &quot;serving_release_allowed&quot;: decision_policy.get(&quot;serving_release_allowed&quot;),
+    }
+    if status not in allowed_statuses or any(value is not False for value in forbidden_flags.values()):
+        checks.append(
+            failed(
+                &quot;decision_policy_blocks_production_causal_and_serving_claims&quot;,
+                {&quot;status&quot;: status, **forbidden_flags},
+                &quot;allowed non-production status with production/causal/serving disabled&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;decision_policy_blocks_production_causal_and_serving_claims&quot;,
+                {&quot;status&quot;: status, **forbidden_flags},
+                &quot;allowed non-production status with production/causal/serving disabled&quot;,
+            )
+        )
+    return checks
+
+
+def validate_required_paths(
+    input_paths: dict[str, Path],
+    report_paths: dict[str, Path],
+    table_paths: dict[str, Path],
+    spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    required_reports = set(spec.get(&quot;required_upstream_reports&quot;, []))
+    required_files = set(spec.get(&quot;required_evidence_files&quot;, []))
+    missing_reports = sorted(name for name in required_reports if name not in report_paths or not report_paths[name].is_file())
+    missing_files = sorted(
+        name
+        for name in required_files
+        if not ((name in input_paths and input_paths[name].is_file()) or (name in table_paths and table_paths[name].is_file()))
+    )
+    if missing_reports or missing_files:
+        checks.append(
+            failed(
+                &quot;required_upstream_evidence_files_exist&quot;,
+                {&quot;missing_reports&quot;: missing_reports, &quot;missing_files&quot;: missing_files},
+                &quot;all declared reports and evidence files exist&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;required_upstream_evidence_files_exist&quot;,
+                {&quot;report_count&quot;: len(required_reports), &quot;evidence_file_count&quot;: len(required_files)},
+                &quot;all declared reports and evidence files exist&quot;,
+            )
+        )
+    return checks
+
+
+def validate_upstream_reports(reports: dict[str, dict[str, Any]], spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    invalid = {
+        name: {&quot;valid&quot;: report.get(&quot;valid&quot;), &quot;blocking_errors&quot;: report_blocking_errors(report)}
+        for name, report in reports.items()
+        if report.get(&quot;valid&quot;) is not True or report_blocking_errors(report)
+    }
+    if invalid:
+        checks.append(failed(&quot;upstream_reports_are_valid&quot;, invalid, &quot;all upstream reports valid with no blocking errors&quot;))
+    else:
+        checks.append(passed(&quot;upstream_reports_are_valid&quot;, sorted(reports), &quot;all upstream reports valid with no blocking errors&quot;))
+
+    problem_mismatches = []
+    for name, report in reports.items():
+        problem_id = report.get(&quot;summary&quot;, {}).get(&quot;problem_id&quot;)
+        if problem_id and problem_id != spec[&quot;problem_id&quot;]:
+            problem_mismatches.append({&quot;report&quot;: name, &quot;observed&quot;: problem_id})
+    if problem_mismatches:
+        checks.append(failed(&quot;upstream_problem_ids_match_package_spec&quot;, problem_mismatches, spec[&quot;problem_id&quot;]))
+    else:
+        checks.append(passed(&quot;upstream_problem_ids_match_package_spec&quot;, spec[&quot;problem_id&quot;], spec[&quot;problem_id&quot;]))
+
+    mlflow_summary = reports.get(&quot;mlflow_report&quot;, {}).get(&quot;summary&quot;, {})
+    if (
+        mlflow_summary.get(&quot;mlflow_tracking_audit_id&quot;) == spec[&quot;source_mlflow_tracking_audit_id&quot;]
+        and mlflow_summary.get(&quot;readiness_status&quot;) == &quot;ready_for_drift_and_stability_lesson&quot;
+    ):
+        checks.append(passed(&quot;mlflow_handoff_ready_for_stability_package&quot;, mlflow_summary.get(&quot;readiness_status&quot;)))
+    else:
+        checks.append(
+            failed(
+                &quot;mlflow_handoff_ready_for_stability_package&quot;,
+                {
+                    &quot;audit_id&quot;: mlflow_summary.get(&quot;mlflow_tracking_audit_id&quot;),
+                    &quot;readiness_status&quot;: mlflow_summary.get(&quot;readiness_status&quot;),
+                },
+                {
+                    &quot;audit_id&quot;: spec[&quot;source_mlflow_tracking_audit_id&quot;],
+                    &quot;readiness_status&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+                },
+            )
+        )
+    return checks
+
+
+def ks_like_gap(reference: list[float], comparison: list[float]) -&gt; float:
+    if not reference or not comparison:
+        return 0.0
+    points = sorted(set(reference + comparison))
+    max_gap = 0.0
+    for point in points:
+        ref_cdf = sum(value &lt;= point for value in reference) / len(reference)
+        cmp_cdf = sum(value &lt;= point for value in comparison) / len(comparison)
+        max_gap = max(max_gap, abs(ref_cdf - cmp_cdf))
+    return max_gap
+
+
+def build_score_drift_rows(prediction_rows: list[dict[str, str]], policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    reference_split = policy[&quot;score_reference_split&quot;]
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for row in prediction_rows:
+        grouped.setdefault(row[&quot;split&quot;], []).append(row)
+    reference_scores = [as_float(row[&quot;score&quot;]) for row in grouped.get(reference_split, [])]
+    reference_mean = mean(reference_scores)
+    rows: list[dict[str, Any]] = []
+    for split in [&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;]:
+        split_rows = grouped.get(split, [])
+        scores = [as_float(row[&quot;score&quot;]) for row in split_rows]
+        labels = [as_float(row[&quot;actual_label&quot;]) for row in split_rows]
+        mean_delta = mean(scores) - reference_mean
+        gap = ks_like_gap(reference_scores, scores)
+        watch = abs(mean_delta) &gt; policy[&quot;score_watch_abs_mean_delta&quot;] or gap &gt; policy[&quot;score_watch_ks_like_gap&quot;]
+        rows.append(
+            {
+                &quot;split&quot;: split,
+                &quot;reference_split&quot;: reference_split,
+                &quot;row_count&quot;: len(split_rows),
+                &quot;mean_score&quot;: round_float(mean(scores)),
+                &quot;std_score&quot;: round_float(stddev(scores)),
+                &quot;min_score&quot;: round_float(min(scores) if scores else 0.0),
+                &quot;max_score&quot;: round_float(max(scores) if scores else 0.0),
+                &quot;positive_rate&quot;: round_float(mean(labels)),
+                &quot;mean_delta_vs_reference&quot;: round_float(mean_delta),
+                &quot;ks_like_gap_vs_reference&quot;: round_float(gap),
+                &quot;stability_status&quot;: &quot;watch&quot; if watch else &quot;stable&quot;,
+                &quot;interpretation&quot;: &quot;score_distribution_shift_watch&quot; if watch else &quot;tiny_score_distribution_stable&quot;,
+            }
+        )
+    return rows
+
+
+def build_feature_drift_rows(inventory_rows: list[dict[str, str]], policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for row in inventory_rows:
+        grouped.setdefault(row[&quot;feature_name&quot;], []).append(row)
+    rows: list[dict[str, Any]] = []
+    for feature_name, feature_rows in grouped.items():
+        after_train_total = sum(int(row[&quot;validation_count&quot;]) + int(row[&quot;test_count&quot;]) for row in feature_rows)
+        unseen_after_train_count = sum(
+            int(row[&quot;validation_count&quot;]) + int(row[&quot;test_count&quot;])
+            for row in feature_rows
+            if as_bool(row[&quot;unseen_in_train&quot;])
+        )
+        missing_after_train_count = sum(
+            int(row[&quot;validation_count&quot;]) + int(row[&quot;test_count&quot;])
+            for row in feature_rows
+            if as_bool(row[&quot;missing_value&quot;])
+        )
+        high_cardinality = any(as_bool(row[&quot;high_cardinality_feature&quot;]) for row in feature_rows)
+        unseen_rate = unseen_after_train_count / after_train_total if after_train_total else 0.0
+        watch = unseen_rate &gt; policy[&quot;feature_watch_unseen_after_train_rate&quot;] or (
+            high_cardinality and policy.get(&quot;feature_watch_high_cardinality&quot;) is True
+        )
+        rows.append(
+            {
+                &quot;feature_name&quot;: feature_name,
+                &quot;category_row_count&quot;: len(feature_rows),
+                &quot;after_train_row_count&quot;: after_train_total,
+                &quot;unseen_after_train_count&quot;: unseen_after_train_count,
+                &quot;unseen_after_train_rate&quot;: round_float(unseen_rate),
+                &quot;missing_after_train_count&quot;: missing_after_train_count,
+                &quot;high_cardinality_feature&quot;: high_cardinality,
+                &quot;unknown_category_policy&quot;: feature_rows[0].get(&quot;unknown_category_policy&quot;, &quot;&quot;),
+                &quot;stability_status&quot;: &quot;watch&quot; if watch else &quot;stable&quot;,
+                &quot;interpretation&quot;: &quot;new_categories_require_monitoring&quot; if watch else &quot;known_category_mix_within_policy&quot;,
+            }
+        )
+    return sorted(rows, key=lambda row: (row[&quot;stability_status&quot;] != &quot;watch&quot;, row[&quot;feature_name&quot;]))
+
+
+def build_importance_stability_rows(disagreement_rows: list[dict[str, str]]) -&gt; list[dict[str, Any]]:
+    top_features = {row[&quot;top_feature_name&quot;] for row in disagreement_rows}
+    directions = {row[&quot;direction&quot;] for row in disagreement_rows}
+    conflict = len(directions) &gt; 1 or any(row[&quot;disagreement_status&quot;] != &quot;aligned&quot; for row in disagreement_rows)
+    status = &quot;watch&quot; if conflict else &quot;stable&quot;
+    rows = []
+    for row in disagreement_rows:
+        rows.append(
+            {
+                &quot;method&quot;: row[&quot;method&quot;],
+                &quot;source_audit_id&quot;: row[&quot;source_audit_id&quot;],
+                &quot;top_feature_name&quot;: row[&quot;top_feature_name&quot;],
+                &quot;rank_basis&quot;: row[&quot;rank_basis&quot;],
+                &quot;raw_value&quot;: row[&quot;raw_value&quot;],
+                &quot;direction&quot;: row[&quot;direction&quot;],
+                &quot;split&quot;: row[&quot;split&quot;],
+                &quot;output_space&quot;: row[&quot;output_space&quot;],
+                &quot;same_top_feature_across_methods&quot;: len(top_features) == 1,
+                &quot;direction_set&quot;: &quot;,&quot;.join(sorted(directions)),
+                &quot;stability_status&quot;: status,
+                &quot;interpretation&quot;: &quot;same_feature_but_conflicting_method_meaning&quot; if conflict else &quot;methods_aligned&quot;,
+            }
+        )
+    return rows
+
+
+def build_segment_stability_rows(delta_rows: list[dict[str, str]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in delta_rows:
+        hidden = as_bool(row[&quot;hidden_failure_candidate&quot;])
+        small_n = as_bool(row[&quot;small_n_warning&quot;])
+        worse = as_bool(row[&quot;candidate_worse_than_baseline&quot;])
+        if hidden:
+            status = &quot;blocked_for_promotion&quot;
+        elif small_n:
+            status = &quot;diagnostic_small_n&quot;
+        elif worse:
+            status = &quot;watch&quot;
+        else:
+            status = &quot;stable&quot;
+        rows.append(
+            {
+                &quot;dimension&quot;: row[&quot;dimension&quot;],
+                &quot;slice_value&quot;: row[&quot;slice_value&quot;],
+                &quot;baseline_row_count&quot;: int(row[&quot;baseline_row_count&quot;]),
+                &quot;candidate_row_count&quot;: int(row[&quot;candidate_row_count&quot;]),
+                &quot;precision_delta&quot;: row[&quot;precision_delta&quot;],
+                &quot;recall_delta&quot;: row[&quot;recall_delta&quot;],
+                &quot;error_rate_delta&quot;: row[&quot;error_rate_delta&quot;],
+                &quot;candidate_worse_than_baseline&quot;: worse,
+                &quot;hidden_failure_candidate&quot;: hidden,
+                &quot;small_n_warning&quot;: small_n,
+                &quot;hidden_failure_reasons&quot;: row[&quot;hidden_failure_reasons&quot;],
+                &quot;stability_status&quot;: status,
+            }
+        )
+    return rows
+
+
+def summarize_stability(
+    score_rows: list[dict[str, Any]],
+    feature_rows: list[dict[str, Any]],
+    importance_rows: list[dict[str, Any]],
+    segment_rows: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    feature_watch = [row[&quot;feature_name&quot;] for row in feature_rows if row[&quot;stability_status&quot;] == &quot;watch&quot;]
+    importance_watch = [row for row in importance_rows if row[&quot;stability_status&quot;] == &quot;watch&quot;]
+    hidden_segments = [row for row in segment_rows if row[&quot;hidden_failure_candidate&quot;]]
+    score_watch = [row for row in score_rows if row[&quot;stability_status&quot;] == &quot;watch&quot;]
+    return {
+        &quot;generated_at&quot;: GENERATED_AT,
+        &quot;overall_status&quot;: &quot;watch_required&quot; if feature_watch or importance_watch or hidden_segments or score_watch else &quot;stable&quot;,
+        &quot;score_drift&quot;: {
+            &quot;status&quot;: &quot;watch&quot; if score_watch else &quot;stable&quot;,
+            &quot;row_count&quot;: len(score_rows),
+            &quot;max_abs_mean_delta&quot;: round_float(max(abs(row[&quot;mean_delta_vs_reference&quot;]) for row in score_rows)),
+            &quot;watch_splits&quot;: [row[&quot;split&quot;] for row in score_watch],
+        },
+        &quot;feature_drift&quot;: {
+            &quot;status&quot;: &quot;watch&quot; if feature_watch else &quot;stable&quot;,
+            &quot;row_count&quot;: len(feature_rows),
+            &quot;watch_features&quot;: feature_watch,
+            &quot;max_unseen_after_train_rate&quot;: round_float(max(row[&quot;unseen_after_train_rate&quot;] for row in feature_rows)),
+        },
+        &quot;importance_stability&quot;: {
+            &quot;status&quot;: &quot;watch&quot; if importance_watch else &quot;stable&quot;,
+            &quot;row_count&quot;: len(importance_rows),
+            &quot;top_feature&quot;: importance_rows[0][&quot;top_feature_name&quot;] if importance_rows else None,
+            &quot;direction_set&quot;: importance_rows[0][&quot;direction_set&quot;] if importance_rows else &quot;&quot;,
+        },
+        &quot;segment_stability&quot;: {
+            &quot;status&quot;: &quot;blocked_for_promotion&quot; if hidden_segments else &quot;stable&quot;,
+            &quot;row_count&quot;: len(segment_rows),
+            &quot;hidden_failure_slice_count&quot;: len(hidden_segments),
+            &quot;small_n_slice_count&quot;: sum(1 for row in segment_rows if row[&quot;small_n_warning&quot;]),
+        },
+    }
+
+
+def required_promotion_failures(decision_gate_rows: list[dict[str, str]]) -&gt; list[str]:
+    return [
+        row[&quot;gate_id&quot;]
+        for row in decision_gate_rows
+        if as_bool(row[&quot;required_for_promotion&quot;]) and not as_bool(row[&quot;passed&quot;])
+    ]
+
+
+def validate_package_gates(
+    spec: dict[str, Any],
+    reports: dict[str, dict[str, Any]],
+    decision_gate_rows: list[dict[str, str]],
+    stability_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    failures = required_promotion_failures(decision_gate_rows)
+    decision_status = spec[&quot;decision_policy&quot;][&quot;candidate_failed_gate_status&quot;] if failures else &quot;promote_candidate_with_limits&quot;
+    if failures and decision_status == &quot;promote_candidate_with_limits&quot;:
+        checks.append(
+            failed(
+                &quot;candidate_cannot_be_promoted_when_required_decision_gates_fail&quot;,
+                {&quot;decision_status&quot;: decision_status, &quot;failed_gates&quot;: failures},
+                &quot;non-promotion decision status&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;candidate_cannot_be_promoted_when_required_decision_gates_fail&quot;,
+                {&quot;decision_status&quot;: decision_status, &quot;failed_gates&quot;: failures},
+                &quot;non-promotion decision status&quot;,
+            )
+        )
+
+    if stability_report[&quot;feature_drift&quot;][&quot;status&quot;] == &quot;watch&quot;:
+        checks.append(
+            failed(
+                &quot;feature_drift_watch_required&quot;,
+                stability_report[&quot;feature_drift&quot;][&quot;watch_features&quot;],
+                &quot;no feature drift watch features&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;feature_drift_watch_required&quot;, [], &quot;no feature drift watch features&quot;))
+
+    if stability_report[&quot;importance_stability&quot;][&quot;status&quot;] == &quot;watch&quot;:
+        checks.append(
+            failed(
+                &quot;unstable_explanations_require_review&quot;,
+                stability_report[&quot;importance_stability&quot;],
+                &quot;aligned explanation methods&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;unstable_explanations_require_review&quot;, &quot;stable&quot;, &quot;stable&quot;))
+
+    if stability_report[&quot;segment_stability&quot;][&quot;hidden_failure_slice_count&quot;] &gt; 0:
+        checks.append(
+            failed(
+                &quot;segment_hidden_failures_block_candidate_promotion&quot;,
+                stability_report[&quot;segment_stability&quot;][&quot;hidden_failure_slice_count&quot;],
+                0,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;segment_hidden_failures_block_candidate_promotion&quot;, 0, 0))
+
+    cost_summary = reports[&quot;cost_report&quot;][&quot;summary&quot;]
+    if cost_summary.get(&quot;decision_status&quot;) == &quot;do_not_promote_catboost_candidate&quot;:
+        checks.append(
+            failed(
+                &quot;candidate_not_promoted_due_to_cost_and_segment_gate&quot;,
+                cost_summary.get(&quot;failed_promotion_gates&quot;),
+                &quot;all promotion gates passed&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;candidate_not_promoted_due_to_cost_and_segment_gate&quot;, [], &quot;all promotion gates passed&quot;))
+
+    mlflow_summary = reports[&quot;mlflow_report&quot;][&quot;summary&quot;]
+    if mlflow_summary.get(&quot;tracking_backend&quot;) == &quot;local_file_store&quot;:
+        checks.append(
+            failed(
+                &quot;local_tracking_store_not_serving_release&quot;,
+                mlflow_summary.get(&quot;tracking_backend&quot;),
+                &quot;production serving release&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;local_tracking_store_not_serving_release&quot;, mlflow_summary.get(&quot;tracking_backend&quot;)))
+    return checks
+
+
+def build_evidence_matrix(
+    reports: dict[str, dict[str, Any]],
+    report_paths: dict[str, Path],
+    input_paths: dict[str, Path],
+    score_rows: list[dict[str, Any]],
+    feature_rows: list[dict[str, Any]],
+    importance_rows: list[dict[str, Any]],
+    segment_rows: list[dict[str, Any]],
+    output: dict[str, str],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = [
+        {
+            &quot;evidence_id&quot;: &quot;baseline_package_manifest&quot;,
+            &quot;package_section&quot;: &quot;input&quot;,
+            &quot;source_path&quot;: str(input_paths[&quot;baseline_package_manifest&quot;].relative_to(REPO_ROOT)),
+            &quot;valid&quot;: True,
+            &quot;warning_count&quot;: 0,
+            &quot;blocking_error_count&quot;: 0,
+            &quot;key_summary&quot;: {&quot;sha256&quot;: sha256_path(input_paths[&quot;baseline_package_manifest&quot;])},
+        }
+    ]
+    for name in [
+        &quot;baseline_package_report&quot;,
+        &quot;catboost_report&quot;,
+        &quot;categorical_report&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;built_in_importance_report&quot;,
+        &quot;permutation_importance_report&quot;,
+        &quot;shap_report&quot;,
+        &quot;segment_report&quot;,
+        &quot;cost_report&quot;,
+        &quot;optuna_report&quot;,
+        &quot;mlflow_report&quot;,
+    ]:
+        report = reports[name]
+        summary = report.get(&quot;summary&quot;, {})
+        rows.append(
+            {
+                &quot;evidence_id&quot;: name,
+                &quot;package_section&quot;: &quot;upstream&quot;,
+                &quot;source_path&quot;: str(report_paths[name].relative_to(REPO_ROOT)),
+                &quot;valid&quot;: report.get(&quot;valid&quot;) is True,
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;blocking_error_count&quot;: len(summary.get(&quot;blocking_errors&quot;, [])),
+                &quot;key_summary&quot;: {
+                    &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+                    &quot;decision_status&quot;: summary.get(&quot;decision_status&quot;),
+                    &quot;model_id&quot;: summary.get(&quot;model_id&quot;) or summary.get(&quot;candidate_model_id&quot;),
+                },
+            }
+        )
+    generated_sources = [
+        (&quot;score_drift&quot;, &quot;stability&quot;, output[&quot;score_drift_file&quot;], {&quot;row_count&quot;: len(score_rows), &quot;watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in score_rows)}),
+        (&quot;feature_drift&quot;, &quot;stability&quot;, output[&quot;feature_drift_file&quot;], {&quot;row_count&quot;: len(feature_rows), &quot;watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in feature_rows)}),
+        (
+            &quot;importance_stability&quot;,
+            &quot;interpretation&quot;,
+            output[&quot;importance_stability_file&quot;],
+            {&quot;row_count&quot;: len(importance_rows), &quot;watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in importance_rows)},
+        ),
+        (
+            &quot;segment_stability&quot;,
+            &quot;stability&quot;,
+            output[&quot;segment_stability_file&quot;],
+            {&quot;row_count&quot;: len(segment_rows), &quot;hidden_failure_count&quot;: sum(row[&quot;hidden_failure_candidate&quot;] for row in segment_rows)},
+        ),
+    ]
+    for evidence_id, section, filename, summary in generated_sources:
+        rows.append(
+            {
+                &quot;evidence_id&quot;: evidence_id,
+                &quot;package_section&quot;: section,
+                &quot;source_path&quot;: filename,
+                &quot;valid&quot;: True,
+                &quot;warning_count&quot;: summary.get(&quot;watch_count&quot;, summary.get(&quot;hidden_failure_count&quot;, 0)),
+                &quot;blocking_error_count&quot;: 0,
+                &quot;key_summary&quot;: summary,
+            }
+        )
+    return rows
+
+
+def markdown_interpretation_report(
+    spec: dict[str, Any],
+    stability_report: dict[str, Any],
+    importance_rows: list[dict[str, Any]],
+    reports: dict[str, dict[str, Any]],
+) -&gt; str:
+    shap_summary = reports[&quot;shap_report&quot;][&quot;summary&quot;]
+    lines = [
+        &quot;# Tabular ML interpretation report&quot;,
+        &quot;&quot;,
+        f&quot;Package: `{spec[&#x27;package_id&#x27;]}`.&quot;,
+        &quot;&quot;,
+        &quot;## Explanation stack&quot;,
+        &quot;&quot;,
+        &quot;- CatBoost built-in importance, permutation importance and Tree SHAP are included as separate evidence views.&quot;,
+        f&quot;- All methods point to `{stability_report[&#x27;importance_stability&#x27;][&#x27;top_feature&#x27;]}` as the main diagnostic feature.&quot;,
+        f&quot;- Direction set: `{stability_report[&#x27;importance_stability&#x27;][&#x27;direction_set&#x27;]}`.&quot;,
+        &quot;- This is model behavior evidence, not a causal claim about retention offers.&quot;,
+        &quot;&quot;,
+        &quot;## Stability limits&quot;,
+        &quot;&quot;,
+        f&quot;- SHAP output space: `{shap_summary[&#x27;output_space&#x27;]}`.&quot;,
+        f&quot;- SHAP background rows: `{shap_summary[&#x27;background_row_count&#x27;]}`.&quot;,
+        f&quot;- Feature drift watch features: `{&#x27;, &#x27;.join(stability_report[&#x27;feature_drift&#x27;][&#x27;watch_features&#x27;])}`.&quot;,
+        f&quot;- Segment hidden failure slices: `{stability_report[&#x27;segment_stability&#x27;][&#x27;hidden_failure_slice_count&#x27;]}`.&quot;,
+        &quot;&quot;,
+        &quot;## Method disagreement&quot;,
+        &quot;&quot;,
+    ]
+    for row in importance_rows:
+        lines.append(
+            f&quot;- `{row[&#x27;method&#x27;]}`: top feature `{row[&#x27;top_feature_name&#x27;]}`, direction `{row[&#x27;direction&#x27;]}`, status `{row[&#x27;stability_status&#x27;]}`.&quot;
+        )
+    lines.extend(
+        [
+            &quot;&quot;,
+            &quot;Interpretation is therefore diagnostic-only until larger validation data, stable feature mix and segment review are available.&quot;,
+        ]
+    )
+    return &quot;\n&quot;.join(lines) + &quot;\n&quot;
+
+
+def markdown_decision_report(
+    spec: dict[str, Any],
+    decision_status: str,
+    monitoring_status: str,
+    failures: list[str],
+    stability_report: dict[str, Any],
+) -&gt; str:
+    return &quot;\n&quot;.join(
+        [
+            &quot;# Tabular ML decision report&quot;,
+            &quot;&quot;,
+            f&quot;Decision status: `{decision_status}`.&quot;,
+            f&quot;Monitoring status: `{monitoring_status}`.&quot;,
+            &quot;&quot;,
+            &quot;## Decision&quot;,
+            &quot;&quot;,
+            f&quot;Keep `{spec[&#x27;baseline_model_id&#x27;]}` as the selected baseline for the course handoff.&quot;,
+            f&quot;Do not promote `{spec[&#x27;candidate_model_id&#x27;]}` because required promotion gates failed.&quot;,
+            &quot;&quot;,
+            &quot;## Failed gates&quot;,
+            &quot;&quot;,
+            *[f&quot;- `{failure}`&quot; for failure in failures],
+            &quot;&quot;,
+            &quot;## Boundaries&quot;,
+            &quot;&quot;,
+            &quot;- This package does not make a causal claim about the retention offer.&quot;,
+            &quot;- This package is not a production serving release or model registry approval.&quot;,
+            &quot;- Drift and stability diagnostics are local offline checks, not online monitoring.&quot;,
+            &quot;&quot;,
+            &quot;## Stability notes&quot;,
+            &quot;&quot;,
+            f&quot;- Feature drift status: `{stability_report[&#x27;feature_drift&#x27;][&#x27;status&#x27;]}`.&quot;,
+            f&quot;- Importance stability status: `{stability_report[&#x27;importance_stability&#x27;][&#x27;status&#x27;]}`.&quot;,
+            f&quot;- Segment stability status: `{stability_report[&#x27;segment_stability&#x27;][&#x27;status&#x27;]}`.&quot;,
+            &quot;&quot;,
+        ]
+    )
+
+
+def build_manifest(
+    inputs: dict[str, Path],
+    outputs_payload: dict[str, str],
+) -&gt; dict[str, Any]:
+    return {
+        &quot;hash_algorithm&quot;: &quot;sha256&quot;,
+        &quot;generated_at&quot;: GENERATED_AT,
+        &quot;inputs&quot;: {
+            name: {
+                &quot;path&quot;: path_label(path),
+                &quot;bytes&quot;: path.stat().st_size,
+                &quot;sha256&quot;: sha256_path(path),
+            }
+            for name, path in sorted(inputs.items())
+        },
+        &quot;outputs&quot;: {
+            filename: {
+                &quot;bytes&quot;: len(payload.encode(&quot;utf-8&quot;)),
+                &quot;sha256&quot;: sha256_bytes(payload.encode(&quot;utf-8&quot;)),
+            }
+            for filename, payload in sorted(outputs_payload.items())
+        },
+    }
+
+
+def build_tabular_ml_package(
+    *,
+    spec_path: Path = DEFAULT_SPEC_PATH,
+    input_paths: dict[str, Path] | None = None,
+    report_paths: dict[str, Path] | None = None,
+    table_paths: dict[str, Path] | None = None,
+) -&gt; dict[str, Any]:
+    input_paths = input_paths or DEFAULT_INPUT_PATHS
+    report_paths = report_paths or DEFAULT_REPORT_PATHS
+    table_paths = table_paths or DEFAULT_TABLE_PATHS
+    spec = read_json(spec_path)
+    checks = validate_spec(spec)
+    checks.extend(validate_required_paths(input_paths, report_paths, table_paths, spec))
+
+    reports: dict[str, dict[str, Any]] = {}
+    if not blocking_checks(checks):
+        reports = {name: read_json(path) for name, path in report_paths.items() if name in spec[&quot;required_upstream_reports&quot;]}
+        checks.extend(validate_upstream_reports(reports, spec))
+
+    if blocking_checks(checks):
+        report = {
+            &quot;valid&quot;: False,
+            &quot;decision_status&quot;: &quot;blocked_before_package_build&quot;,
+            &quot;summary&quot;: {
+                &quot;package_id&quot;: spec.get(&quot;package_id&quot;),
+                &quot;blocking_errors&quot;: blocking_checks(checks),
+                &quot;warnings&quot;: warning_checks(checks),
+                &quot;readiness_status&quot;: &quot;blocked_before_tabular_ml_package&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+        return {&quot;report&quot;: report}
+
+    prediction_rows, _ = read_csv(table_paths[&quot;optuna_tuned_predictions&quot;])
+    inventory_rows, _ = read_csv(table_paths[&quot;categorical_inventory&quot;])
+    disagreement_rows, _ = read_csv(table_paths[&quot;explanation_disagreement&quot;])
+    segment_delta_rows, _ = read_csv(table_paths[&quot;strong_model_segment_deltas&quot;])
+    decision_gate_rows, _ = read_csv(table_paths[&quot;decision_gate&quot;])
+
+    score_rows = build_score_drift_rows(prediction_rows, spec[&quot;drift_policy&quot;])
+    feature_rows = build_feature_drift_rows(inventory_rows, spec[&quot;drift_policy&quot;])
+    importance_rows = build_importance_stability_rows(disagreement_rows)
+    segment_rows = build_segment_stability_rows(segment_delta_rows)
+    stability_report = summarize_stability(score_rows, feature_rows, importance_rows, segment_rows)
+    checks.extend(validate_package_gates(spec, reports, decision_gate_rows, stability_report))
+
+    failures = required_promotion_failures(decision_gate_rows)
+    decision_status = spec[&quot;decision_policy&quot;][&quot;candidate_failed_gate_status&quot;] if failures else &quot;promote_candidate_with_limits&quot;
+    monitoring_status = (
+        spec[&quot;decision_policy&quot;][&quot;monitoring_status_with_warnings&quot;]
+        if stability_report[&quot;overall_status&quot;] == &quot;watch_required&quot;
+        else &quot;stable_offline_package&quot;
+    )
+    evidence_matrix = build_evidence_matrix(
+        reports,
+        report_paths,
+        input_paths,
+        score_rows,
+        feature_rows,
+        importance_rows,
+        segment_rows,
+        spec[&quot;output&quot;],
+    )
+    interpretation_report = markdown_interpretation_report(spec, stability_report, importance_rows, reports)
+    decision_report = markdown_decision_report(spec, decision_status, monitoring_status, failures, stability_report)
+
+    package = {
+        &quot;package_id&quot;: spec[&quot;package_id&quot;],
+        &quot;problem_id&quot;: spec[&quot;problem_id&quot;],
+        &quot;source_baseline_package_id&quot;: spec[&quot;source_baseline_package_id&quot;],
+        &quot;source_mlflow_tracking_audit_id&quot;: spec[&quot;source_mlflow_tracking_audit_id&quot;],
+        &quot;candidate_model_id&quot;: spec[&quot;candidate_model_id&quot;],
+        &quot;baseline_model_id&quot;: spec[&quot;baseline_model_id&quot;],
+        &quot;decision&quot;: {
+            &quot;decision_status&quot;: decision_status,
+            &quot;monitoring_status&quot;: monitoring_status,
+            &quot;production_ready&quot;: False,
+            &quot;causal_claim_made&quot;: False,
+            &quot;serving_release&quot;: False,
+            &quot;failed_promotion_gates&quot;: failures,
+            &quot;blocked_actions&quot;: [
+                &quot;promote_catboost_candidate&quot;,
+                &quot;claim_causal_offer_effect&quot;,
+                &quot;register_or_serve_model&quot;,
+            ],
+        },
+        &quot;stability&quot;: stability_report,
+        &quot;evidence&quot;: {
+            &quot;evidence_row_count&quot;: len(evidence_matrix),
+            &quot;upstream_report_count&quot;: len(spec[&quot;required_upstream_reports&quot;]),
+            &quot;required_evidence_file_count&quot;: len(spec[&quot;required_evidence_files&quot;]),
+        },
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+    output = spec[&quot;output&quot;]
+    output_payloads_without_report = {
+        output[&quot;package_file&quot;]: json_text(package),
+        output[&quot;evidence_matrix_file&quot;]: csv_text(
+            evidence_matrix,
+            [&quot;evidence_id&quot;, &quot;package_section&quot;, &quot;source_path&quot;, &quot;valid&quot;, &quot;warning_count&quot;, &quot;blocking_error_count&quot;, &quot;key_summary&quot;],
+        ),
+        output[&quot;score_drift_file&quot;]: csv_text(
+            score_rows,
+            [
+                &quot;split&quot;,
+                &quot;reference_split&quot;,
+                &quot;row_count&quot;,
+                &quot;mean_score&quot;,
+                &quot;std_score&quot;,
+                &quot;min_score&quot;,
+                &quot;max_score&quot;,
+                &quot;positive_rate&quot;,
+                &quot;mean_delta_vs_reference&quot;,
+                &quot;ks_like_gap_vs_reference&quot;,
+                &quot;stability_status&quot;,
+                &quot;interpretation&quot;,
+            ],
+        ),
+        output[&quot;feature_drift_file&quot;]: csv_text(
+            feature_rows,
+            [
+                &quot;feature_name&quot;,
+                &quot;category_row_count&quot;,
+                &quot;after_train_row_count&quot;,
+                &quot;unseen_after_train_count&quot;,
+                &quot;unseen_after_train_rate&quot;,
+                &quot;missing_after_train_count&quot;,
+                &quot;high_cardinality_feature&quot;,
+                &quot;unknown_category_policy&quot;,
+                &quot;stability_status&quot;,
+                &quot;interpretation&quot;,
+            ],
+        ),
+        output[&quot;importance_stability_file&quot;]: csv_text(
+            importance_rows,
+            [
+                &quot;method&quot;,
+                &quot;source_audit_id&quot;,
+                &quot;top_feature_name&quot;,
+                &quot;rank_basis&quot;,
+                &quot;raw_value&quot;,
+                &quot;direction&quot;,
+                &quot;split&quot;,
+                &quot;output_space&quot;,
+                &quot;same_top_feature_across_methods&quot;,
+                &quot;direction_set&quot;,
+                &quot;stability_status&quot;,
+                &quot;interpretation&quot;,
+            ],
+        ),
+        output[&quot;segment_stability_file&quot;]: csv_text(
+            segment_rows,
+            [
+                &quot;dimension&quot;,
+                &quot;slice_value&quot;,
+                &quot;baseline_row_count&quot;,
+                &quot;candidate_row_count&quot;,
+                &quot;precision_delta&quot;,
+                &quot;recall_delta&quot;,
+                &quot;error_rate_delta&quot;,
+                &quot;candidate_worse_than_baseline&quot;,
+                &quot;hidden_failure_candidate&quot;,
+                &quot;small_n_warning&quot;,
+                &quot;hidden_failure_reasons&quot;,
+                &quot;stability_status&quot;,
+            ],
+        ),
+        output[&quot;stability_report_file&quot;]: json_text(stability_report),
+        output[&quot;interpretation_report_file&quot;]: interpretation_report,
+        output[&quot;decision_report_file&quot;]: decision_report,
+    }
+    all_inputs = {&quot;package_spec&quot;: spec_path, **input_paths, **report_paths, **table_paths}
+    planned_manifest_input_count = len(all_inputs)
+    planned_manifest_output_count = len(output_payloads_without_report) + 1
+    checks.append(
+        passed(
+            &quot;manifest_hashes_inputs_and_generated_outputs&quot;,
+            {&quot;input_count&quot;: planned_manifest_input_count, &quot;output_count&quot;: planned_manifest_output_count},
+            &quot;sha256 manifest for inputs and generated outputs&quot;,
+        )
+    )
+    report = {
+        &quot;valid&quot;: not blocking_checks(checks),
+        &quot;decision_status&quot;: decision_status,
+        &quot;summary&quot;: {
+            &quot;package_id&quot;: spec[&quot;package_id&quot;],
+            &quot;problem_id&quot;: spec[&quot;problem_id&quot;],
+            &quot;source_baseline_package_id&quot;: spec[&quot;source_baseline_package_id&quot;],
+            &quot;candidate_model_id&quot;: spec[&quot;candidate_model_id&quot;],
+            &quot;baseline_model_id&quot;: spec[&quot;baseline_model_id&quot;],
+            &quot;evidence_row_count&quot;: len(evidence_matrix),
+            &quot;upstream_report_count&quot;: len(spec[&quot;required_upstream_reports&quot;]),
+            &quot;upstream_warning_count&quot;: sum(len(report_warnings(report)) for report in reports.values()),
+            &quot;score_drift_row_count&quot;: len(score_rows),
+            &quot;score_drift_watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in score_rows),
+            &quot;feature_drift_row_count&quot;: len(feature_rows),
+            &quot;feature_drift_watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in feature_rows),
+            &quot;importance_stability_row_count&quot;: len(importance_rows),
+            &quot;importance_stability_watch_count&quot;: sum(row[&quot;stability_status&quot;] == &quot;watch&quot; for row in importance_rows),
+            &quot;segment_stability_row_count&quot;: len(segment_rows),
+            &quot;hidden_failure_slice_count&quot;: stability_report[&quot;segment_stability&quot;][&quot;hidden_failure_slice_count&quot;],
+            &quot;failed_promotion_gate_count&quot;: len(failures),
+            &quot;manifest_input_count&quot;: planned_manifest_input_count,
+            &quot;manifest_output_count&quot;: planned_manifest_output_count,
+            &quot;production_ready&quot;: False,
+            &quot;monitoring_status&quot;: monitoring_status,
+            &quot;blocking_errors&quot;: blocking_checks(checks),
+            &quot;warnings&quot;: warning_checks(checks),
+            &quot;readiness_status&quot;: &quot;phase_16_complete_tabular_ml_interpretation_package&quot;,
+        },
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;package_file&quot;: output[&quot;package_file&quot;],
+            &quot;decision_report_file&quot;: output[&quot;decision_report_file&quot;],
+            &quot;interpretation_report_file&quot;: output[&quot;interpretation_report_file&quot;],
+            &quot;manifest_file&quot;: output[&quot;manifest_file&quot;],
+        },
+    }
+    report_payload = json_text(report)
+    payloads_for_manifest = {
+        **output_payloads_without_report,
+        output[&quot;report_file&quot;]: report_payload,
+    }
+    manifest = build_manifest(all_inputs, payloads_for_manifest)
+    output_payloads = {
+        **payloads_for_manifest,
+        output[&quot;manifest_file&quot;]: json_text(manifest),
+    }
+    return {
+        &quot;package&quot;: package,
+        &quot;report&quot;: report,
+        &quot;evidence_matrix&quot;: evidence_matrix,
+        &quot;score_drift&quot;: score_rows,
+        &quot;feature_drift&quot;: feature_rows,
+        &quot;importance_stability&quot;: importance_rows,
+        &quot;segment_stability&quot;: segment_rows,
+        &quot;stability_report&quot;: stability_report,
+        &quot;interpretation_report&quot;: interpretation_report,
+        &quot;decision_report&quot;: decision_report,
+        &quot;manifest&quot;: manifest,
+        &quot;output_payloads&quot;: output_payloads,
+        &quot;output&quot;: output,
+    }
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output: dict[str, str] | None = None) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if &quot;output_payloads&quot; not in result:
+        output = output or read_json(DEFAULT_SPEC_PATH)[&quot;output&quot;]
+        write_json(output_dir / output[&quot;report_file&quot;], result[&quot;report&quot;])
+        return
+    for filename, payload in result[&quot;output_payloads&quot;].items():
+        (output_dir / filename).write_text(payload, encoding=&quot;utf-8&quot;)
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Build the final tabular ML interpretation package.&quot;)
+    parser.add_argument(&quot;--spec-path&quot;, type=Path, default=DEFAULT_SPEC_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = build_tabular_ml_package(spec_path=args.spec_path)
+    output = read_json(args.spec_path).get(&quot;output&quot;, {})
+    write_outputs(result, args.output_dir, output)
+    report = result[&quot;report&quot;]
+    if not report[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and report[&quot;summary&quot;][&quot;warnings&quot;]:
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_interpretation_packager.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tabular_ml_package.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;package_id&quot;: &quot;trial-churn-tabular-ml-interpretation-package-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;source_baseline_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+  &quot;source_mlflow_tracking_audit_id&quot;: &quot;trial-churn-mlflow-tracking-audit-v0&quot;,
+  &quot;candidate_model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+  &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+  &quot;decision&quot;: {
+    &quot;decision_status&quot;: &quot;keep_baseline&quot;,
+    &quot;monitoring_status&quot;: &quot;drift_watch_required&quot;,
+    &quot;production_ready&quot;: false,
+    &quot;causal_claim_made&quot;: false,
+    &quot;serving_release&quot;: false,
+    &quot;failed_promotion_gates&quot;: [
+      &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+      &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+      &quot;candidate_has_approved_calibration&quot;,
+      &quot;segment_hidden_failures_absent&quot;
+    ],
+    &quot;blocked_actions&quot;: [
+      &quot;promote_catboost_candidate&quot;,
+      &quot;claim_causal_offer_effect&quot;,
+      &quot;register_or_serve_model&quot;
+    ]
+  },
+  &quot;stability&quot;: {
+    &quot;generated_at&quot;: &quot;2026-07-06T14:00:00+03:00&quot;,
+    &quot;overall_status&quot;: &quot;watch_required&quot;,
+    &quot;score_drift&quot;: {
+      &quot;status&quot;: &quot;stable&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;max_abs_mean_delta&quot;: 0.001667,
+      &quot;watch_splits&quot;: []
+    },
+    &quot;feature_drift&quot;: {
+      &quot;status&quot;: &quot;watch&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;watch_features&quot;: [
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;max_unseen_after_train_rate&quot;: 0.375
+    },
+    &quot;importance_stability&quot;: {
+      &quot;status&quot;: &quot;watch&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;top_feature&quot;: &quot;platform&quot;,
+      &quot;direction_set&quot;: &quot;loss_decrease_when_permuted,mixed,negative,positive&quot;
+    },
+    &quot;segment_stability&quot;: {
+      &quot;status&quot;: &quot;blocked_for_promotion&quot;,
+      &quot;row_count&quot;: 19,
+      &quot;hidden_failure_slice_count&quot;: 13,
+      &quot;small_n_slice_count&quot;: 18
+    }
+  },
+  &quot;evidence&quot;: {
+    &quot;evidence_row_count&quot;: 16,
+    &quot;upstream_report_count&quot;: 11,
+    &quot;required_evidence_file_count&quot;: 18
+  },
+  &quot;generated_at&quot;: &quot;2026-07-06T14:00:00+03:00&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_package.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tabular_ml_package_manifest.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;hash_algorithm&quot;: &quot;sha256&quot;,
+  &quot;generated_at&quot;: &quot;2026-07-06T14:00:00+03:00&quot;,
+  &quot;inputs&quot;: {
+    &quot;baseline_decision_report&quot;: {
+      &quot;path&quot;: &quot;phases/15-applied-machine-learning/15-model-card/outputs/decision_report.md&quot;,
+      &quot;bytes&quot;: 1022,
+      &quot;sha256&quot;: &quot;8929ba7b53b9be624ceff6d63023251fd4302c0a8896e475792c331accb57cb8&quot;
+    },
+    &quot;baseline_package&quot;: {
+      &quot;path&quot;: &quot;phases/15-applied-machine-learning/15-model-card/outputs/ml_baseline_package.json&quot;,
+      &quot;bytes&quot;: 32757,
+      &quot;sha256&quot;: &quot;4c826444eade714353c042609e96454162e42782529ddaa2eae93ae798f41d51&quot;
+    },
+    &quot;baseline_package_manifest&quot;: {
+      &quot;path&quot;: &quot;phases/15-applied-machine-learning/15-model-card/outputs/ml_baseline_package_manifest.json&quot;,
+      &quot;bytes&quot;: 8240,
+      &quot;sha256&quot;: &quot;c77823f140a3d97046abf0a27c05dfc65e78ee1580ef7fcb839d3c65bf64a5f0&quot;
+    },
+    &quot;baseline_package_report&quot;: {
+      &quot;path&quot;: &quot;phases/15-applied-machine-learning/15-model-card/outputs/ml_baseline_package_report.json&quot;,
+      &quot;bytes&quot;: 16323,
+      &quot;sha256&quot;: &quot;75b16a20b6e254405f31753725c0e30c36743f4219aee3fd445543fb55e60dae&quot;
+    },
+    &quot;built_in_importance&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance.csv&quot;,
+      &quot;bytes&quot;: 3721,
+      &quot;sha256&quot;: &quot;7883d880526b848be693050a41aa3ff46a3a5a578acdb4c76abd887ed371ce04&quot;
+    },
+    &quot;built_in_importance_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_report.json&quot;,
+      &quot;bytes&quot;: 26104,
+      &quot;sha256&quot;: &quot;857d3e3aca0b8486ebec75387214d70e35b7ac4828a58553c74f722102ddf1f8&quot;
+    },
+    &quot;catboost_comparison&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/01-catboost/outputs/catboost_comparison.csv&quot;,
+      &quot;bytes&quot;: 1139,
+      &quot;sha256&quot;: &quot;3e5164ee47dc6d949a826b7363cbedd4efe6f3426b94b9fc3b6e525e5ea17f82&quot;
+    },
+    &quot;catboost_model_spec&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/data/tiny/catboost_model_spec.json&quot;,
+      &quot;bytes&quot;: 1990,
+      &quot;sha256&quot;: &quot;009649990638e9f14485123689f5846bcc4cc148d74845c3d0fbb9a3b8ea17c7&quot;
+    },
+    &quot;catboost_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/01-catboost/outputs/catboost_report.json&quot;,
+      &quot;bytes&quot;: 16000,
+      &quot;sha256&quot;: &quot;52d1d62198ed9b29fbc31f406d1c45b6edf0c495814f78dd4faddeb355afeac8&quot;
+    },
+    &quot;catboost_training_trace&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/01-catboost/outputs/catboost_training_trace.csv&quot;,
+      &quot;bytes&quot;: 471,
+      &quot;sha256&quot;: &quot;2b60e1b162a99d0e000970b7786a68206c3bcaf2457df25e5ec83a01bc32f2a8&quot;
+    },
+    &quot;categorical_feature_contract&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/data/tiny/categorical_feature_contract.json&quot;,
+      &quot;bytes&quot;: 2410,
+      &quot;sha256&quot;: &quot;b78520cba5e9831bf5d43b53b99f2068f629433f7af7d46b958904b3a0544a75&quot;
+    },
+    &quot;categorical_inventory&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_inventory.csv&quot;,
+      &quot;bytes&quot;: 2627,
+      &quot;sha256&quot;: &quot;da021e580d53d4398bfdb484bbac1c85cfe0d829cff7bf63ae586f48eb69477f&quot;
+    },
+    &quot;categorical_leakage_audit&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_leakage_audit.csv&quot;,
+      &quot;bytes&quot;: 1387,
+      &quot;sha256&quot;: &quot;7e56e929a80bc6450d5d08aac76d94f1c2dac6e503573d601fd45bf13b3e575e&quot;
+    },
+    &quot;categorical_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json&quot;,
+      &quot;bytes&quot;: 18618,
+      &quot;sha256&quot;: &quot;474219da22e49758cf95a00519693ab7cef582d3398e7bb02c65f6d7fbe32cd3&quot;
+    },
+    &quot;categorical_unknowns&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_unknowns.csv&quot;,
+      &quot;bytes&quot;: 566,
+      &quot;sha256&quot;: &quot;b69535d569a50682f0cd06ae100dd796cee47b7b3c608a7a5eb30ecbc715bf4a&quot;
+    },
+    &quot;cost_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/cost_sensitive_decision_report.json&quot;,
+      &quot;bytes&quot;: 25571,
+      &quot;sha256&quot;: &quot;3caccf1def0c1178d21e85c85097570c81a48a8ea5168342e722296ee082a64a&quot;
+    },
+    &quot;decision_gate&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/decision_gate.csv&quot;,
+      &quot;bytes&quot;: 1286,
+      &quot;sha256&quot;: &quot;5ae6807005a2a50fef8c366b47dba599a7fb0e4e3e6530fb4bef80fdfb92e6b5&quot;
+    },
+    &quot;early_stopping_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json&quot;,
+      &quot;bytes&quot;: 8483,
+      &quot;sha256&quot;: &quot;1347568d7075a5208afb6788076b8a34a73e71b8629da2edd90cf8a2b3a61dcb&quot;
+    },
+    &quot;explanation_disagreement&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/06-shap/outputs/explanation_disagreement.csv&quot;,
+      &quot;bytes&quot;: 1690,
+      &quot;sha256&quot;: &quot;d879189fadc88f38b675e999fb8efff1aed36f61fbd30a329c3992e368d91868&quot;
+    },
+    &quot;mlflow_artifact_inventory&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/10-mlflow/outputs/mlflow_artifact_inventory.csv&quot;,
+      &quot;bytes&quot;: 2126,
+      &quot;sha256&quot;: &quot;94733a1d91a48df0000320d5ea8eaebcc978059cc65ac98d84daa862300f6f44&quot;
+    },
+    &quot;mlflow_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/10-mlflow/outputs/mlflow_experiment_report.json&quot;,
+      &quot;bytes&quot;: 20791,
+      &quot;sha256&quot;: &quot;b708292cd17b0d54e930d47224fa18078206725b9fb6d77871e224810137f23b&quot;
+    },
+    &quot;mlflow_run_table&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/10-mlflow/outputs/mlflow_run_table.csv&quot;,
+      &quot;bytes&quot;: 1535,
+      &quot;sha256&quot;: &quot;89548e07b08a92f7cad4f4a25ab078b863ae9c7b81419361299de0edb48efa3b&quot;
+    },
+    &quot;mlflow_tracking_policy&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/data/tiny/mlflow_tracking_policy_spec.json&quot;,
+      &quot;bytes&quot;: 3751,
+      &quot;sha256&quot;: &quot;0a4ccaf7591f6fe4d3a9d46948018af62886a466a69456fd92faae05327a3370&quot;
+    },
+    &quot;optuna_best_trial_trace&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_best_trial_trace.csv&quot;,
+      &quot;bytes&quot;: 516,
+      &quot;sha256&quot;: &quot;28be335df8e06fbc9636a684653c2a1772d5d59f4a3aabf7608f27ad95176e17&quot;
+    },
+    &quot;optuna_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_tuning_report.json&quot;,
+      &quot;bytes&quot;: 19255,
+      &quot;sha256&quot;: &quot;09e1f4995be890072df6c6de1a0ce1a8ac8c7f862207d932e6c9832d8fe39db3&quot;
+    },
+    &quot;optuna_trial_ledger&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_trial_ledger.csv&quot;,
+      &quot;bytes&quot;: 1401,
+      &quot;sha256&quot;: &quot;7b114f5b58ca2e31c31cb88c4f1dffffc141965ed20e41c15153d0537ea3ae38&quot;
+    },
+    &quot;optuna_tuned_predictions&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/09-optuna/outputs/optuna_tuned_predictions.csv&quot;,
+      &quot;bytes&quot;: 1429,
+      &quot;sha256&quot;: &quot;b8443308eb0f5121069f567f98dca92e48f985fbd9ab05c7b6bbaa9d2ccf3a25&quot;
+    },
+    &quot;package_spec&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/data/tiny/tabular_ml_package_spec.json&quot;,
+      &quot;bytes&quot;: 3065,
+      &quot;sha256&quot;: &quot;37478027fa36455839311b999f078e6d636d87adb27ee071e75a640e565bae83&quot;
+    },
+    &quot;permutation_importance&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance.csv&quot;,
+      &quot;bytes&quot;: 1835,
+      &quot;sha256&quot;: &quot;800177e3a86e9884350f736d6edc7a9ef2fbc932278f2f1e87dd200dca6f7e95&quot;
+    },
+    &quot;permutation_importance_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_report.json&quot;,
+      &quot;bytes&quot;: 48589,
+      &quot;sha256&quot;: &quot;b6ee8ff32508e093530b65a2ebe0c5bedbde972539c7333940c56f2c4662cd54&quot;
+    },
+    &quot;problem_spec&quot;: {
+      &quot;path&quot;: &quot;phases/15-applied-machine-learning/data/tiny/problem_spec.json&quot;,
+      &quot;bytes&quot;: 4033,
+      &quot;sha256&quot;: &quot;487ce330e93c8cd5073793366858e22ec55396bf317547c7640bdcc509e06eb2&quot;
+    },
+    &quot;segment_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/07-segment-analysis/outputs/strong_model_segment_report.json&quot;,
+      &quot;bytes&quot;: 115362,
+      &quot;sha256&quot;: &quot;d8c602bf3dc7e30b8b4310cf4754d4a60d56cd12f3f85a01bd3e4da5f59417bb&quot;
+    },
+    &quot;shap_global_summary&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/06-shap/outputs/shap_global_summary.csv&quot;,
+      &quot;bytes&quot;: 1051,
+      &quot;sha256&quot;: &quot;d1baf077c8a8750c9238499823c0a7d08412eeaee4260c674268a670c707dbf2&quot;
+    },
+    &quot;shap_report&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/06-shap/outputs/shap_explanation_report.json&quot;,
+      &quot;bytes&quot;: 28081,
+      &quot;sha256&quot;: &quot;1c5e57db31724f2f82ef1020d508506462466bd2315c008bd554a7bf2836b152&quot;
+    },
+    &quot;strong_model_hidden_failure_slices&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/07-segment-analysis/outputs/strong_model_hidden_failure_slices.csv&quot;,
+      &quot;bytes&quot;: 2955,
+      &quot;sha256&quot;: &quot;f53be19980f3f9fb3520231df1465e543fbe207e7becae3b983011f5116d1654&quot;
+    },
+    &quot;strong_model_segment_deltas&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/07-segment-analysis/outputs/strong_model_segment_deltas.csv&quot;,
+      &quot;bytes&quot;: 3826,
+      &quot;sha256&quot;: &quot;bd7c936ecd1b26449e9714e762ff7db6a78969cd7c47ae7ed2bb9894ae6fa3f1&quot;
+    },
+    &quot;threshold_comparison&quot;: {
+      &quot;path&quot;: &quot;phases/16-tabular-ml/08-cost-sensitive-decisions/outputs/threshold_comparison.csv&quot;,
+      &quot;bytes&quot;: 2312,
+      &quot;sha256&quot;: &quot;cba9952db6ac31c368c3fbccfaf0a57fcb8d55deccfb33a1b9fb2c71625c41b8&quot;
+    }
+  },
+  &quot;outputs&quot;: {
+    &quot;decision_report.md&quot;: {
+      &quot;bytes&quot;: 894,
+      &quot;sha256&quot;: &quot;c504cfd56db2529405269f3ad156f0292ecb7ed500aaf365403dabc56e1e7796&quot;
+    },
+    &quot;feature_drift.csv&quot;: {
+      &quot;bytes&quot;: 676,
+      &quot;sha256&quot;: &quot;2ced9f23f99311e381fb3f5bbf17867b852c2e5affd3d04864878b7ecd984775&quot;
+    },
+    &quot;importance_stability.csv&quot;: {
+      &quot;bytes&quot;: 1266,
+      &quot;sha256&quot;: &quot;b8bd829a3411d7c652e654ad04662bca2ad07147247890c4ac213f508e18cc4e&quot;
+    },
+    &quot;interpretation_report.md&quot;: {
+      &quot;bytes&quot;: 1165,
+      &quot;sha256&quot;: &quot;9971a025d7b7be849173bffdac513bb491b7e918b77f784804a489d04f2128dd&quot;
+    },
+    &quot;score_drift.csv&quot;: {
+      &quot;bytes&quot;: 465,
+      &quot;sha256&quot;: &quot;633dee42822daf5070a7f7fdf0ddfba227631372189f28bb7e877efa228d6693&quot;
+    },
+    &quot;segment_stability.csv&quot;: {
+      &quot;bytes&quot;: 2402,
+      &quot;sha256&quot;: &quot;953edd012d6ba9c9c277e7c72ccb82e58c8bfe0fa2d98778707d6826b4e625b2&quot;
+    },
+    &quot;stability_report.json&quot;: {
+      &quot;bytes&quot;: 724,
+      &quot;sha256&quot;: &quot;d3db525e28b0108220c425f42485a3a734a2080fd02eaace12b45b536715e02e&quot;
+    },
+    &quot;tabular_ml_evidence_matrix.csv&quot;: {
+      &quot;bytes&quot;: 3408,
+      &quot;sha256&quot;: &quot;2ad961dfe37f4b7b9a84dc776b45d6d76d2d349912480c09a9c33052c061e841&quot;
+    },
+    &quot;tabular_ml_package.json&quot;: {
+      &quot;bytes&quot;: 1929,
+      &quot;sha256&quot;: &quot;98cb129b06cf7c6b7f36c28b7ed109d2585dbf02bc44b5b25e1d7dc122744768&quot;
+    },
+    &quot;tabular_ml_package_report.json&quot;: {
+      &quot;bytes&quot;: 6370,
+      &quot;sha256&quot;: &quot;4d5c50bdbeba76639d49822bbc23b8c8ad1bfc2176b0c5de2c08591d78b642fb&quot;
+    }
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_package_manifest.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tabular_ml_package_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;decision_status&quot;: &quot;keep_baseline&quot;,
+  &quot;summary&quot;: {
+    &quot;package_id&quot;: &quot;trial-churn-tabular-ml-interpretation-package-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;source_baseline_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;candidate_model_id&quot;: &quot;catboost_optuna_fixed_budget_logloss&quot;,
+    &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;evidence_row_count&quot;: 16,
+    &quot;upstream_report_count&quot;: 11,
+    &quot;upstream_warning_count&quot;: 49,
+    &quot;score_drift_row_count&quot;: 3,
+    &quot;score_drift_watch_count&quot;: 0,
+    &quot;feature_drift_row_count&quot;: 4,
+    &quot;feature_drift_watch_count&quot;: 1,
+    &quot;importance_stability_row_count&quot;: 4,
+    &quot;importance_stability_watch_count&quot;: 4,
+    &quot;segment_stability_row_count&quot;: 19,
+    &quot;hidden_failure_slice_count&quot;: 13,
+    &quot;failed_promotion_gate_count&quot;: 4,
+    &quot;manifest_input_count&quot;: 37,
+    &quot;manifest_output_count&quot;: 10,
+    &quot;production_ready&quot;: false,
+    &quot;monitoring_status&quot;: &quot;drift_watch_required&quot;,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;feature_drift_watch_required&quot;,
+      &quot;unstable_explanations_require_review&quot;,
+      &quot;segment_hidden_failures_block_candidate_promotion&quot;,
+      &quot;candidate_not_promoted_due_to_cost_and_segment_gate&quot;,
+      &quot;local_tracking_store_not_serving_release&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;phase_16_complete_tabular_ml_interpretation_package&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;package_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 13,
+      &quot;expected&quot;: 13,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;package_output_contract_complete&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;decision_report.md&quot;,
+        &quot;feature_drift.csv&quot;,
+        &quot;importance_stability.csv&quot;,
+        &quot;interpretation_report.md&quot;,
+        &quot;score_drift.csv&quot;,
+        &quot;segment_stability.csv&quot;,
+        &quot;stability_report.json&quot;,
+        &quot;tabular_ml_evidence_matrix.csv&quot;,
+        &quot;tabular_ml_package.json&quot;,
+        &quot;tabular_ml_package_manifest.json&quot;,
+        &quot;tabular_ml_package_report.json&quot;
+      ],
+      &quot;expected&quot;: &quot;all output filenames&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;decision_policy_blocks_production_causal_and_serving_claims&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;status&quot;: &quot;keep_baseline&quot;,
+        &quot;production_ready_allowed&quot;: false,
+        &quot;causal_claim_allowed&quot;: false,
+        &quot;serving_release_allowed&quot;: false
+      },
+      &quot;expected&quot;: &quot;allowed non-production status with production/causal/serving disabled&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_upstream_evidence_files_exist&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;report_count&quot;: 11,
+        &quot;evidence_file_count&quot;: 18
+      },
+      &quot;expected&quot;: &quot;all declared reports and evidence files exist&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_reports_are_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;baseline_package_report&quot;,
+        &quot;built_in_importance_report&quot;,
+        &quot;catboost_report&quot;,
+        &quot;categorical_report&quot;,
+        &quot;cost_report&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;mlflow_report&quot;,
+        &quot;optuna_report&quot;,
+        &quot;permutation_importance_report&quot;,
+        &quot;segment_report&quot;,
+        &quot;shap_report&quot;
+      ],
+      &quot;expected&quot;: &quot;all upstream reports valid with no blocking errors&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_problem_ids_match_package_spec&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+      &quot;expected&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mlflow_handoff_ready_for_stability_package&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ready_for_drift_and_stability_lesson&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_cannot_be_promoted_when_required_decision_gates_fail&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;decision_status&quot;: &quot;keep_baseline&quot;,
+        &quot;failed_gates&quot;: [
+          &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+          &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+          &quot;candidate_has_approved_calibration&quot;,
+          &quot;segment_hidden_failures_absent&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;non-promotion decision status&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_drift_watch_required&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;expected&quot;: &quot;no feature drift watch features&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;unstable_explanations_require_review&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;status&quot;: &quot;watch&quot;,
+        &quot;row_count&quot;: 4,
+        &quot;top_feature&quot;: &quot;platform&quot;,
+        &quot;direction_set&quot;: &quot;loss_decrease_when_permuted,mixed,negative,positive&quot;
+      },
+      &quot;expected&quot;: &quot;aligned explanation methods&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;segment_hidden_failures_block_candidate_promotion&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 13,
+      &quot;expected&quot;: 0,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_not_promoted_due_to_cost_and_segment_gate&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;candidate_threshold_cost_lte_baseline_best&quot;,
+        &quot;candidate_top_k_cost_lte_baseline_top_k&quot;,
+        &quot;candidate_has_approved_calibration&quot;,
+        &quot;segment_hidden_failures_absent&quot;
+      ],
+      &quot;expected&quot;: &quot;all promotion gates passed&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;local_tracking_store_not_serving_release&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;local_file_store&quot;,
+      &quot;expected&quot;: &quot;production serving release&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;manifest_hashes_inputs_and_generated_outputs&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;input_count&quot;: 37,
+        &quot;output_count&quot;: 10
+      },
+      &quot;expected&quot;: &quot;sha256 manifest for inputs and generated outputs&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;package_file&quot;: &quot;tabular_ml_package.json&quot;,
+    &quot;decision_report_file&quot;: &quot;decision_report.md&quot;,
+    &quot;interpretation_report_file&quot;: &quot;interpretation_report.md&quot;,
+    &quot;manifest_file&quot;: &quot;tabular_ml_package_manifest.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/outputs/tabular_ml_package_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/11-drift-and-stability" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/mlflow/"><span>← Предыдущий урок</span><strong>MLflow для истории экспериментов</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/delivery/analytical-memo/"><span>Следующий урок →</span><strong>Аналитическая записка для решения</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

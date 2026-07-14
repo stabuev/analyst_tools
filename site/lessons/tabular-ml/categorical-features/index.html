@@ -1,0 +1,2113 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 16/01 CatBoost получил список catfeatures и обучился без test-driven selection. Но это еще не значит, что категориальные признаки безопасны. Табличная модель часто…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/categorical-features/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Категориальные признаки без leakage">
+  <meta property="og:description" content="В 16/01 CatBoost получил список catfeatures и обучился без test-driven selection. Но это еще не значит, что категориальные признаки безопасны. Табличная модель часто…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/categorical-features/">
+  <meta name="twitter:card" content="summary">
+  <title>Категориальные признаки без leakage — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Категориальные признаки без leakage", "description": "В 16/01 CatBoost получил список catfeatures и обучился без test-driven selection. Но это еще не значит, что категориальные признаки безопасны. Табличная модель часто…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/categorical-features/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Категориальные признаки без leakage", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/categorical-features/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 173 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/02-categorical-features" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должен фиксировать отдельный categorical feature contract поверх CatBoost model spec?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Список категориальных признаков, missing policy, unknown-category policy и availability/leakage gates</button><button type="button" class="quiz-option" data-choice="1">Только количество деревьев CatBoost</button><button type="button" class="quiz-option" data-choice="2">Только итоговый test score</button><button type="button" class="quiz-option" data-choice="3">Только названия колонок после one-hot encoding</button></div><p class="quiz-feedback" hidden>Контракт категорий нужен не для score, а для проверяемой семантики категориальных входов и их доступности до prediction time.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает unseen category в validation или test?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Категория не встречалась в train и должна быть явно обработана или хотя бы мониториться</button><button type="button" class="quiz-option" data-choice="1">Категория доказывает target leakage сама по себе</button><button type="button" class="quiz-option" data-choice="2">Строку нужно автоматически удалить из final holdout</button><button type="button" class="quiz-option" data-choice="3">CatBoost перестает быть воспроизводимым</button></div><p class="quiz-feedback" hidden>Unseen category не всегда ошибка, но она должна быть видимой: CatBoost может обработать ее нативно, а audit должен записать policy.</p></article></section>
+        <article class="lesson-article"><h1 id="категориальные-признаки-без-leakage">Категориальные признаки без leakage</h1>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>16/01</code> CatBoost получил список <code>cat_features</code> и обучился без test-driven selection.
+Но это еще не значит, что категориальные признаки безопасны. Табличная модель часто
+ломается не из-за параметров бустинга, а из-за того, что категории попали в модель
+нечестным или неуправляемым способом.</p>
+<p>Типичные ошибки:</p>
+<ul>
+<li>категория рассчитана из target или событий после <code>prediction_time</code>;</li>
+<li>missing value молча смешали с реальным уровнем;</li>
+<li>validation/test содержат новые уровни, которых не было в train;</li>
+<li>high-cardinality поле стало почти идентификатором;</li>
+<li>rare levels дают нестабильный score и нестабильную feature importance;</li>
+<li>CatBoost умеет обработать unseen category, но команда не мониторит ее появление.</li>
+</ul>
+<p>В этом уроке вы добавите отдельный categorical feature contract. Он не переобучает модель,
+а проверяет, можно ли доверять тем категориям, которые уже переданы CatBoost.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Категориальный признак безопасен не потому, что он строковый и CatBoost принимает его в
+<code>Pool</code>. Он безопасен, если одновременно выполнены четыре условия.</p>
+<ol>
+<li><strong>Источник разрешен problem spec.</strong> Например, <code>user_profile</code> можно использовать, а
+<code>churn_label</code> нельзя.</li>
+<li><strong>Значение известно до prediction time.</strong> Категория из будущего события является
+leakage даже при нативной обработке CatBoost.</li>
+<li><strong>Missing semantics объявлены.</strong> Пропуск может быть ошибкой данных или отдельным
+состоянием источника; это должно быть видно.</li>
+<li><strong>Unknown categories не скрыты.</strong> Новые уровни в validation/test допустимы только при
+явной policy и мониторинге.</li>
+</ol>
+<p>Отдельно нужна проверка high-cardinality. Много уровней не всегда блокирует признак, но
+создает риск: rare levels, почти-идентификаторы, нестабильные target statistics и
+завышенная важность. В tiny-профиле <code>acquisition_channel</code> специально маленький, но уже
+показывает поведение high-cardinality-like поля: есть rare train levels и unseen уровни в
+validation/test.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый contract лежит здесь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/categorical_feature_contract.json
+</code></pre></div><p>Он фиксирует:</p>
+<ul>
+<li><code>categorical_audit_id</code>;</li>
+<li>связь с <code>catboost_baseline_id</code> и <code>catboost_model_id</code> из <code>16/01</code>;</li>
+<li>список категориальных признаков;</li>
+<li><code>missing_policy</code> для каждого признака;</li>
+<li><code>unknown_category_policy</code>;</li>
+<li>threshold для high-cardinality warning на tiny-профиле;</li>
+<li>known-bad categorical candidates: target, post-intervention outcome и full-sample
+target encoding.</li>
+</ul>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_auditor.py
+</code></pre></div><p>Он читает:</p>
+<ul>
+<li><code>catboost_model_spec.json</code>;</li>
+<li><code>catboost_report.json</code> из <code>16/01</code>;</li>
+<li><code>ml_raw_features.csv</code>;</li>
+<li><code>ml_split_manifest.csv</code>;</li>
+<li><code>feature_availability_report.csv</code> из leakage-урока <code>15/13</code>.</li>
+</ul>
+<p>Минимальный механизм audit выглядит так:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">train_values = values_by_feature_and_split[feature][&quot;train&quot;]
+for row in validation_and_test_rows:
+    value = normalize_missing(row[feature], &quot;__MISSING__&quot;)
+    if value not in train_values:
+        record_unknown_category(row[&quot;snapshot_id&quot;], feature, value)
+</code></pre></div><p>Production-часть урока делает это же системно: строит inventory по всем split, соединяет
+его с leakage policy, пишет warnings и blocking checks.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/02-categorical-features/code/main.py
+</code></pre></div><p>Ожидаемая сводка:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;feature_count&quot;: 4,
+  &quot;unknown_category_row_count&quot;: 3,
+  &quot;high_cardinality_feature_count&quot;: 1,
+  &quot;selected_leaky_feature_count&quot;: 0,
+  &quot;readiness_status&quot;: &quot;ready_for_early_stopping_lesson&quot;
+}
+</code></pre></div><p>После запуска появляются пять файлов:</p>
+<ul>
+<li><code>categorical_feature_report.json</code> — общий отчет и checks;</li>
+<li><code>categorical_inventory.csv</code> — уровни категорий, counts по train/validation/test,
+<code>unseen_in_train</code>, <code>rare_in_train</code>, <code>missing_value</code>;</li>
+<li><code>categorical_unknowns.csv</code> — конкретные validation/test rows с неизвестными train
+уровнями;</li>
+<li><code>categorical_leakage_audit.csv</code> — выбранные безопасные признаки и known-bad rejected
+candidates;</li>
+<li><code>categorical_serialized_contract.json</code> — handoff для <code>16/03</code>.</li>
+</ul>
+<p>В tiny-профиле audit валиден, но содержит warnings:</p>
+<ul>
+<li><code>S006</code> имеет unseen <code>acquisition_channel = influencer</code>;</li>
+<li><code>S007</code> имеет missing <code>acquisition_channel</code>, записанный как <code>__MISSING__</code>;</li>
+<li><code>S010</code> имеет unseen <code>acquisition_channel = partnership</code>;</li>
+<li><code>acquisition_channel</code> превышает tiny threshold по числу уровней;</li>
+<li>несколько train levels имеют count <code>1</code>.</li>
+</ul>
+<p>Это не production claim и не запрет CatBoost. Это честный список рисков, который нельзя
+спрятать за хорошим API.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Попробуйте добавить в <code>categorical_feature_contract.json</code> known-bad candidate:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;feature_name&quot;: &quot;segment_churn_rate_full_dataset&quot;,
+  &quot;semantic_type&quot;: &quot;forbidden_full_sample_target_encoding&quot;,
+  &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+  &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+}
+</code></pre></div><p>Audit должен заблокировать contract: full-sample target encoding видит labels из
+validation/test и не может быть входом модели.</p>
+<p>Теперь измените availability report так, будто <code>platform</code> стал доступен только после
+prediction time. Проверка <code>selected_categorical_features_pass_leakage_policy</code> должна
+упасть: timing важнее того, что поле выглядит обычной категорией.</p>
+<p>Наконец удалите <code>unknown_category_policy</code> у любого признака. Даже если данные сейчас не
+ломаются, contract неполный: команда не договорилась, что делать с новым уровнем на
+scoring.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/02-categorical-features/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>handoff с <code>16/01</code>: тот же CatBoost model id и тот же список <code>cat_features</code>;</li>
+<li>inventory по train/validation/test;</li>
+<li>unknown rows для <code>acquisition_channel</code>;</li>
+<li>missing <code>__MISSING__</code> как отдельную категорию;</li>
+<li>high-cardinality warning;</li>
+<li>rare train levels;</li>
+<li>rejected known-bad candidates: target, post-intervention outcome и target encoding;</li>
+<li>блокировку feature availability после prediction time;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полного курса после изменения статуса:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока — categorical feature audit package. Его можно передать дальше в
+<code>16/03</code>, где появятся validation curves и early stopping:</p>
+<ul>
+<li>CatBoost model spec остается прежним;</li>
+<li>categorical contract подтверждает, что выбранные категории доступны до prediction time;</li>
+<li>known-bad categorical candidates явно отклонены;</li>
+<li>unseen/missing/high-cardinality/rare levels не блокируют tiny run, но сохраняются как
+warnings;</li>
+<li><code>ready_for_early_stopping_lesson</code> означает, что следующий урок может управлять training
+iterations, не возвращаясь к вопросу &quot;а категории вообще безопасны?&quot;.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Уменьшите <code>max_distinct_values_tiny</code> для <code>platform</code> до <code>2</code> и объясните, почему warning
+станет видимым, но не должен автоматически блокировать модель.</li>
+<li>Добавьте новый validation row с неизвестным <code>country</code> и проверьте, как изменится
+<code>categorical_unknowns.csv</code>.</li>
+<li>Измените <code>missing_policy</code> у <code>acquisition_channel</code> на <code>missing_not_expected_block_if_seen</code>
+и предложите, какой check должен стать blocking в production-профиле.</li>
+<li>Сравните <code>categorical_leakage_audit.csv</code> с <code>feature_availability_report.csv</code>: какие поля
+достаточно безопасны для score, а какие нужны только как rejected examples?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<ul>
+<li><strong>Categorical feature contract</strong> — машинно читаемый договор о списке категорий,
+missing/unknown policies и доступности признаков.</li>
+<li><strong>Unknown category</strong> — уровень, который появился в validation/test или scoring, но не
+встречался в train.</li>
+<li><strong>Missing semantics</strong> — смысл пропуска: ошибка данных, неизвестное значение или
+отдельное состояние источника.</li>
+<li><strong>High-cardinality feature</strong> — категориальный признак с большим числом уровней, где
+высок риск редких категорий и нестабильной интерпретации.</li>
+<li><strong>Target encoding leakage</strong> — кодирование категории через target с использованием
+validation/test labels или full sample до split.</li>
+<li><strong>Feature availability</strong> — доказательство, что значение признака известно до
+<code>prediction_time</code>.</li>
+</ul>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://catboost.ai/docs/en/features/categorical-features" target="_blank" rel="noopener">CatBoost categorical features</a> — как CatBoost обрабатывает категориальные признаки и где начинаются ограничения метода.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_pool" target="_blank" rel="noopener">CatBoost Pool</a> — официальный контракт передачи <code>cat_features</code> по именам или индексам.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier" target="_blank" rel="noopener">CatBoostClassifier</a> — параметры и sklearn-like API, которые использует предыдущий CatBoost lesson.</li>
+<li><a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank" rel="noopener">scikit-learn common pitfalls</a> — раздел про leakage и неправильную подготовку данных до split.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой категориальный признак должен быть заблокирован до fit или promotion?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Признак, рассчитанный из label или событий после prediction_time</button><button type="button" class="quiz-option" data-choice="1">Признак с двумя train-levels</button><button type="button" class="quiz-option" data-choice="2">Признак, который встречается и в train, и в validation</button><button type="button" class="quiz-option" data-choice="3">Признак с одинаковым названием в contract и CatBoost report</button></div><p class="quiz-feedback" hidden>Target-derived и post-prediction features нарушают leakage policy; они не становятся безопасными от того, что переданы как `cat_features`.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему `__MISSING__` в `acquisition_channel` попадает в inventory отдельной категорией?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Missing имеет объявленную семантику и не должен молча смешиваться с реальным значением</button><button type="button" class="quiz-option" data-choice="1">CatBoost требует заменять все missing на ноль</button><button type="button" class="quiz-option" data-choice="2">Это способ повысить test score</button><button type="button" class="quiz-option" data-choice="3">Так можно скрыть отсутствие данных в validation</button></div><p class="quiz-feedback" hidden>Для категорий пропуск часто означает отдельное состояние источника; contract делает это явным и проверяемым.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему high-cardinality warning не равен автоматическому запрету признака?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он показывает риск нестабильности, rare levels и importance bias, но решение зависит от policy и evidence</button><button type="button" class="quiz-option" data-choice="1">CatBoost не поддерживает признаки с высокой кардинальностью</button><button type="button" class="quiz-option" data-choice="2">Высокая кардинальность всегда означает causal effect</button><button type="button" class="quiz-option" data-choice="3">Такой warning можно игнорировать, если train score вырос</button></div><p class="quiz-feedback" hidden>Высокая кардинальность требует осторожности и мониторинга, но не всегда является blocking error.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_feature_auditor.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from categorical_feature_auditor import (  # noqa: E402
+    DEFAULT_CATBOOST_REPORT_PATH,
+    DEFAULT_FEATURE_AVAILABILITY_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class CategoricalFeatureAuditorTest(TestCase):
+    def audit(
+        self,
+        root: Path = DATA_ROOT,
+        upstream_root: Path = UPSTREAM_DATA_ROOT,
+        **paths: Path,
+    ) -&gt; dict:
+        return run(
+            contract_path=paths.get(&quot;contract_path&quot;, root / &quot;categorical_feature_contract.json&quot;),
+            catboost_spec_path=paths.get(&quot;catboost_spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            catboost_report_path=paths.get(&quot;catboost_report_path&quot;, DEFAULT_CATBOOST_REPORT_PATH),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+            feature_availability_path=paths.get(
+                &quot;feature_availability_path&quot;,
+                DEFAULT_FEATURE_AVAILABILITY_PATH,
+            ),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+
+        for filename in (&quot;categorical_feature_contract.json&quot;, &quot;catboost_model_spec.json&quot;):
+            shutil.copy2(DATA_ROOT / filename, phase16 / filename)
+        for filename in (&quot;ml_raw_features.csv&quot;, &quot;ml_split_manifest.csv&quot;):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_CATBOOST_REPORT_PATH, reports / &quot;catboost_report.json&quot;)
+        shutil.copy2(DEFAULT_FEATURE_AVAILABILITY_PATH, reports / &quot;feature_availability_report.csv&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_categorical_audit_exports_inventory_and_policy_summary(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;categorical_audit_id&quot;], &quot;trial-churn-categorical-feature-audit-v0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;catboost_model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;cat_features&quot;],
+            [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;acquisition_channel&quot;],
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;feature_count&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;inventory_row_count&quot;], 13)
+        self.assertEqual(report[&quot;summary&quot;][&quot;unknown_category_row_count&quot;], 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;unknown_feature_count&quot;], 1)
+        self.assertEqual(report[&quot;summary&quot;][&quot;missing_category_row_count&quot;], 1)
+        self.assertEqual(report[&quot;summary&quot;][&quot;high_cardinality_feature_count&quot;], 1)
+        self.assertEqual(report[&quot;summary&quot;][&quot;rare_level_count&quot;], 6)
+        self.assertEqual(report[&quot;summary&quot;][&quot;selected_leaky_feature_count&quot;], 0)
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_early_stopping_lesson&quot;)
+
+    def test_inventory_tracks_train_validation_test_counts_and_high_cardinality(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;feature_name&quot;], row[&quot;category_value&quot;]): row for row in report[&quot;inventory&quot;]}
+
+        self.assertEqual(rows[(&quot;plan_id&quot;, &quot;trial_basic&quot;)][&quot;train_count&quot;], 3)
+        self.assertEqual(rows[(&quot;plan_id&quot;, &quot;trial_basic&quot;)][&quot;validation_count&quot;], 2)
+        self.assertEqual(rows[(&quot;plan_id&quot;, &quot;trial_basic&quot;)][&quot;test_count&quot;], 3)
+        self.assertFalse(rows[(&quot;plan_id&quot;, &quot;trial_basic&quot;)][&quot;rare_in_train&quot;])
+        self.assertTrue(rows[(&quot;plan_id&quot;, &quot;trial_pro&quot;)][&quot;rare_in_train&quot;])
+        self.assertEqual(rows[(&quot;acquisition_channel&quot;, &quot;organic&quot;)][&quot;train_count&quot;], 2)
+        self.assertTrue(rows[(&quot;acquisition_channel&quot;, &quot;influencer&quot;)][&quot;unseen_in_train&quot;])
+        self.assertTrue(rows[(&quot;acquisition_channel&quot;, &quot;__MISSING__&quot;)][&quot;missing_value&quot;])
+        self.assertTrue(rows[(&quot;acquisition_channel&quot;, &quot;partnership&quot;)][&quot;high_cardinality_feature&quot;])
+        self.assertEqual(
+            check(report, &quot;high_cardinality_features_are_flagged&quot;)[&quot;observed&quot;],
+            [&quot;acquisition_channel&quot;],
+        )
+
+    def test_unknown_categories_are_rows_not_hidden_feature_flags(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;snapshot_id&quot;], row[&quot;feature_name&quot;]): row for row in report[&quot;unknowns&quot;]}
+
+        self.assertEqual(set(rows), {(&quot;S006&quot;, &quot;acquisition_channel&quot;), (&quot;S007&quot;, &quot;acquisition_channel&quot;), (&quot;S010&quot;, &quot;acquisition_channel&quot;)})
+        self.assertEqual(rows[(&quot;S006&quot;, &quot;acquisition_channel&quot;)][&quot;category_value&quot;], &quot;influencer&quot;)
+        self.assertEqual(rows[(&quot;S007&quot;, &quot;acquisition_channel&quot;)][&quot;category_value&quot;], &quot;__MISSING__&quot;)
+        self.assertTrue(rows[(&quot;S007&quot;, &quot;acquisition_channel&quot;)][&quot;missing_value&quot;])
+        self.assertEqual(rows[(&quot;S010&quot;, &quot;acquisition_channel&quot;)][&quot;category_value&quot;], &quot;partnership&quot;)
+        self.assertEqual(
+            {row[&quot;policy_action&quot;] for row in report[&quot;unknowns&quot;]},
+            {&quot;allow_native_catboost_unseen_value_and_monitor&quot;},
+        )
+
+    def test_leakage_audit_allows_selected_features_and_rejects_known_bad_candidates(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;feature_name&quot;]: row for row in report[&quot;leakage_audit&quot;]}
+
+        self.assertEqual(rows[&quot;plan_id&quot;][&quot;decision&quot;], &quot;allowed_delivery_cat_feature&quot;)
+        self.assertEqual(rows[&quot;acquisition_channel&quot;][&quot;timing&quot;], &quot;known_before_prediction_time&quot;)
+        self.assertFalse(rows[&quot;acquisition_channel&quot;][&quot;blocking_if_selected&quot;])
+        self.assertEqual(
+            rows[&quot;segment_churn_rate_full_dataset&quot;][&quot;risk_type&quot;],
+            &quot;full_sample_target_encoding&quot;,
+        )
+        self.assertEqual(rows[&quot;segment_churn_rate_full_dataset&quot;][&quot;decision&quot;], &quot;rejected_known_bad_candidate&quot;)
+        self.assertEqual(rows[&quot;churned_14d&quot;][&quot;risk_type&quot;], &quot;target_leakage&quot;)
+        self.assertEqual(rows[&quot;retention_offer_accepted&quot;][&quot;risk_type&quot;], &quot;post_intervention_outcome_leakage&quot;)
+
+    def test_serialized_contract_records_handoff_and_category_summary(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_contract&quot;]
+
+        self.assertEqual(serialized[&quot;catboost_baseline_id&quot;], &quot;trial-churn-catboost-baseline-v0&quot;)
+        self.assertEqual(serialized[&quot;catboost_model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(serialized[&quot;missing_category_token&quot;], &quot;__MISSING__&quot;)
+        self.assertEqual(serialized[&quot;category_summary&quot;][&quot;inventory_rows&quot;], 13)
+        self.assertEqual(serialized[&quot;category_summary&quot;][&quot;unknown_category_row_count&quot;], 3)
+        self.assertEqual(serialized[&quot;category_summary&quot;][&quot;high_cardinality_features&quot;], [&quot;acquisition_channel&quot;])
+        self.assertEqual(serialized[&quot;leakage_summary&quot;][&quot;blocked_selected_feature_count&quot;], 0)
+        self.assertEqual(
+            serialized[&quot;upstream_handoff&quot;][&quot;catboost_readiness_status&quot;],
+            &quot;ready_for_categorical_feature_lesson&quot;,
+        )
+
+    def test_code_example_writes_all_categorical_outputs(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;feature_count&quot;], 4)
+        self.assertEqual(payload[&quot;unknown_category_row_count&quot;], 3)
+        self.assertEqual(payload[&quot;selected_leaky_feature_count&quot;], 0)
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;)[&quot;summary&quot;][&quot;inventory_row_count&quot;], 13)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_inventory.csv&quot;)), 13)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_unknowns.csv&quot;)), 3)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_leakage_audit.csv&quot;)), 7)
+        self.assertEqual(
+            read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;categorical_serialized_contract.json&quot;)[&quot;cat_features&quot;],
+            [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;acquisition_channel&quot;],
+        )
+
+    def test_invalid_upstream_catboost_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            catboost_report = read_json(reports / &quot;catboost_report.json&quot;)
+            catboost_report[&quot;valid&quot;] = False
+            write_json(reports / &quot;catboost_report.json&quot;, catboost_report)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;categorical_contract_matches_catboost_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertIn(&quot;categorical_contract_matches_catboost_handoff&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_contract_features_must_match_catboost_model_spec(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            contract = read_json(phase16 / &quot;categorical_feature_contract.json&quot;)
+            contract[&quot;categorical_features&quot;] = [
+                item for item in contract[&quot;categorical_features&quot;] if item[&quot;feature_name&quot;] != &quot;platform&quot;
+            ]
+            write_json(phase16 / &quot;categorical_feature_contract.json&quot;, contract)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;categorical_contract_matches_catboost_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertEqual(handoff[&quot;observed&quot;][0][&quot;field&quot;], &quot;categorical_features&quot;)
+
+    def test_selected_full_sample_target_encoding_is_blocked(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            contract = read_json(phase16 / &quot;categorical_feature_contract.json&quot;)
+            bad_feature = dict(contract[&quot;categorical_features&quot;][-1])
+            bad_feature[&quot;feature_name&quot;] = &quot;segment_churn_rate_full_dataset&quot;
+            bad_feature[&quot;semantic_type&quot;] = &quot;forbidden_full_sample_target_encoding&quot;
+            contract[&quot;categorical_features&quot;].append(bad_feature)
+            write_json(phase16 / &quot;categorical_feature_contract.json&quot;, contract)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        leakage = check(report, &quot;selected_categorical_features_pass_leakage_policy&quot;)
+        self.assertFalse(leakage[&quot;valid&quot;])
+        self.assertEqual(leakage[&quot;observed&quot;][0][&quot;feature_name&quot;], &quot;segment_churn_rate_full_dataset&quot;)
+
+    def test_feature_available_after_prediction_time_is_blocked(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            availability = read_csv(reports / &quot;feature_availability_report.csv&quot;)
+            for row in availability:
+                if row[&quot;feature_name&quot;] == &quot;platform&quot;:
+                    row[&quot;timing_allowed_by_policy&quot;] = &quot;False&quot;
+                    row[&quot;timing&quot;] = &quot;post_prediction_time&quot;
+                    row[&quot;risk_type&quot;] = &quot;future_behavior_leakage&quot;
+            write_csv(reports / &quot;feature_availability_report.csv&quot;, availability)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        leakage = check(report, &quot;selected_categorical_features_pass_leakage_policy&quot;)
+        self.assertFalse(leakage[&quot;valid&quot;])
+        self.assertEqual(leakage[&quot;observed&quot;][0][&quot;feature_name&quot;], &quot;platform&quot;)
+        self.assertIn(&quot;timing after prediction time&quot;, leakage[&quot;observed&quot;][0][&quot;reasons&quot;])
+
+    def test_missing_unknown_policy_blocks_contract(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            contract = read_json(phase16 / &quot;categorical_feature_contract.json&quot;)
+            del contract[&quot;categorical_features&quot;][0][&quot;unknown_category_policy&quot;]
+            write_json(phase16 / &quot;categorical_feature_contract.json&quot;, contract)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;categorical_contract_matches_catboost_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertEqual(handoff[&quot;observed&quot;][0][&quot;field&quot;], &quot;feature policies&quot;)
+
+    def test_cli_fail_on_warning_exits_after_writing_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;outputs&quot;
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--output-dir&quot;, output_dir, &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            report_exists = (output_dir / &quot;categorical_feature_report.json&quot;).exists()
+            unknowns_exists = (output_dir / &quot;categorical_unknowns.csv&quot;).exists()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertGreater(payload[&quot;warning_count&quot;], 0)
+        self.assertTrue(report_exists)
+        self.assertTrue(unknowns_exists)
+
+    def test_missing_contract_returns_structured_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_contract = phase16 / &quot;missing_categorical_feature_contract.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                contract_path=missing_contract,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                feature_availability_path=reports / &quot;feature_availability_report.csv&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+        self.assertEqual(report[&quot;checks&quot;][0][&quot;id&quot;], &quot;input_files_are_present&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+if str(ARTIFACT_ROOT) not in sys.path:
+    sys.path.insert(0, str(ARTIFACT_ROOT))
+
+from categorical_feature_auditor import (  # noqa: E402
+    DEFAULT_CONTRACT_PATH,
+    read_json,
+    run,
+    write_outputs,
+)
+
+
+def main() -&gt; None:
+    result = run()
+    output_spec = read_json(DEFAULT_CONTRACT_PATH)[&quot;output&quot;]
+    write_outputs(result, ARTIFACT_ROOT, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;categorical_audit_id&quot;: summary[&quot;categorical_audit_id&quot;],
+                &quot;catboost_model_id&quot;: summary[&quot;catboost_model_id&quot;],
+                &quot;feature_count&quot;: summary[&quot;feature_count&quot;],
+                &quot;unknown_category_row_count&quot;: summary[&quot;unknown_category_row_count&quot;],
+                &quot;high_cardinality_feature_count&quot;: summary[&quot;high_cardinality_feature_count&quot;],
+                &quot;selected_leaky_feature_count&quot;: summary[&quot;selected_leaky_feature_count&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;categorical-feature-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/categorical_feature_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет CatBoost categorical feature contract: category inventory, unknown/missing policies, high-cardinality warnings и leakage/availability gates.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_auditor.py --output-dir phases/16-tabular-ml/02-categorical-features/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_feature_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Any
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_CONTRACT_PATH = DATA_ROOT / &quot;categorical_feature_contract.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+DEFAULT_FEATURE_AVAILABILITY_PATH = (
+    PHASE_15_ROOT / &quot;13-leakage&quot; / &quot;outputs&quot; / &quot;feature_availability_report.csv&quot;
+)
+DEFAULT_CATBOOST_REPORT_PATH = PHASE_16_ROOT / &quot;01-catboost&quot; / &quot;outputs&quot; / &quot;catboost_report.json&quot;
+
+GENERATED_AT = &quot;2026-07-03T13:00:00+03:00&quot;
+
+
+def portable_path(path: Path) -&gt; str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+class CategoricalFeatureError(ValueError):
+    &quot;&quot;&quot;Raised when categorical feature audit inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def parse_bool(value: Any) -&gt; bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text == &quot;true&quot;:
+        return True
+    if text == &quot;false&quot;:
+        return False
+    raise CategoricalFeatureError(f&quot;Cannot parse boolean value: {value!r}&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def contract_feature_names(contract: dict[str, Any]) -&gt; list[str]:
+    features = contract.get(&quot;categorical_features&quot;)
+    if not isinstance(features, list):
+        raise CategoricalFeatureError(&quot;categorical_features must be a list&quot;)
+    names = []
+    for item in features:
+        if not isinstance(item, dict) or not item.get(&quot;feature_name&quot;):
+            raise CategoricalFeatureError(&quot;each categorical feature must declare feature_name&quot;)
+        names.append(str(item[&quot;feature_name&quot;]))
+    return names
+
+
+def feature_policy_by_name(contract: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    return {str(item[&quot;feature_name&quot;]): item for item in contract.get(&quot;categorical_features&quot;, [])}
+
+
+def validate_contract_handoff(
+    *,
+    contract: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    catboost_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    required = {
+        &quot;categorical_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;catboost_model_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;selection_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;categorical_features&quot;,
+        &quot;missing_category_token&quot;,
+        &quot;availability_policy&quot;,
+        &quot;known_bad_categorical_candidates&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(contract))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    expected_identity = {
+        &quot;problem_id&quot;: catboost_spec.get(&quot;problem_id&quot;),
+        &quot;catboost_baseline_id&quot;: catboost_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;catboost_model_id&quot;: catboost_spec.get(&quot;candidate&quot;, {}).get(&quot;model_id&quot;),
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;selection_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+    }
+    for field, expected in expected_identity.items():
+        if contract.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: contract.get(field), &quot;expected&quot;: expected})
+
+    report_summary = catboost_report.get(&quot;summary&quot;, {})
+    if catboost_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;catboost_report.valid&quot;, &quot;observed&quot;: catboost_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if report_summary.get(&quot;readiness_status&quot;) != &quot;ready_for_categorical_feature_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;catboost_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: report_summary.get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_categorical_feature_lesson&quot;,
+            }
+        )
+
+    contract_features = contract_feature_names(contract)
+    if len(contract_features) != len(set(contract_features)):
+        duplicates = sorted(name for name in set(contract_features) if contract_features.count(name) &gt; 1)
+        errors.append({&quot;field&quot;: &quot;categorical_features&quot;, &quot;duplicates&quot;: duplicates})
+
+    spec_features = catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;categorical_features&quot;, [])
+    report_features = report_summary.get(&quot;cat_features&quot;, [])
+    if contract_features != spec_features:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_features&quot;,
+                &quot;observed&quot;: contract_features,
+                &quot;expected&quot;: spec_features,
+            }
+        )
+    if contract_features != report_features:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;catboost_report.summary.cat_features&quot;,
+                &quot;observed&quot;: report_features,
+                &quot;expected&quot;: contract_features,
+            }
+        )
+
+    missing_policies = []
+    for item in contract.get(&quot;categorical_features&quot;, []):
+        if not item.get(&quot;missing_policy&quot;) or not item.get(&quot;unknown_category_policy&quot;):
+            missing_policies.append(item.get(&quot;feature_name&quot;))
+    if missing_policies:
+        errors.append({&quot;field&quot;: &quot;feature policies&quot;, &quot;missing&quot;: sorted(missing_policies)})
+
+    if errors:
+        checks.append(
+            failed(
+                &quot;categorical_contract_matches_catboost_handoff&quot;,
+                errors,
+                &quot;same problem, CatBoost model and cat_features as 16/01&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;categorical_contract_matches_catboost_handoff&quot;,
+                {
+                    &quot;categorical_audit_id&quot;: contract[&quot;categorical_audit_id&quot;],
+                    &quot;catboost_baseline_id&quot;: contract[&quot;catboost_baseline_id&quot;],
+                    &quot;cat_features&quot;: contract_features,
+                },
+            )
+        )
+    return checks
+
+
+def join_features_with_manifest(
+    features: list[dict[str, str]],
+    manifest: list[dict[str, str]],
+) -&gt; list[dict[str, str]]:
+    by_id = {row[&quot;snapshot_id&quot;]: row for row in manifest}
+    joined: list[dict[str, str]] = []
+    for row in features:
+        snapshot_id = row.get(&quot;snapshot_id&quot;)
+        if snapshot_id not in by_id:
+            continue
+        manifest_row = by_id[snapshot_id]
+        joined.append(
+            {
+                **row,
+                &quot;split&quot;: manifest_row[&quot;split&quot;],
+                &quot;split_order&quot;: manifest_row[&quot;split_order&quot;],
+                &quot;prediction_time&quot;: manifest_row[&quot;prediction_time&quot;],
+                &quot;user_id&quot;: manifest_row[&quot;user_id&quot;],
+            }
+        )
+    return sorted(joined, key=lambda row: (int(row[&quot;split_order&quot;]), row[&quot;snapshot_id&quot;]))
+
+
+def normalize_category(value: Any, missing_token: str) -&gt; tuple[str, bool]:
+    if value is None or str(value) == &quot;&quot;:
+        return missing_token, True
+    return str(value), False
+
+
+def build_inventory(
+    rows: list[dict[str, str]],
+    features: list[str],
+    policy_by_feature: dict[str, dict[str, Any]],
+    missing_token: str,
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    counts: dict[str, Counter[tuple[str, bool, str]]] = defaultdict(Counter)
+    train_values: dict[str, set[str]] = {feature: set() for feature in features}
+
+    for row in rows:
+        split = row[&quot;split&quot;]
+        for feature in features:
+            category, is_missing = normalize_category(row.get(feature), missing_token)
+            counts[feature][(category, is_missing, split)] += 1
+            if split == &quot;train&quot;:
+                train_values[feature].add(category)
+
+    inventory: list[dict[str, Any]] = []
+    for feature in features:
+        categories = sorted({category for category, _is_missing, _split in counts[feature]})
+        distinct_total = len(categories)
+        policy = policy_by_feature[feature]
+        max_distinct = int(policy.get(&quot;max_distinct_values_tiny&quot;, 999999))
+        min_train_count = int(policy.get(&quot;min_train_count_for_stable_level&quot;, 1))
+        for category in categories:
+            train_count = sum(count for (value, _missing, split), count in counts[feature].items() if value == category and split == &quot;train&quot;)
+            validation_count = sum(
+                count for (value, _missing, split), count in counts[feature].items() if value == category and split == &quot;validation&quot;
+            )
+            test_count = sum(count for (value, _missing, split), count in counts[feature].items() if value == category and split == &quot;test&quot;)
+            missing_value = any(is_missing for value, is_missing, _split in counts[feature] if value == category)
+            unseen_in_train = category not in train_values[feature]
+            rare_in_train = 0 &lt; train_count &lt; min_train_count
+            inventory.append(
+                {
+                    &quot;feature_name&quot;: feature,
+                    &quot;category_value&quot;: category,
+                    &quot;semantic_type&quot;: policy.get(&quot;semantic_type&quot;, &quot;&quot;),
+                    &quot;train_count&quot;: train_count,
+                    &quot;validation_count&quot;: validation_count,
+                    &quot;test_count&quot;: test_count,
+                    &quot;total_count&quot;: train_count + validation_count + test_count,
+                    &quot;seen_in_train&quot;: not unseen_in_train,
+                    &quot;unseen_in_train&quot;: unseen_in_train,
+                    &quot;missing_value&quot;: missing_value,
+                    &quot;rare_in_train&quot;: rare_in_train,
+                    &quot;distinct_values_for_feature&quot;: distinct_total,
+                    &quot;high_cardinality_feature&quot;: distinct_total &gt; max_distinct,
+                    &quot;missing_policy&quot;: policy.get(&quot;missing_policy&quot;, &quot;&quot;),
+                    &quot;unknown_category_policy&quot;: policy.get(&quot;unknown_category_policy&quot;, &quot;&quot;),
+                }
+            )
+
+    unknowns: list[dict[str, Any]] = []
+    for row in rows:
+        if row[&quot;split&quot;] == &quot;train&quot;:
+            continue
+        for feature in features:
+            category, is_missing = normalize_category(row.get(feature), missing_token)
+            if category not in train_values[feature]:
+                policy = policy_by_feature[feature]
+                unknowns.append(
+                    {
+                        &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                        &quot;split&quot;: row[&quot;split&quot;],
+                        &quot;feature_name&quot;: feature,
+                        &quot;category_value&quot;: category,
+                        &quot;missing_value&quot;: is_missing,
+                        &quot;seen_in_train&quot;: False,
+                        &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+                        &quot;unknown_category_policy&quot;: policy.get(&quot;unknown_category_policy&quot;, &quot;&quot;),
+                    }
+                )
+    return inventory, unknowns
+
+
+def validate_feature_table(
+    rows: list[dict[str, str]],
+    features: list[str],
+) -&gt; list[dict[str, Any]]:
+    if not rows:
+        return [failed(&quot;categorical_feature_table_has_split_rows&quot;, 0, &quot;&gt; 0 joined rows&quot;)]
+
+    missing_features = sorted(feature for feature in features if feature not in rows[0])
+    observed_splits = sorted({row[&quot;split&quot;] for row in rows})
+    checks: list[dict[str, Any]] = []
+    if missing_features:
+        checks.append(failed(&quot;categorical_features_exist_in_raw_table&quot;, missing_features, &quot;all contract features&quot;))
+    else:
+        checks.append(passed(&quot;categorical_features_exist_in_raw_table&quot;, features))
+
+    if observed_splits == [&quot;test&quot;, &quot;train&quot;, &quot;validation&quot;]:
+        checks.append(passed(&quot;categorical_feature_table_has_split_rows&quot;, observed_splits))
+    else:
+        checks.append(failed(&quot;categorical_feature_table_has_split_rows&quot;, observed_splits, [&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;]))
+    return checks
+
+
+def build_leakage_audit(
+    *,
+    selected_features: list[str],
+    known_bad_candidates: list[str],
+    availability_rows: list[dict[str, str]],
+    availability_policy: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    by_feature = {row[&quot;feature_name&quot;]: row for row in availability_rows}
+    audit_rows: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    names_to_audit = selected_features + [name for name in known_bad_candidates if name not in selected_features]
+
+    for feature in names_to_audit:
+        row = by_feature.get(feature)
+        selected = feature in selected_features
+        if row is None:
+            audit_rows.append(
+                {
+                    &quot;feature_name&quot;: feature,
+                    &quot;selected_as_cat_feature&quot;: selected,
+                    &quot;source_id&quot;: &quot;&quot;,
+                    &quot;timing&quot;: &quot;&quot;,
+                    &quot;risk_type&quot;: &quot;missing_availability_record&quot;,
+                    &quot;used_in_delivery_model&quot;: False,
+                    &quot;source_allowed_by_problem&quot;: False,
+                    &quot;timing_allowed_by_policy&quot;: False,
+                    &quot;candidate_allowed&quot;: False,
+                    &quot;decision&quot;: &quot;blocked_missing_availability_record&quot; if selected else &quot;rejected_missing_availability_record&quot;,
+                    &quot;blocking_if_selected&quot;: selected,
+                    &quot;notes&quot;: &quot;&quot;,
+                }
+            )
+            if selected:
+                errors.append({&quot;feature_name&quot;: feature, &quot;reason&quot;: &quot;missing availability record&quot;})
+            continue
+
+        source_allowed = parse_bool(row[&quot;source_allowed_by_problem&quot;])
+        timing_allowed = parse_bool(row[&quot;timing_allowed_by_policy&quot;])
+        candidate_allowed = parse_bool(row[&quot;candidate_allowed&quot;])
+        used_in_delivery = parse_bool(row[&quot;used_in_delivery_model&quot;])
+        selected_is_allowed = True
+        reasons = []
+        if availability_policy.get(&quot;require_used_in_delivery_model&quot;) and not used_in_delivery:
+            selected_is_allowed = False
+            reasons.append(&quot;not used in delivery model&quot;)
+        if availability_policy.get(&quot;require_source_allowed_by_problem&quot;) and not source_allowed:
+            selected_is_allowed = False
+            reasons.append(&quot;source forbidden by problem spec&quot;)
+        if availability_policy.get(&quot;require_timing_allowed_by_policy&quot;) and not timing_allowed:
+            selected_is_allowed = False
+            reasons.append(&quot;timing after prediction time&quot;)
+        if availability_policy.get(&quot;require_candidate_allowed&quot;) and not candidate_allowed:
+            selected_is_allowed = False
+            reasons.append(&quot;candidate not allowed by leakage policy&quot;)
+
+        decision = &quot;allowed_delivery_cat_feature&quot;
+        if not selected:
+            decision = &quot;rejected_known_bad_candidate&quot;
+        elif not selected_is_allowed:
+            decision = &quot;blocked_selected_leaky_cat_feature&quot;
+            errors.append({&quot;feature_name&quot;: feature, &quot;reasons&quot;: reasons, &quot;risk_type&quot;: row[&quot;risk_type&quot;]})
+
+        audit_rows.append(
+            {
+                &quot;feature_name&quot;: feature,
+                &quot;selected_as_cat_feature&quot;: selected,
+                &quot;source_id&quot;: row[&quot;source_id&quot;],
+                &quot;timing&quot;: row[&quot;timing&quot;],
+                &quot;risk_type&quot;: row[&quot;risk_type&quot;],
+                &quot;used_in_delivery_model&quot;: used_in_delivery,
+                &quot;source_allowed_by_problem&quot;: source_allowed,
+                &quot;timing_allowed_by_policy&quot;: timing_allowed,
+                &quot;candidate_allowed&quot;: candidate_allowed,
+                &quot;decision&quot;: decision,
+                &quot;blocking_if_selected&quot;: selected and not selected_is_allowed,
+                &quot;notes&quot;: row.get(&quot;notes&quot;, &quot;&quot;),
+            }
+        )
+    return audit_rows, errors
+
+
+def inventory_warnings(inventory: list[dict[str, Any]], unknowns: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    high_card_features = sorted({row[&quot;feature_name&quot;] for row in inventory if row[&quot;high_cardinality_feature&quot;]})
+    rare_levels = [
+        {&quot;feature_name&quot;: row[&quot;feature_name&quot;], &quot;category_value&quot;: row[&quot;category_value&quot;], &quot;train_count&quot;: row[&quot;train_count&quot;]}
+        for row in inventory
+        if row[&quot;rare_in_train&quot;]
+    ]
+    missing_rows = sum(row[&quot;total_count&quot;] for row in inventory if row[&quot;missing_value&quot;])
+
+    if unknowns:
+        checks.append(
+            failed(
+                &quot;unknown_categories_are_monitored_not_silent&quot;,
+                len(unknowns),
+                &quot;0 unknown validation/test category rows&quot;,
+                unknowns[:5],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;unknown_categories_are_monitored_not_silent&quot;, 0))
+
+    if high_card_features:
+        checks.append(
+            failed(
+                &quot;high_cardinality_features_are_flagged&quot;,
+                high_card_features,
+                &quot;no feature exceeds tiny distinct threshold&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;high_cardinality_features_are_flagged&quot;, []))
+
+    if rare_levels:
+        checks.append(
+            failed(
+                &quot;rare_train_category_levels_are_visible&quot;,
+                len(rare_levels),
+                &quot;0 rare train category levels&quot;,
+                rare_levels[:8],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;rare_train_category_levels_are_visible&quot;, 0))
+
+    if missing_rows:
+        checks.append(
+            failed(
+                &quot;missing_categories_follow_declared_policy&quot;,
+                missing_rows,
+                &quot;0 missing categorical rows or declared explicit missing category&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;missing_categories_follow_declared_policy&quot;, 0))
+    return checks
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable categorical feature audit inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;categorical_audit_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_categorical_feature_contract&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;inventory&quot;: [],
+        &quot;unknowns&quot;: [],
+        &quot;leakage_audit&quot;: [],
+        &quot;serialized_contract&quot;: {},
+    }
+
+
+def run(
+    *,
+    contract_path: Path = DEFAULT_CONTRACT_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    catboost_report_path: Path = DEFAULT_CATBOOST_REPORT_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+    feature_availability_path: Path = DEFAULT_FEATURE_AVAILABILITY_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;categorical_feature_contract&quot;: contract_path,
+        &quot;catboost_model_spec&quot;: catboost_spec_path,
+        &quot;catboost_report&quot;: catboost_report_path,
+        &quot;features&quot;: features_path,
+        &quot;manifest&quot;: manifest_path,
+        &quot;feature_availability&quot;: feature_availability_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        contract = read_json(contract_path)
+        catboost_spec = read_json(catboost_spec_path)
+        catboost_report = read_json(catboost_report_path)
+        features = read_csv(features_path)
+        manifest = read_csv(manifest_path)
+        availability_rows = read_csv(feature_availability_path)
+        cat_features = contract_feature_names(contract)
+        policy_by_feature = feature_policy_by_name(contract)
+
+        checks = [file_check]
+        checks.extend(
+            validate_contract_handoff(
+                contract=contract,
+                catboost_spec=catboost_spec,
+                catboost_report=catboost_report,
+            )
+        )
+        joined = join_features_with_manifest(features, manifest)
+        checks.extend(validate_feature_table(joined, cat_features))
+        leakage_audit, leakage_errors = build_leakage_audit(
+            selected_features=cat_features,
+            known_bad_candidates=list(contract.get(&quot;known_bad_categorical_candidates&quot;, [])),
+            availability_rows=availability_rows,
+            availability_policy=contract.get(&quot;availability_policy&quot;, {}),
+        )
+        if leakage_errors:
+            checks.append(
+                failed(
+                    &quot;selected_categorical_features_pass_leakage_policy&quot;,
+                    leakage_errors,
+                    &quot;selected cat features are delivery features available before prediction&quot;,
+                )
+            )
+        else:
+            checks.append(
+                passed(
+                    &quot;selected_categorical_features_pass_leakage_policy&quot;,
+                    cat_features,
+                    &quot;delivery features available before prediction&quot;,
+                )
+            )
+
+        inventory: list[dict[str, Any]] = []
+        unknowns: list[dict[str, Any]] = []
+        if not blocking_errors(checks):
+            inventory, unknowns = build_inventory(
+                joined,
+                cat_features,
+                policy_by_feature,
+                contract[&quot;missing_category_token&quot;],
+            )
+            checks.append(
+                passed(
+                    &quot;category_inventory_covers_all_splits&quot;,
+                    {
+                        &quot;feature_count&quot;: len(cat_features),
+                        &quot;inventory_rows&quot;: len(inventory),
+                        &quot;splits&quot;: sorted({row[&quot;split&quot;] for row in joined}),
+                    },
+                )
+            )
+            checks.extend(inventory_warnings(inventory, unknowns))
+
+        warnings = warning_ids(checks)
+        blocking = blocking_errors(checks)
+        high_card_features = sorted({row[&quot;feature_name&quot;] for row in inventory if row.get(&quot;high_cardinality_feature&quot;)})
+        rare_level_count = sum(1 for row in inventory if row.get(&quot;rare_in_train&quot;))
+        missing_category_row_count = sum(row[&quot;total_count&quot;] for row in inventory if row.get(&quot;missing_value&quot;))
+        serialized_contract = {
+            &quot;categorical_audit_id&quot;: contract.get(&quot;categorical_audit_id&quot;),
+            &quot;problem_id&quot;: contract.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: contract.get(&quot;catboost_baseline_id&quot;),
+            &quot;catboost_model_id&quot;: contract.get(&quot;catboost_model_id&quot;),
+            &quot;cat_features&quot;: cat_features,
+            &quot;missing_category_token&quot;: contract.get(&quot;missing_category_token&quot;),
+            &quot;policies&quot;: contract.get(&quot;categorical_features&quot;, []),
+            &quot;availability_policy&quot;: contract.get(&quot;availability_policy&quot;, {}),
+            &quot;category_summary&quot;: {
+                &quot;inventory_rows&quot;: len(inventory),
+                &quot;unknown_category_row_count&quot;: len(unknowns),
+                &quot;high_cardinality_features&quot;: high_card_features,
+                &quot;rare_level_count&quot;: rare_level_count,
+                &quot;missing_category_row_count&quot;: missing_category_row_count,
+            },
+            &quot;leakage_summary&quot;: {
+                &quot;selected_feature_count&quot;: len(cat_features),
+                &quot;known_bad_candidate_count&quot;: len(contract.get(&quot;known_bad_categorical_candidates&quot;, [])),
+                &quot;blocked_selected_feature_count&quot;: len(leakage_errors),
+            },
+            &quot;upstream_handoff&quot;: {
+                &quot;catboost_report&quot;: portable_path(catboost_report_path),
+                &quot;catboost_readiness_status&quot;: catboost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+            },
+            &quot;output&quot;: contract.get(&quot;output&quot;, {}),
+        }
+        valid = not blocking
+        summary = {
+            &quot;categorical_audit_id&quot;: contract.get(&quot;categorical_audit_id&quot;),
+            &quot;problem_id&quot;: contract.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: contract.get(&quot;catboost_baseline_id&quot;),
+            &quot;catboost_model_id&quot;: contract.get(&quot;catboost_model_id&quot;),
+            &quot;cat_features&quot;: cat_features,
+            &quot;feature_count&quot;: len(cat_features),
+            &quot;inventory_row_count&quot;: len(inventory),
+            &quot;unknown_category_row_count&quot;: len(unknowns),
+            &quot;unknown_feature_count&quot;: len({row[&quot;feature_name&quot;] for row in unknowns}),
+            &quot;missing_category_row_count&quot;: missing_category_row_count,
+            &quot;high_cardinality_feature_count&quot;: len(high_card_features),
+            &quot;rare_level_count&quot;: rare_level_count,
+            &quot;selected_leaky_feature_count&quot;: len(leakage_errors),
+            &quot;blocking_errors&quot;: blocking,
+            &quot;warnings&quot;: warnings,
+            &quot;readiness_status&quot;: &quot;ready_for_early_stopping_lesson&quot; if valid else &quot;blocked_by_categorical_feature_contract&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        return {
+            &quot;valid&quot;: valid,
+            &quot;categorical_audit_id&quot;: contract.get(&quot;categorical_audit_id&quot;),
+            &quot;problem_id&quot;: contract.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;checks&quot;: checks,
+            &quot;inventory&quot;: inventory,
+            &quot;unknowns&quot;: unknowns,
+            &quot;leakage_audit&quot;: leakage_audit,
+            &quot;serialized_contract&quot;: serialized_contract,
+        }
+    except (CategoricalFeatureError, OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
+        return failure_report(&quot;categorical_feature_audit_runtime_error&quot;, str(exc))
+
+
+INVENTORY_FIELDS = [
+    &quot;feature_name&quot;,
+    &quot;category_value&quot;,
+    &quot;semantic_type&quot;,
+    &quot;train_count&quot;,
+    &quot;validation_count&quot;,
+    &quot;test_count&quot;,
+    &quot;total_count&quot;,
+    &quot;seen_in_train&quot;,
+    &quot;unseen_in_train&quot;,
+    &quot;missing_value&quot;,
+    &quot;rare_in_train&quot;,
+    &quot;distinct_values_for_feature&quot;,
+    &quot;high_cardinality_feature&quot;,
+    &quot;missing_policy&quot;,
+    &quot;unknown_category_policy&quot;,
+]
+
+UNKNOWNS_FIELDS = [
+    &quot;snapshot_id&quot;,
+    &quot;split&quot;,
+    &quot;feature_name&quot;,
+    &quot;category_value&quot;,
+    &quot;missing_value&quot;,
+    &quot;seen_in_train&quot;,
+    &quot;policy_action&quot;,
+    &quot;unknown_category_policy&quot;,
+]
+
+LEAKAGE_FIELDS = [
+    &quot;feature_name&quot;,
+    &quot;selected_as_cat_feature&quot;,
+    &quot;source_id&quot;,
+    &quot;timing&quot;,
+    &quot;risk_type&quot;,
+    &quot;used_in_delivery_model&quot;,
+    &quot;source_allowed_by_problem&quot;,
+    &quot;timing_allowed_by_policy&quot;,
+    &quot;candidate_allowed&quot;,
+    &quot;decision&quot;,
+    &quot;blocking_if_selected&quot;,
+    &quot;notes&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_contract&quot;})
+    write_csv(output_dir / output_spec[&quot;inventory_file&quot;], result[&quot;inventory&quot;], INVENTORY_FIELDS)
+    write_csv(output_dir / output_spec[&quot;unknowns_file&quot;], result[&quot;unknowns&quot;], UNKNOWNS_FIELDS)
+    write_csv(output_dir / output_spec[&quot;leakage_audit_file&quot;], result[&quot;leakage_audit&quot;], LEAKAGE_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_contract_file&quot;], result[&quot;serialized_contract&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Audit CatBoost categorical feature contract.&quot;)
+    parser.add_argument(&quot;--contract&quot;, type=Path, default=DEFAULT_CONTRACT_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--catboost-report&quot;, type=Path, default=DEFAULT_CATBOOST_REPORT_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--feature-availability&quot;, type=Path, default=DEFAULT_FEATURE_AVAILABILITY_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        contract_path=args.contract,
+        catboost_spec_path=args.catboost_spec,
+        catboost_report_path=args.catboost_report,
+        features_path=args.features,
+        manifest_path=args.manifest,
+        feature_availability_path=args.feature_availability,
+    )
+    output_spec = read_json(args.contract).get(&quot;output&quot;, {}) if args.contract.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;categorical_audit_id&quot;: summary.get(&quot;categorical_audit_id&quot;),
+                &quot;catboost_model_id&quot;: summary.get(&quot;catboost_model_id&quot;),
+                &quot;feature_count&quot;: summary.get(&quot;feature_count&quot;),
+                &quot;inventory_row_count&quot;: summary.get(&quot;inventory_row_count&quot;),
+                &quot;unknown_category_row_count&quot;: summary.get(&quot;unknown_category_row_count&quot;),
+                &quot;high_cardinality_feature_count&quot;: summary.get(&quot;high_cardinality_feature_count&quot;),
+                &quot;selected_leaky_feature_count&quot;: summary.get(&quot;selected_leaky_feature_count&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_feature_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+    &quot;catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;cat_features&quot;: [
+      &quot;plan_id&quot;,
+      &quot;platform&quot;,
+      &quot;country&quot;,
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;feature_count&quot;: 4,
+    &quot;inventory_row_count&quot;: 13,
+    &quot;unknown_category_row_count&quot;: 3,
+    &quot;unknown_feature_count&quot;: 1,
+    &quot;missing_category_row_count&quot;: 1,
+    &quot;high_cardinality_feature_count&quot;: 1,
+    &quot;rare_level_count&quot;: 6,
+    &quot;selected_leaky_feature_count&quot;: 0,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;unknown_categories_are_monitored_not_silent&quot;,
+      &quot;high_cardinality_features_are_flagged&quot;,
+      &quot;rare_train_category_levels_are_visible&quot;,
+      &quot;missing_categories_follow_declared_policy&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_early_stopping_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-03T13:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;catboost_model_spec&quot;,
+        &quot;catboost_report&quot;,
+        &quot;categorical_feature_contract&quot;,
+        &quot;feature_availability&quot;,
+        &quot;features&quot;,
+        &quot;manifest&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;categorical_contract_matches_catboost_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+        &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+        &quot;cat_features&quot;: [
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;country&quot;,
+          &quot;acquisition_channel&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;categorical_features_exist_in_raw_table&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;plan_id&quot;,
+        &quot;platform&quot;,
+        &quot;country&quot;,
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;categorical_feature_table_has_split_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;test&quot;,
+        &quot;train&quot;,
+        &quot;validation&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;selected_categorical_features_pass_leakage_policy&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;plan_id&quot;,
+        &quot;platform&quot;,
+        &quot;country&quot;,
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;expected&quot;: &quot;delivery features available before prediction&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;category_inventory_covers_all_splits&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 4,
+        &quot;inventory_rows&quot;: 13,
+        &quot;splits&quot;: [
+          &quot;test&quot;,
+          &quot;train&quot;,
+          &quot;validation&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;unknown_categories_are_monitored_not_silent&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: &quot;0 unknown validation/test category rows&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;snapshot_id&quot;: &quot;S006&quot;,
+          &quot;split&quot;: &quot;validation&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;category_value&quot;: &quot;influencer&quot;,
+          &quot;missing_value&quot;: false,
+          &quot;seen_in_train&quot;: false,
+          &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+          &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+        },
+        {
+          &quot;snapshot_id&quot;: &quot;S007&quot;,
+          &quot;split&quot;: &quot;validation&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;category_value&quot;: &quot;__MISSING__&quot;,
+          &quot;missing_value&quot;: true,
+          &quot;seen_in_train&quot;: false,
+          &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+          &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+        },
+        {
+          &quot;snapshot_id&quot;: &quot;S010&quot;,
+          &quot;split&quot;: &quot;test&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;category_value&quot;: &quot;partnership&quot;,
+          &quot;missing_value&quot;: false,
+          &quot;seen_in_train&quot;: false,
+          &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+          &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;high_cardinality_features_are_flagged&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;expected&quot;: &quot;no feature exceeds tiny distinct threshold&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;rare_train_category_levels_are_visible&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 6,
+      &quot;expected&quot;: &quot;0 rare train category levels&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;feature_name&quot;: &quot;plan_id&quot;,
+          &quot;category_value&quot;: &quot;trial_pro&quot;,
+          &quot;train_count&quot;: 1
+        },
+        {
+          &quot;feature_name&quot;: &quot;platform&quot;,
+          &quot;category_value&quot;: &quot;ios&quot;,
+          &quot;train_count&quot;: 1
+        },
+        {
+          &quot;feature_name&quot;: &quot;platform&quot;,
+          &quot;category_value&quot;: &quot;web&quot;,
+          &quot;train_count&quot;: 1
+        },
+        {
+          &quot;feature_name&quot;: &quot;country&quot;,
+          &quot;category_value&quot;: &quot;KZ&quot;,
+          &quot;train_count&quot;: 1
+        },
+        {
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;category_value&quot;: &quot;paid_search&quot;,
+          &quot;train_count&quot;: 1
+        },
+        {
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;category_value&quot;: &quot;referral&quot;,
+          &quot;train_count&quot;: 1
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;missing_categories_follow_declared_policy&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 missing categorical rows or declared explicit missing category&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;inventory&quot;: [
+    {
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;category_value&quot;: &quot;trial_basic&quot;,
+      &quot;semantic_type&quot;: &quot;subscription_plan_at_prediction_time&quot;,
+      &quot;train_count&quot;: 3,
+      &quot;validation_count&quot;: 2,
+      &quot;test_count&quot;: 3,
+      &quot;total_count&quot;: 8,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 2,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;category_value&quot;: &quot;trial_pro&quot;,
+      &quot;semantic_type&quot;: &quot;subscription_plan_at_prediction_time&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 2,
+      &quot;total_count&quot;: 4,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 2,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;category_value&quot;: &quot;android&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;train_count&quot;: 2,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 2,
+      &quot;total_count&quot;: 5,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 3,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;category_value&quot;: &quot;ios&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 1,
+      &quot;total_count&quot;: 3,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 3,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;category_value&quot;: &quot;web&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 2,
+      &quot;total_count&quot;: 4,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 3,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;category_value&quot;: &quot;KZ&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 2,
+      &quot;total_count&quot;: 4,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 2,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;category_value&quot;: &quot;RU&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;train_count&quot;: 3,
+      &quot;validation_count&quot;: 2,
+      &quot;test_count&quot;: 3,
+      &quot;total_count&quot;: 8,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 2,
+      &quot;high_cardinality_feature&quot;: false,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;__MISSING__&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 0,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 0,
+      &quot;total_count&quot;: 1,
+      &quot;seen_in_train&quot;: false,
+      &quot;unseen_in_train&quot;: true,
+      &quot;missing_value&quot;: true,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;influencer&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 0,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 0,
+      &quot;total_count&quot;: 1,
+      &quot;seen_in_train&quot;: false,
+      &quot;unseen_in_train&quot;: true,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;organic&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 2,
+      &quot;validation_count&quot;: 1,
+      &quot;test_count&quot;: 2,
+      &quot;total_count&quot;: 5,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;paid_search&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 0,
+      &quot;test_count&quot;: 1,
+      &quot;total_count&quot;: 2,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;partnership&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 0,
+      &quot;validation_count&quot;: 0,
+      &quot;test_count&quot;: 1,
+      &quot;total_count&quot;: 1,
+      &quot;seen_in_train&quot;: false,
+      &quot;unseen_in_train&quot;: true,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: false,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;referral&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;train_count&quot;: 1,
+      &quot;validation_count&quot;: 0,
+      &quot;test_count&quot;: 1,
+      &quot;total_count&quot;: 2,
+      &quot;seen_in_train&quot;: true,
+      &quot;unseen_in_train&quot;: false,
+      &quot;missing_value&quot;: false,
+      &quot;rare_in_train&quot;: true,
+      &quot;distinct_values_for_feature&quot;: 6,
+      &quot;high_cardinality_feature&quot;: true,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    }
+  ],
+  &quot;unknowns&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;influencer&quot;,
+      &quot;missing_value&quot;: false,
+      &quot;seen_in_train&quot;: false,
+      &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;__MISSING__&quot;,
+      &quot;missing_value&quot;: true,
+      &quot;seen_in_train&quot;: false,
+      &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;category_value&quot;: &quot;partnership&quot;,
+      &quot;missing_value&quot;: false,
+      &quot;seen_in_train&quot;: false,
+      &quot;policy_action&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;
+    }
+  ],
+  &quot;leakage_audit&quot;: [
+    {
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;selected_as_cat_feature&quot;: true,
+      &quot;source_id&quot;: &quot;subscription_snapshot&quot;,
+      &quot;timing&quot;: &quot;known_before_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;none&quot;,
+      &quot;used_in_delivery_model&quot;: true,
+      &quot;source_allowed_by_problem&quot;: true,
+      &quot;timing_allowed_by_policy&quot;: true,
+      &quot;candidate_allowed&quot;: true,
+      &quot;decision&quot;: &quot;allowed_delivery_cat_feature&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;trial plan at scoring moment&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;selected_as_cat_feature&quot;: true,
+      &quot;source_id&quot;: &quot;user_profile&quot;,
+      &quot;timing&quot;: &quot;known_before_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;none&quot;,
+      &quot;used_in_delivery_model&quot;: true,
+      &quot;source_allowed_by_problem&quot;: true,
+      &quot;timing_allowed_by_policy&quot;: true,
+      &quot;candidate_allowed&quot;: true,
+      &quot;decision&quot;: &quot;allowed_delivery_cat_feature&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;stable account attribute&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;selected_as_cat_feature&quot;: true,
+      &quot;source_id&quot;: &quot;user_profile&quot;,
+      &quot;timing&quot;: &quot;known_before_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;none&quot;,
+      &quot;used_in_delivery_model&quot;: true,
+      &quot;source_allowed_by_problem&quot;: true,
+      &quot;timing_allowed_by_policy&quot;: true,
+      &quot;candidate_allowed&quot;: true,
+      &quot;decision&quot;: &quot;allowed_delivery_cat_feature&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;stable account attribute&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;selected_as_cat_feature&quot;: true,
+      &quot;source_id&quot;: &quot;user_profile&quot;,
+      &quot;timing&quot;: &quot;known_before_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;none&quot;,
+      &quot;used_in_delivery_model&quot;: true,
+      &quot;source_allowed_by_problem&quot;: true,
+      &quot;timing_allowed_by_policy&quot;: true,
+      &quot;candidate_allowed&quot;: true,
+      &quot;decision&quot;: &quot;allowed_delivery_cat_feature&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;stable acquisition attribute with missing bucket&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;segment_churn_rate_full_dataset&quot;,
+      &quot;selected_as_cat_feature&quot;: false,
+      &quot;source_id&quot;: &quot;churn_label&quot;,
+      &quot;timing&quot;: &quot;full_sample_label_aggregation&quot;,
+      &quot;risk_type&quot;: &quot;full_sample_target_encoding&quot;,
+      &quot;used_in_delivery_model&quot;: false,
+      &quot;source_allowed_by_problem&quot;: false,
+      &quot;timing_allowed_by_policy&quot;: false,
+      &quot;candidate_allowed&quot;: false,
+      &quot;decision&quot;: &quot;rejected_known_bad_candidate&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;target encoding before split would see validation/test labels&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;churned_14d&quot;,
+      &quot;selected_as_cat_feature&quot;: false,
+      &quot;source_id&quot;: &quot;churn_label&quot;,
+      &quot;timing&quot;: &quot;label_after_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;target_leakage&quot;,
+      &quot;used_in_delivery_model&quot;: false,
+      &quot;source_allowed_by_problem&quot;: false,
+      &quot;timing_allowed_by_policy&quot;: false,
+      &quot;candidate_allowed&quot;: false,
+      &quot;decision&quot;: &quot;rejected_known_bad_candidate&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;target itself&quot;
+    },
+    {
+      &quot;feature_name&quot;: &quot;retention_offer_accepted&quot;,
+      &quot;selected_as_cat_feature&quot;: false,
+      &quot;source_id&quot;: &quot;retention_offer_outcomes&quot;,
+      &quot;timing&quot;: &quot;intervention_after_prediction_time&quot;,
+      &quot;risk_type&quot;: &quot;post_intervention_outcome_leakage&quot;,
+      &quot;used_in_delivery_model&quot;: false,
+      &quot;source_allowed_by_problem&quot;: false,
+      &quot;timing_allowed_by_policy&quot;: false,
+      &quot;candidate_allowed&quot;: false,
+      &quot;decision&quot;: &quot;rejected_known_bad_candidate&quot;,
+      &quot;blocking_if_selected&quot;: false,
+      &quot;notes&quot;: &quot;post-score action outcome&quot;
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_inventory.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_name,category_value,semantic_type,train_count,validation_count,test_count,total_count,seen_in_train,unseen_in_train,missing_value,rare_in_train,distinct_values_for_feature,high_cardinality_feature,missing_policy,unknown_category_policy
+plan_id,trial_basic,subscription_plan_at_prediction_time,3,2,3,8,True,False,False,False,2,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+plan_id,trial_pro,subscription_plan_at_prediction_time,1,1,2,4,True,False,False,True,2,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+platform,android,stable_user_profile_attribute,2,1,2,5,True,False,False,False,3,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+platform,ios,stable_user_profile_attribute,1,1,1,3,True,False,False,True,3,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+platform,web,stable_user_profile_attribute,1,1,2,4,True,False,False,True,3,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+country,KZ,stable_user_profile_attribute,1,1,2,4,True,False,False,True,2,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+country,RU,stable_user_profile_attribute,3,2,3,8,True,False,False,False,2,False,missing_not_expected_block_if_seen,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,__MISSING__,stable_user_profile_attribute_with_structural_missing,0,1,0,1,False,True,True,False,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,influencer,stable_user_profile_attribute_with_structural_missing,0,1,0,1,False,True,False,False,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,organic,stable_user_profile_attribute_with_structural_missing,2,1,2,5,True,False,False,False,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,paid_search,stable_user_profile_attribute_with_structural_missing,1,0,1,2,True,False,False,True,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,partnership,stable_user_profile_attribute_with_structural_missing,0,0,1,1,False,True,False,False,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+acquisition_channel,referral,stable_user_profile_attribute_with_structural_missing,1,0,1,2,True,False,False,True,6,True,map_missing_to_explicit_category,allow_native_catboost_unseen_value_and_monitor
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_inventory.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_leakage_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_name,selected_as_cat_feature,source_id,timing,risk_type,used_in_delivery_model,source_allowed_by_problem,timing_allowed_by_policy,candidate_allowed,decision,blocking_if_selected,notes
+plan_id,True,subscription_snapshot,known_before_prediction_time,none,True,True,True,True,allowed_delivery_cat_feature,False,trial plan at scoring moment
+platform,True,user_profile,known_before_prediction_time,none,True,True,True,True,allowed_delivery_cat_feature,False,stable account attribute
+country,True,user_profile,known_before_prediction_time,none,True,True,True,True,allowed_delivery_cat_feature,False,stable account attribute
+acquisition_channel,True,user_profile,known_before_prediction_time,none,True,True,True,True,allowed_delivery_cat_feature,False,stable acquisition attribute with missing bucket
+segment_churn_rate_full_dataset,False,churn_label,full_sample_label_aggregation,full_sample_target_encoding,False,False,False,False,rejected_known_bad_candidate,False,target encoding before split would see validation/test labels
+churned_14d,False,churn_label,label_after_prediction_time,target_leakage,False,False,False,False,rejected_known_bad_candidate,False,target itself
+retention_offer_accepted,False,retention_offer_outcomes,intervention_after_prediction_time,post_intervention_outcome_leakage,False,False,False,False,rejected_known_bad_candidate,False,post-score action outcome
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_leakage_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_serialized_contract.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;cat_features&quot;: [
+    &quot;plan_id&quot;,
+    &quot;platform&quot;,
+    &quot;country&quot;,
+    &quot;acquisition_channel&quot;
+  ],
+  &quot;missing_category_token&quot;: &quot;__MISSING__&quot;,
+  &quot;policies&quot;: [
+    {
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;semantic_type&quot;: &quot;subscription_plan_at_prediction_time&quot;,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;max_distinct_values_tiny&quot;: 5,
+      &quot;min_train_count_for_stable_level&quot;: 2
+    },
+    {
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;max_distinct_values_tiny&quot;: 5,
+      &quot;min_train_count_for_stable_level&quot;: 2
+    },
+    {
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute&quot;,
+      &quot;missing_policy&quot;: &quot;missing_not_expected_block_if_seen&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;max_distinct_values_tiny&quot;: 5,
+      &quot;min_train_count_for_stable_level&quot;: 2
+    },
+    {
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;semantic_type&quot;: &quot;stable_user_profile_attribute_with_structural_missing&quot;,
+      &quot;missing_policy&quot;: &quot;map_missing_to_explicit_category&quot;,
+      &quot;unknown_category_policy&quot;: &quot;allow_native_catboost_unseen_value_and_monitor&quot;,
+      &quot;max_distinct_values_tiny&quot;: 5,
+      &quot;min_train_count_for_stable_level&quot;: 2
+    }
+  ],
+  &quot;availability_policy&quot;: {
+    &quot;require_used_in_delivery_model&quot;: true,
+    &quot;require_candidate_allowed&quot;: true,
+    &quot;require_timing_allowed_by_policy&quot;: true,
+    &quot;require_source_allowed_by_problem&quot;: true
+  },
+  &quot;category_summary&quot;: {
+    &quot;inventory_rows&quot;: 13,
+    &quot;unknown_category_row_count&quot;: 3,
+    &quot;high_cardinality_features&quot;: [
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;rare_level_count&quot;: 6,
+    &quot;missing_category_row_count&quot;: 1
+  },
+  &quot;leakage_summary&quot;: {
+    &quot;selected_feature_count&quot;: 4,
+    &quot;known_bad_candidate_count&quot;: 3,
+    &quot;blocked_selected_feature_count&quot;: 0
+  },
+  &quot;upstream_handoff&quot;: {
+    &quot;catboost_report&quot;: &quot;phases/16-tabular-ml/01-catboost/outputs/catboost_report.json&quot;,
+    &quot;catboost_readiness_status&quot;: &quot;ready_for_categorical_feature_lesson&quot;
+  },
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;categorical_feature_report.json&quot;,
+    &quot;inventory_file&quot;: &quot;categorical_inventory.csv&quot;,
+    &quot;unknowns_file&quot;: &quot;categorical_unknowns.csv&quot;,
+    &quot;leakage_audit_file&quot;: &quot;categorical_leakage_audit.csv&quot;,
+    &quot;serialized_contract_file&quot;: &quot;categorical_serialized_contract.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_serialized_contract.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/categorical_unknowns.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,split,feature_name,category_value,missing_value,seen_in_train,policy_action,unknown_category_policy
+S006,validation,acquisition_channel,influencer,False,False,allow_native_catboost_unseen_value_and_monitor,allow_native_catboost_unseen_value_and_monitor
+S007,validation,acquisition_channel,__MISSING__,True,False,allow_native_catboost_unseen_value_and_monitor,allow_native_catboost_unseen_value_and_monitor
+S010,test,acquisition_channel,partnership,False,False,allow_native_catboost_unseen_value_and_monitor,allow_native_catboost_unseen_value_and_monitor
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/outputs/categorical_unknowns.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/02-categorical-features" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/catboost/"><span>← Предыдущий урок</span><strong>CatBoost как сильный табличный baseline</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/early-stopping/"><span>Следующий урок →</span><strong>Early stopping и iteration budget</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

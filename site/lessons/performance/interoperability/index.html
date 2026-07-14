@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Аналитический pipeline редко живет в одной библиотеке. Данные могут прийти как Arrow, подготовиться в Polars, попасть в pandas-only API и агрегироваться SQL-запросом…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/interoperability/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Обмен между pandas, Arrow и Polars">
+  <meta property="og:description" content="Аналитический pipeline редко живет в одной библиотеке. Данные могут прийти как Arrow, подготовиться в Polars, попасть в pandas-only API и агрегироваться SQL-запросом…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/interoperability/">
+  <meta name="twitter:card" content="summary">
+  <title>Обмен между pandas, Arrow и Polars — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Обмен между pandas, Arrow и Polars", "description": "Аналитический pipeline редко живет в одной библиотеке. Данные могут прийти как Arrow, подготовиться в Polars, попасть в pandas-only API и агрегироваться SQL-запросом…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/interoperability/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "Обмен между pandas, Arrow и Polars", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/interoperability/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 132 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/10-interoperability" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему совпадение строк после конвертации еще не доказывает полную совместимость?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Могут измениться nullability, timezone label, category ordering, metadata и физические типы.</button><button type="button" class="quiz-option" data-choice="1">Строки никогда нельзя сравнивать.</button><button type="button" class="quiz-option" data-choice="2">Arrow не хранит схему.</button><button type="button" class="quiz-option" data-choice="3">Любая конвертация обязательно меняет значения.</button></div><p class="quiz-feedback" hidden>Value equivalence и schema equivalence являются разными контрактами и проверяются отдельно.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какой признак является конкретным доказательством reuse Arrow-буфера?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Совпадение адресов исходного и целевого buffers в одном процессе.</button><button type="button" class="quiz-option" data-choice="1">Наличие слова Arrow в названии метода.</button><button type="button" class="quiz-option" data-choice="2">Одинаковое число строк.</button><button type="button" class="quiz-option" data-choice="3">Быстрый одиночный запуск.</button></div><p class="quiz-feedback" hidden>Название API не гарантирует zero-copy. В уроке reuse проверяется пересечением адресов buffers.</p></article></section>
+        <article class="lesson-article"><h1 id="обмен-между-pandas-arrow-и-polars">Обмен между pandas, Arrow и Polars</h1>
+<blockquote>
+<p>Совпадение значений не означает совпадение schema, а Arrow-compatible API не означает
+автоматический zero-copy.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>12-performance/09-streaming</code>
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> передает таблицу между pandas, PyArrow, DuckDB и Polars, проверяет
+schema/null/timezone/category semantics, фиксирует копии и выбирает минимально дорогую
+границу обмена.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Задать канонический Arrow schema contract до конвертаций.</li>
+<li>Разделить value equivalence, logical type equivalence и exact schema equivalence.</li>
+<li>Проверить Arrow-backed pandas через <code>pd.ArrowDtype</code>.</li>
+<li>Найти re-encoding строк и ordered category при обмене с Polars.</li>
+<li>Зафиксировать материализацию результата и timezone policy в DuckDB.</li>
+<li>Выбрать один engine boundary вместо цепочки взаимных конвертаций.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Аналитический pipeline редко живет в одной библиотеке. Данные могут прийти как Arrow,
+подготовиться в Polars, попасть в pandas-only API и агрегироваться SQL-запросом DuckDB.
+Каждый переход выглядит простым:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pandas_frame = arrow_table.to_pandas()
+polars_frame = pl.from_arrow(arrow_table)
+duckdb.sql(&quot;select * from arrow_table&quot;)
+</code></pre></div><p>Но за коротким вызовом скрываются разные вопросы:</p>
+<ul>
+<li>сохранились ли exact decimal, null и timezone instants;</li>
+<li>осталась ли категория ordered;</li>
+<li>сохранились ли field nullability и schema metadata;</li>
+<li>переиспользованы buffers или данные перекодированы;</li>
+<li>материализован ли новый результат;</li>
+<li>зависит ли Arrow timestamp от timezone сессии.</li>
+</ul>
+<p>Урок не ищет магический &quot;самый быстрый DataFrame&quot;. Он строит evidence matrix для
+конкретных границ.</p>
+<h2 id="концепция">Концепция</h2>
+<p>У совместимости есть несколько уровней:</p>
+<table>
+<thead>
+<tr>
+<th>Уровень</th>
+<th>Вопрос</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Values</td>
+<td>Совпадают ли бизнес-значения после round-trip?</td>
+</tr>
+<tr>
+<td>Null semantics</td>
+<td>Остались ли null в тех же колонках и строках?</td>
+</tr>
+<tr>
+<td>Logical types</td>
+<td>Остались ли decimal, timestamp, integer и category теми же сущностями?</td>
+</tr>
+<tr>
+<td>Exact Arrow schema</td>
+<td>Совпали ли type parameters, nullability, field/schema metadata?</td>
+</tr>
+<tr>
+<td>Physical reuse</td>
+<td>Используются ли те же buffers в памяти?</td>
+</tr>
+</tbody>
+</table>
+<p>Граница может сохранить values, но изменить schema:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">string -&gt; large_string
+dictionary&lt;int8, string, ordered=true&gt;
+    -&gt; dictionary&lt;uint32, large_string, ordered=false&gt;
+</code></pre></div><p>Такой переход не обязательно плох. Он становится опасным, когда drift не измерен, а
+downstream полагается на исходный contract.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакт создает каноническую <code>pyarrow.Table</code> с намеренно сложными полями:</p>
+<ul>
+<li>non-null primary key;</li>
+<li><code>timestamp[us, tz=UTC]</code>;</li>
+<li>ordered dictionary <code>plan_tier</code>;</li>
+<li>integer cents;</li>
+<li><code>decimal128(14, 2)</code>;</li>
+<li>nullable integer и string;</li>
+<li>field metadata и schema metadata;</li>
+<li>несколько chunks.</li>
+</ul>
+<h3 id="шаг-1-зафиксируйте-arrow-contract">Шаг 1. Зафиксируйте Arrow contract</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">source = build_canonical_arrow_table(rows=24, chunk_size=8, seed=42)
+</code></pre></div><p><code>plan_tier</code> содержит порядок:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">trial &lt; basic &lt; plus &lt; pro
+</code></pre></div><p>Он записан и как <code>dictionary(..., ordered=True)</code>, и как field metadata. Это позволяет
+увидеть разницу между сохранением строковых значений и сохранением бизнес-порядка.</p>
+<h3 id="шаг-2-передайте-arrow-в-pandas">Шаг 2. Передайте Arrow в pandas</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">frame = source.to_pandas(types_mapper=pd.ArrowDtype)
+</code></pre></div><p>Без <code>types_mapper</code> часть колонок может перейти в NumPy/object representation. В
+артефакте каждая pandas dtype обязана быть <code>pd.ArrowDtype</code>.</p>
+<p>Для проверки storage вызывается <code>__arrow_array__()</code> у extension array. Адреса buffers
+сравниваются с канонической таблицей. На установленной версии все колонки используют
+исходные Arrow buffers.</p>
+<p>Но обратная сборка:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pa.Table.from_pandas(frame, preserve_index=False)
+</code></pre></div><p>не сохраняет полный schema contract:</p>
+<ul>
+<li>non-null fields становятся nullable;</li>
+<li>исходные field/schema metadata заменяются pandas metadata.</li>
+</ul>
+<p>Values и exact Arrow types при этом сохраняются. Поэтому перед persistence нужно
+повторно применить канонический schema или валидировать его явно.</p>
+<h3 id="шаг-3-передайте-arrow-в-polars">Шаг 3. Передайте Arrow в Polars</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">polars_frame = pl.from_arrow(source, rechunk=False)
+returned = polars_frame.to_arrow(
+    compat_level=pl.CompatLevel.oldest()
+)
+</code></pre></div><p>Audit показывает:</p>
+<ul>
+<li>integer, decimal и timestamp buffers переиспользуются;</li>
+<li>string representation меняется на <code>large_string</code>;</li>
+<li>dictionary indices меняются с <code>int8</code> на <code>uint32</code>;</li>
+<li>category values сохраняются;</li>
+<li><code>ordered=True</code> превращается в <code>ordered=False</code>.</li>
+</ul>
+<p>Polars не &quot;ломает значения&quot;. Но category ordering нельзя считать автоматически
+сохраненным бизнес-контрактом.</p>
+<h3 id="шаг-4-передайте-arrow-в-duckdb">Шаг 4. Передайте Arrow в DuckDB</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+connection.register(&quot;canonical_arrow&quot;, source)
+returned = connection.execute(&quot;SELECT ...&quot;).to_arrow_table()
+</code></pre></div><p>DuckDB читает Arrow relation, но Arrow result query является новым материализованным
+выходом. В audit исходные buffers не переиспользуются.</p>
+<p>Кроме того:</p>
+<ul>
+<li>ordered dictionary декодируется в string;</li>
+<li>field/schema metadata не переносится;</li>
+<li>decimal и null values сохраняются;</li>
+<li>timezone output зависит от <code>TimeZone</code> сессии.</li>
+</ul>
+<p>Counterexample выполняет тот же запрос с <code>TimeZone=Europe/Moscow</code>. Абсолютные instants
+совпадают, но тип меняется:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">timestamp[us, tz=UTC]
+-&gt; timestamp[us, tz=Europe/Moscow]
+</code></pre></div><h3 id="шаг-5-постройте-matrix">Шаг 5. Постройте matrix</h3>
+<p>Каждая строка <code>interoperability-matrix.csv</code> содержит:</p>
+<ul>
+<li>API границы;</li>
+<li>classification;</li>
+<li>совпадение values и null counts;</li>
+<li>logical и exact type checks;</li>
+<li>nullability и metadata checks;</li>
+<li>category values и ordering;</li>
+<li>колонки с buffer reuse и без него.</li>
+</ul>
+<p>Главный принцип: <code>values_preserved_with_schema_drift</code> лучше, чем неявное &quot;вроде
+совместимо&quot;, но требует documented controls.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/10-interoperability/code/main.py
+</code></pre></div><p>Запустите CLI:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/10-interoperability/outputs/interoperability_audit.py \
+  --rows 24 \
+  --chunk-size 8 \
+  --output-dir /tmp/interoperability-audit
+</code></pre></div><p>Пакет содержит:</p>
+<ul>
+<li><code>canonical-input.arrow</code>;</li>
+<li><code>pandas-roundtrip.arrow</code>;</li>
+<li><code>polars-roundtrip.arrow</code>;</li>
+<li><code>duckdb-utc-output.arrow</code>;</li>
+<li><code>interoperability-matrix.csv</code>;</li>
+<li><code>conversion-audit.json</code>;</li>
+<li><code>engine-boundary-decision.md</code>;</li>
+<li><code>report.json</code>.</li>
+</ul>
+<p>Для данного pipeline выбран путь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">PyArrow -&gt; Polars -&gt; PyArrow
+</code></pre></div><p>Причины:</p>
+<ol>
+<li>pipeline остается columnar;</li>
+<li>пересекается одна граница движка;</li>
+<li>reuse primitive/decimal/timestamp buffers подтвержден;</li>
+<li>re-encoding строк и categories явно виден;</li>
+<li>canonical Arrow schema можно восстановить перед публикацией.</li>
+</ol>
+<p>Это не утверждение, что Polars всегда быстрее. Выбор относится к стоимости обмена в
+этом сценарии; вычислительную скорость сравнивает следующий интеграционный benchmark.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="уберите-pd-arrowdtype">Уберите <code>pd.ArrowDtype</code></h3>
+<p>Проверьте, какие колонки становятся object или NumPy-backed. Значения могут совпасть,
+но Arrow storage и nullable semantics изменятся.</p>
+<h3 id="сравнивайте-только-to-pylist">Сравнивайте только <code>to_pylist()</code></h3>
+<p>Так вы пропустите потерю ordered category, field nullability и metadata.</p>
+<h3 id="используйте-category-codes-как-business-key">Используйте category codes как business key</h3>
+<p>Polars переупаковывает dictionary indices. Код <code>0</code> не является переносимым значением
+категории; контрактом является label и отдельно заданный порядок.</p>
+<h3 id="не-задавайте-duckdb-timezone">Не задавайте DuckDB timezone</h3>
+<p>Один и тот же timestamp получит Arrow timezone текущей сессии. Абсолютный момент
+останется тем же, но exact schema и отображение изменятся.</p>
+<h3 id="делайте-ping-pong-conversion">Делайте ping-pong conversion</h3>
+<p>Цепочка <code>Arrow -&gt; pandas -&gt; Polars -&gt; DuckDB -&gt; pandas</code> создает больше границ, чем
+задач. Выберите один compute engine и экспортируйте уменьшенный результат.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечные тесты:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/10-interoperability/tests -v
+</code></pre></div><p>Контракт отчета:</p>
+<ul>
+<li>все четыре границы сохраняют values и null counts;</li>
+<li>pandas использует Arrow-backed dtypes и исходные buffers;</li>
+<li>pandas round-trip показывает metadata/nullability drift;</li>
+<li>Polars сохраняет category values, но теряет ordered metadata;</li>
+<li>Polars reuse для numeric/decimal/timestamp подтвержден адресами;</li>
+<li>DuckDB декодирует dictionary и материализует Arrow output;</li>
+<li>timezone counterexample меняет label, но не instant;</li>
+<li>решение использует одну границу вычислительного движка.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт - <code>interoperability-audit</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/10-interoperability/outputs/interoperability_audit.py \
+  --rows 24 \
+  --chunk-size 8 \
+  --output-dir /tmp/interoperability-audit
+</code></pre></div><p>Используйте его перед добавлением новой engine boundary:</p>
+<ol>
+<li>задайте канонический schema;</li>
+<li>добавьте сложные типы и null;</li>
+<li>сравните values отдельно от schema;</li>
+<li>измерьте buffers там, где reuse можно наблюдать;</li>
+<li>классифицируйте drift;</li>
+<li>оставьте один compute engine между input и output.</li>
+</ol>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте <code>duration[us]</code> и проверьте поведение каждой границы.</li>
+<li>Уберите <code>ordered=True</code> у <code>plan_tier</code> и объясните, какой risk исчез, а какой остается.</li>
+<li>Добавьте прямую границу <code>Polars -&gt; pandas(use_pyarrow_extension_array=True)</code> и
+отделите semantic check от утверждения о direct buffer reuse.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arrow-backed pandas</td>
+<td>Любой pandas DataFrame из Arrow</td>
+<td>Extension arrays с <code>pd.ArrowDtype</code>, сохраняющие Arrow storage</td>
+</tr>
+<tr>
+<td>Value equivalence</td>
+<td>Полная совместимость</td>
+<td>Совпадение нормализованных бизнес-значений</td>
+</tr>
+<tr>
+<td>Exact schema</td>
+<td>Только имена и dtype strings</td>
+<td>Types, parameters, nullability, field metadata и schema metadata</td>
+</tr>
+<tr>
+<td>Buffer reuse</td>
+<td>API называется zero-copy</td>
+<td>Наблюдаемое совпадение адресов buffers для конкретной границы</td>
+</tr>
+<tr>
+<td>Ordered category</td>
+<td>Порядок dictionary codes</td>
+<td>Отдельная семантика порядка labels, которую движок может не сохранить</td>
+</tr>
+<tr>
+<td>Engine boundary</td>
+<td>Один вызов conversion</td>
+<td>Место смены representation/runtime с возможной копией и semantic drift</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://arrow.apache.org/docs/python/pandas.html" target="_blank" rel="noopener">PyArrow: pandas integration</a> - изучите ArrowDtype, nullable conversion и условия zero-copy.</li>
+<li><a href="https://pandas.pydata.org/docs/user_guide/pyarrow.html" target="_blank" rel="noopener">pandas: PyArrow functionality</a> - разберите Arrow-backed arrays, dtype inference и ограничения pandas operations.</li>
+<li><a href="https://docs.pola.rs/user-guide/misc/arrow/" target="_blank" rel="noopener">Polars: Arrow interoperability</a> - прочитайте условия mostly zero-copy и исключения для categorical/string representation.</li>
+<li><a href="https://duckdb.org/docs/stable/guides/python/sql_on_arrow" target="_blank" rel="noopener">DuckDB: SQL on Arrow</a> - посмотрите регистрацию Arrow relation и возврат результатов через Arrow API.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем передавать `types_mapper=pd.ArrowDtype` в `Table.to_pandas`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы pandas использовал Arrow-backed extension arrays вместо object/NumPy fallback.</button><button type="button" class="quiz-option" data-choice="1">Чтобы удалить все null.</button><button type="button" class="quiz-option" data-choice="2">Чтобы DuckDB не требовал timezone.</button><button type="button" class="quiz-option" data-choice="3">Чтобы превратить decimal в float.</button></div><p class="quiz-feedback" hidden>ArrowDtype сохраняет Arrow storage и логические типы, хотя schema metadata и field nullability все равно требуют отдельного контроля.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что происходит с ordered Arrow dictionary после round-trip через Polars в уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Значения категории сохраняются, но индексы переупаковываются и ordered metadata теряется.</button><button type="button" class="quiz-option" data-choice="1">Категория всегда превращается в float.</button><button type="button" class="quiz-option" data-choice="2">Порядок автоматически становится бизнес-ключом.</button><button type="button" class="quiz-option" data-choice="3">Все исходные buffers полностью сохраняются.</button></div><p class="quiz-feedback" hidden>Polars Categorical сохраняет значения, но Arrow dictionary index type и ordered flag не являются неизменным контрактом.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему audit явно задает `TimeZone=UTC` в DuckDB?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Arrow output DuckDB маркирует timezone текущей сессии, хотя абсолютные instants могут совпасть.</button><button type="button" class="quiz-option" data-choice="1">DuckDB не поддерживает timestamps.</button><button type="button" class="quiz-option" data-choice="2">UTC нужен только для CSV.</button><button type="button" class="quiz-option" data-choice="3">Без UTC decimal становится строкой.</button></div><p class="quiz-feedback" hidden>Сессионная timezone влияет на label и отображение Arrow timestamp, поэтому она является частью воспроизводимого контракта.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Почему выбран путь `PyArrow -&gt; Polars -&gt; PyArrow`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он использует один engine boundary, сохраняет columnar pipeline и показывает reuse числовых, decimal и timestamp buffers.</button><button type="button" class="quiz-option" data-choice="1">Он гарантирует сохранение любого metadata без проверок.</button><button type="button" class="quiz-option" data-choice="2">Он требует промежуточный pandas object DataFrame.</button><button type="button" class="quiz-option" data-choice="3">Он всегда быстрее без benchmark.</button></div><p class="quiz-feedback" hidden>Решение основано на наблюдаемой стоимости и известных schema drifts, а не на универсальном обещании скорости.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import pandas as pd
+import pyarrow as pa
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;interoperability_audit.py&quot;
+SPEC = importlib.util.spec_from_file_location(
+    &quot;interoperability_audit&quot;,
+    ARTIFACT,
+)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDIT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDIT)
+
+
+def boundary(report: dict, boundary_id: str) -&gt; dict:
+    return next(item for item in report[&quot;boundaries&quot;] if item[&quot;boundary_id&quot;] == boundary_id)
+
+
+class InteroperabilityAuditTest(unittest.TestCase):
+    def test_canonical_table_is_reproducible_and_chunked(self) -&gt; None:
+        first = AUDIT.build_canonical_arrow_table(
+            rows=24,
+            chunk_size=8,
+            seed=42,
+        )
+        second = AUDIT.build_canonical_arrow_table(
+            rows=24,
+            chunk_size=8,
+            seed=42,
+        )
+        self.assertEqual(AUDIT.semantic_records(first), AUDIT.semantic_records(second))
+        self.assertEqual(first.column_names, AUDIT.COLUMN_ORDER)
+        self.assertEqual(first[&quot;gross_revenue_cents&quot;].num_chunks, 3)
+
+    def test_canonical_contract_has_decimal_timezone_and_ordered_category(self) -&gt; None:
+        table = AUDIT.build_canonical_arrow_table()
+        self.assertTrue(pa.types.is_decimal(table.schema.field(&quot;net_revenue_rub&quot;).type))
+        self.assertEqual(table.schema.field(&quot;event_at&quot;).type.tz, &quot;UTC&quot;)
+        plan_type = table.schema.field(&quot;plan_tier&quot;).type
+        self.assertTrue(pa.types.is_dictionary(plan_type))
+        self.assertTrue(plan_type.ordered)
+
+    def test_invalid_generation_parameters_raise_lesson_error(self) -&gt; None:
+        with self.assertRaises(AUDIT.InteroperabilityAuditError):
+            AUDIT.build_canonical_arrow_table(rows=4)
+        with self.assertRaises(AUDIT.InteroperabilityAuditError):
+            AUDIT.build_canonical_arrow_table(rows=24, chunk_size=1)
+
+    def test_pandas_boundary_uses_arrow_dtypes_and_reuses_buffers(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        frame, storage, _roundtrip = AUDIT.pandas_boundary(source)
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;pandas-arrow&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=storage,
+        )
+        self.assertTrue(all(isinstance(dtype, pd.ArrowDtype) for dtype in frame.dtypes))
+        self.assertTrue(audit[&quot;checks&quot;][&quot;semantic_safe&quot;])
+        self.assertEqual(
+            set(audit[&quot;buffer_reuse&quot;][&quot;columns_with_full_source_reuse&quot;]),
+            set(AUDIT.COLUMN_ORDER),
+        )
+
+    def test_pandas_roundtrip_preserves_types_but_not_schema_contract(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        _frame, _storage, roundtrip = AUDIT.pandas_boundary(source)
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pandas-arrow&quot;,
+            target_engine=&quot;pyarrow&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=roundtrip,
+        )
+        self.assertTrue(audit[&quot;checks&quot;][&quot;exact_arrow_types_match&quot;])
+        self.assertFalse(audit[&quot;checks&quot;][&quot;field_nullability_match&quot;])
+        self.assertFalse(audit[&quot;checks&quot;][&quot;schema_metadata_match&quot;])
+        self.assertTrue(audit[&quot;checks&quot;][&quot;semantic_safe&quot;])
+
+    def test_polars_preserves_semantics_and_reuses_primitive_buffers(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        _frame, roundtrip = AUDIT.polars_boundary(source)
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;polars&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=roundtrip,
+        )
+        reused = set(audit[&quot;buffer_reuse&quot;][&quot;columns_with_any_reuse&quot;])
+        self.assertTrue(audit[&quot;checks&quot;][&quot;semantic_safe&quot;])
+        self.assertTrue(
+            {
+                &quot;event_at&quot;,
+                &quot;gross_revenue_cents&quot;,
+                &quot;refund_amount_cents&quot;,
+                &quot;net_revenue_rub&quot;,
+                &quot;support_ticket_count&quot;,
+            }.issubset(reused)
+        )
+
+    def test_polars_reencodes_strings_and_loses_ordered_category_metadata(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        _frame, roundtrip = AUDIT.polars_boundary(source)
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;polars&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=roundtrip,
+        )
+        self.assertFalse(audit[&quot;checks&quot;][&quot;exact_arrow_types_match&quot;])
+        self.assertFalse(audit[&quot;checks&quot;][&quot;category_ordering_match&quot;])
+        self.assertEqual(
+            audit[&quot;column_type_checks&quot;][&quot;plan_tier&quot;][&quot;target_family&quot;],
+            &quot;categorical&quot;,
+        )
+        self.assertTrue(audit[&quot;checks&quot;][&quot;category_values_match&quot;])
+
+    def test_duckdb_utc_boundary_preserves_values_but_decodes_dictionary(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        target = AUDIT.duckdb_boundary(source, timezone_name=&quot;UTC&quot;)
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;duckdb&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=target,
+        )
+        self.assertTrue(audit[&quot;checks&quot;][&quot;semantic_safe&quot;])
+        self.assertEqual(target.schema.field(&quot;event_at&quot;).type.tz, &quot;UTC&quot;)
+        self.assertEqual(
+            audit[&quot;column_type_checks&quot;][&quot;plan_tier&quot;][&quot;target_family&quot;],
+            &quot;string&quot;,
+        )
+        self.assertEqual(audit[&quot;buffer_reuse&quot;][&quot;columns_with_any_reuse&quot;], [])
+
+    def test_duckdb_timezone_session_changes_label_not_instant(self) -&gt; None:
+        source = AUDIT.build_canonical_arrow_table()
+        target = AUDIT.duckdb_boundary(
+            source,
+            timezone_name=&quot;Europe/Moscow&quot;,
+        )
+        audit = AUDIT.assess_boundary(
+            boundary_id=&quot;test&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;duckdb&quot;,
+            api=&quot;test&quot;,
+            source=source,
+            target=target,
+        )
+        self.assertTrue(audit[&quot;checks&quot;][&quot;values_match&quot;])
+        self.assertFalse(audit[&quot;column_type_checks&quot;][&quot;event_at&quot;][&quot;exact_type_match&quot;])
+        self.assertEqual(
+            target.schema.field(&quot;event_at&quot;).type.tz,
+            &quot;Europe/Moscow&quot;,
+        )
+
+    def test_matrix_contains_four_engine_boundaries(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = AUDIT.build_interoperability_report(output_dir=tmp)
+        self.assertEqual(
+            {item[&quot;boundary_id&quot;] for item in report[&quot;boundaries&quot;]},
+            {
+                &quot;arrow_to_pandas&quot;,
+                &quot;pandas_to_arrow&quot;,
+                &quot;arrow_to_polars&quot;,
+                &quot;arrow_to_duckdb&quot;,
+            },
+        )
+
+    def test_decision_selects_one_columnar_engine_boundary(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = AUDIT.build_interoperability_report(output_dir=tmp)
+        self.assertEqual(
+            report[&quot;decision&quot;][&quot;selected_path&quot;],
+            &quot;pyarrow -&gt; polars -&gt; pyarrow&quot;,
+        )
+        self.assertTrue(report[&quot;decision&quot;][&quot;timezone_counterexample_detected&quot;])
+        self.assertIn(&quot;polars&quot;, report[&quot;decision&quot;][&quot;known_drifts&quot;])
+
+    def test_report_is_safe_when_drift_is_classified(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = AUDIT.build_interoperability_report(output_dir=tmp)
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;])
+        self.assertTrue(all(report[&quot;interpretation&quot;][&quot;checks&quot;].values()))
+
+    def test_cli_writes_matrix_arrow_files_decision_and_report(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / &quot;package&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--rows&quot;,
+                    &quot;24&quot;,
+                    &quot;--chunk-size&quot;,
+                    &quot;8&quot;,
+                    &quot;--seed&quot;,
+                    &quot;42&quot;,
+                    &quot;--output-dir&quot;,
+                    str(output_dir),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stdout_report = json.loads(result.stdout)
+            file_report = json.loads((output_dir / &quot;report.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+            self.assertEqual(
+                stdout_report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+                file_report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+            )
+            for relative in [
+                &quot;canonical-input.arrow&quot;,
+                &quot;pandas-roundtrip.arrow&quot;,
+                &quot;polars-roundtrip.arrow&quot;,
+                &quot;duckdb-utc-output.arrow&quot;,
+                &quot;interoperability-matrix.csv&quot;,
+                &quot;conversion-audit.json&quot;,
+                &quot;engine-boundary-decision.md&quot;,
+            ]:
+                self.assertTrue((output_dir / relative).is_file(), relative)
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--rows&quot;,
+                    &quot;4&quot;,
+                    &quot;--output-dir&quot;,
+                    tmp,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;interoperability audit error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;interoperability_audit.py&quot;
+SPEC = importlib.util.spec_from_file_location(
+    &quot;interoperability_audit&quot;,
+    ARTIFACT,
+)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDIT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDIT)
+
+
+def main() -&gt; None:
+    with tempfile.TemporaryDirectory() as tmp:
+        report = AUDIT.build_interoperability_report(
+            rows=24,
+            chunk_size=8,
+            seed=2026,
+            output_dir=tmp,
+        )
+    boundaries = {item[&quot;boundary_id&quot;]: item for item in report[&quot;boundaries&quot;]}
+    preview = {
+        &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+        &quot;selected_path&quot;: report[&quot;decision&quot;][&quot;selected_path&quot;],
+        &quot;pandas_full_reuse_columns&quot;: boundaries[&quot;arrow_to_pandas&quot;][&quot;buffer_reuse&quot;][
+            &quot;columns_with_full_source_reuse&quot;
+        ],
+        &quot;polars_reuse_columns&quot;: boundaries[&quot;arrow_to_polars&quot;][&quot;buffer_reuse&quot;][
+            &quot;columns_with_any_reuse&quot;
+        ],
+        &quot;duckdb_category_family&quot;: boundaries[&quot;arrow_to_duckdb&quot;][&quot;column_type_checks&quot;][&quot;plan_tier&quot;][
+            &quot;target_family&quot;
+        ],
+        &quot;timezone_counterexample&quot;: report[&quot;decision&quot;][&quot;timezone_counterexample_detected&quot;],
+        &quot;safe_to_ship&quot;: report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;],
+    }
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;interoperability-audit&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/interoperability_audit.py&quot;,
+  &quot;description&quot;: &quot;Строит conversion matrix для pandas, PyArrow, Polars и DuckDB, сверяет values/nulls/schema/timezone/categories, измеряет reuse буферов и выпускает решение о границе движка.&quot;,
+  &quot;usage&quot;: &quot;python outputs/interoperability_audit.py --rows 24 --chunk-size 8 --output-dir /tmp/interoperability-audit&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/interoperability_audit.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import platform
+import sys
+from datetime import UTC, datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import numpy as np
+import pandas as pd
+import polars as pl
+import pyarrow as pa
+
+
+class InteroperabilityAuditError(ValueError):
+    &quot;&quot;&quot;Raised when a conversion boundary cannot be audited safely.&quot;&quot;&quot;
+
+
+COLUMN_ORDER = [
+    &quot;order_id&quot;,
+    &quot;user_id&quot;,
+    &quot;event_at&quot;,
+    &quot;plan_tier&quot;,
+    &quot;gross_revenue_cents&quot;,
+    &quot;refund_amount_cents&quot;,
+    &quot;net_revenue_rub&quot;,
+    &quot;support_ticket_count&quot;,
+    &quot;comment&quot;,
+    &quot;is_test_user&quot;,
+]
+
+ORDERED_PLANS = [&quot;trial&quot;, &quot;basic&quot;, &quot;plus&quot;, &quot;pro&quot;]
+
+
+def _chunk_bounds(length: int, chunk_size: int) -&gt; list[tuple[int, int]]:
+    if length &lt; 8:
+        raise InteroperabilityAuditError(&quot;rows must be at least 8&quot;)
+    if chunk_size &lt; 2:
+        raise InteroperabilityAuditError(&quot;chunk_size must be at least 2&quot;)
+    return [(start, min(start + chunk_size, length)) for start in range(0, length, chunk_size)]
+
+
+def _chunked_array(
+    values: list[Any],
+    *,
+    chunk_size: int,
+    type_: pa.DataType,
+) -&gt; pa.ChunkedArray:
+    return pa.chunked_array(
+        [
+            pa.array(values[start:end], type=type_)
+            for start, end in _chunk_bounds(len(values), chunk_size)
+        ],
+        type=type_,
+    )
+
+
+def _dictionary_chunked_array(
+    values: list[str | None],
+    *,
+    chunk_size: int,
+) -&gt; pa.ChunkedArray:
+    dictionary_type = pa.dictionary(pa.int8(), pa.string(), ordered=True)
+    chunks = []
+    for start, end in _chunk_bounds(len(values), chunk_size):
+        chunk = pa.array(values[start:end], type=pa.string()).dictionary_encode()
+        chunks.append(chunk.cast(dictionary_type))
+    return pa.chunked_array(chunks, type=dictionary_type)
+
+
+def build_canonical_arrow_table(
+    *,
+    rows: int = 24,
+    chunk_size: int = 8,
+    seed: int = 42,
+) -&gt; pa.Table:
+    _chunk_bounds(rows, chunk_size)
+    rng = np.random.default_rng(seed)
+    index = np.arange(rows, dtype=np.int64)
+    gross = rng.integers(1_000, 80_000, size=rows, dtype=np.int64)
+    refund = np.where(index % 6 == 0, gross // 4, 0).astype(np.int64)
+    plans: list[str | None] = [
+        None if position % 11 == 0 else ORDERED_PLANS[position % len(ORDERED_PLANS)]
+        for position in range(rows)
+    ]
+    event_at = [
+        None
+        if position % 13 == 0
+        else pd.Timestamp(&quot;2026-01-05T00:00:00Z&quot;) + pd.Timedelta(hours=int(position) * 9)
+        for position in range(rows)
+    ]
+    support_tickets: list[int | None] = [
+        None if position % 7 == 0 else int(value)
+        for position, value in enumerate(rng.poisson(0.3, size=rows))
+    ]
+    comments = [
+        None if position % 5 == 0 else f&quot;support bucket {position % 4}&quot; for position in range(rows)
+    ]
+    net_revenue_rub = [Decimal(int(value)) / Decimal(100) for value in (gross - refund)]
+
+    schema = pa.schema(
+        [
+            pa.field(
+                &quot;order_id&quot;,
+                pa.string(),
+                nullable=False,
+                metadata={b&quot;role&quot;: b&quot;primary_key&quot;},
+            ),
+            pa.field(&quot;user_id&quot;, pa.string(), nullable=False),
+            pa.field(&quot;event_at&quot;, pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;), nullable=True),
+            pa.field(
+                &quot;plan_tier&quot;,
+                pa.dictionary(pa.int8(), pa.string(), ordered=True),
+                nullable=True,
+                metadata={b&quot;business_order&quot;: b&quot;trial,basic,plus,pro&quot;},
+            ),
+            pa.field(&quot;gross_revenue_cents&quot;, pa.int64(), nullable=False),
+            pa.field(&quot;refund_amount_cents&quot;, pa.int64(), nullable=False),
+            pa.field(&quot;net_revenue_rub&quot;, pa.decimal128(14, 2), nullable=False),
+            pa.field(&quot;support_ticket_count&quot;, pa.int16(), nullable=True),
+            pa.field(&quot;comment&quot;, pa.string(), nullable=True),
+            pa.field(&quot;is_test_user&quot;, pa.bool_(), nullable=False),
+        ],
+        metadata={
+            b&quot;table&quot;: b&quot;customer_revenue_interoperability&quot;,
+            b&quot;business_timezone&quot;: b&quot;UTC&quot;,
+        },
+    )
+    arrays = [
+        _chunked_array(
+            [f&quot;O{position:08d}&quot; for position in index],
+            chunk_size=chunk_size,
+            type_=pa.string(),
+        ),
+        _chunked_array(
+            [f&quot;U{position % max(8, rows // 3):07d}&quot; for position in index],
+            chunk_size=chunk_size,
+            type_=pa.string(),
+        ),
+        _chunked_array(
+            event_at,
+            chunk_size=chunk_size,
+            type_=pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;),
+        ),
+        _dictionary_chunked_array(plans, chunk_size=chunk_size),
+        _chunked_array(
+            gross.tolist(),
+            chunk_size=chunk_size,
+            type_=pa.int64(),
+        ),
+        _chunked_array(
+            refund.tolist(),
+            chunk_size=chunk_size,
+            type_=pa.int64(),
+        ),
+        _chunked_array(
+            net_revenue_rub,
+            chunk_size=chunk_size,
+            type_=pa.decimal128(14, 2),
+        ),
+        _chunked_array(
+            support_tickets,
+            chunk_size=chunk_size,
+            type_=pa.int16(),
+        ),
+        _chunked_array(
+            comments,
+            chunk_size=chunk_size,
+            type_=pa.string(),
+        ),
+        _chunked_array(
+            (index % 17 == 0).tolist(),
+            chunk_size=chunk_size,
+            type_=pa.bool_(),
+        ),
+    ]
+    table = pa.Table.from_arrays(arrays, schema=schema)
+    validate_canonical_table(table)
+    return table
+
+
+def validate_canonical_table(table: pa.Table) -&gt; None:
+    if table.column_names != COLUMN_ORDER:
+        raise InteroperabilityAuditError(f&quot;canonical columns must equal {COLUMN_ORDER}&quot;)
+    if table.num_rows == 0:
+        raise InteroperabilityAuditError(&quot;canonical table is empty&quot;)
+    order_ids = table[&quot;order_id&quot;].to_pylist()
+    if any(value is None for value in order_ids) or len(set(order_ids)) != len(order_ids):
+        raise InteroperabilityAuditError(&quot;order_id must be non-null and unique&quot;)
+    gross = table[&quot;gross_revenue_cents&quot;].to_numpy()
+    refund = table[&quot;refund_amount_cents&quot;].to_numpy()
+    if np.any(gross &lt; 0) or np.any(refund &lt; 0):
+        raise InteroperabilityAuditError(&quot;money columns must be non-negative&quot;)
+    if np.any(refund &gt; gross):
+        raise InteroperabilityAuditError(&quot;refund_amount_cents cannot exceed gross_revenue_cents&quot;)
+    plan_type = table.schema.field(&quot;plan_tier&quot;).type
+    if not pa.types.is_dictionary(plan_type) or not plan_type.ordered:
+        raise InteroperabilityAuditError(&quot;plan_tier must be an ordered Arrow dictionary&quot;)
+
+
+def _json_value(value: Any) -&gt; Any:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            value = value.astimezone(UTC)
+        return value.isoformat()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def semantic_records(table: pa.Table) -&gt; list[dict[str, Any]]:
+    records = [
+        {name: _json_value(value) for name, value in row.items()}
+        for row in table.select(COLUMN_ORDER).to_pylist()
+    ]
+    return sorted(records, key=lambda row: str(row[&quot;order_id&quot;]))
+
+
+def _type_family(type_: pa.DataType) -&gt; str:
+    if pa.types.is_dictionary(type_):
+        return &quot;categorical&quot;
+    if (
+        pa.types.is_string(type_)
+        or pa.types.is_large_string(type_)
+        or pa.types.is_string_view(type_)
+    ):
+        return &quot;string&quot;
+    if pa.types.is_timestamp(type_):
+        return &quot;timestamp&quot;
+    if pa.types.is_decimal(type_):
+        return &quot;decimal&quot;
+    if pa.types.is_integer(type_):
+        return &quot;integer&quot;
+    if pa.types.is_boolean(type_):
+        return &quot;boolean&quot;
+    return str(type_)
+
+
+def _metadata_json(metadata: dict[bytes, bytes] | None) -&gt; dict[str, str]:
+    return {key.decode(&quot;utf-8&quot;): value.decode(&quot;utf-8&quot;) for key, value in (metadata or {}).items()}
+
+
+def schema_manifest(schema: pa.Schema) -&gt; list[dict[str, Any]]:
+    return [
+        {
+            &quot;name&quot;: field.name,
+            &quot;type&quot;: str(field.type),
+            &quot;family&quot;: _type_family(field.type),
+            &quot;nullable&quot;: field.nullable,
+            &quot;metadata&quot;: _metadata_json(field.metadata),
+        }
+        for field in schema
+    ]
+
+
+def _array_buffer_addresses(array: pa.Array) -&gt; set[int]:
+    addresses = {int(buffer.address) for buffer in array.buffers() if buffer is not None}
+    if pa.types.is_dictionary(array.type):
+        addresses |= _array_buffer_addresses(array.dictionary)
+    return addresses
+
+
+def _column_buffer_addresses(column: pa.ChunkedArray) -&gt; set[int]:
+    addresses: set[int] = set()
+    for chunk in column.chunks:
+        addresses |= _array_buffer_addresses(chunk)
+    return addresses
+
+
+def buffer_reuse_report(
+    source: pa.Table,
+    target: pa.Table,
+) -&gt; dict[str, Any]:
+    columns: dict[str, Any] = {}
+    for name in source.column_names:
+        source_addresses = _column_buffer_addresses(source[name])
+        target_addresses = _column_buffer_addresses(target[name])
+        shared = source_addresses &amp; target_addresses
+        if not source_addresses:
+            status = &quot;no_source_buffers&quot;
+        elif source_addresses.issubset(target_addresses):
+            status = &quot;full_source_reuse&quot;
+        elif shared:
+            status = &quot;partial_reuse&quot;
+        else:
+            status = &quot;no_reuse_observed&quot;
+        columns[name] = {
+            &quot;source_buffer_count&quot;: len(source_addresses),
+            &quot;target_buffer_count&quot;: len(target_addresses),
+            &quot;shared_buffer_count&quot;: len(shared),
+            &quot;all_source_buffers_reused&quot;: bool(source_addresses)
+            and source_addresses.issubset(target_addresses),
+            &quot;status&quot;: status,
+        }
+    return {
+        &quot;columns&quot;: columns,
+        &quot;columns_with_any_reuse&quot;: [
+            name for name, detail in columns.items() if detail[&quot;shared_buffer_count&quot;] &gt; 0
+        ],
+        &quot;columns_with_full_source_reuse&quot;: [
+            name for name, detail in columns.items() if detail[&quot;all_source_buffers_reused&quot;]
+        ],
+        &quot;columns_without_reuse&quot;: [
+            name for name, detail in columns.items() if detail[&quot;status&quot;] == &quot;no_reuse_observed&quot;
+        ],
+    }
+
+
+def _category_vocabulary(table: pa.Table, name: str) -&gt; list[str]:
+    values = {str(value) for value in table[name].to_pylist() if value is not None}
+    return sorted(values)
+
+
+def _category_ordered(schema: pa.Schema, name: str) -&gt; bool | None:
+    type_ = schema.field(name).type
+    if pa.types.is_dictionary(type_):
+        return bool(type_.ordered)
+    return None
+
+
+def assess_boundary(
+    *,
+    boundary_id: str,
+    source_engine: str,
+    target_engine: str,
+    api: str,
+    source: pa.Table,
+    target: pa.Table,
+    buffer_evidence: bool = True,
+) -&gt; dict[str, Any]:
+    source_types = {field.name: field.type for field in source.schema}
+    target_types = {field.name: field.type for field in target.schema}
+    exact_type_checks = {
+        name: source_types[name].equals(target_types[name]) for name in source.column_names
+    }
+    family_checks = {
+        name: _type_family(source_types[name]) == _type_family(target_types[name])
+        for name in source.column_names
+    }
+    null_counts_source = {name: int(source[name].null_count) for name in source.column_names}
+    null_counts_target = {name: int(target[name].null_count) for name in target.column_names}
+    category_values_match = _category_vocabulary(source, &quot;plan_tier&quot;) == _category_vocabulary(
+        target, &quot;plan_tier&quot;
+    )
+    category_ordering_match = _category_ordered(source.schema, &quot;plan_tier&quot;) == _category_ordered(
+        target.schema, &quot;plan_tier&quot;
+    )
+    values_match = semantic_records(source) == semantic_records(target)
+    names_match = source.column_names == target.column_names
+    null_counts_match = null_counts_source == null_counts_target
+    semantic_safe = values_match and names_match and null_counts_match and category_values_match
+    exact_schema_match = source.schema.equals(target.schema, check_metadata=True)
+    if not semantic_safe:
+        classification = &quot;unsafe_semantic_drift&quot;
+    elif exact_schema_match:
+        classification = &quot;exact_schema_and_values&quot;
+    else:
+        classification = &quot;values_preserved_with_schema_drift&quot;
+    return {
+        &quot;boundary_id&quot;: boundary_id,
+        &quot;source_engine&quot;: source_engine,
+        &quot;target_engine&quot;: target_engine,
+        &quot;api&quot;: api,
+        &quot;rows&quot;: target.num_rows,
+        &quot;checks&quot;: {
+            &quot;values_match&quot;: values_match,
+            &quot;column_names_and_order_match&quot;: names_match,
+            &quot;null_counts_match&quot;: null_counts_match,
+            &quot;type_families_match&quot;: all(family_checks.values()),
+            &quot;exact_arrow_types_match&quot;: all(exact_type_checks.values()),
+            &quot;field_nullability_match&quot;: [field.nullable for field in source.schema]
+            == [field.nullable for field in target.schema],
+            &quot;schema_metadata_match&quot;: source.schema.metadata == target.schema.metadata,
+            &quot;category_values_match&quot;: category_values_match,
+            &quot;category_ordering_match&quot;: category_ordering_match,
+            &quot;semantic_safe&quot;: semantic_safe,
+            &quot;exact_schema_match&quot;: exact_schema_match,
+        },
+        &quot;column_type_checks&quot;: {
+            name: {
+                &quot;source_type&quot;: str(source_types[name]),
+                &quot;target_type&quot;: str(target_types[name]),
+                &quot;source_family&quot;: _type_family(source_types[name]),
+                &quot;target_family&quot;: _type_family(target_types[name]),
+                &quot;exact_type_match&quot;: exact_type_checks[name],
+                &quot;family_match&quot;: family_checks[name],
+            }
+            for name in source.column_names
+        },
+        &quot;source_null_counts&quot;: null_counts_source,
+        &quot;target_null_counts&quot;: null_counts_target,
+        &quot;source_schema&quot;: schema_manifest(source.schema),
+        &quot;target_schema&quot;: schema_manifest(target.schema),
+        &quot;buffer_reuse&quot;: (
+            buffer_reuse_report(source, target)
+            if buffer_evidence
+            else {
+                &quot;available&quot;: False,
+                &quot;reason&quot;: (&quot;Independent exports cannot prove reuse across the direct boundary.&quot;),
+            }
+        ),
+        &quot;classification&quot;: classification,
+    }
+
+
+def pandas_boundary(
+    source: pa.Table,
+) -&gt; tuple[pd.DataFrame, pa.Table, pa.Table]:
+    frame = source.to_pandas(types_mapper=pd.ArrowDtype)
+    underlying = pa.Table.from_arrays(
+        [frame[name].array.__arrow_array__() for name in source.column_names],
+        names=source.column_names,
+    )
+    roundtrip = pa.Table.from_pandas(frame, preserve_index=False)
+    return frame, underlying, roundtrip
+
+
+def polars_boundary(source: pa.Table) -&gt; tuple[pl.DataFrame, pa.Table]:
+    frame = pl.from_arrow(source, rechunk=False)
+    roundtrip = frame.to_arrow(compat_level=pl.CompatLevel.oldest())
+    return frame, roundtrip
+
+
+def duckdb_boundary(
+    source: pa.Table,
+    *,
+    timezone_name: str,
+) -&gt; pa.Table:
+    allowed_timezones = {&quot;UTC&quot;, &quot;Europe/Moscow&quot;}
+    if timezone_name not in allowed_timezones:
+        raise InteroperabilityAuditError(
+            f&quot;timezone_name must be one of {sorted(allowed_timezones)}&quot;
+        )
+    connection = duckdb.connect()
+    try:
+        connection.execute(f&quot;SET TimeZone = &#x27;{timezone_name}&#x27;&quot;)
+        connection.register(&quot;canonical_arrow&quot;, source)
+        return connection.execute(
+            &quot;&quot;&quot;
+            SELECT
+                order_id,
+                user_id,
+                event_at,
+                plan_tier,
+                gross_revenue_cents,
+                refund_amount_cents,
+                net_revenue_rub,
+                support_ticket_count,
+                comment,
+                is_test_user
+            FROM canonical_arrow
+            ORDER BY order_id
+            &quot;&quot;&quot;
+        ).to_arrow_table()
+    finally:
+        connection.close()
+
+
+def interoperability_matrix(
+    boundaries: list[dict[str, Any]],
+) -&gt; pd.DataFrame:
+    rows = []
+    for boundary in boundaries:
+        checks = boundary[&quot;checks&quot;]
+        reuse = boundary[&quot;buffer_reuse&quot;]
+        rows.append(
+            {
+                &quot;boundary_id&quot;: boundary[&quot;boundary_id&quot;],
+                &quot;source_engine&quot;: boundary[&quot;source_engine&quot;],
+                &quot;target_engine&quot;: boundary[&quot;target_engine&quot;],
+                &quot;api&quot;: boundary[&quot;api&quot;],
+                &quot;classification&quot;: boundary[&quot;classification&quot;],
+                &quot;values_match&quot;: checks[&quot;values_match&quot;],
+                &quot;null_counts_match&quot;: checks[&quot;null_counts_match&quot;],
+                &quot;type_families_match&quot;: checks[&quot;type_families_match&quot;],
+                &quot;exact_arrow_types_match&quot;: checks[&quot;exact_arrow_types_match&quot;],
+                &quot;field_nullability_match&quot;: checks[&quot;field_nullability_match&quot;],
+                &quot;schema_metadata_match&quot;: checks[&quot;schema_metadata_match&quot;],
+                &quot;category_values_match&quot;: checks[&quot;category_values_match&quot;],
+                &quot;category_ordering_match&quot;: checks[&quot;category_ordering_match&quot;],
+                &quot;columns_with_any_buffer_reuse&quot;: &quot;,&quot;.join(reuse.get(&quot;columns_with_any_reuse&quot;, [])),
+                &quot;columns_without_buffer_reuse&quot;: &quot;,&quot;.join(reuse.get(&quot;columns_without_reuse&quot;, [])),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def build_decision(
+    boundaries: list[dict[str, Any]],
+    timezone_counterexample: dict[str, Any],
+) -&gt; dict[str, Any]:
+    by_id = {boundary[&quot;boundary_id&quot;]: boundary for boundary in boundaries}
+    polars_reuse = by_id[&quot;arrow_to_polars&quot;][&quot;buffer_reuse&quot;][&quot;columns_with_any_reuse&quot;]
+    return {
+        &quot;selected_path&quot;: &quot;pyarrow -&gt; polars -&gt; pyarrow&quot;,
+        &quot;reason&quot;: (
+            &quot;The analytical pipeline can stay columnar, primitive/decimal/timestamp &quot;
+            &quot;buffers show reuse, and only one engine boundary is crossed before export.&quot;
+        ),
+        &quot;required_controls&quot;: [
+            &quot;Keep the canonical Arrow schema beside the data.&quot;,
+            &quot;Validate values, null counts, timezone instants and category vocabulary.&quot;,
+            &quot;Restore ordered category metadata before a persisted contract boundary.&quot;,
+            &quot;Avoid pandas object dtypes; use explicit ArrowDtype.&quot;,
+            &quot;Set DuckDB TimeZone explicitly and export only the reduced result.&quot;,
+        ],
+        &quot;observed_polars_buffer_reuse_columns&quot;: polars_reuse,
+        &quot;known_drifts&quot;: {
+            &quot;pandas&quot;: (
+                &quot;Arrow-backed values reuse buffers, but field nullability and schema &quot;
+                &quot;metadata are not a pandas DataFrame contract.&quot;
+            ),
+            &quot;polars&quot;: (
+                &quot;String representation and dictionary index type change; ordered &quot;
+                &quot;dictionary metadata is lost.&quot;
+            ),
+            &quot;duckdb&quot;: (
+                &quot;The query result is materialized, ordered dictionary becomes string, &quot;
+                &quot;and timezone labeling follows the DuckDB session.&quot;
+            ),
+        },
+        &quot;timezone_counterexample_detected&quot;: (
+            timezone_counterexample[&quot;checks&quot;][&quot;values_match&quot;]
+            and not timezone_counterexample[&quot;checks&quot;][&quot;exact_arrow_types_match&quot;]
+        ),
+        &quot;avoid&quot;: [
+            &quot;Converting through pandas object columns.&quot;,
+            &quot;Ping-pong conversion between engines inside one pipeline.&quot;,
+            &quot;Treating category codes as stable business identifiers.&quot;,
+            &quot;Assuming timezone labels are preserved without session configuration.&quot;,
+        ],
+    }
+
+
+def _write_arrow_file(table: pa.Table, path: Path) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    serializable = table.unify_dictionaries()
+    with (
+        pa.OSFile(str(path), &quot;wb&quot;) as sink,
+        pa.ipc.new_file(sink, serializable.schema) as writer,
+    ):
+        writer.write_table(serializable)
+
+
+def _decision_markdown(decision: dict[str, Any]) -&gt; str:
+    controls = &quot;\n&quot;.join(f&quot;- {item}&quot; for item in decision[&quot;required_controls&quot;])
+    drifts = &quot;\n&quot;.join(
+        f&quot;- **{engine}:** {description}&quot; for engine, description in decision[&quot;known_drifts&quot;].items()
+    )
+    avoid = &quot;\n&quot;.join(f&quot;- {item}&quot; for item in decision[&quot;avoid&quot;])
+    return (
+        &quot;# Interoperability decision\n\n&quot;
+        f&quot;**Selected path:** `{decision[&#x27;selected_path&#x27;]}`\n\n&quot;
+        f&quot;{decision[&#x27;reason&#x27;]}\n\n&quot;
+        &quot;## Required controls\n\n&quot;
+        f&quot;{controls}\n\n&quot;
+        &quot;## Known drifts\n\n&quot;
+        f&quot;{drifts}\n\n&quot;
+        &quot;## Avoid\n\n&quot;
+        f&quot;{avoid}\n&quot;
+    )
+
+
+def build_interoperability_report(
+    *,
+    rows: int = 24,
+    chunk_size: int = 8,
+    seed: int = 42,
+    output_dir: str | Path | None = None,
+) -&gt; dict[str, Any]:
+    if output_dir is None:
+        raise InteroperabilityAuditError(&quot;output_dir is required&quot;)
+    package_dir = Path(output_dir)
+    package_dir.mkdir(parents=True, exist_ok=True)
+
+    source = build_canonical_arrow_table(
+        rows=rows,
+        chunk_size=chunk_size,
+        seed=seed,
+    )
+    pandas_frame, pandas_storage, pandas_roundtrip = pandas_boundary(source)
+    polars_frame, polars_roundtrip = polars_boundary(source)
+    duckdb_utc = duckdb_boundary(source, timezone_name=&quot;UTC&quot;)
+    duckdb_moscow = duckdb_boundary(
+        source,
+        timezone_name=&quot;Europe/Moscow&quot;,
+    )
+
+    boundaries = [
+        assess_boundary(
+            boundary_id=&quot;arrow_to_pandas&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;pandas-arrow&quot;,
+            api=&quot;Table.to_pandas(types_mapper=pd.ArrowDtype)&quot;,
+            source=source,
+            target=pandas_storage,
+        ),
+        assess_boundary(
+            boundary_id=&quot;pandas_to_arrow&quot;,
+            source_engine=&quot;pandas-arrow&quot;,
+            target_engine=&quot;pyarrow&quot;,
+            api=&quot;pa.Table.from_pandas(preserve_index=False)&quot;,
+            source=source,
+            target=pandas_roundtrip,
+        ),
+        assess_boundary(
+            boundary_id=&quot;arrow_to_polars&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;polars-arrow-export&quot;,
+            api=(&quot;pl.from_arrow(rechunk=False) -&gt; DataFrame.to_arrow(CompatLevel.oldest())&quot;),
+            source=source,
+            target=polars_roundtrip,
+        ),
+        assess_boundary(
+            boundary_id=&quot;arrow_to_duckdb&quot;,
+            source_engine=&quot;pyarrow&quot;,
+            target_engine=&quot;duckdb-arrow-result&quot;,
+            api=(&quot;DuckDB register(Arrow) -&gt; SELECT -&gt; to_arrow_table() with TimeZone=UTC&quot;),
+            source=source,
+            target=duckdb_utc,
+        ),
+    ]
+    timezone_counterexample = assess_boundary(
+        boundary_id=&quot;duckdb_timezone_session_counterexample&quot;,
+        source_engine=&quot;pyarrow-utc&quot;,
+        target_engine=&quot;duckdb-arrow-europe-moscow&quot;,
+        api=&quot;DuckDB SELECT with TimeZone=Europe/Moscow&quot;,
+        source=source,
+        target=duckdb_moscow,
+    )
+    matrix = interoperability_matrix(boundaries)
+    decision = build_decision(boundaries, timezone_counterexample)
+
+    by_id = {boundary[&quot;boundary_id&quot;]: boundary for boundary in boundaries}
+    checks = {
+        &quot;all_boundaries_preserve_values_and_nulls&quot;: all(
+            boundary[&quot;checks&quot;][&quot;semantic_safe&quot;] for boundary in boundaries
+        ),
+        &quot;pandas_uses_only_arrow_backed_dtypes&quot;: all(
+            isinstance(dtype, pd.ArrowDtype) for dtype in pandas_frame.dtypes
+        ),
+        &quot;pandas_storage_reuses_source_buffers&quot;: set(
+            by_id[&quot;arrow_to_pandas&quot;][&quot;buffer_reuse&quot;][&quot;columns_with_full_source_reuse&quot;]
+        )
+        == set(COLUMN_ORDER),
+        &quot;pandas_schema_metadata_drift_is_visible&quot;: not by_id[&quot;pandas_to_arrow&quot;][&quot;checks&quot;][
+            &quot;schema_metadata_match&quot;
+        ],
+        &quot;polars_reuses_numeric_decimal_and_timestamp_buffers&quot;: {
+            &quot;event_at&quot;,
+            &quot;gross_revenue_cents&quot;,
+            &quot;refund_amount_cents&quot;,
+            &quot;net_revenue_rub&quot;,
+            &quot;support_ticket_count&quot;,
+        }.issubset(set(by_id[&quot;arrow_to_polars&quot;][&quot;buffer_reuse&quot;][&quot;columns_with_any_reuse&quot;])),
+        &quot;polars_ordered_category_drift_is_visible&quot;: not by_id[&quot;arrow_to_polars&quot;][&quot;checks&quot;][
+            &quot;category_ordering_match&quot;
+        ],
+        &quot;duckdb_decodes_dictionary_and_materializes_output&quot;: (
+            by_id[&quot;arrow_to_duckdb&quot;][&quot;column_type_checks&quot;][&quot;plan_tier&quot;][&quot;target_family&quot;] == &quot;string&quot;
+            and not by_id[&quot;arrow_to_duckdb&quot;][&quot;buffer_reuse&quot;][&quot;columns_with_any_reuse&quot;]
+        ),
+        &quot;duckdb_timezone_session_counterexample_is_visible&quot;: decision[
+            &quot;timezone_counterexample_detected&quot;
+        ],
+        &quot;decision_uses_single_engine_boundary&quot;: decision[&quot;selected_path&quot;]
+        == &quot;pyarrow -&gt; polars -&gt; pyarrow&quot;,
+    }
+    report = {
+        &quot;scenario&quot;: {
+            &quot;scenario_id&quot;: &quot;columnar-interoperability-audit&quot;,
+            &quot;rows&quot;: int(rows),
+            &quot;chunk_size&quot;: int(chunk_size),
+            &quot;seed&quot;: int(seed),
+            &quot;versions&quot;: {
+                &quot;python&quot;: platform.python_version(),
+                &quot;pandas&quot;: pd.__version__,
+                &quot;pyarrow&quot;: pa.__version__,
+                &quot;polars&quot;: pl.__version__,
+                &quot;duckdb&quot;: duckdb.__version__,
+            },
+            &quot;platform&quot;: platform.platform(),
+        },
+        &quot;canonical_contract&quot;: {
+            &quot;schema&quot;: schema_manifest(source.schema),
+            &quot;schema_metadata&quot;: _metadata_json(source.schema.metadata),
+            &quot;null_counts&quot;: {name: int(source[name].null_count) for name in source.column_names},
+            &quot;ordered_plan_vocabulary&quot;: ORDERED_PLANS,
+        },
+        &quot;pandas&quot;: {
+            &quot;dtypes&quot;: {name: str(dtype) for name, dtype in pandas_frame.dtypes.items()},
+            &quot;rows&quot;: len(pandas_frame),
+        },
+        &quot;polars&quot;: {
+            &quot;schema&quot;: {name: str(type_) for name, type_ in polars_frame.schema.items()},
+            &quot;rows&quot;: polars_frame.height,
+        },
+        &quot;boundaries&quot;: boundaries,
+        &quot;timezone_counterexample&quot;: timezone_counterexample,
+        &quot;decision&quot;: decision,
+        &quot;interpretation&quot;: {
+            &quot;checks&quot;: checks,
+            &quot;safe_to_ship&quot;: all(checks.values()),
+            &quot;notes&quot;: [
+                (&quot;Value equivalence and exact schema equivalence are separate questions.&quot;),
+                (
+                    &quot;Buffer addresses are process-local evidence for this boundary, &quot;
+                    &quot;not a universal library promise.&quot;
+                ),
+                (
+                    &quot;Ordered categories and timezone configuration belong to the &quot;
+                    &quot;business contract, not only to storage.&quot;
+                ),
+            ],
+        },
+        &quot;package&quot;: {
+            &quot;output_dir&quot;: str(package_dir),
+            &quot;files&quot;: [
+                &quot;canonical-input.arrow&quot;,
+                &quot;pandas-roundtrip.arrow&quot;,
+                &quot;polars-roundtrip.arrow&quot;,
+                &quot;duckdb-utc-output.arrow&quot;,
+                &quot;interoperability-matrix.csv&quot;,
+                &quot;conversion-audit.json&quot;,
+                &quot;engine-boundary-decision.md&quot;,
+                &quot;report.json&quot;,
+            ],
+        },
+    }
+
+    _write_arrow_file(source, package_dir / &quot;canonical-input.arrow&quot;)
+    _write_arrow_file(
+        pandas_roundtrip,
+        package_dir / &quot;pandas-roundtrip.arrow&quot;,
+    )
+    _write_arrow_file(
+        polars_roundtrip,
+        package_dir / &quot;polars-roundtrip.arrow&quot;,
+    )
+    _write_arrow_file(
+        duckdb_utc,
+        package_dir / &quot;duckdb-utc-output.arrow&quot;,
+    )
+    matrix.to_csv(package_dir / &quot;interoperability-matrix.csv&quot;, index=False)
+    (package_dir / &quot;conversion-audit.json&quot;).write_text(
+        json.dumps(
+            {
+                &quot;boundaries&quot;: boundaries,
+                &quot;timezone_counterexample&quot;: timezone_counterexample,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+    (package_dir / &quot;engine-boundary-decision.md&quot;).write_text(
+        _decision_markdown(decision),
+        encoding=&quot;utf-8&quot;,
+    )
+    (package_dir / &quot;report.json&quot;).write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+    return report
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=&quot;Audit pandas, Arrow, Polars and DuckDB conversion boundaries&quot;
+    )
+    parser.add_argument(&quot;--rows&quot;, type=int, default=24)
+    parser.add_argument(&quot;--chunk-size&quot;, type=int, default=8)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv)
+    try:
+        report = build_interoperability_report(
+            rows=args.rows,
+            chunk_size=args.chunk_size,
+            seed=args.seed,
+            output_dir=args.output_dir,
+        )
+    except InteroperabilityAuditError as error:
+        print(f&quot;interoperability audit error: {error}&quot;, file=sys.stderr)
+        return 2
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/10-interoperability/outputs/interoperability_audit.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/10-interoperability" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/performance/streaming/"><span>← Предыдущий урок</span><strong>Streaming и пакетная обработка</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/performance/ibis/"><span>Следующий урок →</span><strong>Ibis как переносимый DataFrame API</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

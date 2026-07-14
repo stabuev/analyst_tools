@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В orders два незавершенных заказа имеют NULL amount. Фильтр amount &gt; 100 возвращает шесть строк, а его отрицание только четыре. Две строки не попали ни в одну группу.…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/null-semantics/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="NULL и трехзначная логика">
+  <meta property="og:description" content="В orders два незавершенных заказа имеют NULL amount. Фильтр amount &gt; 100 возвращает шесть строк, а его отрицание только четыре. Две строки не попали ни в одну группу.…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/null-semantics/">
+  <meta name="twitter:card" content="summary">
+  <title>NULL и трехзначная логика — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "NULL и трехзначная логика", "description": "В orders два незавершенных заказа имеют NULL amount. Фильтр amount > 100 возвращает шесть строк, а его отрицание только четыре. Две строки не попали ни в одну группу.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/null-semantics/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "NULL и трехзначная логика", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/null-semantics/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 38 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/03-null-semantics" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Каков результат NULL = NULL?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">UNKNOWN</button><button type="button" class="quiz-option" data-choice="1">TRUE</button><button type="button" class="quiz-option" data-choice="2">FALSE</button><button type="button" class="quiz-option" data-choice="3">Ошибка</button></div><p class="quiz-feedback" hidden>Обычное сравнение с NULL дает UNKNOWN; для проверки используют IS NULL.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какие строки сохраняет WHERE?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только TRUE</button><button type="button" class="quiz-option" data-choice="1">TRUE и UNKNOWN</button><button type="button" class="quiz-option" data-choice="2">FALSE и UNKNOWN</button><button type="button" class="quiz-option" data-choice="3">Все непустые</button></div><p class="quiz-feedback" hidden>WHERE отбрасывает и FALSE, и UNKNOWN.</p></article></section>
+        <article class="lesson-article"><h1 id="null-и-трехзначная-логика">NULL и трехзначная логика</h1>
+<blockquote>
+<p>NULL не равен пустой строке или нулю: он превращает условие в UNKNOWN.</p>
+</blockquote>
+<p><strong>Тип:</strong> Learn
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/02
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> предсказывает UNKNOWN и обрабатывает NULL без скрытой потери строк.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Предсказывать <code>TRUE</code>, <code>FALSE</code> и <code>UNKNOWN</code> для <code>AND</code>, <code>OR</code> и <code>NOT</code>.</li>
+<li>Объяснять, почему <code>WHERE</code> отбрасывает неизвестный результат.</li>
+<li>Различать <code>COUNT(*)</code>, <code>COUNT(column)</code>, <code>IS NULL</code> и <code>COALESCE</code>.</li>
+<li>Делать политику пропусков явной частью расчета.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>orders</code> два незавершенных заказа имеют <code>NULL amount</code>. Фильтр <code>amount &gt; 100</code> возвращает
+шесть строк, а его отрицание только четыре. Две строки не попали ни в одну группу. Если
+аналитик мыслит только <code>истина/ложь</code>, потеря выглядит как ошибка движка.</p>
+<h2 id="концепция">Концепция</h2>
+<p>SQL использует трехзначную логику. Сравнение с отсутствующим значением обычно дает
+<code>UNKNOWN</code>.</p>
+<table>
+<thead>
+<tr>
+<th>A</th>
+<th>B</th>
+<th>A AND B</th>
+<th>A OR B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TRUE</td>
+<td>UNKNOWN</td>
+<td>UNKNOWN</td>
+<td>TRUE</td>
+</tr>
+<tr>
+<td>FALSE</td>
+<td>UNKNOWN</td>
+<td>FALSE</td>
+<td>UNKNOWN</td>
+</tr>
+<tr>
+<td>UNKNOWN</td>
+<td>UNKNOWN</td>
+<td>UNKNOWN</td>
+<td>UNKNOWN</td>
+</tr>
+</tbody>
+</table>
+<p><code>WHERE</code> сохраняет только <code>TRUE</code>. Поэтому <code>UNKNOWN</code> ведет себя как отфильтрованная строка,
+но не становится <code>FALSE</code>. Проверки отсутствия записывают как <code>IS NULL</code> и <code>IS NOT NULL</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Разделите 12 заказов на три корзины для <code>amount &gt; 100</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">TRUE:    6
+FALSE:   4
+UNKNOWN: 2
+</code></pre></div><p>Инвариант полного разбиения:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">true_rows + false_rows + unknown_rows = total_rows
+</code></pre></div><p>Запустите ручной контроль и SQL:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Артефакт считает каждую корзину через <code>FILTER</code>:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*) FILTER (WHERE amount &gt; 100) AS true_rows,
+count(*) FILTER (WHERE NOT (amount &gt; 100)) AS false_rows,
+count(*) FILTER (WHERE (amount &gt; 100) IS NULL) AS unknown_rows
+</code></pre></div><p>Для подсчета строк используйте <code>COUNT(*)</code>. <code>COUNT(amount)</code> отвечает на другой вопрос:
+сколько строк имеют непустой <code>amount</code>.</p>
+<p><code>COALESCE(amount, 0)</code> допустим только как бизнес-решение: он утверждает, что неизвестная
+сумма эквивалентна нулю. Это не техническая очистка.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Сравните запросы:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WHERE amount &lt;&gt; 0
+WHERE NOT amount = 0
+WHERE amount IS DISTINCT FROM 0
+</code></pre></div><p>Первые два исключат <code>NULL</code>; третий считает <code>NULL</code> отличным от нуля. Затем попробуйте
+<code>NOT IN</code> со списком, содержащим <code>NULL</code>, и объясните неожиданный <code>UNKNOWN</code>.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Tiny-набор должен дать:</p>
+<ul>
+<li>12 строк всего;</li>
+<li>10 непустых <code>amount</code>;</li>
+<li>6 <code>TRUE</code>, 4 <code>FALSE</code>, 2 <code>UNKNOWN</code>;</li>
+<li>полное разбиение на три корзины.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/null_semantics.py \
+  --orders ../data/tiny/orders.csv \
+  --threshold 100
+</code></pre></div><p>CLI возвращает таблицу истинности и аудит фильтра. Его удобно использовать перед
+изменением правил обработки пропусков.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте отдельную категорию <code>missing</code> через <code>CASE</code>.</li>
+<li>Сравните <code>NOT IN</code> и <code>NOT EXISTS</code> на наборе с <code>NULL</code>.</li>
+<li>Проверьте, как <code>NULL</code> ведет себя в <code>GROUP BY</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NULL</td>
+<td>Пустая строка</td>
+<td>Маркер отсутствующего или неизвестного значения</td>
+</tr>
+<tr>
+<td>UNKNOWN</td>
+<td>То же, что FALSE</td>
+<td>Третий результат логического выражения</td>
+</tr>
+<tr>
+<td>COALESCE</td>
+<td>Автоматическая очистка</td>
+<td>Явная замена первого NULL выбранным значением</td>
+</tr>
+<tr>
+<td>COUNT(*)</td>
+<td>Число непустых значений</td>
+<td>Число строк</td>
+</tr>
+<tr>
+<td>COUNT(expr)</td>
+<td>Число строк</td>
+<td>Число непустых результатов выражения</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/data_types/nulls" target="_blank" rel="noopener">DuckDB: NULL Values</a> — разберите сравнения, логические операции и <code>IN</code> с NULL.</li>
+<li><a href="https://duckdb.org/docs/current/sql/functions/aggregates" target="_blank" rel="noopener">DuckDB: Aggregate Functions</a> — сравните поведение агрегатов на пустых группах и NULL.</li>
+<li><a href="https://duckdb.org/docs/current/sql/expressions/comparison_operators" target="_blank" rel="noopener">DuckDB: Comparison Operators</a> — изучите <code>IS DISTINCT FROM</code> как NULL-safe сравнение.</li>
+<li><a href="https://www.postgresql.org/docs/current/functions-comparison.html" target="_blank" rel="noopener">PostgreSQL: Comparison Functions</a> — сопоставьте стандартную SQL-семантику с DuckDB.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Чему равно FALSE AND UNKNOWN?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">FALSE</button><button type="button" class="quiz-option" data-choice="1">UNKNOWN</button><button type="button" class="quiz-option" data-choice="2">TRUE</button><button type="button" class="quiz-option" data-choice="3">NULL запрещен</button></div><p class="quiz-feedback" hidden>Один FALSE уже определяет результат AND.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему NOT(amount &gt; 100) не возвращает строки с NULL amount?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">NOT UNKNOWN остается UNKNOWN</button><button type="button" class="quiz-option" data-choice="1">NOT заменяет NULL нулем</button><button type="button" class="quiz-option" data-choice="2">WHERE удаляет числа</button><button type="button" class="quiz-option" data-choice="3">CAST падает</button></div><p class="quiz-feedback" hidden>Отрицание неизвестного условия остается неизвестным.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что делает COUNT(amount)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Считает непустые amount</button><button type="button" class="quiz-option" data-choice="1">Считает все строки</button><button type="button" class="quiz-option" data-choice="2">Суммирует amount</button><button type="button" class="quiz-option" data-choice="3">Считает уникальные автоматически</button></div><p class="quiz-feedback" hidden>COUNT по выражению игнорирует NULL, в отличие от COUNT(*).</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+import duckdb
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;null_semantics.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;null_semantics&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+NULLS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(NULLS)
+
+
+class NullSemanticsTest(unittest.TestCase):
+    def test_truth_table_has_nine_pairs(self) -&gt; None:
+        self.assertEqual(len(NULLS.truth_table()), 9)
+
+    def test_false_and_unknown_is_false(self) -&gt; None:
+        row = next(
+            item
+            for item in NULLS.truth_table()
+            if item[&quot;left_value&quot;] == &quot;FALSE&quot; and item[&quot;right_value&quot;] == &quot;UNKNOWN&quot;
+        )
+        self.assertEqual(row[&quot;and_result&quot;], &quot;FALSE&quot;)
+
+    def test_true_or_unknown_is_true(self) -&gt; None:
+        row = next(
+            item
+            for item in NULLS.truth_table()
+            if item[&quot;left_value&quot;] == &quot;TRUE&quot; and item[&quot;right_value&quot;] == &quot;UNKNOWN&quot;
+        )
+        self.assertEqual(row[&quot;or_result&quot;], &quot;TRUE&quot;)
+
+    def test_null_equality_is_unknown(self) -&gt; None:
+        self.assertIsNone(duckdb.sql(&quot;SELECT NULL = NULL&quot;).fetchone()[0])
+
+    def test_filter_partition_exposes_unknown_rows(self) -&gt; None:
+        counts = NULLS.audit_null_filter(DATA)[&quot;counts&quot;]
+        self.assertEqual(
+            (counts[&quot;true_rows&quot;], counts[&quot;false_rows&quot;], counts[&quot;unknown_rows&quot;]),
+            (6, 4, 2),
+        )
+        self.assertTrue(counts[&quot;partition_is_complete&quot;])
+
+    def test_count_column_ignores_null(self) -&gt; None:
+        counts = NULLS.audit_null_filter(DATA)[&quot;counts&quot;]
+        self.assertEqual(counts[&quot;total_rows&quot;], 12)
+        self.assertEqual(counts[&quot;non_null_amount_rows&quot;], 10)
+
+    def test_coalesce_changes_policy_explicitly(self) -&gt; None:
+        counts = NULLS.audit_null_filter(DATA)[&quot;counts&quot;]
+        self.assertEqual(counts[&quot;coalesced_count&quot;], 12)
+
+    def test_cli_prints_json(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, ARTIFACT, &quot;--orders&quot;, DATA],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[&quot;counts&quot;][&quot;unknown_rows&quot;], 2)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;null_semantics.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;null_semantics&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    manual = {&quot;TRUE&quot;: 6, &quot;FALSE&quot;: 4, &quot;UNKNOWN&quot;: 2}
+    report = load_artifact().audit_null_filter(DATA, threshold=100)
+    print(json.dumps({&quot;manual&quot;: manual, &quot;duckdb&quot;: report}, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;sql-null-semantics&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/null_semantics.py&quot;,
+  &quot;description&quot;: &quot;Строит таблицу истинности SQL и показывает TRUE, FALSE и UNKNOWN для фильтра.&quot;,
+  &quot;usage&quot;: &quot;python outputs/null_semantics.py --orders ../data/tiny/orders.csv --threshold 100&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/null_semantics.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+
+def truth_table() -&gt; list[dict[str, Any]]:
+    query = &quot;&quot;&quot;
+        WITH values_table(label, value) AS (
+            VALUES (&#x27;TRUE&#x27;, TRUE), (&#x27;FALSE&#x27;, FALSE), (&#x27;UNKNOWN&#x27;, NULL::BOOLEAN)
+        )
+        SELECT
+            left_side.label AS left_value,
+            right_side.label AS right_value,
+            CASE
+                WHEN left_side.value AND right_side.value THEN &#x27;TRUE&#x27;
+                WHEN (left_side.value AND right_side.value) = FALSE THEN &#x27;FALSE&#x27;
+                ELSE &#x27;UNKNOWN&#x27;
+            END AS and_result,
+            CASE
+                WHEN left_side.value OR right_side.value THEN &#x27;TRUE&#x27;
+                WHEN (left_side.value OR right_side.value) = FALSE THEN &#x27;FALSE&#x27;
+                ELSE &#x27;UNKNOWN&#x27;
+            END AS or_result
+        FROM values_table AS left_side
+        CROSS JOIN values_table AS right_side
+        ORDER BY left_side.label, right_side.label
+    &quot;&quot;&quot;
+    connection = duckdb.connect()
+    try:
+        relation = connection.execute(query)
+        columns = [column[0] for column in relation.description]
+        return [dict(zip(columns, row, strict=True)) for row in relation.fetchall()]
+    finally:
+        connection.close()
+
+
+def audit_null_filter(orders_path: Path, threshold: float = 100.0) -&gt; dict[str, Any]:
+    query = &quot;&quot;&quot;
+        WITH orders AS (
+            SELECT amount::DOUBLE AS amount
+            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        )
+        SELECT
+            count(*) AS total_rows,
+            count(*) FILTER (WHERE amount &gt; ?) AS true_rows,
+            count(*) FILTER (WHERE NOT (amount &gt; ?)) AS false_rows,
+            count(*) FILTER (WHERE (amount &gt; ?) IS NULL) AS unknown_rows,
+            count(*) FILTER (WHERE amount IS NULL) AS null_amount_rows,
+            count(amount) AS non_null_amount_rows,
+            count(coalesce(amount, 0)) AS coalesced_count
+        FROM orders
+    &quot;&quot;&quot;
+    connection = duckdb.connect()
+    try:
+        row = connection.execute(
+            query,
+            [str(orders_path), threshold, threshold, threshold],
+        ).fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise ValueError(&quot;null audit returned no row&quot;)
+    keys = [
+        &quot;total_rows&quot;,
+        &quot;true_rows&quot;,
+        &quot;false_rows&quot;,
+        &quot;unknown_rows&quot;,
+        &quot;null_amount_rows&quot;,
+        &quot;non_null_amount_rows&quot;,
+        &quot;coalesced_count&quot;,
+    ]
+    counts = dict(zip(keys, row, strict=True))
+    counts[&quot;partition_is_complete&quot;] = (
+        counts[&quot;true_rows&quot;] + counts[&quot;false_rows&quot;] + counts[&quot;unknown_rows&quot;] == counts[&quot;total_rows&quot;]
+    )
+    return {&quot;threshold&quot;: threshold, &quot;counts&quot;: counts, &quot;truth_table&quot;: truth_table()}
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Show SQL three-valued logic and NULL loss&quot;)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--threshold&quot;, type=float, default=100.0)
+    args = parser.parse_args()
+    try:
+        report = audit_null_filter(args.orders, args.threshold)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/03-null-semantics/outputs/null_semantics.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/03-null-semantics" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>← Предыдущий урок</span><strong>SELECT и выражения</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/aggregations/"><span>Следующий урок →</span><strong>Агрегации и уровни детализации</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,1854 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 17/06 мы сделали Streamlit app поверх проверенных артефактов. Теперь stakeholder начал пользоваться приложением чаще: переключает фильтры, смотрит график, скачивает…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/delivery/caching-and-state/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Кеширование, состояние и свежесть приложения">
+  <meta property="og:description" content="В 17/06 мы сделали Streamlit app поверх проверенных артефактов. Теперь stakeholder начал пользоваться приложением чаще: переключает фильтры, смотрит график, скачивает…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/delivery/caching-and-state/">
+  <meta name="twitter:card" content="summary">
+  <title>Кеширование, состояние и свежесть приложения — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Кеширование, состояние и свежесть приложения", "description": "В 17/06 мы сделали Streamlit app поверх проверенных артефактов. Теперь stakeholder начал пользоваться приложением чаще: переключает фильтры, смотрит график, скачивает…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/delivery/caching-and-state/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 17: Доставка аналитического результата", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=17"}, {"@type": "ListItem", "position": 3, "name": "Кеширование, состояние и свежесть приложения", "item": "https://datascience.xyz/courses/analyst-tools/lessons/delivery/caching-and-state/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 17</p><h2>Доставка аналитического результата</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/delivery/analytical-memo/"><span>01</span>Аналитическая записка для решения</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/excel-xlsxwriter/"><span>02</span>Excel и XlsxWriter для stakeholder workbook</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/quarto/"><span>03</span>Воспроизводимые отчеты с Quarto</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/document-formats/"><span>04</span>HTML, PDF и DOCX как delivery formats</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/interactive-plotly/"><span>05</span>Интерактивный отчет Plotly</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/streamlit/"><span>06</span>Приложение на Streamlit</a><a class="lesson-sidebar-link is-active" href="../../../lessons/delivery/caching-and-state/"><span>07</span>Кеширование, состояние и свежесть приложения</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/cli/"><span>08</span>CLI для повторяемого запуска</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/scheduled-runs/"><span>09</span>Запуски по расписанию и freshness report</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/fastapi/"><span>10</span>FastAPI как факультативный интерфейс</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/docker/"><span>11</span>Docker как факультативная упаковка</a><a class="lesson-sidebar-link" href="../../../lessons/delivery/handoff/"><span>12</span>Handoff, документация и сопровождение</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 17 · Доставка аналитического результата</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 189 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/17-delivery/07-caching-and-state" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему в Streamlit delivery app важно разделять data cache и resource cache?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что сериализуемые данные и общие ресурсы имеют разные риски мутации, TTL и инвалидации.</button><button type="button" class="quiz-option" data-choice="1">Потому что `st.cache_resource` всегда быстрее и должен заменить все загрузчики.</button><button type="button" class="quiz-option" data-choice="2">Потому что data cache нужен только для графиков, а resource cache только для CSV.</button><button type="button" class="quiz-option" data-choice="3">Потому что разделение кешей автоматически проверяет свежесть входных файлов.</button></div><p class="quiz-feedback" hidden>В уроке CSV/JSON идут через `st.cache_data`, а payload графика через `st.cache_resource`. Это фиксирует разные ожидания: data cache возвращает данные как значение, resource cache хранит общий ресурс и требует отдельной политики.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что допустимо хранить в `st.session_state` для stakeholder app?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только per-session UI choices и технические маркеры вроде input digest, без чувствительных пользовательских данных.</button><button type="button" class="quiz-option" data-choice="1">Полную копию source table, чтобы не читать CSV повторно.</button><button type="button" class="quiz-option" data-choice="2">Секреты доступа, потому что session state живет только в браузере.</button><button type="button" class="quiz-option" data-choice="3">Глобальный cache для всех пользователей, если добавить TTL.</button></div><p class="quiz-feedback" hidden>Session state помогает сохранить выбранные фильтры, active view и счетчик ручного refresh внутри одной сессии. Он не заменяет durable storage и не должен хранить sensitive fields.</p></article></section>
+        <article class="lesson-article"><h1 id="кеширование-состояние-и-свежесть-приложения">Кеширование, состояние и свежесть приложения</h1>
+<blockquote>
+<p>Кеш полезен только тогда, когда пользователь понимает, насколько свежий результат он видит и что именно сбросит старое состояние.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Delivery
+<strong>Пререквизиты:</strong> <code>17-delivery/06-streamlit</code>
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> вы добавляете к Streamlit stakeholder app проверяемый cache/state/freshness слой: <code>st.cache_data</code>, <code>st.cache_resource</code>, <code>st.session_state</code>, TTL policy, checksum invalidation, freshness report и stale-output gate.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделять data cache, resource cache и session state по назначению и рискам.</li>
+<li>Делать свежесть входов частью delivery contract через tracked files, checksums, TTL и stale policy.</li>
+<li>Проверять, что stale inputs видны пользователю, cache можно вручную сбросить, а downloads не выглядят свежими при устаревших данных.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>17/06</code> мы сделали Streamlit app поверх проверенных артефактов. Теперь stakeholder начал пользоваться приложением чаще: переключает фильтры, смотрит график, скачивает bundle, возвращается через час и ожидает, что UI не будет тормозить.</p>
+<p>Наивное решение - добавить <code>@st.cache_data</code> ко всем загрузчикам и сохранить выбор фильтров в <code>st.session_state</code>. Приложение станет быстрее, но появятся новые delivery-риски:</p>
+<ul>
+<li>CSV перезаписали, путь тот же, а cache показывает старые строки;</li>
+<li>Plotly figure payload живет как общий ресурс, но проверяется как обычный data cache;</li>
+<li>stale package выглядит свежим, потому что download button активен;</li>
+<li>session state случайно хранит user-specific или sensitive данные;</li>
+<li>никто не знает, какие TTL и max entries действуют.</li>
+</ul>
+<p>В delivery phase cache - это не микрооптимизация. Это контракт свежести и состояния.</p>
+<h2 id="концепция">Концепция</h2>
+<p>В уроке появляется четыре файла поверх bundle из <code>17/06</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Роль</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cache_state_contract.json</code></td>
+<td>Какие cache functions разрешены, какие session keys существуют, как сбрасывается cache</td>
+</tr>
+<tr>
+<td><code>freshness_policy.json</code></td>
+<td>Snapshot time, checked time, TTL, max entries, tracked input files и stale gate</td>
+</tr>
+<tr>
+<td><code>freshness_report.json</code></td>
+<td>Текущий digest входов, возраст данных, stale reasons и per-file hashes</td>
+</tr>
+<tr>
+<td><code>cache_state_audit.json</code></td>
+<td>Проверки готовности cache/state/freshness слоя</td>
+</tr>
+</tbody>
+</table>
+<p>Слой приложения разделяет три механизма.</p>
+<table>
+<thead>
+<tr>
+<th>Механизм</th>
+<th>Для чего используется</th>
+<th>Что нельзя делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>st.cache_data</code></td>
+<td>Сериализуемые CSV/JSON загрузчики, которые зависят от path и checksum</td>
+<td>Хранить secrets, читать сеть, скрывать recompute</td>
+</tr>
+<tr>
+<td><code>st.cache_resource</code></td>
+<td>Общий resource payload, например подготовленный Plotly figure spec</td>
+<td>Мутировать общий объект без контроля и выдавать его за per-session data</td>
+</tr>
+<tr>
+<td><code>st.session_state</code></td>
+<td>Выбранные фильтры, active view, last input digest, manual refresh count</td>
+<td>Хранить sensitive user fields или durable business state</td>
+</tr>
+</tbody>
+</table>
+<p>Главная идея: cache key должен зависеть не только от пути, но и от checksum входа.</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">app_data/metric_summary.csv
+  -&gt; sha256 in freshness_report.json
+  -&gt; load_csv_cached(path, checksum)
+  -&gt; changed input changes cache key
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>Сначала опишите tracked input inventory без Streamlit:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">import hashlib
+import json
+from pathlib import Path
+
+tracked_files = [&quot;app_contract.json&quot;, &quot;app_data/metric_summary.csv&quot;]
+
+def file_row(root: Path, relative: str) -&gt; dict:
+    path = root / relative
+    return {
+        &quot;path&quot;: relative,
+        &quot;sha256&quot;: hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else &quot;&quot;,
+        &quot;missing&quot;: not path.is_file(),
+    }
+
+def input_digest(root: Path) -&gt; str:
+    rows = [file_row(root, relative) for relative in tracked_files]
+    payload = json.dumps(rows, sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;))
+    return hashlib.sha256(payload.encode(&quot;utf-8&quot;)).hexdigest()
+</code></pre></div><p>Теперь добавьте freshness rule:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">from datetime import datetime, timezone
+
+def parse_utc(value: str) -&gt; datetime:
+    parsed = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    return parsed.astimezone(timezone.utc)
+
+def is_stale(source_snapshot_utc: str, checked_at_utc: str, max_age_seconds: int) -&gt; bool:
+    age = parse_utc(checked_at_utc) - parse_utc(source_snapshot_utc)
+    return age.total_seconds() &gt; max_age_seconds
+</code></pre></div><p>И только после этого свяжите contract с generated app:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">@st.cache_data(ttl=DATA_CACHE_TTL_SECONDS, max_entries=DATA_CACHE_MAX_ENTRIES)
+def load_csv_cached(path_text: str, checksum: str) -&gt; pd.DataFrame:
+    return pd.read_csv(Path(path_text))
+
+@st.cache_resource(ttl=RESOURCE_CACHE_TTL_SECONDS, max_entries=RESOURCE_CACHE_MAX_ENTRIES)
+def load_figure_resource(path_text: str, checksum: str) -&gt; dict:
+    return {&quot;payload&quot;: json.loads(Path(path_text).read_text()), &quot;checksum&quot;: checksum}
+</code></pre></div><p>Параметр <code>checksum</code> может не использоваться внутри функции. Он нужен Streamlit как часть cache key. Это нормально: его работа - инвалидация, а не чтение данных.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите артефакт урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/17-delivery/07-caching-and-state/outputs/streamlit_cache_state_auditor.py \
+  --write-example /tmp/cache-state-example \
+  --output-dir /tmp/cache-state-app \
+  --fail-on-invalid
+</code></pre></div><p><code>--write-example</code> сначала собирает sample Streamlit bundle из <code>17/06</code>, затем добавляет cache/state/freshness слой:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cache-state-app/
+├── streamlit_app.py
+├── cache_state_contract.json
+├── freshness_policy.json
+├── freshness_report.json
+├── cache_state_audit.json
+├── cache_state_manifest.json
+├── cache_state_runbook.md
+├── app_contract.json
+├── app_data/
+│   ├── metric_summary.csv
+│   ├── claim_evidence_matrix.csv
+│   ├── plotly_figure_spec.json
+│   ├── source_table_links.csv
+│   ├── interaction_audit.json
+│   └── interaction_manifest.json
+└── downloads/
+    └── stakeholder_app_bundle.zip
+</code></pre></div><p>Готовый CLI возвращает:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;readiness_status&quot;: &quot;ready&quot;,
+  &quot;blocking_errors&quot;: []
+}
+</code></pre></div><p>Сгенерированное приложение показывает freshness panel в sidebar: возраст входов, короткий digest, счетчик manual refreshes и stale warning. Кнопка <code>Refresh cached data</code> вызывает <code>.clear()</code> у data и resource loaders. Если <code>freshness_report.json</code> stale, приложение показывает ошибку и отключает download.</p>
+<p>Локальный запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">cd /tmp/cache-state-app
+uv run --locked streamlit run streamlit_app.py
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте типовые failure modes.</p>
+<ol>
+<li>Перезапишите <code>app_data/metric_summary.csv</code> после сборки. <code>freshness_report_matches_current_input_checksums</code> должен стать invalid.</li>
+<li>Поставьте <code>checked_at_utc</code> на два часа позже snapshot при <code>max_input_age_seconds = 3600</code>. Package должен стать stale.</li>
+<li>Удалите <code>load_figure_resource</code> из <code>cache_state_contract.json</code>. Contract больше не разделяет data cache и resource cache.</li>
+<li>Замените decorator у resource loader на <code>st.cache_data</code>. Это выглядит похоже, но меняет семантику общего ресурса.</li>
+<li>Удалите <code>manual_refresh_count</code> из session keys. UI потеряет проверяемый marker ручного сброса.</li>
+<li>Добавьте session key <code>user_email</code>. Даже если значение не записывается, contract допускает чувствительное состояние.</li>
+<li>Уберите <code>load_csv_cached.clear()</code> из app source. Кнопка refresh больше не сбрасывает все data loaders.</li>
+<li>Уберите checksum из вызова <code>load_csv_cached</code>. Path останется тем же, и кеш может пережить изменение файла.</li>
+<li>Добавьте <code>persist=&quot;disk&quot;</code> или <code>st.secrets</code>. Для этого delivery package запрещены disk-persisted cache и secrets.</li>
+<li>Сделайте upstream <code>app_audit.json</code> invalid. Cache/state layer не должен &quot;лечить&quot; сломанное приложение.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты урока проверяют:</p>
+<ul>
+<li>happy path пишет enhanced app, cache/state contract, freshness policy/report, audit, manifest и runbook;</li>
+<li>generated app содержит <code>@st.cache_data</code>, <code>@st.cache_resource</code>, <code>st.session_state</code>, <code>.clear()</code> и stale-download marker;</li>
+<li>cache contract разделяет CSV/JSON data loaders, figure resource loader и per-session keys;</li>
+<li>freshness report пересчитывается из текущих SHA-256 tracked files;</li>
+<li>изменение входного CSV после сборки блокирует digest check;</li>
+<li>stale timestamps, нулевой TTL и TTL больше freshness window блокируют policy;</li>
+<li>missing/wrong resource cache, missing/sensitive session key и отсутствие checksum invalidation блокируют delivery;</li>
+<li>forbidden runtime patterns вроде secrets, network, SQL recompute и disk-persisted cache запрещены;</li>
+<li>CLI возвращает exit code <code>2</code> при <code>--fail-on-invalid</code>.</li>
+</ul>
+<p>Запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/17-delivery/07-caching-and-state/tests -v
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт: <code>outputs/streamlit_cache_state_auditor.py</code>.</p>
+<p>Для реального Streamlit app bundle из <code>17/06</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/17-delivery/07-caching-and-state/outputs/streamlit_cache_state_auditor.py \
+  --app-dir /path/to/streamlit-app \
+  --cache-state-contract /path/to/cache_state_contract.json \
+  --freshness-policy /path/to/freshness_policy.json \
+  --output-dir /path/to/cache-state-app \
+  --fail-on-invalid
+</code></pre></div><p>Передавайте дальше весь <code>cache-state-app/</code>, а не только <code>streamlit_app.py</code>. Freshness policy, report, manifest и audit являются частью delivery artifact.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте tracked file <code>app_data/source_table_links.csv</code> в отдельный freshness group с более строгим TTL и расширьте audit.</li>
+<li>Добавьте в <code>freshness_report.json</code> поле <code>last_success_utc</code>, не смешивая его с <code>checked_at_utc</code>.</li>
+<li>Сделайте warning, если <code>manual_refresh_count</code> слишком большой: это может быть сигналом, что пользователь пытается исправить stale package кнопкой, а не пересборкой.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data cache</td>
+<td>Любой быстрый cache в приложении</td>
+<td>Cache для сериализуемых данных с TTL, max entries и checksum input</td>
+</tr>
+<tr>
+<td>Resource cache</td>
+<td>Более быстрый data cache</td>
+<td>Cache для общего ресурса, который может жить между rerun и требует отдельной политики мутации</td>
+</tr>
+<tr>
+<td>Session state</td>
+<td>Хранилище данных приложения</td>
+<td>Per-session UI state, не durable storage и не место для sensitive data</td>
+</tr>
+<tr>
+<td>Freshness policy</td>
+<td>Текст в README</td>
+<td>Машиночитаемый contract для возраста входов, TTL, tracked files и stale gate</td>
+</tr>
+<tr>
+<td>Checksum invalidation</td>
+<td>Замена TTL</td>
+<td>Дополнительный cache key, который реагирует на изменение содержимого входа</td>
+</tr>
+<tr>
+<td>Stale output</td>
+<td>Ошибка рендера</td>
+<td>Артефакт, который может открываться, но не должен выглядеть готовым к свежему решению</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.streamlit.io/develop/concepts/architecture/caching" target="_blank" rel="noopener">Streamlit caching overview</a> — базовая модель <code>st.cache_data</code> и <code>st.cache_resource</code>, rerun cost и типичные ошибки кеширования.</li>
+<li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.cache_data" target="_blank" rel="noopener">Streamlit <code>st.cache_data</code></a> — параметры <code>ttl</code>, <code>max_entries</code>, hashing и очистка data cache.</li>
+<li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.cache_resource" target="_blank" rel="noopener">Streamlit <code>st.cache_resource</code></a> — когда кешировать общий resource и зачем нужна <code>validate</code>.</li>
+<li><a href="https://docs.streamlit.io/develop/api-reference/caching-and-state/st.session_state" target="_blank" rel="noopener">Streamlit Session State</a> — per-session storage, widget keys и callbacks; читайте с вопросом &quot;что нельзя хранить&quot;.</li>
+<li><a href="https://docs.streamlit.io/develop/concepts/architecture/session-state" target="_blank" rel="noopener">Streamlit architecture: Session State</a> — концептуальная модель state между rerun и границы применения в multi-user app.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем cached loaders получают не только путь к файлу, но и checksum?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы изменение содержимого входного файла меняло cache key даже при прежнем пути.</button><button type="button" class="quiz-option" data-choice="1">Чтобы Streamlit мог автоматически скачать файл из manifest.</button><button type="button" class="quiz-option" data-choice="2">Чтобы скрыть путь к файлу от пользователя.</button><button type="button" class="quiz-option" data-choice="3">Чтобы отключить TTL, если checksum не изменился.</button></div><p class="quiz-feedback" hidden>Если cache key зависит только от path, приложение может показать старую копию данных после перезаписи файла. Checksum превращает freshness contract в часть ключа кеша.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что должен делать delivery package, если `freshness_report.json` помечает inputs как stale?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Показать stale warning, заблокировать fresh-looking download и вернуть blocked audit при `--fail-on-invalid`.</button><button type="button" class="quiz-option" data-choice="1">Скрыть предупреждение, потому что cached data обычно быстро открывается.</button><button type="button" class="quiz-option" data-choice="2">Автоматически увеличить TTL до нового возраста входов.</button><button type="button" class="quiz-option" data-choice="3">Удалить `freshness_report.json`, чтобы приложение не показывало ошибку.</button></div><p class="quiz-feedback" hidden>Stale output может быть полезен для диагностики, но не должен выглядеть как готовый к решению свежий результат. Урок проверяет warning, disabled download и blocked audit.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему cache/state правила вынесены в `cache_state_contract.json` и `freshness_policy.json`, а не только зашиты в `streamlit_app.py`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что delivery behavior должен быть проверяемым контрактом: какие функции кешируются, какие TTL действуют, какие state keys разрешены и когда результат устарел.</button><button type="button" class="quiz-option" data-choice="1">Потому что Streamlit не запускает приложения без внешнего JSON contract.</button><button type="button" class="quiz-option" data-choice="2">Потому что JSON автоматически очищает кеш при каждом rerun.</button><button type="button" class="quiz-option" data-choice="3">Потому что так можно не писать behavioral tests.</button></div><p class="quiz-feedback" hidden>Артефакт проверяет не только наличие декораторов, но и машинный контракт: функции, hash inputs, TTL/max_entries, stale gate, session keys и инвалидацию.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;streamlit_cache_state_auditor.py&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;streamlit_cache_state_auditor&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+BUILDER = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = BUILDER
+SPEC.loader.exec_module(BUILDER)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def build_sample(root: Path):
+    sample = BUILDER.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+    result = BUILDER.build_cache_state_package(
+        app_dir=sample[&quot;app_dir&quot;],
+        cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+        freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+        output_dir=root / &quot;cache-state-app&quot;,
+    )
+    return sample, result
+
+
+def build_with_policy(root: Path, policy_update: dict):
+    sample = BUILDER.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+    policy = read_json(sample[&quot;freshness_policy_path&quot;])
+    policy.update(policy_update)
+    write_json(sample[&quot;freshness_policy_path&quot;], policy)
+    result = BUILDER.build_cache_state_package(
+        app_dir=sample[&quot;app_dir&quot;],
+        cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+        freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+        output_dir=root / &quot;cache-state-app&quot;,
+    )
+    return sample, result
+
+
+def build_with_contract(root: Path, mutate):
+    sample = BUILDER.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+    contract = read_json(sample[&quot;cache_state_contract_path&quot;])
+    mutate(contract)
+    write_json(sample[&quot;cache_state_contract_path&quot;], contract)
+    result = BUILDER.build_cache_state_package(
+        app_dir=sample[&quot;app_dir&quot;],
+        cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+        freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+        output_dir=root / &quot;cache-state-app&quot;,
+    )
+    return sample, result
+
+
+def check_by_id(audit: dict, check_id: str) -&gt; dict:
+    return next(check for check in audit[&quot;checks&quot;] if check[&quot;id&quot;] == check_id)
+
+
+def re_audit(result) -&gt; dict:
+    manifest = read_json(result.manifest_path)
+    return BUILDER.audit_cache_state_package(
+        output_dir=result.output_dir,
+        cache_state_contract=read_json(result.cache_state_contract_path),
+        freshness_policy=read_json(result.freshness_policy_path),
+        output_entries=manifest[&quot;outputs&quot;],
+    )
+
+
+class StreamlitCacheStateAuditorTest(unittest.TestCase):
+    def test_sample_cache_state_package_is_valid_and_writes_files(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+
+            self.assertTrue(result.audit[&quot;valid&quot;])
+            self.assertEqual(result.audit[&quot;readiness_status&quot;], &quot;ready&quot;)
+            for path in [
+                result.app_path,
+                result.cache_state_contract_path,
+                result.freshness_policy_path,
+                result.freshness_report_path,
+                result.audit_path,
+                result.manifest_path,
+                result.output_dir / &quot;cache_state_runbook.md&quot;,
+                result.output_dir / &quot;app_contract.json&quot;,
+                result.output_dir / &quot;app_data&quot; / &quot;metric_summary.csv&quot;,
+                result.output_dir / &quot;app_data&quot; / &quot;claim_evidence_matrix.csv&quot;,
+                result.output_dir / &quot;app_data&quot; / &quot;plotly_figure_spec.json&quot;,
+                result.output_dir / &quot;downloads&quot; / &quot;stakeholder_app_bundle.zip&quot;,
+            ]:
+                self.assertTrue(path.is_file(), path)
+
+    def test_generated_app_uses_streamlit_cache_state_and_compiles(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            app_source = result.app_path.read_text(encoding=&quot;utf-8&quot;)
+
+            for marker in BUILDER.REQUIRED_SOURCE_MARKERS:
+                self.assertIn(marker, app_source)
+            process = subprocess.run(
+                [sys.executable, &quot;-m&quot;, &quot;py_compile&quot;, str(result.app_path)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
+
+    def test_cache_state_contract_separates_data_resource_session_and_invalidation(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            contract = read_json(result.cache_state_contract_path)
+            functions = {item[&quot;name&quot;]: item for item in contract[&quot;cache_functions&quot;]}
+
+            self.assertEqual(functions[&quot;load_csv_cached&quot;][&quot;decorator&quot;], &quot;st.cache_data&quot;)
+            self.assertEqual(functions[&quot;load_json_cached&quot;][&quot;decorator&quot;], &quot;st.cache_data&quot;)
+            self.assertEqual(functions[&quot;load_figure_resource&quot;][&quot;decorator&quot;], &quot;st.cache_resource&quot;)
+            self.assertEqual(functions[&quot;load_figure_resource&quot;][&quot;kind&quot;], &quot;resource&quot;)
+            self.assertEqual(sorted(functions[&quot;load_csv_cached&quot;][&quot;hash_inputs&quot;]), [&quot;checksum&quot;, &quot;path&quot;])
+            self.assertTrue(contract[&quot;freshness_panel&quot;][&quot;disable_download_when_stale&quot;])
+            self.assertTrue(contract[&quot;invalidation_policy&quot;][&quot;checksum_invalidation_required&quot;])
+            self.assertTrue(contract[&quot;invalidation_policy&quot;][&quot;manual_cache_clear_required&quot;])
+            self.assertEqual(
+                {item[&quot;key&quot;] for item in contract[&quot;session_state_keys&quot;]},
+                set(BUILDER.REQUIRED_SESSION_STATE_KEYS),
+            )
+
+    def test_freshness_report_tracks_current_input_checksums(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            policy = read_json(result.freshness_policy_path)
+            report = read_json(result.freshness_report_path)
+            inventory = BUILDER.tracked_file_inventory(result.output_dir, policy)
+
+            self.assertEqual(report[&quot;input_digest&quot;], BUILDER.input_digest(inventory))
+            self.assertEqual(len(report[&quot;tracked_files&quot;]), len(BUILDER.TRACKED_INPUT_FILES))
+            self.assertTrue(all(len(row[&quot;sha256&quot;]) == 64 and not row[&quot;missing&quot;] for row in report[&quot;tracked_files&quot;]))
+
+    def test_changed_app_input_after_build_blocks_checksum_freshness(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            metric_path = result.output_dir / &quot;app_data&quot; / &quot;metric_summary.csv&quot;
+            metric_path.write_text(metric_path.read_text(encoding=&quot;utf-8&quot;) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+            audit = re_audit(result)
+
+            self.assertFalse(audit[&quot;valid&quot;])
+            self.assertFalse(check_by_id(audit, &quot;freshness_report_matches_current_input_checksums&quot;)[&quot;valid&quot;])
+
+    def test_stale_input_window_blocks_delivery(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_policy(
+                Path(directory),
+                {&quot;source_snapshot_utc&quot;: &quot;2026-01-01T00:00:00Z&quot;, &quot;checked_at_utc&quot;: &quot;2026-01-01T02:00:00Z&quot;},
+            )
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;freshness_report_is_not_stale&quot;)
+            self.assertFalse(check[&quot;valid&quot;])
+            self.assertEqual(check[&quot;observed&quot;], [&quot;input_age_exceeds_policy&quot;])
+
+    def test_missing_data_cache_ttl_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_policy(Path(directory), {&quot;data_cache_ttl_seconds&quot;: 0})
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;freshness_policy_defines_ttl_max_entries_and_stale_gate&quot;)
+            self.assertIn(&quot;data_cache_ttl_seconds_must_be_positive&quot;, check[&quot;observed&quot;])
+
+    def test_data_cache_ttl_cannot_exceed_freshness_window(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_policy(
+                Path(directory),
+                {&quot;max_input_age_seconds&quot;: 300, &quot;data_cache_ttl_seconds&quot;: 900},
+            )
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;freshness_policy_defines_ttl_max_entries_and_stale_gate&quot;)
+            self.assertIn(&quot;data_cache_ttl_cannot_exceed_freshness_window&quot;, check[&quot;observed&quot;])
+
+    def test_missing_resource_cache_function_blocks_contract(self) -&gt; None:
+        def mutate(contract: dict) -&gt; None:
+            contract[&quot;cache_functions&quot;] = [
+                item for item in contract[&quot;cache_functions&quot;] if item[&quot;name&quot;] != &quot;load_figure_resource&quot;
+            ]
+
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_contract(Path(directory), mutate)
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;cache_state_contract_declares_data_resource_session_and_invalidation&quot;)
+            self.assertEqual(check[&quot;observed&quot;][&quot;cache_errors&quot;], [{&quot;name&quot;: &quot;load_figure_resource&quot;, &quot;error&quot;: &quot;missing&quot;}])
+
+    def test_wrong_cache_decorator_blocks_contract(self) -&gt; None:
+        def mutate(contract: dict) -&gt; None:
+            for item in contract[&quot;cache_functions&quot;]:
+                if item[&quot;name&quot;] == &quot;load_figure_resource&quot;:
+                    item[&quot;decorator&quot;] = &quot;st.cache_data&quot;
+
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_contract(Path(directory), mutate)
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;cache_state_contract_declares_data_resource_session_and_invalidation&quot;)
+            self.assertEqual(check[&quot;observed&quot;][&quot;cache_errors&quot;][0][&quot;name&quot;], &quot;load_figure_resource&quot;)
+
+    def test_missing_session_state_key_blocks_contract(self) -&gt; None:
+        def mutate(contract: dict) -&gt; None:
+            contract[&quot;session_state_keys&quot;] = [
+                item for item in contract[&quot;session_state_keys&quot;] if item[&quot;key&quot;] != &quot;manual_refresh_count&quot;
+            ]
+
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_contract(Path(directory), mutate)
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;session_state_keys_are_session_scoped_and_non_sensitive&quot;)
+            self.assertEqual(check[&quot;observed&quot;], [{&quot;key&quot;: &quot;manual_refresh_count&quot;, &quot;error&quot;: &quot;missing&quot;}])
+
+    def test_sensitive_session_state_name_blocks_contract(self) -&gt; None:
+        def mutate(contract: dict) -&gt; None:
+            contract[&quot;session_state_keys&quot;].append(
+                {
+                    &quot;key&quot;: &quot;user_email&quot;,
+                    &quot;scope&quot;: &quot;session&quot;,
+                    &quot;purpose&quot;: &quot;Unsafe user-specific field.&quot;,
+                    &quot;contains_sensitive_data&quot;: False,
+                }
+            )
+
+        with TemporaryDirectory() as directory:
+            _sample, result = build_with_contract(Path(directory), mutate)
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            check = check_by_id(result.audit, &quot;session_state_keys_are_session_scoped_and_non_sensitive&quot;)
+            self.assertEqual(check[&quot;observed&quot;], [{&quot;sensitive_key_names&quot;: [&quot;user_email&quot;]}])
+
+    def test_app_without_manual_cache_clear_marker_blocks_delivery(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            source = result.app_path.read_text(encoding=&quot;utf-8&quot;)
+            result.app_path.write_text(source.replace(&quot;load_csv_cached.clear()&quot;, &quot;# load_csv_cached clear removed&quot;), encoding=&quot;utf-8&quot;)
+
+            audit = re_audit(result)
+
+            self.assertFalse(audit[&quot;valid&quot;])
+            check = check_by_id(audit, &quot;generated_app_uses_streamlit_cache_state_and_freshness_panel&quot;)
+            self.assertIn(&quot;load_csv_cached.clear()&quot;, check[&quot;observed&quot;])
+
+    def test_cached_loaders_must_include_checksum_parameters(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            source = result.app_path.read_text(encoding=&quot;utf-8&quot;)
+            result.app_path.write_text(
+                source.replace(&#x27;checksum_for(freshness_report, &quot;app_data/metric_summary.csv&quot;)&#x27;, &#x27;&quot;fixed-metric-cache-key&quot;&#x27;),
+                encoding=&quot;utf-8&quot;,
+            )
+
+            audit = re_audit(result)
+
+            self.assertFalse(audit[&quot;valid&quot;])
+            check = check_by_id(audit, &quot;cached_loaders_use_checksum_parameters_for_invalidation&quot;)
+            self.assertIn(&#x27;checksum_for(freshness_report, &quot;app_data/metric_summary.csv&quot;)&#x27;, check[&quot;observed&quot;])
+
+    def test_forbidden_disk_persist_or_secrets_pattern_blocks_app_source(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            source = result.app_path.read_text(encoding=&quot;utf-8&quot;)
+            result.app_path.write_text(source + &#x27;\n# forbidden example: persist=&quot;disk&quot;\n&#x27;, encoding=&quot;utf-8&quot;)
+
+            audit = re_audit(result)
+
+            self.assertFalse(audit[&quot;valid&quot;])
+            check = check_by_id(audit, &quot;cached_app_source_avoids_forbidden_runtime_patterns&quot;)
+            self.assertEqual(check[&quot;observed&quot;], [&#x27;persist=&quot;disk&quot;&#x27;])
+
+    def test_stale_warning_and_download_disable_are_in_generated_app(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            app_source = result.app_path.read_text(encoding=&quot;utf-8&quot;)
+
+            self.assertIn(&quot;st.sidebar.warning&quot;, app_source)
+            self.assertIn(&#x27;st.error(&quot;This app is using stale inputs&#x27;, app_source)
+            self.assertIn(&#x27;disabled=freshness_report[&quot;stale&quot;]&#x27;, app_source)
+            self.assertTrue(check_by_id(result.audit, &quot;stale_outputs_warn_and_disable_downloads&quot;)[&quot;valid&quot;])
+
+    def test_invalid_upstream_app_audit_blocks_cache_state_layer(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            sample = BUILDER.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+            app_audit_path = sample[&quot;app_dir&quot;] / &quot;app_audit.json&quot;
+            app_audit = read_json(app_audit_path)
+            app_audit[&quot;valid&quot;] = False
+            app_audit[&quot;summary&quot;][&quot;blocking_errors&quot;] = [&quot;app_contract_tampered&quot;]
+            write_json(app_audit_path, app_audit)
+
+            result = BUILDER.build_cache_state_package(
+                app_dir=sample[&quot;app_dir&quot;],
+                cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+                freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+                output_dir=root / &quot;cache-state-app&quot;,
+            )
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            self.assertFalse(check_by_id(result.audit, &quot;upstream_app_audit_is_valid&quot;)[&quot;valid&quot;])
+
+    def test_missing_required_app_file_blocks_cache_state_layer(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            sample = BUILDER.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+            (sample[&quot;app_dir&quot;] / &quot;app_data&quot; / &quot;metric_summary.csv&quot;).unlink()
+
+            result = BUILDER.build_cache_state_package(
+                app_dir=sample[&quot;app_dir&quot;],
+                cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+                freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+                output_dir=root / &quot;cache-state-app&quot;,
+            )
+
+            self.assertFalse(result.audit[&quot;valid&quot;])
+            self.assertFalse(check_by_id(result.audit, &quot;source_streamlit_app_bundle_is_complete&quot;)[&quot;valid&quot;])
+            self.assertFalse(check_by_id(result.audit, &quot;freshness_report_matches_current_input_checksums&quot;)[&quot;valid&quot;])
+
+    def test_manifest_records_streamlit_version_and_output_hashes(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            _sample, result = build_sample(Path(directory))
+            manifest = read_json(result.manifest_path)
+
+            self.assertEqual(manifest[&quot;renderer_used&quot;], &quot;streamlit_cache_state_auditor&quot;)
+            self.assertEqual(manifest[&quot;hash_algorithm&quot;], &quot;sha256&quot;)
+            self.assertTrue(manifest[&quot;streamlit_version&quot;])
+            for key in [
+                &quot;streamlit_app&quot;,
+                &quot;cache_state_contract&quot;,
+                &quot;freshness_policy&quot;,
+                &quot;freshness_report&quot;,
+                &quot;cache_state_runbook&quot;,
+                &quot;cache_state_audit&quot;,
+            ]:
+                self.assertEqual(len(manifest[&quot;outputs&quot;][key][&quot;sha256&quot;]), 64)
+
+    def test_cli_write_example_builds_ready_package(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--write-example&quot;,
+                    str(root / &quot;sample&quot;),
+                    &quot;--output-dir&quot;,
+                    str(root / &quot;out&quot;),
+                    &quot;--fail-on-invalid&quot;,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(process.stdout)
+
+            self.assertEqual(process.returncode, 0, process.stderr)
+            self.assertTrue(payload[&quot;valid&quot;])
+            self.assertEqual(payload[&quot;readiness_status&quot;], &quot;ready&quot;)
+            self.assertTrue((root / &quot;out&quot; / &quot;cache_state_manifest.json&quot;).is_file())
+
+    def test_cli_fail_on_invalid_returns_two_for_stale_inputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--write-example&quot;,
+                    str(root / &quot;sample&quot;),
+                    &quot;--output-dir&quot;,
+                    str(root / &quot;out&quot;),
+                    &quot;--checked-at&quot;,
+                    &quot;2026-01-01T02:00:00Z&quot;,
+                    &quot;--fail-on-invalid&quot;,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(process.stdout)
+
+            self.assertEqual(process.returncode, 2, process.stderr)
+            self.assertFalse(payload[&quot;valid&quot;])
+            self.assertIn(&quot;freshness_report_is_not_stale&quot;, payload[&quot;blocking_errors&quot;])
+
+    def test_code_example_runs_and_reports_cache_state_summary(self) -&gt; None:
+        process = subprocess.run(
+            [sys.executable, str(CODE)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(process.stdout)
+
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertTrue(payload[&quot;valid&quot;])
+        self.assertFalse(payload[&quot;stale&quot;])
+        self.assertEqual(payload[&quot;renderer_used&quot;], &quot;streamlit_cache_state_auditor&quot;)
+        self.assertIn(&quot;freshness_report.json&quot;, payload[&quot;files&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;streamlit_cache_state_auditor.py&quot;
+
+
+def load_builder():
+    spec = importlib.util.spec_from_file_location(&quot;streamlit_cache_state_auditor&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    builder = load_builder()
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        sample = builder.write_sample_cache_state_inputs(root / &quot;sample&quot;)
+        result = builder.build_cache_state_package(
+            app_dir=sample[&quot;app_dir&quot;],
+            cache_state_contract_path=sample[&quot;cache_state_contract_path&quot;],
+            freshness_policy_path=sample[&quot;freshness_policy_path&quot;],
+            output_dir=root / &quot;cache-state-app&quot;,
+        )
+        manifest = builder.read_json(result.manifest_path)
+        freshness = builder.read_json(result.freshness_report_path)
+        files = [
+            &quot;streamlit_app.py&quot;,
+            &quot;cache_state_contract.json&quot;,
+            &quot;freshness_policy.json&quot;,
+            &quot;freshness_report.json&quot;,
+            &quot;cache_state_audit.json&quot;,
+            &quot;cache_state_manifest.json&quot;,
+            &quot;cache_state_runbook.md&quot;,
+            &quot;app_contract.json&quot;,
+            &quot;app_data/metric_summary.csv&quot;,
+            &quot;app_data/claim_evidence_matrix.csv&quot;,
+            &quot;app_data/plotly_figure_spec.json&quot;,
+            &quot;downloads/stakeholder_app_bundle.zip&quot;,
+        ]
+        summary = {
+            &quot;valid&quot;: result.audit[&quot;valid&quot;],
+            &quot;readiness_status&quot;: result.audit[&quot;readiness_status&quot;],
+            &quot;blocking_errors&quot;: result.audit[&quot;summary&quot;][&quot;blocking_errors&quot;],
+            &quot;input_digest&quot;: freshness[&quot;input_digest&quot;],
+            &quot;input_age_seconds&quot;: freshness[&quot;input_age_seconds&quot;],
+            &quot;stale&quot;: freshness[&quot;stale&quot;],
+            &quot;renderer_used&quot;: manifest[&quot;renderer_used&quot;],
+            &quot;streamlit_version&quot;: manifest[&quot;streamlit_version&quot;],
+            &quot;files&quot;: files,
+        }
+        print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;streamlit-cache-state-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/streamlit_cache_state_auditor.py&quot;,
+  &quot;description&quot;: &quot;Собирает cache/state/freshness слой поверх проверенного Streamlit app bundle: st.cache_data для данных, st.cache_resource для figure payload, session_state для per-session UI, TTL/max_entries policy, checksum invalidation, freshness report, stale warnings и cache_state audit.&quot;,
+  &quot;usage&quot;: &quot;python phases/17-delivery/07-caching-and-state/outputs/streamlit_cache_state_auditor.py --write-example /tmp/cache-state-example --output-dir /tmp/cache-state-app --fail-on-invalid&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/streamlit_cache_state_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import importlib.util
+import json
+import os
+import re
+import shutil
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import streamlit
+
+
+CACHE_STATE_VERSION = &quot;1.0.0&quot;
+DEFAULT_SOURCE_SNAPSHOT_UTC = &quot;2026-01-01T00:00:00Z&quot;
+DEFAULT_CHECKED_AT_UTC = &quot;2026-01-01T00:10:00Z&quot;
+REQUIRED_APP_FILES = [
+    &quot;app_contract.json&quot;,
+    &quot;app_data/metric_summary.csv&quot;,
+    &quot;app_data/claim_evidence_matrix.csv&quot;,
+    &quot;app_data/plotly_figure_spec.json&quot;,
+    &quot;app_data/static-fallbacks/metric_status.svg&quot;,
+    &quot;app_data/source_table_links.csv&quot;,
+    &quot;app_data/interaction_audit.json&quot;,
+    &quot;app_data/interaction_manifest.json&quot;,
+    &quot;filters_audit.json&quot;,
+    &quot;download_manifest.json&quot;,
+    &quot;downloads/stakeholder_app_bundle.zip&quot;,
+    &quot;app_audit.json&quot;,
+    &quot;app_manifest.json&quot;,
+]
+TRACKED_INPUT_FILES = [
+    &quot;app_contract.json&quot;,
+    &quot;app_data/metric_summary.csv&quot;,
+    &quot;app_data/claim_evidence_matrix.csv&quot;,
+    &quot;app_data/plotly_figure_spec.json&quot;,
+    &quot;app_data/source_table_links.csv&quot;,
+    &quot;app_data/interaction_audit.json&quot;,
+    &quot;app_data/interaction_manifest.json&quot;,
+    &quot;app_data/static-fallbacks/metric_status.svg&quot;,
+    &quot;filters_audit.json&quot;,
+    &quot;download_manifest.json&quot;,
+    &quot;app_audit.json&quot;,
+    &quot;app_manifest.json&quot;,
+]
+REQUIRED_CACHE_FUNCTIONS = {
+    &quot;load_csv_cached&quot;: {&quot;decorator&quot;: &quot;st.cache_data&quot;, &quot;kind&quot;: &quot;data&quot;},
+    &quot;load_json_cached&quot;: {&quot;decorator&quot;: &quot;st.cache_data&quot;, &quot;kind&quot;: &quot;data&quot;},
+    &quot;load_figure_resource&quot;: {&quot;decorator&quot;: &quot;st.cache_resource&quot;, &quot;kind&quot;: &quot;resource&quot;},
+}
+REQUIRED_SESSION_STATE_KEYS = [
+    &quot;selected_statuses&quot;,
+    &quot;decision_view&quot;,
+    &quot;last_seen_input_digest&quot;,
+    &quot;manual_refresh_count&quot;,
+]
+REQUIRED_SOURCE_MARKERS = [
+    &quot;@st.cache_data&quot;,
+    &quot;@st.cache_resource&quot;,
+    &quot;st.session_state&quot;,
+    &quot;load_csv_cached.clear()&quot;,
+    &quot;load_json_cached.clear()&quot;,
+    &quot;load_figure_resource.clear()&quot;,
+    &quot;st.sidebar.button&quot;,
+    &quot;st.sidebar.metric&quot;,
+    &quot;disabled=freshness_report[\&quot;stale\&quot;]&quot;,
+]
+FORBIDDEN_APP_PATTERNS = [
+    &quot;pd.read_sql&quot;,
+    &quot;requests.&quot;,
+    &quot;urllib.&quot;,
+    &quot;st.secrets&quot;,
+    &quot;os.environ&quot;,
+    &quot;openai&quot;,
+    &quot;persist=\&quot;disk\&quot;&quot;,
+    &quot;persist=True&quot;,
+]
+SENSITIVE_STATE_RE = re.compile(r&quot;(email|phone|token|secret|password|ssn|passport|user_id)&quot;, re.I)
+
+
+@dataclass(frozen=True)
+class CacheStateBuildResult:
+    output_dir: Path
+    app_path: Path
+    cache_state_contract_path: Path
+    freshness_policy_path: Path
+    freshness_report_path: Path
+    audit_path: Path
+    manifest_path: Path
+    audit: dict[str, Any]
+
+
+def read_json(path: str | Path) -&gt; dict[str, Any]:
+    return json.loads(Path(path).read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: str | Path, payload: Any) -&gt; None:
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def read_csv(path: str | Path) -&gt; list[dict[str, str]]:
+    with Path(path).open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def sha256_file(path: str | Path) -&gt; str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def relpath(path: str | Path, *, start: str | Path) -&gt; str:
+    return Path(os.path.relpath(Path(path), Path(start))).as_posix()
+
+
+def manifest_entry(path: Path, *, start: Path) -&gt; dict[str, Any]:
+    return {
+        &quot;path&quot;: relpath(path, start=start),
+        &quot;sha256&quot;: sha256_file(path),
+        &quot;bytes&quot;: path.stat().st_size,
+    }
+
+
+def optional_manifest_entry(path: Path, *, start: Path) -&gt; dict[str, Any]:
+    if path.is_file():
+        return manifest_entry(path, start=start)
+    return {&quot;path&quot;: relpath(path, start=start), &quot;sha256&quot;: &quot;&quot;, &quot;bytes&quot;: 0, &quot;missing&quot;: True}
+
+
+def check(
+    check_id: str,
+    valid: bool,
+    *,
+    severity: str = &quot;block&quot;,
+    observed: Any = None,
+    expected: Any = None,
+    message: str = &quot;&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: bool(valid),
+        &quot;severity&quot;: severity,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;message&quot;: message,
+    }
+
+
+def default_cache_state_contract() -&gt; dict[str, Any]:
+    return {
+        &quot;cache_state_id&quot;: &quot;trial-onboarding-cache-state-policy&quot;,
+        &quot;source_app_id&quot;: &quot;trial-onboarding-streamlit-app&quot;,
+        &quot;cache_functions&quot;: [
+            {
+                &quot;name&quot;: &quot;load_csv_cached&quot;,
+                &quot;kind&quot;: &quot;data&quot;,
+                &quot;decorator&quot;: &quot;st.cache_data&quot;,
+                &quot;ttl_policy_ref&quot;: &quot;data_cache_ttl_seconds&quot;,
+                &quot;max_entries_policy_ref&quot;: &quot;data_cache_max_entries&quot;,
+                &quot;hash_inputs&quot;: [&quot;path&quot;, &quot;checksum&quot;],
+                &quot;return_type&quot;: &quot;pandas.DataFrame&quot;,
+            },
+            {
+                &quot;name&quot;: &quot;load_json_cached&quot;,
+                &quot;kind&quot;: &quot;data&quot;,
+                &quot;decorator&quot;: &quot;st.cache_data&quot;,
+                &quot;ttl_policy_ref&quot;: &quot;data_cache_ttl_seconds&quot;,
+                &quot;max_entries_policy_ref&quot;: &quot;data_cache_max_entries&quot;,
+                &quot;hash_inputs&quot;: [&quot;path&quot;, &quot;checksum&quot;],
+                &quot;return_type&quot;: &quot;dict&quot;,
+            },
+            {
+                &quot;name&quot;: &quot;load_figure_resource&quot;,
+                &quot;kind&quot;: &quot;resource&quot;,
+                &quot;decorator&quot;: &quot;st.cache_resource&quot;,
+                &quot;ttl_policy_ref&quot;: &quot;resource_cache_ttl_seconds&quot;,
+                &quot;max_entries_policy_ref&quot;: &quot;resource_cache_max_entries&quot;,
+                &quot;hash_inputs&quot;: [&quot;path&quot;, &quot;checksum&quot;],
+                &quot;validate&quot;: &quot;validate_figure_resource&quot;,
+                &quot;return_type&quot;: &quot;immutable_figure_payload&quot;,
+            },
+        ],
+        &quot;session_state_keys&quot;: [
+            {
+                &quot;key&quot;: &quot;selected_statuses&quot;,
+                &quot;scope&quot;: &quot;session&quot;,
+                &quot;purpose&quot;: &quot;Per-user status filters.&quot;,
+                &quot;contains_sensitive_data&quot;: False,
+            },
+            {
+                &quot;key&quot;: &quot;decision_view&quot;,
+                &quot;scope&quot;: &quot;session&quot;,
+                &quot;purpose&quot;: &quot;Per-user active decision view.&quot;,
+                &quot;contains_sensitive_data&quot;: False,
+            },
+            {
+                &quot;key&quot;: &quot;last_seen_input_digest&quot;,
+                &quot;scope&quot;: &quot;session&quot;,
+                &quot;purpose&quot;: &quot;Reset UI defaults when app inputs change.&quot;,
+                &quot;contains_sensitive_data&quot;: False,
+            },
+            {
+                &quot;key&quot;: &quot;manual_refresh_count&quot;,
+                &quot;scope&quot;: &quot;session&quot;,
+                &quot;purpose&quot;: &quot;Expose manual cache refreshes without storing user data.&quot;,
+                &quot;contains_sensitive_data&quot;: False,
+            },
+        ],
+        &quot;freshness_panel&quot;: {
+            &quot;required&quot;: True,
+            &quot;show_input_age_seconds&quot;: True,
+            &quot;show_input_digest&quot;: True,
+            &quot;show_stale_warning&quot;: True,
+            &quot;disable_download_when_stale&quot;: True,
+        },
+        &quot;invalidation_policy&quot;: {
+            &quot;checksum_invalidation_required&quot;: True,
+            &quot;manual_cache_clear_required&quot;: True,
+            &quot;clear_data_cache&quot;: True,
+            &quot;clear_resource_cache&quot;: True,
+            &quot;reset_session_state_on_input_digest_change&quot;: True,
+        },
+        &quot;app_source_policy&quot;: {
+            &quot;no_network&quot;: True,
+            &quot;no_secrets&quot;: True,
+            &quot;no_disk_persist_cache&quot;: True,
+            &quot;no_cross_session_sensitive_state&quot;: True,
+        },
+    }
+
+
+def default_freshness_policy(
+    *,
+    source_snapshot_utc: str = DEFAULT_SOURCE_SNAPSHOT_UTC,
+    checked_at_utc: str = DEFAULT_CHECKED_AT_UTC,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;freshness_policy_id&quot;: &quot;trial-onboarding-app-freshness&quot;,
+        &quot;source_app_id&quot;: &quot;trial-onboarding-streamlit-app&quot;,
+        &quot;source_snapshot_utc&quot;: source_snapshot_utc,
+        &quot;checked_at_utc&quot;: checked_at_utc,
+        &quot;timezone&quot;: &quot;UTC&quot;,
+        &quot;max_input_age_seconds&quot;: 3600,
+        &quot;data_cache_ttl_seconds&quot;: 900,
+        &quot;resource_cache_ttl_seconds&quot;: 3600,
+        &quot;data_cache_max_entries&quot;: 16,
+        &quot;resource_cache_max_entries&quot;: 4,
+        &quot;block_on_stale&quot;: True,
+        &quot;input_digest_algorithm&quot;: &quot;sha256&quot;,
+        &quot;tracked_files&quot;: TRACKED_INPUT_FILES,
+    }
+
+
+def normalize_cache_state_contract(contract: dict[str, Any] | None) -&gt; dict[str, Any]:
+    return default_cache_state_contract() if contract is None else dict(contract)
+
+
+def normalize_freshness_policy(
+    policy: dict[str, Any] | None,
+    *,
+    source_snapshot_utc: str | None = None,
+    checked_at_utc: str | None = None,
+) -&gt; dict[str, Any]:
+    normalized = default_freshness_policy(
+        source_snapshot_utc=source_snapshot_utc or DEFAULT_SOURCE_SNAPSHOT_UTC,
+        checked_at_utc=checked_at_utc or DEFAULT_CHECKED_AT_UTC,
+    )
+    if policy is not None:
+        normalized.update(policy)
+    if source_snapshot_utc is not None:
+        normalized[&quot;source_snapshot_utc&quot;] = source_snapshot_utc
+    if checked_at_utc is not None:
+        normalized[&quot;checked_at_utc&quot;] = checked_at_utc
+    return normalized
+
+
+def parse_utc(value: str) -&gt; datetime | None:
+    try:
+        normalized = value.replace(&quot;Z&quot;, &quot;+00:00&quot;)
+        parsed = datetime.fromisoformat(normalized)
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def seconds_between(start: str, end: str) -&gt; int | None:
+    start_dt = parse_utc(start)
+    end_dt = parse_utc(end)
+    if start_dt is None or end_dt is None:
+        return None
+    return int((end_dt - start_dt).total_seconds())
+
+
+def load_streamlit_builder():
+    current = Path(__file__).resolve()
+    builder_path = current.parents[2] / &quot;06-streamlit&quot; / &quot;outputs&quot; / &quot;streamlit_stakeholder_app.py&quot;
+    spec = importlib.util.spec_from_file_location(&quot;streamlit_builder_for_cache_state&quot;, builder_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load Streamlit app builder: {builder_path}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def write_sample_cache_state_inputs(root: str | Path) -&gt; dict[str, Path]:
+    root_path = Path(root).resolve()
+    root_path.mkdir(parents=True, exist_ok=True)
+    streamlit_builder = load_streamlit_builder()
+    sample = streamlit_builder.write_sample_app_inputs(root_path / &quot;app-inputs&quot;)
+    app = streamlit_builder.build_streamlit_app(
+        interactive_dir=sample[&quot;interactive_dir&quot;],
+        app_contract_path=sample[&quot;app_contract_path&quot;],
+        output_dir=root_path / &quot;streamlit-app&quot;,
+    )
+    contract_path = root_path / &quot;cache_state_contract.json&quot;
+    policy_path = root_path / &quot;freshness_policy.json&quot;
+    write_json(contract_path, default_cache_state_contract())
+    write_json(policy_path, default_freshness_policy())
+    return {
+        &quot;app_dir&quot;: app.output_dir,
+        &quot;cache_state_contract_path&quot;: contract_path,
+        &quot;freshness_policy_path&quot;: policy_path,
+        &quot;interactive_dir&quot;: sample[&quot;interactive_dir&quot;],
+    }
+
+
+def copy_app_bundle(app_dir: str | Path, output_dir: str | Path) -&gt; None:
+    source = Path(app_dir)
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    for relative in REQUIRED_APP_FILES + [&quot;app_runbook.md&quot;]:
+        source_path = source / relative
+        target_path = destination / relative
+        if source_path.is_file():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source_path, target_path)
+
+
+def tracked_file_inventory(app_dir: str | Path, policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    root = Path(app_dir)
+    rows: list[dict[str, Any]] = []
+    for relative in policy.get(&quot;tracked_files&quot;, TRACKED_INPUT_FILES):
+        path = root / relative
+        rows.append(
+            {
+                &quot;path&quot;: relative,
+                &quot;sha256&quot;: sha256_file(path) if path.is_file() else &quot;&quot;,
+                &quot;bytes&quot;: path.stat().st_size if path.is_file() else 0,
+                &quot;missing&quot;: not path.is_file(),
+            }
+        )
+    return rows
+
+
+def input_digest(inventory: list[dict[str, Any]]) -&gt; str:
+    payload = [
+        {&quot;path&quot;: row[&quot;path&quot;], &quot;sha256&quot;: row.get(&quot;sha256&quot;, &quot;&quot;), &quot;missing&quot;: bool(row.get(&quot;missing&quot;))}
+        for row in sorted(inventory, key=lambda item: item[&quot;path&quot;])
+    ]
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;)).encode(&quot;utf-8&quot;)).hexdigest()
+
+
+def build_freshness_report(app_dir: str | Path, policy: dict[str, Any]) -&gt; dict[str, Any]:
+    inventory = tracked_file_inventory(app_dir, policy)
+    age_seconds = seconds_between(policy.get(&quot;source_snapshot_utc&quot;, &quot;&quot;), policy.get(&quot;checked_at_utc&quot;, &quot;&quot;))
+    max_age = int(policy.get(&quot;max_input_age_seconds&quot;, 0) or 0)
+    missing_inputs = sorted(row[&quot;path&quot;] for row in inventory if row.get(&quot;missing&quot;))
+    stale_reasons: list[str] = []
+    if age_seconds is None:
+        stale_reasons.append(&quot;invalid_freshness_timestamps&quot;)
+    elif age_seconds &lt; 0:
+        stale_reasons.append(&quot;checked_at_before_source_snapshot&quot;)
+    elif max_age &lt;= 0:
+        stale_reasons.append(&quot;invalid_max_input_age_seconds&quot;)
+    elif age_seconds &gt; max_age:
+        stale_reasons.append(&quot;input_age_exceeds_policy&quot;)
+    if missing_inputs:
+        stale_reasons.append(&quot;tracked_input_missing&quot;)
+    stale = bool(stale_reasons)
+    return {
+        &quot;version&quot;: CACHE_STATE_VERSION,
+        &quot;freshness_policy_id&quot;: policy.get(&quot;freshness_policy_id&quot;),
+        &quot;valid&quot;: not stale,
+        &quot;stale&quot;: stale,
+        &quot;stale_reasons&quot;: stale_reasons,
+        &quot;missing_inputs&quot;: missing_inputs,
+        &quot;source_snapshot_utc&quot;: policy.get(&quot;source_snapshot_utc&quot;, &quot;&quot;),
+        &quot;checked_at_utc&quot;: policy.get(&quot;checked_at_utc&quot;, &quot;&quot;),
+        &quot;input_age_seconds&quot;: age_seconds,
+        &quot;max_input_age_seconds&quot;: max_age,
+        &quot;cache_policy&quot;: {
+            &quot;data_cache_ttl_seconds&quot;: policy.get(&quot;data_cache_ttl_seconds&quot;),
+            &quot;resource_cache_ttl_seconds&quot;: policy.get(&quot;resource_cache_ttl_seconds&quot;),
+            &quot;data_cache_max_entries&quot;: policy.get(&quot;data_cache_max_entries&quot;),
+            &quot;resource_cache_max_entries&quot;: policy.get(&quot;resource_cache_max_entries&quot;),
+            &quot;block_on_stale&quot;: policy.get(&quot;block_on_stale&quot;),
+        },
+        &quot;input_digest&quot;: input_digest(inventory),
+        &quot;tracked_files&quot;: inventory,
+    }
+
+
+def render_cache_state_app_source() -&gt; str:
+    return &#x27;&#x27;&#x27;from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+
+APP_DIR = Path(__file__).resolve().parent
+DATA_DIR = APP_DIR / &quot;app_data&quot;
+DOWNLOAD_DIR = APP_DIR / &quot;downloads&quot;
+
+
+def load_json_uncached(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+FRESHNESS_REPORT = load_json_uncached(APP_DIR / &quot;freshness_report.json&quot;)
+DATA_CACHE_TTL_SECONDS = int(FRESHNESS_REPORT[&quot;cache_policy&quot;][&quot;data_cache_ttl_seconds&quot;])
+RESOURCE_CACHE_TTL_SECONDS = int(FRESHNESS_REPORT[&quot;cache_policy&quot;][&quot;resource_cache_ttl_seconds&quot;])
+DATA_CACHE_MAX_ENTRIES = int(FRESHNESS_REPORT[&quot;cache_policy&quot;][&quot;data_cache_max_entries&quot;])
+RESOURCE_CACHE_MAX_ENTRIES = int(FRESHNESS_REPORT[&quot;cache_policy&quot;][&quot;resource_cache_max_entries&quot;])
+
+
+def checksum_for(freshness_report: dict, relative_path: str) -&gt; str:
+    for item in freshness_report[&quot;tracked_files&quot;]:
+        if item[&quot;path&quot;] == relative_path:
+            return item[&quot;sha256&quot;]
+    raise KeyError(relative_path)
+
+
+@st.cache_data(ttl=DATA_CACHE_TTL_SECONDS, max_entries=DATA_CACHE_MAX_ENTRIES, show_spinner=False)
+def load_json_cached(path_text: str, checksum: str) -&gt; dict:
+    return json.loads(Path(path_text).read_text(encoding=&quot;utf-8&quot;))
+
+
+@st.cache_data(ttl=DATA_CACHE_TTL_SECONDS, max_entries=DATA_CACHE_MAX_ENTRIES, show_spinner=&quot;Loading app data&quot;)
+def load_csv_cached(path_text: str, checksum: str) -&gt; pd.DataFrame:
+    return pd.read_csv(Path(path_text))
+
+
+def validate_figure_resource(resource: dict) -&gt; bool:
+    return isinstance(resource, dict) and &quot;payload&quot; in resource and &quot;checksum&quot; in resource
+
+
+@st.cache_resource(
+    ttl=RESOURCE_CACHE_TTL_SECONDS,
+    max_entries=RESOURCE_CACHE_MAX_ENTRIES,
+    validate=validate_figure_resource,
+    show_spinner=False,
+)
+def load_figure_resource(path_text: str, checksum: str) -&gt; dict:
+    payload = load_json_uncached(Path(path_text))
+    payload.pop(&quot;lesson_metadata&quot;, None)
+    return {&quot;payload&quot;: payload, &quot;checksum&quot;: checksum}
+
+
+def clear_cached_loaders() -&gt; None:
+    load_csv_cached.clear()
+    load_json_cached.clear()
+    load_figure_resource.clear()
+    st.session_state.manual_refresh_count = st.session_state.get(&quot;manual_refresh_count&quot;, 0) + 1
+
+
+def initialize_session_state(contract: dict, freshness_report: dict) -&gt; None:
+    input_digest_value = freshness_report[&quot;input_digest&quot;]
+    if st.session_state.get(&quot;last_seen_input_digest&quot;) != input_digest_value:
+        st.session_state.last_seen_input_digest = input_digest_value
+        st.session_state.selected_statuses = list(contract[&quot;default_status_filter&quot;])
+        st.session_state.decision_view = contract[&quot;required_views&quot;][0]
+        st.session_state.manual_refresh_count = 0
+    st.session_state.setdefault(&quot;selected_statuses&quot;, list(contract[&quot;default_status_filter&quot;]))
+    st.session_state.setdefault(&quot;decision_view&quot;, contract[&quot;required_views&quot;][0])
+    st.session_state.setdefault(&quot;manual_refresh_count&quot;, 0)
+
+
+def filter_metrics(metrics: pd.DataFrame, selected_statuses: list[str]) -&gt; pd.DataFrame:
+    if not selected_statuses or &quot;all&quot; in selected_statuses:
+        return metrics
+    return metrics[metrics[&quot;status&quot;].isin(selected_statuses)]
+
+
+def filter_evidence(evidence: pd.DataFrame, metric_ids: list[str]) -&gt; pd.DataFrame:
+    if not metric_ids:
+        return evidence.iloc[0:0]
+    return evidence[evidence[&quot;metric_id&quot;].isin(metric_ids)]
+
+
+def show_quality_gate(interaction_audit: dict) -&gt; None:
+    if not interaction_audit.get(&quot;valid&quot;):
+        st.error(&quot;Upstream interactive appendix is blocked. Do not use this app for a decision.&quot;)
+        st.json(interaction_audit.get(&quot;summary&quot;, {}))
+        st.stop()
+    warnings = interaction_audit.get(&quot;summary&quot;, {}).get(&quot;warnings&quot;, [])
+    if warnings:
+        st.warning(&quot;Upstream appendix has warnings: &quot; + &quot;, &quot;.join(warnings))
+
+
+def show_freshness_panel(freshness_report: dict) -&gt; None:
+    st.sidebar.subheader(&quot;Freshness&quot;)
+    age_minutes = round((freshness_report.get(&quot;input_age_seconds&quot;) or 0) / 60, 1)
+    st.sidebar.metric(&quot;Input age, min&quot;, age_minutes)
+    st.sidebar.caption(&quot;Input digest: &quot; + freshness_report[&quot;input_digest&quot;][:12])
+    st.sidebar.caption(&quot;Manual cache refreshes: &quot; + str(st.session_state.manual_refresh_count))
+    if freshness_report[&quot;stale&quot;]:
+        st.sidebar.warning(&quot;Inputs are stale: &quot; + &quot;, &quot;.join(freshness_report[&quot;stale_reasons&quot;]))
+    else:
+        st.sidebar.success(&quot;Inputs are fresh&quot;)
+
+
+def figure_from_resource(resource: dict) -&gt; go.Figure:
+    return go.Figure(resource[&quot;payload&quot;])
+
+
+def main() -&gt; None:
+    st.set_page_config(page_title=&quot;Trial onboarding decision app&quot;, layout=&quot;wide&quot;)
+    freshness_report = load_json_uncached(APP_DIR / &quot;freshness_report.json&quot;)
+    contract = load_json_cached(
+        str(APP_DIR / &quot;app_contract.json&quot;),
+        checksum_for(freshness_report, &quot;app_contract.json&quot;),
+    )
+    initialize_session_state(contract, freshness_report)
+    interaction_audit = load_json_cached(
+        str(DATA_DIR / &quot;interaction_audit.json&quot;),
+        checksum_for(freshness_report, &quot;app_data/interaction_audit.json&quot;),
+    )
+    metrics = load_csv_cached(
+        str(DATA_DIR / &quot;metric_summary.csv&quot;),
+        checksum_for(freshness_report, &quot;app_data/metric_summary.csv&quot;),
+    )
+    evidence = load_csv_cached(
+        str(DATA_DIR / &quot;claim_evidence_matrix.csv&quot;),
+        checksum_for(freshness_report, &quot;app_data/claim_evidence_matrix.csv&quot;),
+    )
+    source_links = load_csv_cached(
+        str(DATA_DIR / &quot;source_table_links.csv&quot;),
+        checksum_for(freshness_report, &quot;app_data/source_table_links.csv&quot;),
+    )
+
+    st.title(&quot;Trial onboarding decision app&quot;)
+    st.caption(contract[&quot;audience_task&quot;])
+    show_quality_gate(interaction_audit)
+    show_freshness_panel(freshness_report)
+    st.sidebar.button(&quot;Refresh cached data&quot;, on_click=clear_cached_loaders)
+
+    selected_statuses = st.sidebar.multiselect(
+        &quot;Metric status&quot;,
+        options=contract[&quot;status_filters&quot;],
+        key=&quot;selected_statuses&quot;,
+    )
+    view = st.sidebar.radio(&quot;Decision view&quot;, options=contract[&quot;required_views&quot;], key=&quot;decision_view&quot;)
+    filtered_metrics = filter_metrics(metrics, selected_statuses)
+    metric_ids = filtered_metrics[&quot;metric_id&quot;].tolist()
+    filtered_evidence = filter_evidence(evidence, metric_ids)
+
+    if filtered_metrics.empty:
+        st.warning(&quot;No metrics match the selected filters.&quot;)
+    if freshness_report[&quot;stale&quot;]:
+        st.error(&quot;This app is using stale inputs. Rebuild the delivery package before making a decision.&quot;)
+
+    if view == &quot;decision_summary&quot;:
+        breached = int((metrics[&quot;status&quot;] == &quot;breached&quot;).sum())
+        watch = int((metrics[&quot;status&quot;] == &quot;watch&quot;).sum())
+        ok = int((metrics[&quot;status&quot;] == &quot;ok&quot;).sum())
+        left, middle, right = st.columns(3)
+        left.metric(&quot;Breached&quot;, breached)
+        middle.metric(&quot;Watch&quot;, watch)
+        right.metric(&quot;OK&quot;, ok)
+        st.dataframe(filtered_metrics, use_container_width=True, hide_index=True)
+    elif view == &quot;guardrail_explorer&quot;:
+        resource = load_figure_resource(
+            str(DATA_DIR / &quot;plotly_figure_spec.json&quot;),
+            checksum_for(freshness_report, &quot;app_data/plotly_figure_spec.json&quot;),
+        )
+        st.plotly_chart(figure_from_resource(resource), use_container_width=True)
+        st.dataframe(filtered_metrics, use_container_width=True, hide_index=True)
+    elif view == &quot;evidence_table&quot;:
+        st.dataframe(filtered_evidence, use_container_width=True, hide_index=True)
+        st.dataframe(source_links, use_container_width=True, hide_index=True)
+    else:
+        bundle_path = DOWNLOAD_DIR / &quot;stakeholder_app_bundle.zip&quot;
+        st.download_button(
+            &quot;Download stakeholder app bundle&quot;,
+            data=bundle_path.read_bytes(),
+            file_name=&quot;stakeholder_app_bundle.zip&quot;,
+            mime=&quot;application/zip&quot;,
+            type=&quot;primary&quot;,
+            disabled=freshness_report[&quot;stale&quot;],
+        )
+        st.dataframe(source_links, use_container_width=True, hide_index=True)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+&#x27;&#x27;&#x27;
+
+
+def cache_state_runbook() -&gt; str:
+    return &quot;&quot;&quot;# Streamlit cache/state/freshness app
+
+Run locally:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The app uses `st.cache_data` for public CSV/JSON data, `st.cache_resource` for the
+Plotly figure payload, and `st.session_state` only for per-session UI selections.
+Checksum parameters invalidate cached loaders when app inputs change. Rebuild the
+package when `freshness_report.json` marks inputs as stale.
+&quot;&quot;&quot;
+
+
+def cache_functions_by_name(contract: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    return {item.get(&quot;name&quot;, &quot;&quot;): item for item in contract.get(&quot;cache_functions&quot;, [])}
+
+
+def required_cache_function_errors(contract: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    by_name = cache_functions_by_name(contract)
+    errors: list[dict[str, Any]] = []
+    for name, expected in REQUIRED_CACHE_FUNCTIONS.items():
+        item = by_name.get(name)
+        if item is None:
+            errors.append({&quot;name&quot;: name, &quot;error&quot;: &quot;missing&quot;})
+            continue
+        if item.get(&quot;decorator&quot;) != expected[&quot;decorator&quot;] or item.get(&quot;kind&quot;) != expected[&quot;kind&quot;]:
+            errors.append(
+                {
+                    &quot;name&quot;: name,
+                    &quot;decorator&quot;: item.get(&quot;decorator&quot;),
+                    &quot;kind&quot;: item.get(&quot;kind&quot;),
+                    &quot;expected&quot;: expected,
+                }
+            )
+        if sorted(item.get(&quot;hash_inputs&quot;, [])) != [&quot;checksum&quot;, &quot;path&quot;]:
+            errors.append({&quot;name&quot;: name, &quot;hash_inputs&quot;: item.get(&quot;hash_inputs&quot;, [])})
+    return errors
+
+
+def session_state_errors(contract: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    keys = contract.get(&quot;session_state_keys&quot;, [])
+    by_key = {item.get(&quot;key&quot;, &quot;&quot;): item for item in keys}
+    errors: list[dict[str, Any]] = []
+    for key in REQUIRED_SESSION_STATE_KEYS:
+        item = by_key.get(key)
+        if item is None:
+            errors.append({&quot;key&quot;: key, &quot;error&quot;: &quot;missing&quot;})
+            continue
+        if item.get(&quot;scope&quot;) != &quot;session&quot; or item.get(&quot;contains_sensitive_data&quot;) is not False:
+            errors.append({&quot;key&quot;: key, &quot;scope&quot;: item.get(&quot;scope&quot;), &quot;sensitive&quot;: item.get(&quot;contains_sensitive_data&quot;)})
+    sensitive_names = sorted(key for key in by_key if SENSITIVE_STATE_RE.search(key))
+    if sensitive_names:
+        errors.append({&quot;sensitive_key_names&quot;: sensitive_names})
+    return errors
+
+
+def freshness_policy_errors(policy: dict[str, Any]) -&gt; list[str]:
+    errors: list[str] = []
+    data_ttl = int(policy.get(&quot;data_cache_ttl_seconds&quot;, 0) or 0)
+    resource_ttl = int(policy.get(&quot;resource_cache_ttl_seconds&quot;, 0) or 0)
+    max_age = int(policy.get(&quot;max_input_age_seconds&quot;, 0) or 0)
+    data_entries = int(policy.get(&quot;data_cache_max_entries&quot;, 0) or 0)
+    resource_entries = int(policy.get(&quot;resource_cache_max_entries&quot;, 0) or 0)
+    if data_ttl &lt;= 0:
+        errors.append(&quot;data_cache_ttl_seconds_must_be_positive&quot;)
+    if resource_ttl &lt;= 0:
+        errors.append(&quot;resource_cache_ttl_seconds_must_be_positive&quot;)
+    if max_age &lt;= 0:
+        errors.append(&quot;max_input_age_seconds_must_be_positive&quot;)
+    if data_ttl &gt; max_age:
+        errors.append(&quot;data_cache_ttl_cannot_exceed_freshness_window&quot;)
+    if data_entries &lt;= 0 or resource_entries &lt;= 0:
+        errors.append(&quot;cache_max_entries_must_be_positive&quot;)
+    if policy.get(&quot;block_on_stale&quot;) is not True:
+        errors.append(&quot;block_on_stale_must_be_true&quot;)
+    if set(policy.get(&quot;tracked_files&quot;, [])) != set(TRACKED_INPUT_FILES):
+        errors.append(&quot;tracked_files_must_match_app_inputs&quot;)
+    if seconds_between(policy.get(&quot;source_snapshot_utc&quot;, &quot;&quot;), policy.get(&quot;checked_at_utc&quot;, &quot;&quot;)) is None:
+        errors.append(&quot;freshness_timestamps_must_be_iso_utc&quot;)
+    return sorted(errors)
+
+
+def audit_cache_state_package(
+    *,
+    output_dir: str | Path,
+    cache_state_contract: dict[str, Any] | None = None,
+    freshness_policy: dict[str, Any] | None = None,
+    output_entries: dict[str, dict[str, Any]] | None = None,
+) -&gt; dict[str, Any]:
+    output_path = Path(output_dir)
+    contract = normalize_cache_state_contract(
+        cache_state_contract if cache_state_contract is not None else read_json(output_path / &quot;cache_state_contract.json&quot;)
+    )
+    policy = normalize_freshness_policy(
+        freshness_policy if freshness_policy is not None else read_json(output_path / &quot;freshness_policy.json&quot;)
+    )
+    checks: list[dict[str, Any]] = []
+
+    missing_app_files = sorted(relative for relative in REQUIRED_APP_FILES if not (output_path / relative).is_file())
+    checks.append(
+        check(
+            &quot;source_streamlit_app_bundle_is_complete&quot;,
+            not missing_app_files,
+            observed=missing_app_files,
+            expected=REQUIRED_APP_FILES,
+            message=&quot;Cache/state layer must wrap the checked Streamlit app bundle from 17/06.&quot;,
+        )
+    )
+
+    app_audit = read_json(output_path / &quot;app_audit.json&quot;) if (output_path / &quot;app_audit.json&quot;).is_file() else {}
+    checks.append(
+        check(
+            &quot;upstream_app_audit_is_valid&quot;,
+            bool(app_audit.get(&quot;valid&quot;)),
+            observed=app_audit.get(&quot;summary&quot;, {}).get(&quot;blocking_errors&quot;, []),
+            expected=[],
+            message=&quot;Do not add cache/state behavior to a blocked app package.&quot;,
+        )
+    )
+
+    cache_errors = required_cache_function_errors(contract)
+    invalidation = contract.get(&quot;invalidation_policy&quot;, {})
+    freshness_panel = contract.get(&quot;freshness_panel&quot;, {})
+    checks.append(
+        check(
+            &quot;cache_state_contract_declares_data_resource_session_and_invalidation&quot;,
+            not cache_errors
+            and freshness_panel.get(&quot;required&quot;) is True
+            and freshness_panel.get(&quot;disable_download_when_stale&quot;) is True
+            and invalidation.get(&quot;checksum_invalidation_required&quot;) is True
+            and invalidation.get(&quot;manual_cache_clear_required&quot;) is True
+            and invalidation.get(&quot;reset_session_state_on_input_digest_change&quot;) is True,
+            observed={&quot;cache_errors&quot;: cache_errors, &quot;freshness_panel&quot;: freshness_panel, &quot;invalidation&quot;: invalidation},
+            expected=&quot;data cache, resource cache, session state, checksum invalidation and manual clear&quot;,
+            message=&quot;Cache/state behavior is part of the delivery contract, not an implementation detail.&quot;,
+        )
+    )
+
+    state_errors = session_state_errors(contract)
+    checks.append(
+        check(
+            &quot;session_state_keys_are_session_scoped_and_non_sensitive&quot;,
+            not state_errors,
+            observed=state_errors,
+            expected=REQUIRED_SESSION_STATE_KEYS,
+            message=&quot;Session state should store only per-session UI choices and input digest markers.&quot;,
+        )
+    )
+
+    policy_errors = freshness_policy_errors(policy)
+    checks.append(
+        check(
+            &quot;freshness_policy_defines_ttl_max_entries_and_stale_gate&quot;,
+            not policy_errors,
+            observed=policy_errors,
+            expected=&quot;positive TTLs, bounded entries, tracked files and stale gate&quot;,
+            message=&quot;TTL and freshness windows must be explicit and machine-checkable.&quot;,
+        )
+    )
+
+    report_path = output_path / &quot;freshness_report.json&quot;
+    freshness_report = read_json(report_path) if report_path.is_file() else {}
+    current_report = build_freshness_report(output_path, policy)
+    checks.append(
+        check(
+            &quot;freshness_report_matches_current_input_checksums&quot;,
+            freshness_report.get(&quot;input_digest&quot;) == current_report[&quot;input_digest&quot;]
+            and not current_report.get(&quot;missing_inputs&quot;),
+            observed={
+                &quot;stored&quot;: freshness_report.get(&quot;input_digest&quot;),
+                &quot;current&quot;: current_report[&quot;input_digest&quot;],
+                &quot;missing_inputs&quot;: current_report.get(&quot;missing_inputs&quot;, []),
+            },
+            expected=&quot;freshness report digest over current tracked app inputs&quot;,
+            message=&quot;Checksum parameters should invalidate cache when app inputs change.&quot;,
+        )
+    )
+    checks.append(
+        check(
+            &quot;freshness_report_is_not_stale&quot;,
+            bool(freshness_report.get(&quot;valid&quot;)) and not freshness_report.get(&quot;stale&quot;),
+            observed=freshness_report.get(&quot;stale_reasons&quot;, []),
+            expected=[],
+            message=&quot;A stale app can show diagnostics, but it is not ready for decision delivery.&quot;,
+        )
+    )
+
+    app_path = output_path / &quot;streamlit_app.py&quot;
+    app_source = app_path.read_text(encoding=&quot;utf-8&quot;) if app_path.is_file() else &quot;&quot;
+    missing_markers = [marker for marker in REQUIRED_SOURCE_MARKERS if marker not in app_source]
+    checks.append(
+        check(
+            &quot;generated_app_uses_streamlit_cache_state_and_freshness_panel&quot;,
+            app_path.is_file() and not missing_markers,
+            observed=missing_markers,
+            expected=REQUIRED_SOURCE_MARKERS,
+            message=&quot;The app must expose cache, session state, manual refresh and stale-download behavior.&quot;,
+        )
+    )
+
+    checksum_markers = [
+        &quot;def load_csv_cached(path_text: str, checksum: str)&quot;,
+        &quot;def load_json_cached(path_text: str, checksum: str)&quot;,
+        &quot;def load_figure_resource(path_text: str, checksum: str)&quot;,
+        &quot;checksum_for(freshness_report, \&quot;app_data/metric_summary.csv\&quot;)&quot;,
+        &quot;checksum_for(freshness_report, \&quot;app_data/plotly_figure_spec.json\&quot;)&quot;,
+    ]
+    missing_checksum_markers = [marker for marker in checksum_markers if marker not in app_source]
+    checks.append(
+        check(
+            &quot;cached_loaders_use_checksum_parameters_for_invalidation&quot;,
+            not missing_checksum_markers,
+            observed=missing_checksum_markers,
+            expected=checksum_markers,
+            message=&quot;Cache keys must include file checksums, not only file paths.&quot;,
+        )
+    )
+
+    stale_markers = [
+        &quot;st.sidebar.warning&quot;,
+        &quot;st.error(\&quot;This app is using stale inputs&quot;,
+        &quot;disabled=freshness_report[\&quot;stale\&quot;]&quot;,
+    ]
+    missing_stale_markers = [marker for marker in stale_markers if marker not in app_source]
+    checks.append(
+        check(
+            &quot;stale_outputs_warn_and_disable_downloads&quot;,
+            not missing_stale_markers,
+            observed=missing_stale_markers,
+            expected=stale_markers,
+            message=&quot;Stale inputs should be visible and should not ship a fresh-looking download.&quot;,
+        )
+    )
+
+    forbidden_patterns = [pattern for pattern in FORBIDDEN_APP_PATTERNS if pattern in app_source]
+    checks.append(
+        check(
+            &quot;cached_app_source_avoids_forbidden_runtime_patterns&quot;,
+            not forbidden_patterns,
+            observed=forbidden_patterns,
+            expected=[],
+            message=&quot;Freshness lesson still avoids network, secrets, SQL recompute and disk-persisted caches.&quot;,
+        )
+    )
+
+    if output_entries is not None:
+        missing_hashes = sorted(key for key, value in output_entries.items() if len(value.get(&quot;sha256&quot;, &quot;&quot;)) != 64)
+    else:
+        missing_hashes = [&quot;not_provided&quot;]
+    checks.append(
+        check(
+            &quot;manifest_hashes_cache_state_outputs&quot;,
+            not missing_hashes,
+            observed=missing_hashes,
+            expected=[],
+            message=&quot;The enhanced app, cache contract, freshness report and audit need checksums.&quot;,
+        )
+    )
+
+    blockers = [item[&quot;id&quot;] for item in checks if not item[&quot;valid&quot;] and item[&quot;severity&quot;] == &quot;block&quot;]
+    warnings = [item[&quot;id&quot;] for item in checks if not item[&quot;valid&quot;] and item[&quot;severity&quot;] == &quot;warn&quot;]
+    return {
+        &quot;version&quot;: CACHE_STATE_VERSION,
+        &quot;cache_state_id&quot;: contract.get(&quot;cache_state_id&quot;),
+        &quot;valid&quot;: not blockers,
+        &quot;readiness_status&quot;: &quot;blocked&quot; if blockers else (&quot;ready_with_warnings&quot; if warnings else &quot;ready&quot;),
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: blockers,
+            &quot;warnings&quot;: warnings,
+            &quot;check_count&quot;: len(checks),
+        },
+        &quot;checks&quot;: checks,
+    }
+
+
+def build_cache_state_package(
+    *,
+    app_dir: str | Path,
+    output_dir: str | Path,
+    cache_state_contract_path: str | Path | None = None,
+    freshness_policy_path: str | Path | None = None,
+    source_snapshot_utc: str | None = None,
+    checked_at_utc: str | None = None,
+) -&gt; CacheStateBuildResult:
+    source_app_dir = Path(app_dir)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    copy_app_bundle(source_app_dir, output_path)
+
+    contract = normalize_cache_state_contract(read_json(cache_state_contract_path) if cache_state_contract_path else None)
+    policy = normalize_freshness_policy(
+        read_json(freshness_policy_path) if freshness_policy_path else None,
+        source_snapshot_utc=source_snapshot_utc,
+        checked_at_utc=checked_at_utc,
+    )
+
+    app_path = output_path / &quot;streamlit_app.py&quot;
+    contract_path = output_path / &quot;cache_state_contract.json&quot;
+    policy_path = output_path / &quot;freshness_policy.json&quot;
+    report_path = output_path / &quot;freshness_report.json&quot;
+    runbook_path = output_path / &quot;cache_state_runbook.md&quot;
+    audit_path = output_path / &quot;cache_state_audit.json&quot;
+    manifest_path = output_path / &quot;cache_state_manifest.json&quot;
+
+    write_json(contract_path, contract)
+    write_json(policy_path, policy)
+    write_json(report_path, build_freshness_report(output_path, policy))
+    app_path.write_text(render_cache_state_app_source(), encoding=&quot;utf-8&quot;)
+    runbook_path.write_text(cache_state_runbook(), encoding=&quot;utf-8&quot;)
+
+    output_entries = {
+        &quot;streamlit_app&quot;: manifest_entry(app_path, start=output_path),
+        &quot;cache_state_contract&quot;: manifest_entry(contract_path, start=output_path),
+        &quot;freshness_policy&quot;: manifest_entry(policy_path, start=output_path),
+        &quot;freshness_report&quot;: manifest_entry(report_path, start=output_path),
+        &quot;cache_state_runbook&quot;: manifest_entry(runbook_path, start=output_path),
+        **{
+            f&quot;app_{relative.replace(&#x27;/&#x27;, &#x27;_&#x27;).replace(&#x27;.&#x27;, &#x27;_&#x27;)}&quot;: optional_manifest_entry(
+                output_path / relative,
+                start=output_path,
+            )
+            for relative in REQUIRED_APP_FILES
+        },
+    }
+    audit = audit_cache_state_package(
+        output_dir=output_path,
+        cache_state_contract=contract,
+        freshness_policy=policy,
+        output_entries=output_entries,
+    )
+    write_json(audit_path, audit)
+    output_entries[&quot;cache_state_audit&quot;] = manifest_entry(audit_path, start=output_path)
+
+    manifest = {
+        &quot;version&quot;: CACHE_STATE_VERSION,
+        &quot;cache_state_id&quot;: contract.get(&quot;cache_state_id&quot;),
+        &quot;hash_algorithm&quot;: &quot;sha256&quot;,
+        &quot;renderer_used&quot;: &quot;streamlit_cache_state_auditor&quot;,
+        &quot;streamlit_version&quot;: streamlit.__version__,
+        &quot;source_app_dir&quot;: relpath(source_app_dir, start=output_path),
+        &quot;inputs&quot;: {
+            &quot;source_app_manifest&quot;: optional_manifest_entry(source_app_dir / &quot;app_manifest.json&quot;, start=output_path),
+            &quot;source_app_audit&quot;: optional_manifest_entry(source_app_dir / &quot;app_audit.json&quot;, start=output_path),
+            &quot;cache_state_contract_input&quot;: optional_manifest_entry(Path(cache_state_contract_path), start=output_path)
+            if cache_state_contract_path
+            else manifest_entry(contract_path, start=output_path),
+            &quot;freshness_policy_input&quot;: optional_manifest_entry(Path(freshness_policy_path), start=output_path)
+            if freshness_policy_path
+            else manifest_entry(policy_path, start=output_path),
+        },
+        &quot;outputs&quot;: output_entries,
+    }
+    write_json(manifest_path, manifest)
+
+    return CacheStateBuildResult(
+        output_dir=output_path,
+        app_path=app_path,
+        cache_state_contract_path=contract_path,
+        freshness_policy_path=policy_path,
+        freshness_report_path=report_path,
+        audit_path=audit_path,
+        manifest_path=manifest_path,
+        audit=audit,
+    )
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Add cache/state/freshness checks to a 17/06 Streamlit app bundle.&quot;)
+    parser.add_argument(&quot;--app-dir&quot;, type=Path, help=&quot;Path to the 17/06 Streamlit app bundle.&quot;)
+    parser.add_argument(&quot;--cache-state-contract&quot;, type=Path, help=&quot;Optional cache_state_contract.json.&quot;)
+    parser.add_argument(&quot;--freshness-policy&quot;, type=Path, help=&quot;Optional freshness_policy.json.&quot;)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, required=True, help=&quot;Directory for the enhanced app bundle.&quot;)
+    parser.add_argument(&quot;--write-example&quot;, type=Path, help=&quot;Write a sample 17/06 app before adding cache/state.&quot;)
+    parser.add_argument(&quot;--source-snapshot-at&quot;, help=&quot;Override source snapshot UTC timestamp.&quot;)
+    parser.add_argument(&quot;--checked-at&quot;, help=&quot;Override freshness check UTC timestamp.&quot;)
+    parser.add_argument(&quot;--fail-on-invalid&quot;, action=&quot;store_true&quot;, help=&quot;Return exit code 2 when cache/state audit blocks delivery.&quot;)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv)
+    app_dir = args.app_dir
+    contract_path = args.cache_state_contract
+    policy_path = args.freshness_policy
+    if args.write_example:
+        sample = write_sample_cache_state_inputs(args.write_example)
+        app_dir = sample[&quot;app_dir&quot;]
+        if contract_path is None:
+            contract_path = sample[&quot;cache_state_contract_path&quot;]
+        if policy_path is None:
+            policy_path = sample[&quot;freshness_policy_path&quot;]
+    if app_dir is None:
+        raise SystemExit(&quot;missing required argument: --app-dir or --write-example&quot;)
+
+    result = build_cache_state_package(
+        app_dir=app_dir,
+        output_dir=args.output_dir,
+        cache_state_contract_path=contract_path,
+        freshness_policy_path=policy_path,
+        source_snapshot_utc=args.source_snapshot_at,
+        checked_at_utc=args.checked_at,
+    )
+    response = {
+        &quot;valid&quot;: result.audit[&quot;valid&quot;],
+        &quot;readiness_status&quot;: result.audit[&quot;readiness_status&quot;],
+        &quot;blocking_errors&quot;: result.audit[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        &quot;app&quot;: str(result.app_path),
+        &quot;freshness_report&quot;: str(result.freshness_report_path),
+        &quot;manifest&quot;: str(result.manifest_path),
+    }
+    print(json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True))
+    if args.fail_on_invalid and not result.audit[&quot;valid&quot;]:
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/outputs/streamlit_cache_state_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/07-caching-and-state" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/delivery/streamlit/"><span>← Предыдущий урок</span><strong>Приложение на Streamlit</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/delivery/cli/"><span>Следующий урок →</span><strong>CLI для повторяемого запуска</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

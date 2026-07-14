@@ -1,0 +1,2227 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В прошлом уроке ETS и ARIMA уже построили forecast rows на будущий 28-day horizon. Очень хочется посмотреть на последнюю известную неделю и сказать:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/time-series/backtesting/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Rolling backtesting">
+  <meta property="og:description" content="В прошлом уроке ETS и ARIMA уже построили forecast rows на будущий 28-day horizon. Очень хочется посмотреть на последнюю известную неделю и сказать:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/time-series/backtesting/">
+  <meta name="twitter:card" content="summary">
+  <title>Rolling backtesting — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Rolling backtesting", "description": "В прошлом уроке ETS и ARIMA уже построили forecast rows на будущий 28-day horizon. Очень хочется посмотреть на последнюю известную неделю и сказать:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/backtesting/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 14: Временные ряды", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=14"}, {"@type": "ListItem", "position": 3, "name": "Rolling backtesting", "item": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/backtesting/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 14</p><h2>Временные ряды</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-index/"><span>01</span>Временной индекс, частота и календарный grain</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/resampling/"><span>02</span>Resampling и агрегация</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/rolling/"><span>03</span>Rolling и expanding windows</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/trend-and-seasonality/"><span>04</span>Тренд, сезонность и календарные эффекты</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/temporal-leakage/"><span>05</span>Временная утечка</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-baselines/"><span>06</span>Наивные и сезонные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/decomposition/"><span>07</span>Декомпозиция ряда</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/ets-and-arima/"><span>08</span>ETS и ARIMA</a><a class="lesson-sidebar-link is-active" href="../../../lessons/time-series/backtesting/"><span>09</span>Rolling backtesting</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-metrics/"><span>10</span>Метрики прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/prediction-intervals/"><span>11</span>Интервалы прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-series-anomalies/"><span>12</span>Аномалии временных рядов и forecast package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 14 · Временные ряды</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 153 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/14-time-series/09-backtesting" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что обязательно фиксируется до запуска rolling-origin backtest?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Split plan: origins, train windows, gap/embargo, horizon, models and retraining policy.</button><button type="button" class="quiz-option" data-choice="1">Только последняя дата прогноза.</button><button type="button" class="quiz-option" data-choice="2">Случайный train/test split с перемешиванием строк.</button><button type="button" class="quiz-option" data-choice="3">Победитель по последнему красивому графику.</button></div><p class="quiz-feedback" hidden>Backtest должен быть воспроизводимым: до запуска фиксируются origins, окна обучения, gap, horizon, набор моделей и правило refit/reuse.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему одного последнего cutoff недостаточно для выбора forecast-модели?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Одно окно может совпасть с удачной или неудачной неделей и не показывает стабильность ошибки по разным origins.</button><button type="button" class="quiz-option" data-choice="1">Statsmodels не умеет refit на нескольких окнах.</button><button type="button" class="quiz-option" data-choice="2">Baseline всегда выигрывает на первом horizon step.</button><button type="button" class="quiz-option" data-choice="3">Rolling-origin нужен только для построения красивой таблицы.</button></div><p class="quiz-feedback" hidden>Time-series качество должно проверяться на нескольких origin windows: иначе результат легко оказывается следствием конкретной недели, праздника или выброса.</p></article></section>
+        <article class="lesson-article"><h1 id="rolling-backtesting">Rolling backtesting</h1>
+<blockquote>
+<p>Forecast-модель можно сравнивать только на заранее объявленных rolling origins,
+а не по одному удачному последнему окну.</p>
+</blockquote>
+<ul>
+<li><strong>Тип:</strong> Build</li>
+<li><strong>Треки:</strong> Decision</li>
+<li><strong>Пререквизиты:</strong> <code>14-time-series/08-ets-and-arima</code></li>
+<li><strong>Время:</strong> ~90 минут</li>
+<li><strong>Результат:</strong> вы проектируете expanding и rolling-origin backtests с
+несколькими cutoffs, fixed horizon, retraining policy и gap/embargo, затем
+публикуете <code>split_manifest.csv</code>, <code>backtest_forecasts.csv</code>,
+<code>backtest_errors.csv</code> и <code>backtest_report.json</code>.</li>
+</ul>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Зафиксировать <code>backtesting_spec.json</code> до запуска моделей: origins, train
+windows, gap/embargo, horizon, models и retraining policy.</li>
+<li>Различать expanding window и rolling window и понимать, какую бизнес-ошибку
+ловит каждый вариант.</li>
+<li>Строить forecast table на grain
+<code>split_id x segment_id x model_id x forecast_date</code>.</li>
+<li>Считать raw forecast errors без преждевременного leaderboard.</li>
+<li>Проверять, что backtest не использует random split, future actuals,
+переменный horizon или переиспользованный final fit.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В прошлом уроке ETS и ARIMA уже построили forecast rows на будущий 28-day horizon.
+Очень хочется посмотреть на последнюю известную неделю и сказать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">&quot;ETS почти попадает в тренд, значит это новая production model&quot;.
+</code></pre></div><p>Такой вывод опасен. Одно окно может быть легким для ETS, тяжелым для ARIMA или
+случайно удобным для baseline. Если выбрать модель по одному cutoff, мы выбираем
+не устойчивое качество, а удачную дату проверки.</p>
+<p>Правильный handoff к метрикам выглядит так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">declared split plan -&gt; refit per origin -&gt; forecast rows -&gt; raw errors -&gt;
+metric aggregation in the next lesson
+</code></pre></div><p>Этот урок еще не объявляет победителя. Он выпускает проверяемое сырье, на котором
+следующий урок сможет честно считать MAE/RMSE/MASE по horizon и segment.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Rolling-origin backtesting имитирует несколько исторических моментов, в которых
+мы как будто стояли в прошлом и не знали будущие actuals.</p>
+<p>В tiny profile backtest устроен так:</p>
+<table>
+<thead>
+<tr>
+<th>Split</th>
+<th>Window</th>
+<th>Train window</th>
+<th>Embargo</th>
+<th>Forecast horizon</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bt-expanding-2026-02-24</code></td>
+<td>expanding</td>
+<td><code>2026-02-02..2026-02-22</code></td>
+<td><code>2026-02-23</code></td>
+<td><code>2026-02-24..2026-02-26</code></td>
+</tr>
+<tr>
+<td><code>bt-expanding-2026-03-03</code></td>
+<td>expanding</td>
+<td><code>2026-02-02..2026-03-01</code></td>
+<td><code>2026-03-02</code></td>
+<td><code>2026-03-03..2026-03-05</code></td>
+</tr>
+<tr>
+<td><code>bt-rolling-2026-03-10</code></td>
+<td>rolling</td>
+<td><code>2026-02-16..2026-03-08</code></td>
+<td><code>2026-03-09</code></td>
+<td><code>2026-03-10..2026-03-12</code></td>
+</tr>
+<tr>
+<td><code>bt-rolling-2026-03-14</code></td>
+<td>rolling</td>
+<td><code>2026-02-20..2026-03-12</code></td>
+<td><code>2026-03-13</code></td>
+<td><code>2026-03-14..2026-03-16</code></td>
+</tr>
+</tbody>
+</table>
+<p>Expanding window отвечает на вопрос: &quot;Что если мы всегда копим всю доступную
+историю?&quot;. Rolling window отвечает на другой вопрос: &quot;Что если старые недели уже
+устарели и модель должна смотреть только на свежий режим?&quot;. Обе схемы полезны,
+поэтому artifact требует, чтобы в backtest были оба типа окон.</p>
+<p>Gap/embargo нужен для той же защиты, что и в предыдущих уроках: данные между
+<code>training_end</code> и <code>first_forecast_date</code> существуют в календаре, но недоступны
+модели на момент прогноза.</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">training_end = 2026-02-22
+embargo_date = 2026-02-23
+first_forecast_date = 2026-02-24
+
+raw_step=1 -&gt; 2026-02-23  # skip
+raw_step=2 -&gt; 2026-02-24  # emit horizon_step=1
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>Начните с manifest, а не с модели. Minimal split object должен быть достаточно
+явным, чтобы его можно было проверить без чтения кода:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">split = {
+    &quot;split_id&quot;: &quot;bt-expanding-2026-02-24&quot;,
+    &quot;window_type&quot;: &quot;expanding&quot;,
+    &quot;forecast_origin&quot;: &quot;2026-02-24T09:00:00+03:00&quot;,
+    &quot;training_start&quot;: &quot;2026-02-02&quot;,
+    &quot;training_end&quot;: &quot;2026-02-22&quot;,
+    &quot;embargo_dates&quot;: [&quot;2026-02-23&quot;],
+    &quot;first_forecast_date&quot;: &quot;2026-02-24&quot;,
+    &quot;horizon_end&quot;: &quot;2026-02-26&quot;,
+}
+</code></pre></div><p>Первые проверки механические:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">horizon_dates = [&quot;2026-02-24&quot;, &quot;2026-02-25&quot;, &quot;2026-02-26&quot;]
+assert len(horizon_dates) == 3
+assert split[&quot;window_type&quot;] in {&quot;expanding&quot;, &quot;rolling&quot;}
+assert split[&quot;training_end&quot;] &lt; split[&quot;first_forecast_date&quot;]
+assert split[&quot;embargo_dates&quot;] == [&quot;2026-02-23&quot;]
+</code></pre></div><p>Дальше задайте output grain. Для каждого split, segment и model должно быть ровно
+по одной строке на forecast date:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">split_id
+metric_id
+segment_id
+model_id
+forecast_date
+horizon_step
+forecast_value
+training_start
+training_end
+raw_step
+</code></pre></div><p>В tiny profile:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">splits = 4
+segments = [&quot;all&quot;, &quot;android&quot;]
+models = [&quot;seasonal_naive_7&quot;, &quot;ets_additive_trend_seasonal_7&quot;, &quot;arima_1_1_0&quot;]
+horizon_days = 3
+assert splits * len(segments) * len(models) * horizon_days == 72
+</code></pre></div><p>Raw errors считаются строка-в-строку:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">actual_value = 944
+forecast_value = 881
+error = actual_value - forecast_value
+absolute_error = abs(error)
+squared_error = error * error
+</code></pre></div><p>Важно: raw errors еще не являются metric policy. Они только подготавливают
+материал для следующего урока, где появятся aggregation, horizon weighting и
+решение о том, какую модель можно сравнивать с baseline.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Готовый artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/rolling_backtester.py
+</code></pre></div><p>Запуск из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/rolling_backtester.py \
+  --series ../data/tiny/backtest_observations.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --model-spec ../data/tiny/statsmodels_model_spec.json \
+  --model-report ../08-ets-and-arima/outputs/model_report.json \
+  --spec ../data/tiny/backtesting_spec.json \
+  --output-dir outputs
+</code></pre></div><p>Или из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/14-time-series/09-backtesting/code/main.py
+</code></pre></div><p>CLI пишет четыре файла:</p>
+<ul>
+<li><code>outputs/split_manifest.csv</code> - origins, train windows, embargo, horizon и
+retraining policy;</li>
+<li><code>outputs/backtest_forecasts.csv</code> - baseline/ETS/ARIMA forecasts на каждом
+<code>split_id x segment_id x model_id x forecast_date</code>;</li>
+<li><code>outputs/backtest_errors.csv</code> - actual, error, absolute error и squared error;</li>
+<li><code>outputs/backtest_report.json</code> - quality gates, warnings и shape summary.</li>
+</ul>
+<p>Tiny profile валиден, но оставляет две warnings:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;warnings&quot;: [
+    &quot;small_origin_count_blocks_model_selection_claim&quot;,
+    &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;
+  ],
+  &quot;split_rows&quot;: 4,
+  &quot;forecast_rows&quot;: 72,
+  &quot;error_rows&quot;: 72
+}
+</code></pre></div><p>Эти warnings не ломают artifact. Они запрещают слишком сильный вывод:</p>
+<ul>
+<li>4 origins достаточно для учебного механизма, но мало для production model
+selection.</li>
+<li>3-day backtest horizon короче final 28-day forecast horizon, поэтому нельзя
+утверждать, что качество проверено на всех рабочих шагах.</li>
+</ul>
+<p>Первый baseline row показывает gap явно:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th style="text-align:right">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>split_id</code></td>
+<td style="text-align:right"><code>bt-expanding-2026-02-24</code></td>
+</tr>
+<tr>
+<td><code>segment_id</code></td>
+<td style="text-align:right"><code>all</code></td>
+</tr>
+<tr>
+<td><code>model_id</code></td>
+<td style="text-align:right"><code>seasonal_naive_7</code></td>
+</tr>
+<tr>
+<td><code>forecast_date</code></td>
+<td style="text-align:right"><code>2026-02-24</code></td>
+</tr>
+<tr>
+<td><code>forecast_value</code></td>
+<td style="text-align:right"><code>881</code></td>
+</tr>
+<tr>
+<td><code>actual_value</code></td>
+<td style="text-align:right"><code>944</code></td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td style="text-align:right"><code>63</code></td>
+</tr>
+<tr>
+<td><code>raw_step</code></td>
+<td style="text-align:right"><code>2</code></td>
+</tr>
+<tr>
+<td><code>anchor_dates</code></td>
+<td style="text-align:right"><code>2026-02-17</code></td>
+</tr>
+</tbody>
+</table>
+<p>ETS и ARIMA также refit-ятся на каждом origin. Например для того же split и
+segment:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align:right">Forecast for <code>2026-02-24</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ets_additive_trend_seasonal_7</code></td>
+<td style="text-align:right"><code>944.000002</code></td>
+</tr>
+<tr>
+<td><code>arima_1_1_0</code></td>
+<td style="text-align:right"><code>886.913429</code></td>
+</tr>
+</tbody>
+</table>
+<p>Это все еще не winner table. Это проверяемые forecasts и errors.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте типичные поломки backtest-дизайна.</p>
+<ol>
+<li>Поставьте <code>split_plan[0].window_type = &quot;random&quot;</code>. Report должен упасть с
+<code>no_random_splits</code>.</li>
+<li>Сделайте <code>horizon_end = &quot;2026-02-25&quot;</code> при <code>backtest_horizon_days = 3</code>.
+Check <code>forecast_horizon_is_fixed</code> должен заблокировать report.</li>
+<li>Удалите <code>embargo_dates</code> у первого split. Check
+<code>embargo_gap_is_respected</code> должен найти разрыв.</li>
+<li>Удалите actual row для <code>all</code> на <code>2026-02-24</code>. Check
+<code>actuals_available_for_every_origin_horizon</code> должен остановить выпуск
+forecasts.</li>
+<li>Продублируйте любую строку в <code>backtest_observations.csv</code>. Check
+<code>source_segment_date_unique</code> должен сработать.</li>
+<li>Сделайте upstream <code>model_report.json</code> invalid. Check
+<code>scenario_model_and_backtest_spec_align</code> должен остановить backtest.</li>
+<li>Поставьте <code>retraining_policy.refit_each_origin = false</code> и
+<code>reuse_final_forecast_fit = true</code>. Check <code>models_refit_each_origin</code> должен
+заблокировать отчет.</li>
+</ol>
+<p>Строгий режим:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/rolling_backtester.py \
+  --series ../data/tiny/backtest_observations.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --model-spec ../data/tiny/statsmodels_model_spec.json \
+  --model-report ../08-ets-and-arima/outputs/model_report.json \
+  --spec ../data/tiny/backtesting_spec.json \
+  --fail-on-warning
+</code></pre></div><p>На tiny profile он завершится non-zero, потому что warnings нельзя прятать в
+автоматическом пайплайне.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/14-time-series/09-backtesting/tests -v
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>воспроизводимость <code>backtesting_spec.json</code> и <code>backtest_observations.csv</code>;</li>
+<li>4 split rows: два expanding и два rolling origins;</li>
+<li>фиксированный 3-day horizon и один embargo day перед каждым horizon;</li>
+<li>72 forecast rows и 72 raw error rows;</li>
+<li>locked values для seasonal naive, ETS и ARIMA;</li>
+<li>raw error arithmetic: <code>error</code>, <code>absolute_error</code>, <code>squared_error</code>;</li>
+<li>блокировки random split, broken horizon, broken embargo, missing actual,
+duplicate grain, invalid upstream report и reuse final fit;</li>
+<li>CLI output files и <code>--fail-on-warning</code>.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Переиспользуемый artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/rolling_backtester.py
+</code></pre></div><p>Минимальный production handoff:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/rolling_backtester.py \
+  --series path/to/backtest_observations.csv \
+  --scenario path/to/forecast_scenario.json \
+  --model-spec path/to/statsmodels_model_spec.json \
+  --model-report path/to/model_report.json \
+  --spec path/to/backtesting_spec.json \
+  --output-dir path/to/backtest_package
+</code></pre></div><p>Перед передачей результата проверьте:</p>
+<ul>
+<li><code>backtest_report.json.valid = true</code>;</li>
+<li>warnings явно обсуждены, а не проигнорированы;</li>
+<li><code>split_manifest.csv</code> совпадает с согласованным protocol;</li>
+<li><code>backtest_forecasts.csv</code> имеет уникальный grain;</li>
+<li><code>backtest_errors.csv</code> содержит actuals для каждого published forecast.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте пятый origin на <code>2026-03-16</code> и объясните, почему horizon actuals
+должны существовать до запуска backtest.</li>
+<li>Сделайте rolling window длиной 28 дней вместо 21 и сравните ETS/ARIMA
+forecasts на последнем origin без объявления winner.</li>
+<li>Добавьте третий segment в <code>backtest_observations.csv</code> и расширьте
+<code>target_segments</code>. Проверьте, как изменится expected row count.</li>
+<li>Добавьте поле <code>origin_label</code> в <code>split_manifest.csv</code>, не меняя forecast grain.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rolling-origin backtesting</td>
+<td>То же самое, что random cross-validation</td>
+<td>Последовательная проверка на нескольких исторических forecast origins</td>
+</tr>
+<tr>
+<td>Expanding window</td>
+<td>Всегда лучше rolling window</td>
+<td>Train window растет от фиксированного старта; это одна из допустимых политик, а не универсальный winner</td>
+</tr>
+<tr>
+<td>Rolling window</td>
+<td>Просто меньше данных</td>
+<td>Train window фиксированной длины, который проверяет устойчивость к устареванию старой истории</td>
+</tr>
+<tr>
+<td>Embargo/gap</td>
+<td>Можно удалить из manifest, если строка не прогнозируется</td>
+<td>Запрещенный промежуток между training_end и first forecast date, который должен быть виден в contract</td>
+</tr>
+<tr>
+<td>Raw error</td>
+<td>Готовый leaderboard</td>
+<td>Строковый <code>actual - forecast</code>, который еще нужно агрегировать по metric policy</td>
+</tr>
+<tr>
+<td>Refit each origin</td>
+<td>Лишняя медленная роскошь</td>
+<td>Условие честной имитации прошлого: на каждом origin модель обучается только на доступной тогда истории</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://otexts.com/fpp3/tscv.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Time series cross-validation</a> - базовая идея rolling forecasting origin и почему обычная cross-validation не подходит временным рядам.</li>
+<li><a href="https://otexts.com/fpp3/accuracy.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Evaluating point forecast accuracy</a> - следующий шаг после этого урока: как агрегировать forecast errors и чем отличаются accuracy metrics.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html" target="_blank" rel="noopener">scikit-learn <code>TimeSeriesSplit</code></a> - официальный API-пример split iterator с <code>gap</code>, <code>test_size</code> и растущими train sets; полезно сравнить с нашим явным manifest.</li>
+<li><a href="https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_forecasting.html" target="_blank" rel="noopener">statsmodels Forecasting example</a> - официальный пример pseudo-out-of-sample forecasting и продления результатов модели во времени.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что доказывает `split_manifest.csv` в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Какие origins, train windows, embargo dates, horizon и retraining policy реально использовал backtester.</button><button type="button" class="quiz-option" data-choice="1">Что ETS уже является production winner.</button><button type="button" class="quiz-option" data-choice="2">Что future actuals можно добавить в train window.</button><button type="button" class="quiz-option" data-choice="3">Что random split был применен один раз и сохранен seed.</button></div><p class="quiz-feedback" hidden>Split manifest - audit trail backtest-дизайна. По нему видно, что использовались expanding/rolling origins, фиксированный horizon, embargo и refit_each_origin.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему baseline row на 2026-02-24 имеет `raw_step=2`, хотя это первый horizon step?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Между training_end 2026-02-22 и forecast horizon есть embargo date 2026-02-23, поэтому raw forecast пропускает один день.</button><button type="button" class="quiz-option" data-choice="1">Backtester случайно удалил 2026-02-23 из истории.</button><button type="button" class="quiz-option" data-choice="2">Seasonal naive всегда начинает со второго horizon step.</button><button type="button" class="quiz-option" data-choice="3">ARIMA требует два шага warm-up перед прогнозом.</button></div><p class="quiz-feedback" hidden>Horizon step считается от первого разрешенного forecast date, а raw step - от training_end. Gap/embargo делает первый опубликованный прогноз вторым raw step.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой вывод разрешен из `backtest_errors.csv` до урока про метрики?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Raw errors готовы для aggregation по horizon/segment/origin, но победителя пока нельзя объявлять без metric policy.</button><button type="button" class="quiz-option" data-choice="1">Модель с минимальной ошибкой на первой строке уже выбрана.</button><button type="button" class="quiz-option" data-choice="2">Можно удалить baseline, если ETS почти попал в tiny-trend.</button><button type="button" class="quiz-option" data-choice="3">Ошибка считается только на segment `all`, android не нужен.</button></div><p class="quiz-feedback" hidden>Этот урок публикует сырье для честной оценки: forecast rows и raw errors. Выбор метрик, агрегация и leaderboard идут в следующих уроках.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+MODEL_REPORT = PHASE_ROOT / &quot;08-ets-and-arima&quot; / &quot;outputs&quot; / &quot;model_report.json&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from rolling_backtester import build_backtest_package  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    fieldnames = list(rows[0]) if rows else []
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def row_for(rows: list[dict[str, str]], **criteria: str) -&gt; dict[str, str]:
+    return next(row for row in rows if all(row[key] == value for key, value in criteria.items()))
+
+
+class RollingBacktesterTest(TestCase):
+    def build(
+        self,
+        *,
+        root: Path = DATA_ROOT,
+        series_path: Path | None = None,
+        model_report_path: Path = MODEL_REPORT,
+    ) -&gt; dict:
+        return build_backtest_package(
+            series_path=series_path or root / &quot;backtest_observations.csv&quot;,
+            scenario_path=root / &quot;forecast_scenario.json&quot;,
+            model_spec_path=root / &quot;statsmodels_model_spec.json&quot;,
+            model_report_path=model_report_path,
+            spec_path=root / &quot;backtesting_spec.json&quot;,
+        )
+
+    def test_tiny_profile_builds_rolling_origin_backtest_with_expected_warnings(self) -&gt; None:
+        package = self.build()
+        report = package[&quot;report&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;error_count&quot;], 0)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [&quot;small_origin_count_blocks_model_selection_claim&quot;, &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;],
+        )
+        self.assertEqual(report[&quot;outputs&quot;][&quot;split_rows&quot;], 4)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;forecast_rows&quot;], 72)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;error_rows&quot;], 72)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;origins&quot;], 4)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;segments&quot;], [&quot;all&quot;, &quot;android&quot;])
+        self.assertEqual(
+            report[&quot;outputs&quot;][&quot;models&quot;],
+            [&quot;seasonal_naive_7&quot;, &quot;ets_additive_trend_seasonal_7&quot;, &quot;arima_1_1_0&quot;],
+        )
+
+    def test_data_generator_check_rebuilds_committed_backtesting_spec(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;),
+                &quot;--check&quot;,
+                &quot;--output&quot;,
+                str(DATA_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+
+    def test_split_manifest_declares_expanding_rolling_origins_and_gap(self) -&gt; None:
+        rows = self.build()[&quot;split_rows&quot;]
+
+        self.assertEqual([row[&quot;window_type&quot;] for row in rows], [&quot;expanding&quot;, &quot;expanding&quot;, &quot;rolling&quot;, &quot;rolling&quot;])
+        self.assertEqual([row[&quot;origin_index&quot;] for row in rows], [1, 2, 3, 4])
+        first = rows[0]
+        rolling = rows[2]
+        self.assertEqual(first[&quot;forecast_origin&quot;], &quot;2026-02-24T09:00:00+03:00&quot;)
+        self.assertEqual(first[&quot;training_start&quot;], &quot;2026-02-02&quot;)
+        self.assertEqual(first[&quot;training_end&quot;], &quot;2026-02-22&quot;)
+        self.assertEqual(first[&quot;embargo_dates&quot;], &quot;2026-02-23&quot;)
+        self.assertEqual(first[&quot;first_forecast_date&quot;], &quot;2026-02-24&quot;)
+        self.assertEqual(first[&quot;horizon_end&quot;], &quot;2026-02-26&quot;)
+        self.assertEqual(first[&quot;horizon_days&quot;], 3)
+        self.assertEqual(rolling[&quot;training_start&quot;], &quot;2026-02-16&quot;)
+        self.assertEqual(rolling[&quot;training_points&quot;], 21)
+        self.assertEqual(rolling[&quot;retraining_policy&quot;], &quot;refit_each_origin&quot;)
+
+    def test_forecasts_skip_embargo_and_match_manual_baseline_values(self) -&gt; None:
+        rows = self.build()[&quot;forecast_rows&quot;]
+        all_first = row_for(
+            rows,
+            split_id=&quot;bt-expanding-2026-02-24&quot;,
+            segment_id=&quot;all&quot;,
+            model_id=&quot;seasonal_naive_7&quot;,
+            forecast_date=&quot;2026-02-24&quot;,
+        )
+        android_first = row_for(
+            rows,
+            split_id=&quot;bt-expanding-2026-02-24&quot;,
+            segment_id=&quot;android&quot;,
+            model_id=&quot;seasonal_naive_7&quot;,
+            forecast_date=&quot;2026-02-24&quot;,
+        )
+
+        self.assertEqual(all_first[&quot;forecast_value&quot;], &quot;881&quot;)
+        self.assertEqual(all_first[&quot;anchor_dates&quot;], &quot;2026-02-17&quot;)
+        self.assertEqual(all_first[&quot;raw_step&quot;], 2)
+        self.assertEqual(android_first[&quot;forecast_value&quot;], &quot;266&quot;)
+        self.assertEqual(android_first[&quot;anchor_dates&quot;], &quot;2026-02-17&quot;)
+        self.assertTrue(all(row[&quot;forecast_date&quot;] != &quot;2026-02-23&quot; for row in rows))
+
+    def test_candidate_forecasts_match_locked_values(self) -&gt; None:
+        rows = self.build()[&quot;forecast_rows&quot;]
+
+        self.assertEqual(
+            row_for(
+                rows,
+                split_id=&quot;bt-expanding-2026-02-24&quot;,
+                segment_id=&quot;all&quot;,
+                model_id=&quot;ets_additive_trend_seasonal_7&quot;,
+                forecast_date=&quot;2026-02-24&quot;,
+            )[&quot;forecast_value&quot;],
+            &quot;944.000002&quot;,
+        )
+        self.assertEqual(
+            row_for(
+                rows,
+                split_id=&quot;bt-expanding-2026-02-24&quot;,
+                segment_id=&quot;all&quot;,
+                model_id=&quot;arima_1_1_0&quot;,
+                forecast_date=&quot;2026-02-24&quot;,
+            )[&quot;forecast_value&quot;],
+            &quot;886.913429&quot;,
+        )
+        self.assertEqual(
+            row_for(
+                rows,
+                split_id=&quot;bt-rolling-2026-03-14&quot;,
+                segment_id=&quot;android&quot;,
+                model_id=&quot;ets_additive_trend_seasonal_7&quot;,
+                forecast_date=&quot;2026-03-16&quot;,
+            )[&quot;forecast_value&quot;],
+            &quot;374.000003&quot;,
+        )
+        self.assertEqual(
+            row_for(
+                rows,
+                split_id=&quot;bt-rolling-2026-03-14&quot;,
+                segment_id=&quot;android&quot;,
+                model_id=&quot;arima_1_1_0&quot;,
+                forecast_date=&quot;2026-03-16&quot;,
+            )[&quot;forecast_value&quot;],
+            &quot;358.892166&quot;,
+        )
+
+    def test_raw_error_rows_include_actual_error_abs_and_squared_error(self) -&gt; None:
+        errors = self.build()[&quot;error_rows&quot;]
+        baseline = row_for(
+            errors,
+            split_id=&quot;bt-expanding-2026-02-24&quot;,
+            segment_id=&quot;all&quot;,
+            model_id=&quot;seasonal_naive_7&quot;,
+            forecast_date=&quot;2026-02-24&quot;,
+        )
+        arima = row_for(
+            errors,
+            split_id=&quot;bt-expanding-2026-02-24&quot;,
+            segment_id=&quot;android&quot;,
+            model_id=&quot;arima_1_1_0&quot;,
+            forecast_date=&quot;2026-02-26&quot;,
+        )
+
+        self.assertEqual(baseline[&quot;actual_value&quot;], &quot;944&quot;)
+        self.assertEqual(baseline[&quot;error&quot;], &quot;63&quot;)
+        self.assertEqual(baseline[&quot;absolute_error&quot;], &quot;63&quot;)
+        self.assertEqual(baseline[&quot;squared_error&quot;], &quot;3969&quot;)
+        self.assertEqual(arima[&quot;actual_value&quot;], &quot;302&quot;)
+        self.assertEqual(arima[&quot;error&quot;], &quot;32.535003&quot;)
+        self.assertEqual(arima[&quot;squared_error&quot;], &quot;1058.52642&quot;)
+
+    def test_random_split_is_blocked(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;backtesting_spec.json&quot;)
+            spec[&quot;split_plan&quot;][0][&quot;window_type&quot;] = &quot;random&quot;
+            write_json(root / &quot;backtesting_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;no_random_splits&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+        self.assertIn(&quot;split_plan_valid&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_horizon_mismatch_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;backtesting_spec.json&quot;)
+            spec[&quot;split_plan&quot;][0][&quot;horizon_end&quot;] = &quot;2026-02-25&quot;
+            write_json(root / &quot;backtesting_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;forecast_horizon_is_fixed&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_embargo_gap_mismatch_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;backtesting_spec.json&quot;)
+            spec[&quot;split_plan&quot;][0][&quot;embargo_dates&quot;] = []
+            write_json(root / &quot;backtesting_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;embargo_gap_is_respected&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_actual_blocks_backtest_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series_path = Path(directory) / &quot;backtest_observations.csv&quot;
+            rows = [
+                row
+                for row in read_csv(DATA_ROOT / &quot;backtest_observations.csv&quot;)
+                if not (row[&quot;segment_id&quot;] == &quot;all&quot; and row[&quot;observed_date&quot;] == &quot;2026-02-24&quot;)
+            ]
+            write_csv(series_path, rows)
+
+            report = self.build(series_path=series_path)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;actuals_available_for_every_origin_horizon&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_duplicate_source_segment_date_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series_path = Path(directory) / &quot;backtest_observations.csv&quot;
+            rows = read_csv(DATA_ROOT / &quot;backtest_observations.csv&quot;)
+            rows.append(rows[0].copy())
+            write_csv(series_path, rows)
+
+            report = self.build(series_path=series_path)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;source_segment_date_unique&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_invalid_upstream_model_report_blocks_backtest(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            model_report_path = Path(directory) / &quot;model_report.json&quot;
+            report = read_json(MODEL_REPORT)
+            report[&quot;valid&quot;] = False
+            write_json(model_report_path, report)
+
+            result = self.build(model_report_path=model_report_path)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(&quot;scenario_model_and_backtest_spec_align&quot;, result[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_retraining_policy_must_refit_each_origin(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;backtesting_spec.json&quot;)
+            spec[&quot;retraining_policy&quot;][&quot;refit_each_origin&quot;] = False
+            spec[&quot;retraining_policy&quot;][&quot;reuse_final_forecast_fit&quot;] = True
+            write_json(root / &quot;backtesting_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;models_refit_each_origin&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_cli_writes_package_and_can_fail_on_warning(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;package&quot;
+            command = [
+                sys.executable,
+                str(LESSON_ROOT / &quot;outputs&quot; / &quot;rolling_backtester.py&quot;),
+                &quot;--series&quot;,
+                str(DATA_ROOT / &quot;backtest_observations.csv&quot;),
+                &quot;--scenario&quot;,
+                str(DATA_ROOT / &quot;forecast_scenario.json&quot;),
+                &quot;--model-spec&quot;,
+                str(DATA_ROOT / &quot;statsmodels_model_spec.json&quot;),
+                &quot;--model-report&quot;,
+                str(MODEL_REPORT),
+                &quot;--spec&quot;,
+                str(DATA_ROOT / &quot;backtesting_spec.json&quot;),
+                &quot;--output-dir&quot;,
+                str(output_dir),
+            ]
+            ok = subprocess.run(command, check=True, capture_output=True, text=True)
+            strict = subprocess.run([*command, &quot;--fail-on-warning&quot;], check=False, capture_output=True, text=True)
+            written_files = sorted(path.name for path in output_dir.iterdir())
+
+        self.assertTrue(json.loads(ok.stdout)[&quot;valid&quot;])
+        self.assertEqual(strict.returncode, 1)
+        self.assertEqual(
+            written_files,
+            [&quot;backtest_errors.csv&quot;, &quot;backtest_forecasts.csv&quot;, &quot;backtest_report.json&quot;, &quot;split_manifest.csv&quot;],
+        )
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUTS_ROOT = LESSON_ROOT / &quot;outputs&quot;
+MODEL_REPORT = PHASE_ROOT / &quot;08-ets-and-arima&quot; / &quot;outputs&quot; / &quot;model_report.json&quot;
+
+sys.path.insert(0, str(OUTPUTS_ROOT))
+
+from rolling_backtester import build_backtest_package, write_package  # noqa: E402
+
+
+def main() -&gt; None:
+    package = build_backtest_package(
+        series_path=DATA_ROOT / &quot;backtest_observations.csv&quot;,
+        scenario_path=DATA_ROOT / &quot;forecast_scenario.json&quot;,
+        model_spec_path=DATA_ROOT / &quot;statsmodels_model_spec.json&quot;,
+        model_report_path=MODEL_REPORT,
+        spec_path=DATA_ROOT / &quot;backtesting_spec.json&quot;,
+    )
+    write_package(package, OUTPUTS_ROOT)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;split_rows&quot;: report[&quot;outputs&quot;][&quot;split_rows&quot;],
+                &quot;forecast_rows&quot;: report[&quot;outputs&quot;][&quot;forecast_rows&quot;],
+                &quot;error_rows&quot;: report[&quot;outputs&quot;][&quot;error_rows&quot;],
+                &quot;models&quot;: report[&quot;outputs&quot;][&quot;models&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;rolling-origin-backtester&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/rolling_backtester.py&quot;,
+  &quot;description&quot;: &quot;Runs predeclared expanding and rolling-origin backtests for the primary baseline and statsmodels candidates, publishes a split manifest, forecast table, raw error table, and validation report.&quot;,
+  &quot;usage&quot;: &quot;python outputs/rolling_backtester.py --series ../data/tiny/backtest_observations.csv --scenario ../data/tiny/forecast_scenario.json --model-spec ../data/tiny/statsmodels_model_spec.json --model-report ../08-ets-and-arima/outputs/model_report.json --spec ../data/tiny/backtesting_spec.json --output-dir outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backtest_errors.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>backtest_id,forecast_id,split_id,window_type,metric_id,segment_id,model_id,model_role,family,forecast_date,horizon_step,forecast_value,actual_value,error,absolute_error,squared_error
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-24,1,881,944,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-25,2,890,953,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-26,3,899,962,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-24,1,944.000002,944,-0.000002,0.000002,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-25,2,953.000002,953,-0.000002,0.000002,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-26,3,962.000002,962,-0.000002,0.000002,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-24,1,886.913429,944,57.086571,57.086571,3258.876589
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-25,2,886.920637,953,66.079363,66.079363,4366.482214
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-26,3,886.921306,962,75.078694,75.078694,5636.810293
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-24,1,266,294,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-25,2,270,298,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-26,3,274,302,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-24,1,294,294,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-25,2,298,298,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-26,3,302,302,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-24,1,269.460007,294,24.539993,24.539993,602.211256
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-25,2,269.464526,298,28.535474,28.535474,814.273276
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-26,3,269.464997,302,32.535003,32.535003,1058.52642
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-03,1,944,1007,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-04,2,953,1016,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-05,3,962,1025,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-03,1,1006.999994,1007,0.000006,0.000006,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-04,2,1015.999988,1016,0.000012,0.000012,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-05,3,1024.999983,1025,0.000017,0.000017,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-03,1,950.100244,1007,56.899756,56.899756,3237.582233
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-04,2,950.112263,1016,65.887737,65.887737,4341.193887
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-05,3,950.113586,1025,74.886414,74.886414,5607.975002
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-03,1,294,322,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-04,2,298,326,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-05,3,302,330,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-03,1,322.000001,322,-0.000001,0.000001,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-04,2,326,326,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-05,3,330.000002,330,-0.000002,0.000002,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-03,1,297.54545,322,24.45455,24.45455,598.025016
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-04,2,297.552638,326,28.447362,28.447362,809.252405
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-05,3,297.553512,330,32.446488,32.446488,1052.774584
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-10,1,1007,1082,75,75,5625
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-11,2,1016,1091,75,75,5625
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-12,3,1025,1100,75,75,5625
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-10,1,1070.000002,1082,11.999998,11.999998,143.999952
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-11,2,1079.000008,1091,11.999992,11.999992,143.999808
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-12,3,1088.00001,1100,11.99999,11.99999,143.99976
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-10,1,1012.913429,1082,69.086571,69.086571,4772.954293
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-11,2,1012.920637,1091,78.079363,78.079363,6096.386926
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-12,3,1012.921306,1100,87.078694,87.078694,7582.698949
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-10,1,322,350,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-11,2,326,354,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-12,3,330,358,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-10,1,350,350,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-11,2,354,354,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-12,3,358,358,0,0,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-10,1,325.460007,350,24.539993,24.539993,602.211256
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-11,2,325.464526,354,28.535474,28.535474,814.273276
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-12,3,325.464997,358,32.535003,32.535003,1058.52642
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-14,1,1003,1066,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-15,2,1012,1075,63,63,3969
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-16,3,1073,1124,51,51,2601
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-14,1,1078.000112,1066,-12.000112,12.000112,144.002688
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-15,2,1087.000217,1075,-12.000217,12.000217,144.005208
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-16,3,1140.000305,1124,-16.000305,16.000305,256.00976
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-14,1,1101.787168,1066,-35.787168,35.787168,1280.721393
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-15,2,1101.831195,1075,-26.831195,26.831195,719.913025
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-16,3,1101.838669,1124,22.161331,22.161331,491.124592
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-14,1,321,349,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-15,2,325,353,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-16,3,346,374,28,28,784
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-14,1,348.999998,349,0.000002,0.000002,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-15,2,353.000001,353,-0.000001,0.000001,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-16,3,374.000003,374,-0.000003,0.000003,0
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-14,1,358.863399,349,-9.863399,9.863399,97.28664
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-15,2,358.887725,353,-5.887725,5.887725,34.665306
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-16,3,358.892166,374,15.107834,15.107834,228.246648
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/backtest_errors.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backtest_forecasts.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>backtest_id,forecast_id,split_id,window_type,metric_id,segment_id,model_id,model_role,family,forecast_date,horizon_step,forecast_value,training_start,training_end,raw_step,anchor_dates,fit_status,convergence_status,statsmodels_warning_count,statsmodels_warnings
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-24,1,881,2026-02-02,2026-02-22,2,2026-02-17,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-25,2,890,2026-02-02,2026-02-22,3,2026-02-18,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-02-26,3,899,2026-02-02,2026-02-22,4,2026-02-19,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-24,1,944.000002,2026-02-02,2026-02-22,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-25,2,953.000002,2026-02-02,2026-02-22,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-26,3,962.000002,2026-02-02,2026-02-22,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-24,1,886.913429,2026-02-02,2026-02-22,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-25,2,886.920637,2026-02-02,2026-02-22,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-02-26,3,886.921306,2026-02-02,2026-02-22,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-24,1,266,2026-02-02,2026-02-22,2,2026-02-17,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-25,2,270,2026-02-02,2026-02-22,3,2026-02-18,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-02-26,3,274,2026-02-02,2026-02-22,4,2026-02-19,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-24,1,294,2026-02-02,2026-02-22,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-25,2,298,2026-02-02,2026-02-22,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-02-26,3,302,2026-02-02,2026-02-22,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-24,1,269.460007,2026-02-02,2026-02-22,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-25,2,269.464526,2026-02-02,2026-02-22,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-02-24,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-02-26,3,269.464997,2026-02-02,2026-02-22,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-03,1,944,2026-02-02,2026-03-01,2,2026-02-24,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-04,2,953,2026-02-02,2026-03-01,3,2026-02-25,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-05,3,962,2026-02-02,2026-03-01,4,2026-02-26,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-03,1,1006.999994,2026-02-02,2026-03-01,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-04,2,1015.999988,2026-02-02,2026-03-01,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-05,3,1024.999983,2026-02-02,2026-03-01,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-03,1,950.100244,2026-02-02,2026-03-01,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-04,2,950.112263,2026-02-02,2026-03-01,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-05,3,950.113586,2026-02-02,2026-03-01,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-03,1,294,2026-02-02,2026-03-01,2,2026-02-24,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-04,2,298,2026-02-02,2026-03-01,3,2026-02-25,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-05,3,302,2026-02-02,2026-03-01,4,2026-02-26,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-03,1,322.000001,2026-02-02,2026-03-01,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-04,2,326,2026-02-02,2026-03-01,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-05,3,330.000002,2026-02-02,2026-03-01,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-03,1,297.54545,2026-02-02,2026-03-01,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-04,2,297.552638,2026-02-02,2026-03-01,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-expanding-2026-03-03,expanding,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-05,3,297.553512,2026-02-02,2026-03-01,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-10,1,1007,2026-02-16,2026-03-08,2,2026-03-03,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-11,2,1016,2026-02-16,2026-03-08,3,2026-03-04,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-12,3,1025,2026-02-16,2026-03-08,4,2026-03-05,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-10,1,1070.000002,2026-02-16,2026-03-08,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-11,2,1079.000008,2026-02-16,2026-03-08,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-12,3,1088.00001,2026-02-16,2026-03-08,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-10,1,1012.913429,2026-02-16,2026-03-08,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-11,2,1012.920637,2026-02-16,2026-03-08,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-12,3,1012.921306,2026-02-16,2026-03-08,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-10,1,322,2026-02-16,2026-03-08,2,2026-03-03,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-11,2,326,2026-02-16,2026-03-08,3,2026-03-04,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-12,3,330,2026-02-16,2026-03-08,4,2026-03-05,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-10,1,350,2026-02-16,2026-03-08,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-11,2,354,2026-02-16,2026-03-08,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-12,3,358,2026-02-16,2026-03-08,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-10,1,325.460007,2026-02-16,2026-03-08,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-11,2,325.464526,2026-02-16,2026-03-08,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-10,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-12,3,325.464997,2026-02-16,2026-03-08,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-14,1,1003,2026-02-20,2026-03-12,2,2026-03-07,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-15,2,1012,2026-02-20,2026-03-12,3,2026-03-08,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,seasonal_naive_7,primary_baseline,Baseline,2026-03-16,3,1073,2026-02-20,2026-03-12,4,2026-03-09,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-14,1,1078.000112,2026-02-20,2026-03-12,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-15,2,1087.000217,2026-02-20,2026-03-12,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-16,3,1140.000305,2026-02-20,2026-03-12,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-14,1,1101.787168,2026-02-20,2026-03-12,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-15,2,1101.831195,2026-02-20,2026-03-12,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,all,arima_1_1_0,candidate,ARIMA,2026-03-16,3,1101.838669,2026-02-20,2026-03-12,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-14,1,321,2026-02-20,2026-03-12,2,2026-03-07,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-15,2,325,2026-02-20,2026-03-12,3,2026-03-08,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,seasonal_naive_7,primary_baseline,Baseline,2026-03-16,3,346,2026-02-20,2026-03-12,4,2026-03-09,fit,not_applicable,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-14,1,348.999998,2026-02-20,2026-03-12,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-15,2,353.000001,2026-02-20,2026-03-12,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,ets_additive_trend_seasonal_7,candidate,ETS,2026-03-16,3,374.000003,2026-02-20,2026-03-12,4,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-14,1,358.863399,2026-02-20,2026-03-12,2,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-15,2,358.887725,2026-02-20,2026-03-12,3,,fit,converged,0,
+active-subscriptions-rolling-origin-backtest,active-subscriptions-4w-capacity,bt-rolling-2026-03-14,rolling,active_subscriptions,android,arima_1_1_0,candidate,ARIMA,2026-03-16,3,358.892166,2026-02-20,2026-03-12,4,,fit,converged,0,
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/backtest_forecasts.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backtest_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;audit_id&quot;: &quot;rolling-origin-backtest-report&quot;,
+  &quot;backtest_id&quot;: &quot;active-subscriptions-rolling-origin-backtest&quot;,
+  &quot;forecast_id&quot;: &quot;active-subscriptions-4w-capacity&quot;,
+  &quot;valid&quot;: true,
+  &quot;warning_count&quot;: 2,
+  &quot;error_count&quot;: 0,
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;backtesting_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 21,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 7,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;model_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;model_report_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtesting_spec_values_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;active-subscriptions-rolling-origin-backtest&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_model_and_backtest_spec_align&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;all setup ids and scenario values aligned&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;target_segments_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;all&quot;,
+        &quot;android&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_model_ids_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;ets_additive_trend_seasonal_7&quot;,
+        &quot;arima_1_1_0&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;baseline_model_ids_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;seasonal_naive_7&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;models_refit_each_origin&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;refit_each_origin&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;split_plan_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;split_ids_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;bt-expanding-2026-02-24&quot;,
+        &quot;bt-expanding-2026-03-03&quot;,
+        &quot;bt-rolling-2026-03-10&quot;,
+        &quot;bt-rolling-2026-03-14&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;origins_are_time_ordered&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;2026-02-24T09:00:00+03:00&quot;,
+        &quot;2026-03-03T09:00:00+03:00&quot;,
+        &quot;2026-03-10T09:00:00+03:00&quot;,
+        &quot;2026-03-14T09:00:00+03:00&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_includes_expanding_and_rolling_windows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;expanding&quot;,
+        &quot;rolling&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;small_origin_count_blocks_model_selection_claim&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: 5,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: 28,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;candidate_models_available_from_model_spec&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;ets_additive_trend_seasonal_7&quot;,
+        &quot;arima_1_1_0&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;series_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 7,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;series_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 86,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_segment_date_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 86,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_rows_are_complete_and_eligible&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 86,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;actuals_available_for_every_origin_horizon&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;all split training and horizon dates&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;all_models_fit_each_origin&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;all models fit&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;statsmodels_warnings_propagated&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 0,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;forecast_table_has_full_horizon&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;one_forecast_per_origin_segment_model_date&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;raw_errors_emitted_for_every_forecast&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;split_rows&quot;: 4,
+    &quot;forecast_rows&quot;: 72,
+    &quot;error_rows&quot;: 72,
+    &quot;origins&quot;: 4,
+    &quot;segments&quot;: [
+      &quot;all&quot;,
+      &quot;android&quot;
+    ],
+    &quot;models&quot;: [
+      &quot;seasonal_naive_7&quot;,
+      &quot;ets_additive_trend_seasonal_7&quot;,
+      &quot;arima_1_1_0&quot;
+    ],
+    &quot;backtest_horizon_days&quot;: 3,
+    &quot;final_forecast_horizon_days&quot;: 28
+  },
+  &quot;retraining_policy&quot;: {
+    &quot;refit_each_origin&quot;: true,
+    &quot;reuse_final_forecast_fit&quot;: false,
+    &quot;model_selection_deferred_to&quot;: &quot;14-time-series/10-forecast-metrics&quot;
+  },
+  &quot;summary&quot;: {
+    &quot;checks_total&quot;: 27,
+    &quot;checks_failed&quot;: 2,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;small_origin_count_blocks_model_selection_claim&quot;,
+      &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/backtest_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/rolling_backtester.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+import math
+import warnings
+from collections import Counter
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import pandas as pd
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+
+REQUIRED_SERIES_COLUMNS = {
+    &quot;metric_id&quot;,
+    &quot;segment_id&quot;,
+    &quot;observed_date&quot;,
+    &quot;frequency&quot;,
+    &quot;value&quot;,
+    &quot;is_complete_period&quot;,
+    &quot;include_in_backtest&quot;,
+}
+REQUIRED_SCENARIO_FIELDS = {
+    &quot;forecast_id&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;forecast_origin&quot;,
+    &quot;horizon_days&quot;,
+}
+REQUIRED_MODEL_REPORT_FIELDS = {&quot;model_run_id&quot;, &quot;forecast_id&quot;, &quot;valid&quot;, &quot;outputs&quot;, &quot;summary&quot;}
+REQUIRED_MODEL_SPEC_FIELDS = {&quot;model_run_id&quot;, &quot;forecast_id&quot;, &quot;target_metric&quot;, &quot;target_segments&quot;, &quot;candidate_models&quot;}
+REQUIRED_BACKTEST_SPEC_FIELDS = {
+    &quot;backtest_id&quot;,
+    &quot;forecast_id&quot;,
+    &quot;source_table&quot;,
+    &quot;upstream_model_run_id&quot;,
+    &quot;baseline_id&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;time_column&quot;,
+    &quot;value_column&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;seasonal_period_days&quot;,
+    &quot;primary_baseline_model&quot;,
+    &quot;candidate_model_ids&quot;,
+    &quot;baseline_model_ids&quot;,
+    &quot;final_forecast_horizon_days&quot;,
+    &quot;backtest_horizon_days&quot;,
+    &quot;gap_days&quot;,
+    &quot;minimum_origins_for_model_selection&quot;,
+    &quot;retraining_policy&quot;,
+    &quot;split_plan&quot;,
+}
+REQUIRED_SPLIT_FIELDS = {
+    &quot;split_id&quot;,
+    &quot;window_type&quot;,
+    &quot;forecast_origin&quot;,
+    &quot;training_start&quot;,
+    &quot;training_end&quot;,
+    &quot;embargo_dates&quot;,
+    &quot;first_forecast_date&quot;,
+    &quot;horizon_end&quot;,
+}
+
+
+class BacktestingError(ValueError):
+    &quot;&quot;&quot;Raised when backtest inputs cannot be interpreted.&quot;&quot;&quot;
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    value = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(value, dict):
+        raise BacktestingError(f&quot;{path.name} must contain a JSON object&quot;)
+    return value
+
+
+def parse_date(value: str, field: str) -&gt; date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        raise BacktestingError(f&quot;{field} must be ISO date: {value}&quot;) from error
+
+
+def parse_timestamp(value: str, field: str) -&gt; datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    except ValueError as error:
+        raise BacktestingError(f&quot;{field} must be ISO timestamp: {value}&quot;) from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise BacktestingError(f&quot;{field} must be timezone-aware: {value}&quot;)
+    return parsed
+
+
+def parse_bool(value: str | bool, field: str) -&gt; bool:
+    if isinstance(value, bool):
+        return value
+    normalized = value.strip().lower()
+    if normalized not in {&quot;true&quot;, &quot;false&quot;}:
+        raise BacktestingError(f&quot;{field} must be true or false: {value}&quot;)
+    return normalized == &quot;true&quot;
+
+
+def parse_number(value: str, field: str) -&gt; float:
+    try:
+        return float(value)
+    except ValueError as error:
+        raise BacktestingError(f&quot;{field} must be numeric: {value}&quot;) from error
+
+
+def parse_int(value: Any, field: str) -&gt; int:
+    if isinstance(value, bool):
+        raise BacktestingError(f&quot;{field} must be an integer: {value}&quot;)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise BacktestingError(f&quot;{field} must be an integer: {value}&quot;) from error
+
+
+def daterange(start: date, end: date) -&gt; list[date]:
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def format_number(value: float | int | None) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    number = float(value)
+    if math.isnan(number) or math.isinf(number):
+        return &quot;&quot;
+    rounded = round(number, 6)
+    if rounded == 0:
+        return &quot;0&quot;
+    if rounded.is_integer():
+        return str(int(rounded))
+    return f&quot;{rounded:.6f}&quot;.rstrip(&quot;0&quot;).rstrip(&quot;.&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: list[Any] | None = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def has_blocking_errors(checks: list[dict[str, Any]]) -&gt; bool:
+    return any(not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot; for check in checks)
+
+
+def convergence_status(result: Any) -&gt; str:
+    retvals = getattr(result, &quot;mle_retvals&quot;, None)
+    if retvals is None:
+        return &quot;not_reported&quot;
+    if isinstance(retvals, dict):
+        converged = retvals.get(&quot;converged&quot;, retvals.get(&quot;success&quot;))
+    else:
+        converged = getattr(retvals, &quot;converged&quot;, getattr(retvals, &quot;success&quot;, None))
+    if converged is True:
+        return &quot;converged&quot;
+    if converged is False:
+        return &quot;not_converged&quot;
+    return &quot;not_reported&quot;
+
+
+def order_label(model: dict[str, Any], key: str) -&gt; str:
+    value = model.get(key)
+    if value is None:
+        return &quot;&quot;
+    return &quot;,&quot;.join(str(item) for item in value)
+
+
+def normalize_model_definitions(
+    model_spec: dict[str, Any],
+    candidate_model_ids: list[str],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    candidate_models = model_spec.get(&quot;candidate_models&quot;)
+    if not isinstance(candidate_models, list):
+        checks.append(failed(&quot;candidate_models_available_from_model_spec&quot;, candidate_models, &quot;candidate model list&quot;))
+        return checks, []
+    by_id = {str(model.get(&quot;model_id&quot;)): model for model in candidate_models if isinstance(model, dict)}
+    missing = [model_id for model_id in candidate_model_ids if model_id not in by_id]
+    if missing:
+        checks.append(failed(&quot;candidate_models_available_from_model_spec&quot;, missing, &quot;all candidate ids resolve&quot;))
+        return checks, []
+    checks.append(passed(&quot;candidate_models_available_from_model_spec&quot;, candidate_model_ids))
+    return checks, [dict(by_id[model_id]) for model_id in candidate_model_ids]
+
+
+def parse_split(raw_split: dict[str, Any], backtest_horizon_days: int, gap_days: int) -&gt; tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SPLIT_FIELDS - set(raw_split))
+    if missing:
+        return [failed(&quot;split_required_fields&quot;, missing, &quot;all split fields&quot;)], None
+    try:
+        split = {
+            &quot;split_id&quot;: str(raw_split[&quot;split_id&quot;]),
+            &quot;window_type&quot;: str(raw_split[&quot;window_type&quot;]),
+            &quot;forecast_origin&quot;: parse_timestamp(str(raw_split[&quot;forecast_origin&quot;]), &quot;forecast_origin&quot;),
+            &quot;training_start&quot;: parse_date(str(raw_split[&quot;training_start&quot;]), &quot;training_start&quot;),
+            &quot;training_end&quot;: parse_date(str(raw_split[&quot;training_end&quot;]), &quot;training_end&quot;),
+            &quot;first_forecast_date&quot;: parse_date(str(raw_split[&quot;first_forecast_date&quot;]), &quot;first_forecast_date&quot;),
+            &quot;horizon_end&quot;: parse_date(str(raw_split[&quot;horizon_end&quot;]), &quot;horizon_end&quot;),
+            &quot;embargo_dates&quot;: [parse_date(str(item), &quot;embargo_dates&quot;) for item in raw_split[&quot;embargo_dates&quot;]],
+        }
+    except (BacktestingError, TypeError) as error:
+        return [failed(&quot;split_values_parse&quot;, str(error), &quot;valid split dates and timestamp&quot;)], None
+
+    if split[&quot;window_type&quot;] not in {&quot;expanding&quot;, &quot;rolling&quot;}:
+        checks.append(failed(&quot;no_random_splits&quot;, split[&quot;window_type&quot;], &quot;expanding or rolling&quot;))
+    horizon_dates = daterange(split[&quot;first_forecast_date&quot;], split[&quot;horizon_end&quot;])
+    if len(horizon_dates) != backtest_horizon_days:
+        checks.append(failed(&quot;forecast_horizon_is_fixed&quot;, len(horizon_dates), backtest_horizon_days, [split[&quot;split_id&quot;]]))
+    expected_embargo = daterange(
+        split[&quot;training_end&quot;] + timedelta(days=1),
+        split[&quot;first_forecast_date&quot;] - timedelta(days=1),
+    )
+    if split[&quot;embargo_dates&quot;] != expected_embargo or len(expected_embargo) != gap_days:
+        checks.append(
+            failed(
+                &quot;embargo_gap_is_respected&quot;,
+                [day.isoformat() for day in split[&quot;embargo_dates&quot;]],
+                [day.isoformat() for day in expected_embargo],
+                [split[&quot;split_id&quot;]],
+            )
+        )
+    if not (split[&quot;training_start&quot;] &lt;= split[&quot;training_end&quot;] &lt; split[&quot;first_forecast_date&quot;] &lt;= split[&quot;horizon_end&quot;]):
+        checks.append(
+            failed(
+                &quot;training_windows_precede_origins&quot;,
+                {
+                    &quot;split_id&quot;: split[&quot;split_id&quot;],
+                    &quot;training_start&quot;: split[&quot;training_start&quot;].isoformat(),
+                    &quot;training_end&quot;: split[&quot;training_end&quot;].isoformat(),
+                    &quot;first_forecast_date&quot;: split[&quot;first_forecast_date&quot;].isoformat(),
+                    &quot;horizon_end&quot;: split[&quot;horizon_end&quot;].isoformat(),
+                },
+                &quot;training_start &lt;= training_end &lt; first_forecast_date &lt;= horizon_end&quot;,
+            )
+        )
+    split[&quot;horizon_dates&quot;] = horizon_dates
+    split[&quot;training_points&quot;] = len(daterange(split[&quot;training_start&quot;], split[&quot;training_end&quot;]))
+    return checks, split
+
+
+def normalize_inputs(
+    spec: dict[str, Any],
+    scenario: dict[str, Any],
+    model_spec: dict[str, Any],
+    model_report: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    checks: list[dict[str, Any]] = []
+    missing_spec = sorted(REQUIRED_BACKTEST_SPEC_FIELDS - set(spec))
+    missing_scenario = sorted(REQUIRED_SCENARIO_FIELDS - set(scenario))
+    missing_model_spec = sorted(REQUIRED_MODEL_SPEC_FIELDS - set(model_spec))
+    missing_model_report = sorted(REQUIRED_MODEL_REPORT_FIELDS - set(model_report))
+    if missing_spec:
+        checks.append(failed(&quot;backtesting_spec_required_fields&quot;, missing_spec, &quot;all required backtesting fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;backtesting_spec_required_fields&quot;, len(REQUIRED_BACKTEST_SPEC_FIELDS)))
+    if missing_scenario:
+        checks.append(failed(&quot;scenario_required_fields&quot;, missing_scenario, &quot;all required scenario fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;scenario_required_fields&quot;, len(REQUIRED_SCENARIO_FIELDS)))
+    if missing_model_spec:
+        checks.append(failed(&quot;model_spec_required_fields&quot;, missing_model_spec, &quot;all required model spec fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;model_spec_required_fields&quot;, len(REQUIRED_MODEL_SPEC_FIELDS)))
+    if missing_model_report:
+        checks.append(failed(&quot;model_report_required_fields&quot;, missing_model_report, &quot;all required model report fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;model_report_required_fields&quot;, len(REQUIRED_MODEL_REPORT_FIELDS)))
+
+    try:
+        timezone = ZoneInfo(str(spec[&quot;timezone&quot;]))
+        seasonal_period_days = parse_int(spec[&quot;seasonal_period_days&quot;], &quot;seasonal_period_days&quot;)
+        final_forecast_horizon_days = parse_int(spec[&quot;final_forecast_horizon_days&quot;], &quot;final_forecast_horizon_days&quot;)
+        backtest_horizon_days = parse_int(spec[&quot;backtest_horizon_days&quot;], &quot;backtest_horizon_days&quot;)
+        gap_days = parse_int(spec[&quot;gap_days&quot;], &quot;gap_days&quot;)
+        minimum_origins_for_model_selection = parse_int(
+            spec[&quot;minimum_origins_for_model_selection&quot;],
+            &quot;minimum_origins_for_model_selection&quot;,
+        )
+    except (ZoneInfoNotFoundError, BacktestingError) as error:
+        checks.append(failed(&quot;backtesting_spec_values_parse&quot;, str(error), &quot;valid timezone and numeric settings&quot;))
+        return checks, None
+    checks.append(passed(&quot;backtesting_spec_values_parse&quot;, spec[&quot;backtest_id&quot;]))
+
+    align_errors: list[str] = []
+    if spec[&quot;forecast_id&quot;] != scenario[&quot;forecast_id&quot;] or spec[&quot;forecast_id&quot;] != model_spec[&quot;forecast_id&quot;]:
+        align_errors.append(&quot;forecast_id&quot;)
+    if spec[&quot;target_metric&quot;] != scenario[&quot;target_metric&quot;] or spec[&quot;target_metric&quot;] != model_spec[&quot;target_metric&quot;]:
+        align_errors.append(&quot;target_metric&quot;)
+    if spec[&quot;target_segments&quot;] != scenario[&quot;target_segments&quot;] or spec[&quot;target_segments&quot;] != model_spec[&quot;target_segments&quot;]:
+        align_errors.append(&quot;target_segments&quot;)
+    if spec[&quot;timezone&quot;] != scenario[&quot;timezone&quot;]:
+        align_errors.append(&quot;timezone&quot;)
+    if spec[&quot;frequency&quot;] != scenario[&quot;frequency&quot;]:
+        align_errors.append(&quot;frequency&quot;)
+    if spec[&quot;upstream_model_run_id&quot;] != model_spec[&quot;model_run_id&quot;] or spec[&quot;upstream_model_run_id&quot;] != model_report[&quot;model_run_id&quot;]:
+        align_errors.append(&quot;upstream_model_run_id&quot;)
+    if model_report.get(&quot;valid&quot;) is not True:
+        align_errors.append(&quot;model_report_valid&quot;)
+    if final_forecast_horizon_days != parse_int(scenario[&quot;horizon_days&quot;], &quot;scenario.horizon_days&quot;):
+        align_errors.append(&quot;final_forecast_horizon_days&quot;)
+    if align_errors:
+        checks.append(failed(&quot;scenario_model_and_backtest_spec_align&quot;, sorted(set(align_errors)), &quot;scenario, model run, and backtest spec agree&quot;))
+    else:
+        checks.append(passed(&quot;scenario_model_and_backtest_spec_align&quot;, &quot;all setup ids and scenario values aligned&quot;))
+
+    segments = spec.get(&quot;target_segments&quot;)
+    candidate_model_ids = spec.get(&quot;candidate_model_ids&quot;)
+    baseline_model_ids = spec.get(&quot;baseline_model_ids&quot;)
+    if not isinstance(segments, list) or not segments:
+        checks.append(failed(&quot;target_segments_declared&quot;, segments, &quot;non-empty segment list&quot;))
+        return checks, None
+    checks.append(passed(&quot;target_segments_declared&quot;, segments))
+    if not isinstance(candidate_model_ids, list) or not all(isinstance(item, str) for item in candidate_model_ids):
+        checks.append(failed(&quot;candidate_model_ids_declared&quot;, candidate_model_ids, &quot;candidate model id list&quot;))
+        return checks, None
+    checks.append(passed(&quot;candidate_model_ids_declared&quot;, candidate_model_ids))
+    if baseline_model_ids != [spec[&quot;primary_baseline_model&quot;]]:
+        checks.append(failed(&quot;baseline_model_ids_declared&quot;, baseline_model_ids, [spec[&quot;primary_baseline_model&quot;]]))
+    else:
+        checks.append(passed(&quot;baseline_model_ids_declared&quot;, baseline_model_ids))
+
+    retraining_policy = spec.get(&quot;retraining_policy&quot;)
+    if not (
+        isinstance(retraining_policy, dict)
+        and retraining_policy.get(&quot;refit_each_origin&quot;) is True
+        and retraining_policy.get(&quot;reuse_final_forecast_fit&quot;) is False
+    ):
+        checks.append(failed(&quot;models_refit_each_origin&quot;, retraining_policy, &quot;refit each origin and do not reuse final fit&quot;))
+    else:
+        checks.append(passed(&quot;models_refit_each_origin&quot;, &quot;refit_each_origin&quot;))
+
+    split_plan = spec.get(&quot;split_plan&quot;)
+    if not isinstance(split_plan, list) or not split_plan:
+        checks.append(failed(&quot;split_plan_declared&quot;, split_plan, &quot;non-empty split plan&quot;))
+        return checks, None
+    parsed_splits: list[dict[str, Any]] = []
+    split_errors: list[dict[str, Any]] = []
+    for raw_split in split_plan:
+        if not isinstance(raw_split, dict):
+            split_errors.append({&quot;split&quot;: raw_split, &quot;error&quot;: &quot;split must be an object&quot;})
+            continue
+        split_checks, parsed = parse_split(raw_split, backtest_horizon_days, gap_days)
+        for check in split_checks:
+            if not check[&quot;valid&quot;]:
+                checks.append(check)
+                split_errors.append({&quot;split_id&quot;: raw_split.get(&quot;split_id&quot;, &quot;&quot;), &quot;check&quot;: check})
+        if parsed is not None:
+            parsed_splits.append(parsed)
+    if split_errors:
+        checks.append(failed(&quot;split_plan_valid&quot;, split_errors, &quot;all splits parse and pass split-level gates&quot;))
+    else:
+        checks.append(passed(&quot;split_plan_valid&quot;, len(parsed_splits)))
+
+    split_ids = [split[&quot;split_id&quot;] for split in parsed_splits]
+    duplicate_split_ids = [split_id for split_id, count in Counter(split_ids).items() if count &gt; 1]
+    if duplicate_split_ids:
+        checks.append(failed(&quot;split_ids_unique&quot;, duplicate_split_ids, &quot;unique split ids&quot;))
+    else:
+        checks.append(passed(&quot;split_ids_unique&quot;, split_ids))
+    ordered_origins = [split[&quot;forecast_origin&quot;] for split in parsed_splits]
+    if ordered_origins != sorted(ordered_origins):
+        checks.append(failed(&quot;origins_are_time_ordered&quot;, [item.isoformat() for item in ordered_origins], &quot;ascending origins&quot;))
+    else:
+        checks.append(passed(&quot;origins_are_time_ordered&quot;, [item.isoformat() for item in ordered_origins]))
+    window_types = {split[&quot;window_type&quot;] for split in parsed_splits}
+    if window_types != {&quot;expanding&quot;, &quot;rolling&quot;}:
+        checks.append(failed(&quot;backtest_includes_expanding_and_rolling_windows&quot;, sorted(window_types), [&quot;expanding&quot;, &quot;rolling&quot;]))
+    else:
+        checks.append(passed(&quot;backtest_includes_expanding_and_rolling_windows&quot;, sorted(window_types)))
+    if len(parsed_splits) &lt; minimum_origins_for_model_selection:
+        checks.append(
+            failed(
+                &quot;small_origin_count_blocks_model_selection_claim&quot;,
+                len(parsed_splits),
+                minimum_origins_for_model_selection,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;small_origin_count_blocks_model_selection_claim&quot;, len(parsed_splits)))
+    if backtest_horizon_days &lt; final_forecast_horizon_days:
+        checks.append(
+            failed(
+                &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;,
+                backtest_horizon_days,
+                final_forecast_horizon_days,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;, backtest_horizon_days))
+
+    model_checks, candidate_models = normalize_model_definitions(model_spec, candidate_model_ids)
+    checks.extend(model_checks)
+    if has_blocking_errors(checks):
+        return checks, None
+    context = {
+        &quot;timezone&quot;: timezone,
+        &quot;segments&quot;: segments,
+        &quot;candidate_models&quot;: candidate_models,
+        &quot;model_ids&quot;: [spec[&quot;primary_baseline_model&quot;], *candidate_model_ids],
+        &quot;seasonal_period_days&quot;: seasonal_period_days,
+        &quot;backtest_horizon_days&quot;: backtest_horizon_days,
+        &quot;final_forecast_horizon_days&quot;: final_forecast_horizon_days,
+        &quot;splits&quot;: parsed_splits,
+    }
+    return checks, context
+
+
+def parse_source_series(
+    rows: list[dict[str, str]],
+    fields: list[str],
+    spec: dict[str, Any],
+    context: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], dict[tuple[str, date], dict[str, Any]] | None]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SERIES_COLUMNS - set(fields))
+    if missing:
+        checks.append(failed(&quot;series_columns_present&quot;, missing, &quot;required backtest series columns&quot;))
+        return checks, None
+    checks.append(passed(&quot;series_columns_present&quot;, len(fields)))
+    parsed_rows: list[dict[str, Any]] = []
+    parse_errors: list[dict[str, str]] = []
+    for row in rows:
+        try:
+            parsed_rows.append(
+                {
+                    &quot;metric_id&quot;: row[&quot;metric_id&quot;],
+                    &quot;segment_id&quot;: row[&quot;segment_id&quot;],
+                    &quot;observed_date&quot;: parse_date(row[&quot;observed_date&quot;], &quot;observed_date&quot;),
+                    &quot;frequency&quot;: row[&quot;frequency&quot;],
+                    &quot;value&quot;: parse_number(row[&quot;value&quot;], &quot;value&quot;),
+                    &quot;is_complete_period&quot;: parse_bool(row[&quot;is_complete_period&quot;], &quot;is_complete_period&quot;),
+                    &quot;include_in_backtest&quot;: parse_bool(row[&quot;include_in_backtest&quot;], &quot;include_in_backtest&quot;),
+                }
+            )
+        except BacktestingError as error:
+            parse_errors.append({&quot;date&quot;: row.get(&quot;observed_date&quot;, &quot;&quot;), &quot;error&quot;: str(error)})
+    if parse_errors:
+        checks.append(failed(&quot;series_rows_parse&quot;, len(parse_errors), &quot;all series rows parse&quot;, parse_errors[:5]))
+        return checks, None
+    checks.append(passed(&quot;series_rows_parse&quot;, len(parsed_rows)))
+
+    target_rows = [
+        row
+        for row in parsed_rows
+        if row[&quot;metric_id&quot;] == spec[&quot;target_metric&quot;] and row[&quot;segment_id&quot;] in context[&quot;segments&quot;]
+    ]
+    key_counts = Counter((row[&quot;metric_id&quot;], row[&quot;segment_id&quot;], row[&quot;observed_date&quot;]) for row in target_rows)
+    duplicate_keys = [key for key, count in key_counts.items() if count &gt; 1]
+    if duplicate_keys:
+        checks.append(
+            failed(
+                &quot;source_segment_date_unique&quot;,
+                len(duplicate_keys),
+                &quot;one row per metric, segment, and historical date&quot;,
+                [&quot;:&quot;.join((key[0], key[1], key[2].isoformat())) for key in duplicate_keys[:5]],
+            )
+        )
+    else:
+        checks.append(passed(&quot;source_segment_date_unique&quot;, len(target_rows)))
+
+    invalid_rows = [
+        {&quot;segment_id&quot;: row[&quot;segment_id&quot;], &quot;observed_date&quot;: row[&quot;observed_date&quot;].isoformat()}
+        for row in target_rows
+        if row[&quot;frequency&quot;] != spec[&quot;frequency&quot;] or not row[&quot;is_complete_period&quot;] or not row[&quot;include_in_backtest&quot;]
+    ]
+    if invalid_rows:
+        checks.append(failed(&quot;backtest_rows_are_complete_and_eligible&quot;, len(invalid_rows), &quot;all target rows complete and eligible&quot;, invalid_rows[:5]))
+    else:
+        checks.append(passed(&quot;backtest_rows_are_complete_and_eligible&quot;, len(target_rows)))
+
+    by_key = {(row[&quot;segment_id&quot;], row[&quot;observed_date&quot;]): row for row in target_rows}
+    missing_samples: list[str] = []
+    for split in context[&quot;splits&quot;]:
+        required_dates = daterange(split[&quot;training_start&quot;], split[&quot;training_end&quot;]) + split[&quot;horizon_dates&quot;]
+        for segment in context[&quot;segments&quot;]:
+            for day in required_dates:
+                if (segment, day) not in by_key:
+                    missing_samples.append(f&quot;{split[&#x27;split_id&#x27;]}:{segment}:{day.isoformat()}&quot;)
+    if missing_samples:
+        checks.append(failed(&quot;actuals_available_for_every_origin_horizon&quot;, len(missing_samples), &quot;all training and horizon dates available&quot;, missing_samples[:10]))
+    else:
+        checks.append(passed(&quot;actuals_available_for_every_origin_horizon&quot;, &quot;all split training and horizon dates&quot;))
+    if has_blocking_errors(checks):
+        return checks, None
+    return checks, by_key
+
+
+def fit_candidate_model(series: pd.Series, model: dict[str, Any], raw_steps_requested: int) -&gt; dict[str, Any]:
+    captured_warnings: list[str] = []
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter(&quot;always&quot;)
+        family = model[&quot;family&quot;]
+        if family == &quot;ETS&quot;:
+            result = ExponentialSmoothing(
+                series,
+                trend=model.get(&quot;trend&quot;) or None,
+                damped_trend=bool(model.get(&quot;damped_trend&quot;, False)),
+                seasonal=model.get(&quot;seasonal&quot;) or None,
+                seasonal_periods=parse_int(model.get(&quot;seasonal_periods&quot;), f&quot;{model[&#x27;model_id&#x27;]}.seasonal_periods&quot;),
+                initialization_method=str(model.get(&quot;initialization_method&quot;, &quot;estimated&quot;)),
+            ).fit(optimized=True, remove_bias=False)
+        elif family == &quot;ARIMA&quot;:
+            result = ARIMA(
+                series,
+                order=tuple(model[&quot;order&quot;]),
+                seasonal_order=tuple(model[&quot;seasonal_order&quot;]),
+                trend=str(model.get(&quot;trend&quot;, &quot;n&quot;)),
+                enforce_stationarity=bool(model.get(&quot;enforce_stationarity&quot;, False)),
+                enforce_invertibility=bool(model.get(&quot;enforce_invertibility&quot;, False)),
+            ).fit()
+        else:
+            raise BacktestingError(f&quot;unsupported candidate family: {family}&quot;)
+        forecast = result.forecast(steps=raw_steps_requested)
+        for warning in caught:
+            captured_warnings.append(f&quot;{warning.category.__name__}: {warning.message}&quot;)
+    return {
+        &quot;forecast_values&quot;: [float(value) for value in forecast],
+        &quot;convergence_status&quot;: convergence_status(result),
+        &quot;warning_count&quot;: len(captured_warnings),
+        &quot;warnings&quot;: &quot; | &quot;.join(captured_warnings),
+        &quot;aic&quot;: getattr(result, &quot;aic&quot;, None),
+        &quot;bic&quot;: getattr(result, &quot;bic&quot;, None),
+    }
+
+
+def seasonal_naive_forecast(training_rows: list[dict[str, Any]], forecast_dates: list[date], seasonal_period_days: int) -&gt; dict[date, tuple[float, date]]:
+    values_by_date = {row[&quot;observed_date&quot;]: row[&quot;value&quot;] for row in training_rows}
+    output: dict[date, tuple[float, date]] = {}
+    for forecast_date in forecast_dates:
+        anchor_date = forecast_date - timedelta(days=seasonal_period_days)
+        if anchor_date not in values_by_date:
+            raise BacktestingError(f&quot;seasonal naive anchor is missing for {forecast_date.isoformat()}: {anchor_date.isoformat()}&quot;)
+        output[forecast_date] = (values_by_date[anchor_date], anchor_date)
+    return output
+
+
+def split_manifest_rows(spec: dict[str, Any], context: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, split in enumerate(context[&quot;splits&quot;], start=1):
+        rows.append(
+            {
+                &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+                &quot;split_id&quot;: split[&quot;split_id&quot;],
+                &quot;origin_index&quot;: index,
+                &quot;window_type&quot;: split[&quot;window_type&quot;],
+                &quot;forecast_origin&quot;: split[&quot;forecast_origin&quot;].isoformat(),
+                &quot;training_start&quot;: split[&quot;training_start&quot;].isoformat(),
+                &quot;training_end&quot;: split[&quot;training_end&quot;].isoformat(),
+                &quot;training_points&quot;: split[&quot;training_points&quot;],
+                &quot;embargo_dates&quot;: &quot;;&quot;.join(day.isoformat() for day in split[&quot;embargo_dates&quot;]),
+                &quot;first_forecast_date&quot;: split[&quot;first_forecast_date&quot;].isoformat(),
+                &quot;horizon_end&quot;: split[&quot;horizon_end&quot;].isoformat(),
+                &quot;horizon_days&quot;: len(split[&quot;horizon_dates&quot;]),
+                &quot;retraining_policy&quot;: &quot;refit_each_origin&quot;,
+            }
+        )
+    return rows
+
+
+def build_forecasts(
+    spec: dict[str, Any],
+    context: dict[str, Any],
+    series_by_key: dict[tuple[str, date], dict[str, Any]],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    forecast_rows: list[dict[str, Any]] = []
+    error_rows: list[dict[str, Any]] = []
+    fit_errors: list[dict[str, str]] = []
+    warning_samples: list[dict[str, Any]] = []
+
+    for split in context[&quot;splits&quot;]:
+        raw_steps_requested = (split[&quot;horizon_end&quot;] - split[&quot;training_end&quot;]).days
+        for segment in context[&quot;segments&quot;]:
+            training_dates = daterange(split[&quot;training_start&quot;], split[&quot;training_end&quot;])
+            training_rows = [series_by_key[(segment, day)] for day in training_dates]
+            index = pd.DatetimeIndex([pd.Timestamp(row[&quot;observed_date&quot;].isoformat()) for row in training_rows])
+            training_series = pd.Series([row[&quot;value&quot;] for row in training_rows], index=index, dtype=&quot;float64&quot;).asfreq(spec[&quot;frequency&quot;])
+            if training_series.isna().any():
+                fit_errors.append({&quot;split_id&quot;: split[&quot;split_id&quot;], &quot;segment_id&quot;: segment, &quot;model_id&quot;: &quot;*&quot;, &quot;error&quot;: &quot;training series has missing dates&quot;})
+                continue
+
+            try:
+                baseline_forecast = seasonal_naive_forecast(training_rows, split[&quot;horizon_dates&quot;], context[&quot;seasonal_period_days&quot;])
+            except BacktestingError as error:
+                fit_errors.append({&quot;split_id&quot;: split[&quot;split_id&quot;], &quot;segment_id&quot;: segment, &quot;model_id&quot;: spec[&quot;primary_baseline_model&quot;], &quot;error&quot;: str(error)})
+                continue
+            for horizon_step, forecast_date in enumerate(split[&quot;horizon_dates&quot;], start=1):
+                forecast_value, anchor_date = baseline_forecast[forecast_date]
+                actual_value = series_by_key[(segment, forecast_date)][&quot;value&quot;]
+                forecast_row = {
+                    &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+                    &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+                    &quot;split_id&quot;: split[&quot;split_id&quot;],
+                    &quot;window_type&quot;: split[&quot;window_type&quot;],
+                    &quot;metric_id&quot;: spec[&quot;target_metric&quot;],
+                    &quot;segment_id&quot;: segment,
+                    &quot;model_id&quot;: spec[&quot;primary_baseline_model&quot;],
+                    &quot;model_role&quot;: &quot;primary_baseline&quot;,
+                    &quot;family&quot;: &quot;Baseline&quot;,
+                    &quot;forecast_date&quot;: forecast_date.isoformat(),
+                    &quot;horizon_step&quot;: horizon_step,
+                    &quot;forecast_value&quot;: format_number(forecast_value),
+                    &quot;training_start&quot;: split[&quot;training_start&quot;].isoformat(),
+                    &quot;training_end&quot;: split[&quot;training_end&quot;].isoformat(),
+                    &quot;raw_step&quot;: (forecast_date - split[&quot;training_end&quot;]).days,
+                    &quot;anchor_dates&quot;: anchor_date.isoformat(),
+                    &quot;fit_status&quot;: &quot;fit&quot;,
+                    &quot;convergence_status&quot;: &quot;not_applicable&quot;,
+                    &quot;statsmodels_warning_count&quot;: 0,
+                    &quot;statsmodels_warnings&quot;: &quot;&quot;,
+                }
+                forecast_rows.append(forecast_row)
+                error_rows.append(error_row_from_forecast(forecast_row, actual_value))
+
+            for model in context[&quot;candidate_models&quot;]:
+                try:
+                    fit_result = fit_candidate_model(training_series, model, raw_steps_requested)
+                except Exception as error:  # noqa: BLE001 - report fit failure as backtest diagnostics.
+                    fit_errors.append({&quot;split_id&quot;: split[&quot;split_id&quot;], &quot;segment_id&quot;: segment, &quot;model_id&quot;: model[&quot;model_id&quot;], &quot;error&quot;: str(error)})
+                    continue
+                if fit_result[&quot;warning_count&quot;]:
+                    warning_samples.append(
+                        {
+                            &quot;split_id&quot;: split[&quot;split_id&quot;],
+                            &quot;segment_id&quot;: segment,
+                            &quot;model_id&quot;: model[&quot;model_id&quot;],
+                            &quot;warnings&quot;: fit_result[&quot;warnings&quot;],
+                        }
+                    )
+                for raw_step, forecast_value in enumerate(fit_result[&quot;forecast_values&quot;], start=1):
+                    forecast_date = split[&quot;training_end&quot;] + timedelta(days=raw_step)
+                    if forecast_date not in split[&quot;horizon_dates&quot;]:
+                        continue
+                    horizon_step = (forecast_date - split[&quot;first_forecast_date&quot;]).days + 1
+                    actual_value = series_by_key[(segment, forecast_date)][&quot;value&quot;]
+                    forecast_row = {
+                        &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+                        &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+                        &quot;split_id&quot;: split[&quot;split_id&quot;],
+                        &quot;window_type&quot;: split[&quot;window_type&quot;],
+                        &quot;metric_id&quot;: spec[&quot;target_metric&quot;],
+                        &quot;segment_id&quot;: segment,
+                        &quot;model_id&quot;: model[&quot;model_id&quot;],
+                        &quot;model_role&quot;: &quot;candidate&quot;,
+                        &quot;family&quot;: model[&quot;family&quot;],
+                        &quot;forecast_date&quot;: forecast_date.isoformat(),
+                        &quot;horizon_step&quot;: horizon_step,
+                        &quot;forecast_value&quot;: format_number(forecast_value),
+                        &quot;training_start&quot;: split[&quot;training_start&quot;].isoformat(),
+                        &quot;training_end&quot;: split[&quot;training_end&quot;].isoformat(),
+                        &quot;raw_step&quot;: raw_step,
+                        &quot;anchor_dates&quot;: &quot;&quot;,
+                        &quot;fit_status&quot;: &quot;fit&quot;,
+                        &quot;convergence_status&quot;: fit_result[&quot;convergence_status&quot;],
+                        &quot;statsmodels_warning_count&quot;: fit_result[&quot;warning_count&quot;],
+                        &quot;statsmodels_warnings&quot;: fit_result[&quot;warnings&quot;],
+                    }
+                    forecast_rows.append(forecast_row)
+                    error_rows.append(error_row_from_forecast(forecast_row, actual_value))
+
+    if fit_errors:
+        checks.append(failed(&quot;all_models_fit_each_origin&quot;, fit_errors, &quot;all baseline and candidate models fit&quot;))
+    else:
+        checks.append(passed(&quot;all_models_fit_each_origin&quot;, &quot;all models fit&quot;))
+    if warning_samples:
+        checks.append(failed(&quot;statsmodels_warnings_propagated&quot;, warning_samples, &quot;warnings captured in forecast rows&quot;, severity=&quot;warning&quot;))
+    else:
+        checks.append(passed(&quot;statsmodels_warnings_propagated&quot;, 0))
+
+    expected_rows = len(context[&quot;splits&quot;]) * len(context[&quot;segments&quot;]) * len(context[&quot;model_ids&quot;]) * context[&quot;backtest_horizon_days&quot;]
+    if len(forecast_rows) != expected_rows:
+        checks.append(failed(&quot;forecast_table_has_full_horizon&quot;, len(forecast_rows), expected_rows))
+    else:
+        checks.append(passed(&quot;forecast_table_has_full_horizon&quot;, len(forecast_rows)))
+    keys = [
+        (row[&quot;split_id&quot;], row[&quot;metric_id&quot;], row[&quot;segment_id&quot;], row[&quot;model_id&quot;], row[&quot;forecast_date&quot;])
+        for row in forecast_rows
+    ]
+    duplicate_keys = [key for key, count in Counter(keys).items() if count &gt; 1]
+    if duplicate_keys:
+        checks.append(failed(&quot;one_forecast_per_origin_segment_model_date&quot;, len(duplicate_keys), &quot;unique backtest forecast grain&quot;))
+    else:
+        checks.append(passed(&quot;one_forecast_per_origin_segment_model_date&quot;, len(forecast_rows)))
+    if len(error_rows) != len(forecast_rows):
+        checks.append(failed(&quot;raw_errors_emitted_for_every_forecast&quot;, len(error_rows), len(forecast_rows)))
+    else:
+        checks.append(passed(&quot;raw_errors_emitted_for_every_forecast&quot;, len(error_rows)))
+    return checks, forecast_rows, error_rows
+
+
+def error_row_from_forecast(forecast_row: dict[str, Any], actual_value: float) -&gt; dict[str, Any]:
+    forecast_value = float(forecast_row[&quot;forecast_value&quot;])
+    error = actual_value - forecast_value
+    return {
+        &quot;backtest_id&quot;: forecast_row[&quot;backtest_id&quot;],
+        &quot;forecast_id&quot;: forecast_row[&quot;forecast_id&quot;],
+        &quot;split_id&quot;: forecast_row[&quot;split_id&quot;],
+        &quot;window_type&quot;: forecast_row[&quot;window_type&quot;],
+        &quot;metric_id&quot;: forecast_row[&quot;metric_id&quot;],
+        &quot;segment_id&quot;: forecast_row[&quot;segment_id&quot;],
+        &quot;model_id&quot;: forecast_row[&quot;model_id&quot;],
+        &quot;model_role&quot;: forecast_row[&quot;model_role&quot;],
+        &quot;family&quot;: forecast_row[&quot;family&quot;],
+        &quot;forecast_date&quot;: forecast_row[&quot;forecast_date&quot;],
+        &quot;horizon_step&quot;: forecast_row[&quot;horizon_step&quot;],
+        &quot;forecast_value&quot;: forecast_row[&quot;forecast_value&quot;],
+        &quot;actual_value&quot;: format_number(actual_value),
+        &quot;error&quot;: format_number(error),
+        &quot;absolute_error&quot;: format_number(abs(error)),
+        &quot;squared_error&quot;: format_number(error * error),
+    }
+
+
+def empty_report(spec: dict[str, Any] | None, checks: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    warning_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;)
+    error_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;)
+    return {
+        &quot;audit_id&quot;: &quot;rolling-origin-backtest-report&quot;,
+        &quot;backtest_id&quot;: spec.get(&quot;backtest_id&quot;) if spec else None,
+        &quot;forecast_id&quot;: spec.get(&quot;forecast_id&quot;) if spec else None,
+        &quot;valid&quot;: error_count == 0,
+        &quot;warning_count&quot;: warning_count,
+        &quot;error_count&quot;: error_count,
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;split_rows&quot;: 0,
+            &quot;forecast_rows&quot;: 0,
+            &quot;error_rows&quot;: 0,
+            &quot;origins&quot;: 0,
+            &quot;models&quot;: [],
+        },
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: warning_count + error_count,
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;],
+        },
+    }
+
+
+def build_report(
+    spec: dict[str, Any],
+    checks: list[dict[str, Any]],
+    split_rows: list[dict[str, Any]],
+    forecast_rows: list[dict[str, Any]],
+    error_rows: list[dict[str, Any]],
+    context: dict[str, Any],
+) -&gt; dict[str, Any]:
+    warning_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;)
+    error_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;)
+    return {
+        &quot;audit_id&quot;: &quot;rolling-origin-backtest-report&quot;,
+        &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+        &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+        &quot;valid&quot;: error_count == 0,
+        &quot;warning_count&quot;: warning_count,
+        &quot;error_count&quot;: error_count,
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;split_rows&quot;: len(split_rows),
+            &quot;forecast_rows&quot;: len(forecast_rows),
+            &quot;error_rows&quot;: len(error_rows),
+            &quot;origins&quot;: len(context[&quot;splits&quot;]),
+            &quot;segments&quot;: context[&quot;segments&quot;],
+            &quot;models&quot;: context[&quot;model_ids&quot;],
+            &quot;backtest_horizon_days&quot;: context[&quot;backtest_horizon_days&quot;],
+            &quot;final_forecast_horizon_days&quot;: context[&quot;final_forecast_horizon_days&quot;],
+        },
+        &quot;retraining_policy&quot;: spec[&quot;retraining_policy&quot;],
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: warning_count + error_count,
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;],
+        },
+    }
+
+
+def build_backtest_package(
+    *,
+    series_path: Path,
+    scenario_path: Path,
+    model_spec_path: Path,
+    model_report_path: Path,
+    spec_path: Path,
+) -&gt; dict[str, Any]:
+    spec = read_json(spec_path)
+    scenario = read_json(scenario_path)
+    model_spec = read_json(model_spec_path)
+    model_report = read_json(model_report_path)
+    checks, context = normalize_inputs(spec, scenario, model_spec, model_report)
+    if context is None:
+        return {&quot;split_rows&quot;: [], &quot;forecast_rows&quot;: [], &quot;error_rows&quot;: [], &quot;report&quot;: empty_report(spec, checks)}
+    source_rows, source_fields = read_csv(series_path)
+    source_checks, series_by_key = parse_source_series(source_rows, source_fields, spec, context)
+    checks.extend(source_checks)
+    if has_blocking_errors(checks) or series_by_key is None:
+        return {&quot;split_rows&quot;: [], &quot;forecast_rows&quot;: [], &quot;error_rows&quot;: [], &quot;report&quot;: empty_report(spec, checks)}
+    split_rows = split_manifest_rows(spec, context)
+    forecast_checks, forecast_rows, error_rows = build_forecasts(spec, context, series_by_key)
+    checks.extend(forecast_checks)
+    report = build_report(spec, checks, split_rows, forecast_rows, error_rows, context)
+    return {&quot;split_rows&quot;: split_rows, &quot;forecast_rows&quot;: forecast_rows, &quot;error_rows&quot;: error_rows, &quot;report&quot;: report}
+
+
+def write_package(package: dict[str, Any], output_dir: Path) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_csv(
+        output_dir / &quot;split_manifest.csv&quot;,
+        package[&quot;split_rows&quot;],
+        [
+            &quot;backtest_id&quot;,
+            &quot;split_id&quot;,
+            &quot;origin_index&quot;,
+            &quot;window_type&quot;,
+            &quot;forecast_origin&quot;,
+            &quot;training_start&quot;,
+            &quot;training_end&quot;,
+            &quot;training_points&quot;,
+            &quot;embargo_dates&quot;,
+            &quot;first_forecast_date&quot;,
+            &quot;horizon_end&quot;,
+            &quot;horizon_days&quot;,
+            &quot;retraining_policy&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;backtest_forecasts.csv&quot;,
+        package[&quot;forecast_rows&quot;],
+        [
+            &quot;backtest_id&quot;,
+            &quot;forecast_id&quot;,
+            &quot;split_id&quot;,
+            &quot;window_type&quot;,
+            &quot;metric_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;model_id&quot;,
+            &quot;model_role&quot;,
+            &quot;family&quot;,
+            &quot;forecast_date&quot;,
+            &quot;horizon_step&quot;,
+            &quot;forecast_value&quot;,
+            &quot;training_start&quot;,
+            &quot;training_end&quot;,
+            &quot;raw_step&quot;,
+            &quot;anchor_dates&quot;,
+            &quot;fit_status&quot;,
+            &quot;convergence_status&quot;,
+            &quot;statsmodels_warning_count&quot;,
+            &quot;statsmodels_warnings&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;backtest_errors.csv&quot;,
+        package[&quot;error_rows&quot;],
+        [
+            &quot;backtest_id&quot;,
+            &quot;forecast_id&quot;,
+            &quot;split_id&quot;,
+            &quot;window_type&quot;,
+            &quot;metric_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;model_id&quot;,
+            &quot;model_role&quot;,
+            &quot;family&quot;,
+            &quot;forecast_date&quot;,
+            &quot;horizon_step&quot;,
+            &quot;forecast_value&quot;,
+            &quot;actual_value&quot;,
+            &quot;error&quot;,
+            &quot;absolute_error&quot;,
+            &quot;squared_error&quot;,
+        ],
+    )
+    (output_dir / &quot;backtest_report.json&quot;).write_text(
+        json.dumps(package[&quot;report&quot;], ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Run predeclared rolling-origin backtests for time-series candidates.&quot;)
+    parser.add_argument(&quot;--series&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--scenario&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--model-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--model-report&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=Path(&quot;outputs&quot;))
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args()
+
+    package = build_backtest_package(
+        series_path=args.series,
+        scenario_path=args.scenario,
+        model_spec_path=args.model_spec,
+        model_report_path=args.model_report,
+        spec_path=args.spec,
+    )
+    write_package(package, args.output_dir)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;split_rows&quot;: report[&quot;outputs&quot;][&quot;split_rows&quot;],
+                &quot;forecast_rows&quot;: report[&quot;outputs&quot;][&quot;forecast_rows&quot;],
+                &quot;error_rows&quot;: report[&quot;outputs&quot;][&quot;error_rows&quot;],
+                &quot;models&quot;: report[&quot;outputs&quot;][&quot;models&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+    if not report[&quot;valid&quot;] or (args.fail_on_warning and report[&quot;warning_count&quot;]):
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/rolling_backtester.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/split_manifest.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>backtest_id,split_id,origin_index,window_type,forecast_origin,training_start,training_end,training_points,embargo_dates,first_forecast_date,horizon_end,horizon_days,retraining_policy
+active-subscriptions-rolling-origin-backtest,bt-expanding-2026-02-24,1,expanding,2026-02-24T09:00:00+03:00,2026-02-02,2026-02-22,21,2026-02-23,2026-02-24,2026-02-26,3,refit_each_origin
+active-subscriptions-rolling-origin-backtest,bt-expanding-2026-03-03,2,expanding,2026-03-03T09:00:00+03:00,2026-02-02,2026-03-01,28,2026-03-02,2026-03-03,2026-03-05,3,refit_each_origin
+active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-10,3,rolling,2026-03-10T09:00:00+03:00,2026-02-16,2026-03-08,21,2026-03-09,2026-03-10,2026-03-12,3,refit_each_origin
+active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-14,4,rolling,2026-03-14T09:00:00+03:00,2026-02-20,2026-03-12,21,2026-03-13,2026-03-14,2026-03-16,3,refit_each_origin
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/09-backtesting/outputs/split_manifest.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/09-backtesting" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/time-series/ets-and-arima/"><span>← Предыдущий урок</span><strong>ETS и ARIMA</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/time-series/forecast-metrics/"><span>Следующий урок →</span><strong>Метрики прогноза</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

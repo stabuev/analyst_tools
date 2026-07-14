@@ -1,0 +1,3193 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 15/07 logistic baseline проиграл dummyprior на validation. Следующий соблазн: &quot;линейная модель слабая, давайте дерево, оно поймает non-linear pattern&quot;.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/trees/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Деревья решений">
+  <meta property="og:description" content="В 15/07 logistic baseline проиграл dummyprior на validation. Следующий соблазн: &quot;линейная модель слабая, давайте дерево, оно поймает non-linear pattern&quot;.">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/trees/">
+  <meta name="twitter:card" content="summary">
+  <title>Деревья решений — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Деревья решений", "description": "В 15/07 logistic baseline проиграл dummyprior на validation. Следующий соблазн: \"линейная модель слабая, давайте дерево, оно поймает non-linear pattern\".", "url": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/trees/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 15: Прикладное машинное обучение", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=15"}, {"@type": "ListItem", "position": 3, "name": "Деревья решений", "item": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/trees/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 15</p><h2>Прикладное машинное обучение</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/problem-framing/"><span>01</span>Постановка ML-задачи</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/data-splitting/"><span>02</span>Train, validation и test</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/metrics/"><span>03</span>Метрики и стоимость ошибки</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/preprocessing/"><span>04</span>Предобработка как часть модели</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/pipeline/"><span>05</span>scikit-learn Pipeline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/column-transformer/"><span>06</span>ColumnTransformer</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/linear-models/"><span>07</span>Линейные baseline</a><a class="lesson-sidebar-link is-active" href="../../../lessons/applied-machine-learning/trees/"><span>08</span>Деревья решений</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/ensembles/"><span>09</span>Ансамбли деревьев</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/cross-validation/"><span>10</span>Cross-validation</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>11</span>Несбалансированные классы</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/calibration/"><span>12</span>Калибровка вероятностей</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/leakage/"><span>13</span>Data leakage</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/error-analysis/"><span>14</span>Анализ ошибок по сегментам</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/model-card/"><span>15</span>Model card и ограничения</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 15 · Прикладное машинное обучение</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 164 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/15-applied-machine-learning/08-trees" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем после линейного baseline обучать маленькое decision tree?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы проверить простые non-linear правила и увидеть overfit/gap, не объявляя дерево production-моделью.</button><button type="button" class="quiz-option" data-choice="1">Чтобы заменить validation split train accuracy.</button><button type="button" class="quiz-option" data-choice="2">Чтобы получить causal explanation churn.</button><button type="button" class="quiz-option" data-choice="3">Чтобы автоматически исправить unknown categories.</button></div><p class="quiz-feedback" hidden>В этом уроке дерево - диагностический shape probe: оно показывает возможные правила и переобучение, но не отменяет baseline comparison и split policy.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему у diagnostic tree нужно заранее ограничить `max_depth` и `min_samples_leaf`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Без ограничений дерево легко запоминает маленький train и не обобщает на validation.</button><button type="button" class="quiz-option" data-choice="1">Без ограничений sklearn не сможет вызвать `predict_proba`.</button><button type="button" class="quiz-option" data-choice="2">Потому что ColumnTransformer запрещает деревья глубже 2.</button><button type="button" class="quiz-option" data-choice="3">Чтобы использовать test для выбора feature splits.</button></div><p class="quiz-feedback" hidden>Деревья склонны к переобучению, поэтому depth/leaf constraints должны быть частью spec до fit.</p></article></section>
+        <article class="lesson-article"><h1 id="деревья-решений">Деревья решений</h1>
+<blockquote>
+<p>Дерево полезно не потому, что оно красивое, а потому что его переобучение видно глазами.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML<br />
+<strong>Пререквизиты:</strong> <code>15-applied-machine-learning/07-linear-models</code><br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> вы обучаете decision tree как диагностическую non-linear модель, контролируя
+depth/min samples, train-validation gap и rule export.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Обучить <code>DecisionTreeClassifier</code> внутри того же <code>Pipeline(ColumnTransformer, estimator)</code>.</li>
+<li>Заранее ограничить <code>max_depth</code>, <code>min_samples_leaf</code>, <code>random_state</code> и diagnostic role.</li>
+<li>Сравнить train и validation, не выбирая дерево по train score и не используя test.</li>
+<li>Экспортировать readable rules с transformed feature names.</li>
+<li>Понять, почему tree rules не являются causal explanation и могут быть pure memorization.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>15/07</code> logistic baseline проиграл <code>dummy_prior</code> на validation. Следующий соблазн:
+&quot;линейная модель слабая, давайте дерево, оно поймает non-linear pattern&quot;.</p>
+<p>Это может быть хорошей диагностикой, но плохим решением без guardrails. На tiny-profile
+дерево сразу находит короткое правило:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">categorical__platform_android &gt; 0.500 -&gt; class 1
+</code></pre></div><p>На train оно выглядит идеально:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">precision_at_budget = 1.0
+accuracy_at_0_5 = 1.0
+log_loss = 0.0
+</code></pre></div><p>А на validation проваливается:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">precision_at_budget = 0.0
+accuracy_at_0_5 = 0.333333
+log_loss = 24.029102
+</code></pre></div><p>Значит дерево не &quot;улучшило baseline&quot;. Оно показало readable overfit pattern, который
+нужно опубликовать как warning.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Decision tree строит последовательность binary splits. Каждый leaf хранит распределение
+классов train rows, попавших в этот leaf; <code>predict_proba</code> возвращает долю классов внутри
+leaf. Поэтому pure leaf с двумя положительными train examples дает probability <code>1.0</code>, а
+pure leaf с двумя отрицательными - <code>0.0</code>.</p>
+<p>В этом уроке дерево имеет явный contract:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+  &quot;params&quot;: {
+    &quot;criterion&quot;: &quot;gini&quot;,
+    &quot;max_depth&quot;: 2,
+    &quot;min_samples_split&quot;: 2,
+    &quot;min_samples_leaf&quot;: 1,
+    &quot;random_state&quot;: 0
+  }
+}
+</code></pre></div><p>Даже при <code>max_depth=2</code> фактическая глубина получилась <code>1</code>: первый split уже идеально
+разделил четыре train rows. Это не победа, а красный флажок для tiny sample.</p>
+<p>Главные инварианты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">fit only on train
+use train predictions only for gap diagnostics
+compare tree to selected baseline on validation
+export rules with transformed feature names
+do not promote tree when validation is worse than baseline
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>Сначала проверьте один split вручную. В train rows:</p>
+<table>
+<thead>
+<tr>
+<th>snapshot_id</th>
+<th>platform</th>
+<th style="text-align:right">transformed feature</th>
+<th style="text-align:right">label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>S001</code></td>
+<td>android</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><code>S002</code></td>
+<td>ios</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td><code>S003</code></td>
+<td>web</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td><code>S004</code></td>
+<td>android</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+</tr>
+</tbody>
+</table>
+<p>Правило:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">def tree_score(platform_android: int) -&gt; float:
+    if platform_android &lt;= 0.5:
+        return 0.0
+    return 1.0
+</code></pre></div><p>На train оно идеально, но validation показывает перенос:</p>
+<table>
+<thead>
+<tr>
+<th>snapshot_id</th>
+<th style="text-align:right">label</th>
+<th style="text-align:right">score</th>
+<th>ошибка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>S005</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.0</td>
+<td>нет</td>
+</tr>
+<tr>
+<td><code>S006</code></td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.0</td>
+<td>false negative</td>
+</tr>
+<tr>
+<td><code>S007</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1.0</td>
+<td>false positive</td>
+</tr>
+</tbody>
+</table>
+<p>Top-2 по score на validation выбирает <code>S007</code> и <code>S005</code>, то есть <code>precision_at_budget = 0.0</code>.
+У выбранного в <code>15/07</code> <code>dummy_prior</code> было <code>0.5</code>. Поэтому дерево остается diagnostic,
+а не promoted baseline.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Урок поставляет CLI <code>tree-diagnostic-trainer</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/tree_diagnostic_trainer.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --column-transformer-spec ../data/tiny/column_transformer_spec.json \
+  --linear-baseline-spec ../data/tiny/linear_baseline_spec.json \
+  --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --output outputs/tree_report.json \
+  --overfit-output outputs/tree_overfit_report.csv \
+  --node-output outputs/tree_node_report.csv \
+  --rules-output outputs/tree_rules.txt \
+  --predictions-output outputs/tree_predictions.csv \
+  --serialized-spec-output outputs/tree_serialized_spec.json
+</code></pre></div><p>Короткий запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python code/main.py
+</code></pre></div><p>Ожидаемый итог:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;tree_diagnostic_id&quot;: &quot;trial-churn-tree-diagnostic-v0&quot;,
+  &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+  &quot;max_depth_limit&quot;: 2,
+  &quot;actual_tree_depth&quot;: 1,
+  &quot;leaf_count&quot;: 2,
+  &quot;split_features&quot;: [&quot;categorical__platform_android&quot;],
+  &quot;selected_linear_baseline_id&quot;: &quot;dummy_prior&quot;,
+  &quot;tree_validation_precision_at_budget&quot;: 0.0,
+  &quot;baseline_validation_precision_at_budget&quot;: 0.5,
+  &quot;train_validation_gaps&quot;: {
+    &quot;accuracy_at_0_5&quot;: 0.666667,
+    &quot;precision_at_budget&quot;: 1.0,
+    &quot;log_loss&quot;: 24.029102
+  },
+  &quot;warnings&quot;: [
+    &quot;tree_unknown_categories_bucketed&quot;,
+    &quot;tiny_tree_training_sample_expected&quot;,
+    &quot;tree_train_validation_gap_exceeds_threshold&quot;,
+    &quot;tree_diagnostic_worse_than_selected_baseline_on_validation&quot;
+  ],
+  &quot;readiness_status&quot;: &quot;ready_for_tree_ensemble_lesson&quot;
+}
+</code></pre></div><p>Артефакты:</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Зачем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tree_report.json</code></td>
+<td>Полный diagnostic report и checks.</td>
+</tr>
+<tr>
+<td><code>tree_overfit_report.csv</code></td>
+<td>Train/validation/test metrics и train-validation gaps.</td>
+</tr>
+<tr>
+<td><code>tree_node_report.csv</code></td>
+<td>Node-level tree structure: split feature, threshold, leaf counts.</td>
+</tr>
+<tr>
+<td><code>tree_rules.txt</code></td>
+<td>Compact readable rules через <code>export_text</code>.</td>
+</tr>
+<tr>
+<td><code>tree_predictions.csv</code></td>
+<td>Probability scores для train/validation/test.</td>
+</tr>
+<tr>
+<td><code>tree_serialized_spec.json</code></td>
+<td>sklearn version, tree params, split features и fit trace.</td>
+</tr>
+</tbody>
+</table>
+<p><code>tree_rules.txt</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">|--- categorical__platform_android &lt;= 0.500
+|   |--- weights: [2.000, 0.000] class: 0
+|--- categorical__platform_android &gt;  0.500
+|   |--- weights: [0.000, 2.000] class: 1
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<p>Уберите depth limit:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;candidate&quot;: {
+    &quot;params&quot;: {
+      &quot;max_depth&quot;: null
+    }
+  }
+}
+</code></pre></div><p>Аудитор должен заблокировать spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">tree_diagnostic_spec_declares_constrained_tree
+</code></pre></div><p>Другие failure modes:</p>
+<table>
+<thead>
+<tr>
+<th>Поломка</th>
+<th>Почему это ошибка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selection_data = &quot;test&quot;</code></td>
+<td>Test нельзя использовать для выбора дерева.</td>
+</tr>
+<tr>
+<td>Нет <code>random_state</code></td>
+<td>Tree construction может стать невоспроизводимым.</td>
+</tr>
+<tr>
+<td>Нет <code>rule_export.require_feature_names</code></td>
+<td>Правила становятся нечитаемыми после ColumnTransformer.</td>
+</tr>
+<tr>
+<td>Upstream linear baseline invalid</td>
+<td>Нельзя строить дерево без baseline handoff.</td>
+</tr>
+<tr>
+<td>Train содержит один класс</td>
+<td>Диагностический classifier не проверяет binary separation.</td>
+</tr>
+<tr>
+<td>Большой train-validation gap скрыт</td>
+<td>Overfit становится невидимым для следующего урока.</td>
+</tr>
+</tbody>
+</table>
+<p>Для строгого режима:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/tree_diagnostic_trainer.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --column-transformer-spec ../data/tiny/column_transformer_spec.json \
+  --linear-baseline-spec ../data/tiny/linear_baseline_spec.json \
+  --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --fail-on-warning
+</code></pre></div><p>На tiny-profile команда вернет non-zero из-за overfit warning.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты проверяют:</p>
+<ul>
+<li>tree spec требует depth/min leaf/random state/rule export;</li>
+<li>upstream <code>linear-baseline-trainer</code> проходит как handoff gate;</li>
+<li>дерево fit-ится только на train;</li>
+<li>predictions покрывают train/validation/test, но train используется только для gap;</li>
+<li>node report и rules используют transformed feature names;</li>
+<li>train-validation gap публикуется по accuracy, precision@budget и log loss;</li>
+<li>дерево хуже <code>dummy_prior</code> на validation и получает warning;</li>
+<li>CLI может падать на warning в strict mode.</li>
+</ul>
+<p>Запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest phases/15-applied-machine-learning/08-trees/tests/test_main.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/tree_diagnostic_trainer.py</code> можно использовать как diagnostic gate перед
+ансамблями. Он не заменяет baseline selection, а добавляет evidence:</p>
+<ul>
+<li>какое простое non-linear правило дерево нашло;</li>
+<li>насколько train score отличается от validation score;</li>
+<li>какие transformed features попали в split;</li>
+<li>можно ли вообще обсуждать tree/ensemble дальше без скрытого test peeking.</li>
+</ul>
+<p>На текущем tiny-profile вывод простой: дерево читаемое, но переобученное; следующий урок
+про ансамбли должен начинаться с этого warning, а не с обещания &quot;деревья всегда лучше&quot;.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Поставьте <code>min_samples_leaf = 2</code> и объясните, почему на этом tiny-profile дерево все
+равно остается overfit-prone diagnostic.</li>
+<li>Добавьте второй tree candidate с <code>criterion = &quot;entropy&quot;</code> и сравните rules, не используя
+test для выбора.</li>
+<li>Удалите <code>require_feature_names</code> из spec и проверьте, что CLI блокирует rule export.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree</td>
+<td>&quot;Интерпретируемая модель, значит надежная&quot;</td>
+<td>Набор split rules, который может очень быстро переобучиться.</td>
+</tr>
+<tr>
+<td>Max depth</td>
+<td>&quot;Косметическое ограничение&quot;</td>
+<td>Pre-pruning control, ограничивающий сложность правил.</td>
+</tr>
+<tr>
+<td>Leaf probability</td>
+<td>&quot;Калиброванная вероятность&quot;</td>
+<td>Доля train labels внутри leaf; на маленьком leaf легко становится 0 или 1.</td>
+</tr>
+<tr>
+<td>Train-validation gap</td>
+<td>&quot;Просто разница метрик&quot;</td>
+<td>Сигнал, что rule хорошо описал train, но плохо переносится.</td>
+</tr>
+<tr>
+<td>Rule export</td>
+<td>&quot;Объяснение причины&quot;</td>
+<td>Читаемый trace split-ов в transformed feature space, не causal claim.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html" target="_blank" rel="noopener">DecisionTreeClassifier - scikit-learn API</a> - параметры <code>criterion</code>, <code>max_depth</code>, <code>min_samples_leaf</code>, <code>class_weight</code>, <code>random_state</code>.</li>
+<li><a href="https://scikit-learn.org/stable/modules/tree.html" target="_blank" rel="noopener">Decision Trees user guide</a> - преимущества, ограничения, overfitting, <code>max_depth</code> и <code>min_samples_leaf</code> как практические controls.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.tree.export_text.html" target="_blank" rel="noopener">export_text - scikit-learn API</a> - компактный текстовый экспорт правил без Graphviz.</li>
+<li><a href="https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html" target="_blank" rel="noopener">Understanding the decision tree structure</a> - как читать <code>tree_</code>, node ids, thresholds, children и leaf values.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает большой train-validation gap у дерева?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Модель хорошо описала train, но ее правила плохо переносятся на validation; это warning против promotion.</button><button type="button" class="quiz-option" data-choice="1">Validation нужно добавить в train и переобучить без отчета.</button><button type="button" class="quiz-option" data-choice="2">Test можно использовать для выбора другого max_depth.</button><button type="button" class="quiz-option" data-choice="3">Feature names больше не нужны.</button></div><p class="quiz-feedback" hidden>Gap показывает риск переобучения. Его нужно опубликовать и использовать как diagnostic evidence, а не скрывать.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Как правильно интерпретировать правило `categorical__platform_android &lt;= 0.500`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Как split по transformed one-hot feature внутри текущего Pipeline, а не causal effect платформы.</button><button type="button" class="quiz-option" data-choice="1">Как доказательство, что Android вызывает churn.</button><button type="button" class="quiz-option" data-choice="2">Как правило, полученное из raw column без preprocessing.</button><button type="button" class="quiz-option" data-choice="3">Как стабильное production-правило без проверки на новых данных.</button></div><p class="quiz-feedback" hidden>Правило относится к transformed feature space после ColumnTransformer и может быть результатом tiny-sample memorization.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что делать, если tree хуже выбранного dummy baseline на validation?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Оставить warning и не продвигать дерево как улучшение, даже если train идеально выглядит.</button><button type="button" class="quiz-option" data-choice="1">Выбрать дерево по train accuracy.</button><button type="button" class="quiz-option" data-choice="2">Скрыть dummy baseline из отчета.</button><button type="button" class="quiz-option" data-choice="3">Посмотреть test и выбрать дерево, если test лучше.</button></div><p class="quiz-feedback" hidden>Validation-only comparison остается главным gate. Идеальный train score не компенсирует проигрыш baseline на validation.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_diagnostic_trainer.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+GENERATOR = PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from tree_diagnostic_trainer import run  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class TreeDiagnosticTrainerTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **outputs: Path) -&gt; dict:
+        return run(
+            spec_path=root / &quot;problem_spec.json&quot;,
+            preprocessing_contract_path=root / &quot;preprocessing_contract.json&quot;,
+            pipeline_spec_path=root / &quot;pipeline_spec.json&quot;,
+            column_transformer_spec_path=root / &quot;column_transformer_spec.json&quot;,
+            linear_baseline_spec_path=root / &quot;linear_baseline_spec.json&quot;,
+            tree_diagnostic_spec_path=root / &quot;tree_diagnostic_spec.json&quot;,
+            features_path=root / &quot;ml_raw_features.csv&quot;,
+            labels_path=root / &quot;ml_labels.csv&quot;,
+            manifest_path=root / &quot;ml_split_manifest.csv&quot;,
+            **outputs,
+        )
+
+    def copy_profile(self, directory: Path) -&gt; Path:
+        target = directory / &quot;tiny&quot;
+        shutil.copytree(DATA_ROOT, target)
+        return target
+
+    def test_valid_tree_diagnostic_exports_overfit_probe(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;tree_diagnostic_id&quot;], &quot;trial-churn-tree-diagnostic-v0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;sklearn_version&quot;], &quot;1.9.0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_row_count&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;model_id&quot;], &quot;decision_tree_depth2&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;max_depth_limit&quot;], 2)
+        self.assertEqual(report[&quot;summary&quot;][&quot;actual_tree_depth&quot;], 1)
+        self.assertEqual(report[&quot;summary&quot;][&quot;leaf_count&quot;], 2)
+        self.assertEqual(report[&quot;summary&quot;][&quot;node_count&quot;], 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;transformed_feature_count&quot;], 24)
+        self.assertEqual(report[&quot;summary&quot;][&quot;prediction_row_count&quot;], 12)
+        self.assertEqual(report[&quot;summary&quot;][&quot;rule_line_count&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;split_features&quot;], [&quot;categorical__platform_android&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_tree_ensemble_lesson&quot;)
+
+    def test_tree_metrics_show_train_validation_gap_and_baseline_comparison(self) -&gt; None:
+        report = self.audit()
+
+        self.assertEqual(report[&quot;summary&quot;][&quot;selected_linear_baseline_id&quot;], &quot;dummy_prior&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;baseline_validation_precision_at_budget&quot;], 0.5)
+        self.assertEqual(report[&quot;summary&quot;][&quot;tree_validation_precision_at_budget&quot;], 0.0)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;train_metrics&quot;],
+            {
+                &quot;precision_at_budget&quot;: 1.0,
+                &quot;recall_at_budget&quot;: 1.0,
+                &quot;average_precision&quot;: 1.0,
+                &quot;log_loss&quot;: 0.0,
+                &quot;error_cost_at_budget&quot;: 0.0,
+                &quot;accuracy_at_0_5&quot;: 1.0,
+            },
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;validation_metrics&quot;][&quot;log_loss&quot;], 24.029102)
+        self.assertEqual(report[&quot;summary&quot;][&quot;validation_metrics&quot;][&quot;accuracy_at_0_5&quot;], 0.333333)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;train_validation_gaps&quot;],
+            {
+                &quot;accuracy_at_0_5&quot;: 0.666667,
+                &quot;precision_at_budget&quot;: 1.0,
+                &quot;log_loss&quot;: 24.029102,
+            },
+        )
+
+    def test_overfit_report_flags_all_declared_gap_metrics(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;metric&quot;]: row for row in report[&quot;overfit&quot;]}
+
+        self.assertEqual(set(rows), {&quot;accuracy_at_0_5&quot;, &quot;precision_at_budget&quot;, &quot;log_loss&quot;})
+        self.assertTrue(rows[&quot;accuracy_at_0_5&quot;][&quot;warning_triggered&quot;])
+        self.assertEqual(rows[&quot;accuracy_at_0_5&quot;][&quot;warning_threshold&quot;], 0.25)
+        self.assertEqual(rows[&quot;precision_at_budget&quot;][&quot;train_validation_gap&quot;], 1.0)
+        self.assertEqual(rows[&quot;log_loss&quot;][&quot;train_validation_gap&quot;], 24.029102)
+        gap_check = check(report, &quot;train_validation_gap_reported&quot;)
+        self.assertTrue(gap_check[&quot;valid&quot;])
+        self.assertEqual(
+            gap_check[&quot;observed&quot;][&quot;triggered&quot;],
+            [&quot;accuracy_at_0_5&quot;, &quot;precision_at_budget&quot;, &quot;log_loss&quot;],
+        )
+
+    def test_node_report_and_rules_use_transformed_feature_names(self) -&gt; None:
+        report = self.audit()
+        nodes = report[&quot;nodes&quot;]
+        rules = report[&quot;rules&quot;]
+
+        self.assertEqual(len(nodes), 3)
+        self.assertEqual(nodes[0][&quot;node_id&quot;], 0)
+        self.assertEqual(nodes[0][&quot;feature_name&quot;], &quot;categorical__platform_android&quot;)
+        self.assertEqual(nodes[0][&quot;threshold&quot;], 0.5)
+        self.assertEqual(nodes[1][&quot;predicted_class&quot;], 0)
+        self.assertEqual(nodes[2][&quot;predicted_class&quot;], 1)
+        self.assertIn(&quot;categorical__platform_android &lt;= 0.500&quot;, rules)
+        self.assertIn(&quot;weights: [2.000, 0.000] class: 0&quot;, rules)
+        rules_check = check(report, &quot;tree_rules_exported_with_feature_names&quot;)
+        self.assertTrue(rules_check[&quot;valid&quot;])
+        self.assertEqual(
+            rules_check[&quot;observed&quot;][&quot;used_feature_names&quot;],
+            [&quot;categorical__platform_android&quot;],
+        )
+
+    def test_predictions_cover_train_validation_and_test_for_gap_diagnostics(self) -&gt; None:
+        report = self.audit()
+        rows = report[&quot;predictions&quot;]
+
+        self.assertEqual(len(rows), 12)
+        self.assertEqual({row[&quot;split&quot;] for row in rows}, {&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;})
+        self.assertEqual({row[&quot;model_id&quot;] for row in rows}, {&quot;decision_tree_depth2&quot;})
+        self.assertEqual({row[&quot;trained_on_split&quot;] for row in rows}, {&quot;train&quot;})
+        scores = {row[&quot;snapshot_id&quot;]: row[&quot;score&quot;] for row in rows}
+        self.assertEqual(
+            scores,
+            {
+                &quot;S001&quot;: 1.0,
+                &quot;S002&quot;: 0.0,
+                &quot;S003&quot;: 0.0,
+                &quot;S004&quot;: 1.0,
+                &quot;S005&quot;: 0.0,
+                &quot;S006&quot;: 0.0,
+                &quot;S007&quot;: 1.0,
+                &quot;S009&quot;: 1.0,
+                &quot;S010&quot;: 0.0,
+                &quot;S011&quot;: 0.0,
+                &quot;S012&quot;: 1.0,
+                &quot;S013&quot;: 0.0,
+            },
+        )
+        self.assertEqual({row[&quot;generated_at&quot;] for row in rows}, {&quot;2026-07-02T12:00:00+03:00&quot;})
+
+    def test_serialized_spec_records_tree_and_handoff_trace(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;tree_diagnostic_id&quot;], &quot;trial-churn-tree-diagnostic-v0&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;class&quot;], &quot;DecisionTreeClassifier&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;actual_depth&quot;], 1)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;leaf_count&quot;], 2)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;split_features&quot;], [&quot;categorical__platform_android&quot;])
+        self.assertEqual(serialized[&quot;baseline_reference&quot;][&quot;selected_baseline_id&quot;], &quot;dummy_prior&quot;)
+        self.assertFalse(serialized[&quot;baseline_reference&quot;][&quot;test_used_for_selection&quot;])
+        fit, validation, test = serialized[&quot;fit_trace&quot;]
+        self.assertEqual(fit[&quot;event&quot;], &quot;pipeline.fit&quot;)
+        self.assertEqual(fit[&quot;snapshot_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertFalse(validation[&quot;fits_anything&quot;])
+        self.assertFalse(test[&quot;fits_anything&quot;])
+
+    def test_code_example_writes_report_overfit_nodes_rules_predictions_and_serialized_spec(
+        self,
+    ) -&gt; None:
+        report_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_report.json&quot;
+        overfit_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_overfit_report.csv&quot;
+        node_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_node_report.csv&quot;
+        rules_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_rules.txt&quot;
+        predictions_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_predictions.csv&quot;
+        serialized_path = LESSON_ROOT / &quot;outputs&quot; / &quot;tree_serialized_spec.json&quot;
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;tree_diagnostic_id&quot;], &quot;trial-churn-tree-diagnostic-v0&quot;)
+        self.assertEqual(payload[&quot;actual_tree_depth&quot;], 1)
+        self.assertEqual(payload[&quot;split_features&quot;], [&quot;categorical__platform_android&quot;])
+        self.assertEqual(payload[&quot;tree_validation_precision_at_budget&quot;], 0.0)
+        self.assertEqual(payload[&quot;baseline_validation_precision_at_budget&quot;], 0.5)
+        self.assertEqual(payload[&quot;prediction_row_count&quot;], 12)
+        self.assertEqual(read_json(report_path)[&quot;summary&quot;][&quot;model_id&quot;], &quot;decision_tree_depth2&quot;)
+        self.assertEqual(len(read_csv(overfit_path)), 3)
+        self.assertEqual(len(read_csv(node_path)), 3)
+        self.assertIn(&quot;categorical__platform_android&quot;, rules_path.read_text(encoding=&quot;utf-8&quot;))
+        self.assertEqual(len(read_csv(predictions_path)), 12)
+        self.assertEqual(read_json(serialized_path)[&quot;model&quot;][&quot;node_count&quot;], 3)
+
+    def test_data_generator_check_rebuilds_committed_tree_diagnostic_inputs(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, GENERATOR, &quot;--check&quot;, &quot;--output&quot;, DATA_ROOT],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+        self.assertTrue((DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;).exists())
+
+    def test_missing_depth_limit_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;tree_diagnostic_spec.json&quot;)
+            spec[&quot;candidate&quot;][&quot;params&quot;][&quot;max_depth&quot;] = None
+            write_json(root / &quot;tree_diagnostic_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;tree_diagnostic_spec_declares_constrained_tree&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;candidate.params.max_depth&quot;)
+
+    def test_selection_data_must_stay_validation_not_test(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;tree_diagnostic_spec.json&quot;)
+            spec[&quot;comparison&quot;][&quot;selection_data&quot;] = &quot;test&quot;
+            write_json(root / &quot;tree_diagnostic_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;tree_diagnostic_spec_declares_constrained_tree&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;comparison.selection_data&quot;)
+
+    def test_rule_export_must_require_feature_names(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;tree_diagnostic_spec.json&quot;)
+            spec[&quot;rule_export&quot;][&quot;require_feature_names&quot;] = False
+            write_json(root / &quot;tree_diagnostic_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;tree_diagnostic_spec_declares_constrained_tree&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;rule_export.require_feature_names&quot;)
+
+    def test_manifest_roles_must_preserve_split_meaning(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_split_manifest.csv&quot;)
+            rows[0][&quot;role&quot;] = &quot;final_once_only_evaluation&quot;
+            write_csv(root / &quot;ml_split_manifest.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        manifest = check(report, &quot;split_manifest_supports_tree_diagnostic_roles&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(manifest[&quot;valid&quot;])
+        self.assertEqual(manifest[&quot;sample&quot;][0][&quot;field&quot;], &quot;role&quot;)
+
+    def test_upstream_linear_baseline_must_be_valid_before_tree_fit(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;linear_baseline_spec.json&quot;)
+            spec[&quot;fit_split&quot;] = &quot;validation&quot;
+            write_json(root / &quot;linear_baseline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        upstream = check(report, &quot;upstream_linear_baseline_audit_is_valid&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(upstream[&quot;valid&quot;])
+        self.assertIn(
+            &quot;upstream_linear_baseline_audit_is_valid&quot;,
+            report[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_tree_fit_requires_both_train_classes(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_labels.csv&quot;)
+            for row in rows:
+                if row[&quot;snapshot_id&quot;] in {&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;}:
+                    row[&quot;churned_14d&quot;] = &quot;false&quot;
+            write_csv(root / &quot;ml_labels.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        upstream = check(report, &quot;upstream_linear_baseline_audit_is_valid&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(upstream[&quot;valid&quot;])
+
+    def test_gap_and_baseline_failures_are_warnings_not_blocking_errors(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        gap = check(report, &quot;tree_train_validation_gap_exceeds_threshold&quot;)
+        worse = check(report, &quot;tree_diagnostic_worse_than_selected_baseline_on_validation&quot;)
+        self.assertEqual(gap[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(gap[&quot;valid&quot;])
+        self.assertEqual(gap[&quot;observed&quot;][0][&quot;metric&quot;], &quot;accuracy_at_0_5&quot;)
+        self.assertEqual(worse[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(worse[&quot;valid&quot;])
+        self.assertEqual(worse[&quot;observed&quot;][&quot;selected_baseline_id&quot;], &quot;dummy_prior&quot;)
+        self.assertEqual(worse[&quot;observed&quot;][&quot;tree_precision_at_budget&quot;], 0.0)
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_spec(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;tree_diagnostic_spec.json&quot;)
+            spec[&quot;candidate&quot;][&quot;kind&quot;] = &quot;random_forest_classifier&quot;
+            write_json(root / &quot;tree_diagnostic_spec.json&quot;, spec)
+            output = Path(directory) / &quot;report.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    root / &quot;problem_spec.json&quot;,
+                    &quot;--preprocessing-contract&quot;,
+                    root / &quot;preprocessing_contract.json&quot;,
+                    &quot;--pipeline-spec&quot;,
+                    root / &quot;pipeline_spec.json&quot;,
+                    &quot;--column-transformer-spec&quot;,
+                    root / &quot;column_transformer_spec.json&quot;,
+                    &quot;--linear-baseline-spec&quot;,
+                    root / &quot;linear_baseline_spec.json&quot;,
+                    &quot;--tree-diagnostic-spec&quot;,
+                    root / &quot;tree_diagnostic_spec.json&quot;,
+                    &quot;--features&quot;,
+                    root / &quot;ml_raw_features.csv&quot;,
+                    &quot;--labels&quot;,
+                    root / &quot;ml_labels.csv&quot;,
+                    &quot;--manifest&quot;,
+                    root / &quot;ml_split_manifest.csv&quot;,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            payload = read_json(output)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(payload[&quot;valid&quot;])
+        self.assertIn(
+            &quot;tree_diagnostic_spec_declares_constrained_tree&quot;,
+            payload[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_cli_can_fail_on_warning_for_strict_gate(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--spec&quot;,
+                DATA_ROOT / &quot;problem_spec.json&quot;,
+                &quot;--preprocessing-contract&quot;,
+                DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+                &quot;--pipeline-spec&quot;,
+                DATA_ROOT / &quot;pipeline_spec.json&quot;,
+                &quot;--column-transformer-spec&quot;,
+                DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+                &quot;--linear-baseline-spec&quot;,
+                DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+                &quot;--tree-diagnostic-spec&quot;,
+                DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+                &quot;--features&quot;,
+                DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+                &quot;--labels&quot;,
+                DATA_ROOT / &quot;ml_labels.csv&quot;,
+                &quot;--manifest&quot;,
+                DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+                &quot;--fail-on-warning&quot;,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(&quot;tree_train_validation_gap_exceeds_threshold&quot;, result.stdout)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+sys.path.insert(0, str(OUTPUT_ROOT))
+
+from tree_diagnostic_trainer import json_ready, run  # noqa: E402
+
+
+def main() -&gt; None:
+    report = run(
+        spec_path=DATA_ROOT / &quot;problem_spec.json&quot;,
+        preprocessing_contract_path=DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+        pipeline_spec_path=DATA_ROOT / &quot;pipeline_spec.json&quot;,
+        column_transformer_spec_path=DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+        linear_baseline_spec_path=DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+        tree_diagnostic_spec_path=DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+        features_path=DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+        labels_path=DATA_ROOT / &quot;ml_labels.csv&quot;,
+        manifest_path=DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+        report_output_path=OUTPUT_ROOT / &quot;tree_report.json&quot;,
+        overfit_output_path=OUTPUT_ROOT / &quot;tree_overfit_report.csv&quot;,
+        node_output_path=OUTPUT_ROOT / &quot;tree_node_report.csv&quot;,
+        rules_output_path=OUTPUT_ROOT / &quot;tree_rules.txt&quot;,
+        predictions_output_path=OUTPUT_ROOT / &quot;tree_predictions.csv&quot;,
+        serialized_spec_output_path=OUTPUT_ROOT / &quot;tree_serialized_spec.json&quot;,
+    )
+    summary = {
+        &quot;audit_valid&quot;: report[&quot;valid&quot;],
+        &quot;problem_id&quot;: report[&quot;problem_id&quot;],
+        &quot;tree_diagnostic_id&quot;: report[&quot;summary&quot;][&quot;tree_diagnostic_id&quot;],
+        &quot;sklearn_version&quot;: report[&quot;summary&quot;][&quot;sklearn_version&quot;],
+        &quot;fit_split&quot;: report[&quot;summary&quot;][&quot;fit_split&quot;],
+        &quot;fit_row_count&quot;: report[&quot;summary&quot;][&quot;fit_row_count&quot;],
+        &quot;model_id&quot;: report[&quot;summary&quot;][&quot;model_id&quot;],
+        &quot;max_depth_limit&quot;: report[&quot;summary&quot;][&quot;max_depth_limit&quot;],
+        &quot;actual_tree_depth&quot;: report[&quot;summary&quot;][&quot;actual_tree_depth&quot;],
+        &quot;leaf_count&quot;: report[&quot;summary&quot;][&quot;leaf_count&quot;],
+        &quot;split_features&quot;: report[&quot;summary&quot;][&quot;split_features&quot;],
+        &quot;selected_linear_baseline_id&quot;: report[&quot;summary&quot;][&quot;selected_linear_baseline_id&quot;],
+        &quot;tree_validation_precision_at_budget&quot;: report[&quot;summary&quot;][
+            &quot;tree_validation_precision_at_budget&quot;
+        ],
+        &quot;baseline_validation_precision_at_budget&quot;: report[&quot;summary&quot;][
+            &quot;baseline_validation_precision_at_budget&quot;
+        ],
+        &quot;train_validation_gaps&quot;: report[&quot;summary&quot;][&quot;train_validation_gaps&quot;],
+        &quot;prediction_row_count&quot;: report[&quot;summary&quot;][&quot;prediction_row_count&quot;],
+        &quot;rule_line_count&quot;: report[&quot;summary&quot;][&quot;rule_line_count&quot;],
+        &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+        &quot;readiness_status&quot;: report[&quot;summary&quot;][&quot;readiness_status&quot;],
+    }
+    print(json.dumps(json_ready(summary), ensure_ascii=False))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;tree-diagnostic-trainer&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/tree_diagnostic_trainer.py&quot;,
+  &quot;description&quot;: &quot;Fit-ит depth-limited DecisionTreeClassifier внутри sklearn Pipeline(ColumnTransformer, estimator), проверяет upstream linear baseline handoff, считает train-validation gap, экспортирует readable rules, node report, predictions, serialized spec и tree diagnostic report.&quot;,
+  &quot;usage&quot;: &quot;python outputs/tree_diagnostic_trainer.py --spec ../data/tiny/problem_spec.json --preprocessing-contract ../data/tiny/preprocessing_contract.json --pipeline-spec ../data/tiny/pipeline_spec.json --column-transformer-spec ../data/tiny/column_transformer_spec.json --linear-baseline-spec ../data/tiny/linear_baseline_spec.json --tree-diagnostic-spec ../data/tiny/tree_diagnostic_spec.json --features ../data/tiny/ml_raw_features.csv --labels ../data/tiny/ml_labels.csv --manifest ../data/tiny/ml_split_manifest.csv --output outputs/tree_report.json --overfit-output outputs/tree_overfit_report.csv --node-output outputs/tree_node_report.csv --rules-output outputs/tree_rules.txt --predictions-output outputs/tree_predictions.csv --serialized-spec-output outputs/tree_serialized_spec.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_diagnostic_trainer.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402, I001
+
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import sklearn
+from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+LINEAR_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;07-linear-models&quot; / &quot;outputs&quot;
+COLUMN_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;06-column-transformer&quot; / &quot;outputs&quot;
+for output_root in (LINEAR_OUTPUT_ROOT, COLUMN_OUTPUT_ROOT):
+    if str(output_root) not in sys.path:
+        sys.path.insert(0, str(output_root))
+
+from column_transformer_auditor import (  # noqa: E402
+    ColumnTransformerAuditError,
+    build_column_transformer,
+    build_feature_schema,
+    failed,
+    make_frame,
+    make_target,
+    passed,
+    parse_float,
+    read_csv,
+    read_json,
+    rounded,
+    rows_by_id,
+    split_ids,
+    write_json,
+)
+from linear_baseline_trainer import (  # noqa: E402
+    LinearBaselineError,
+    cost_weights,
+    metric_by_model,
+    prediction_rows_for_split,
+    run as run_linear_baseline_audit,
+    selection_budget,
+    split_metric_row,
+)
+
+REQUIRED_MANIFEST_COLUMNS = {
+    &quot;snapshot_id&quot;,
+    &quot;user_id&quot;,
+    &quot;prediction_time&quot;,
+    &quot;split&quot;,
+    &quot;split_order&quot;,
+    &quot;role&quot;,
+    &quot;assigned_by_policy&quot;,
+}
+ROLE_BY_SPLIT = {
+    &quot;train&quot;: &quot;fit_preprocessing_and_estimator&quot;,
+    &quot;validation&quot;: &quot;model_selection_and_threshold_selection&quot;,
+    &quot;test&quot;: &quot;final_once_only_evaluation&quot;,
+}
+GENERATED_AT = &quot;2026-07-02T12:00:00+03:00&quot;
+TINY_TRAIN_WARNING_THRESHOLD = 20
+
+
+class TreeDiagnosticError(ValueError):
+    &quot;&quot;&quot;Raised when tree diagnostic inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_text(path: Path, value: str) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(value if value.endswith(&quot;\n&quot;) else value + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def validate_tree_diagnostic_spec(
+    *,
+    problem_spec: dict[str, Any],
+    pipeline_spec: dict[str, Any],
+    column_transformer_spec: dict[str, Any],
+    linear_baseline_spec: dict[str, Any],
+    tree_diagnostic_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    expected_identity = {
+        &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+        &quot;pipeline_id&quot;: pipeline_spec.get(&quot;pipeline_id&quot;),
+        &quot;column_transformer_id&quot;: column_transformer_spec.get(&quot;column_transformer_id&quot;),
+        &quot;linear_baseline_id&quot;: linear_baseline_spec.get(&quot;linear_baseline_id&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if tree_diagnostic_spec.get(field) != expected:
+            errors.append(
+                {&quot;field&quot;: field, &quot;observed&quot;: tree_diagnostic_spec.get(field), &quot;expected&quot;: expected}
+            )
+
+    expected_splits = {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;diagnostic_role&quot;: &quot;non_linear_shape_probe_not_production_promotion&quot;,
+    }
+    for field, expected in expected_splits.items():
+        if tree_diagnostic_spec.get(field) != expected:
+            errors.append(
+                {&quot;field&quot;: field, &quot;observed&quot;: tree_diagnostic_spec.get(field), &quot;expected&quot;: expected}
+            )
+    if tree_diagnostic_spec.get(&quot;diagnostic_splits&quot;) != [&quot;train&quot;, &quot;validation&quot;]:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;diagnostic_splits&quot;,
+                &quot;observed&quot;: tree_diagnostic_spec.get(&quot;diagnostic_splits&quot;),
+                &quot;expected&quot;: [&quot;train&quot;, &quot;validation&quot;],
+            }
+        )
+    if tree_diagnostic_spec.get(&quot;score_type&quot;) != column_transformer_spec.get(&quot;score_type&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;score_type&quot;,
+                &quot;observed&quot;: tree_diagnostic_spec.get(&quot;score_type&quot;),
+                &quot;expected&quot;: column_transformer_spec.get(&quot;score_type&quot;),
+            }
+        )
+
+    comparison = tree_diagnostic_spec.get(&quot;comparison&quot;)
+    if not isinstance(comparison, dict):
+        errors.append({&quot;field&quot;: &quot;comparison&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        if comparison.get(&quot;primary_metric&quot;) != &quot;precision_at_budget&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;comparison.primary_metric&quot;,
+                    &quot;observed&quot;: comparison.get(&quot;primary_metric&quot;),
+                    &quot;expected&quot;: &quot;precision_at_budget&quot;,
+                }
+            )
+        if comparison.get(&quot;selection_data&quot;) != &quot;validation&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;comparison.selection_data&quot;,
+                    &quot;observed&quot;: comparison.get(&quot;selection_data&quot;),
+                    &quot;expected&quot;: &quot;validation&quot;,
+                }
+            )
+        if comparison.get(&quot;test_data_role&quot;) != &quot;final_once_only_evaluation&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;comparison.test_data_role&quot;,
+                    &quot;observed&quot;: comparison.get(&quot;test_data_role&quot;),
+                    &quot;expected&quot;: &quot;final_once_only_evaluation&quot;,
+                }
+            )
+
+    candidate = tree_diagnostic_spec.get(&quot;candidate&quot;)
+    if not isinstance(candidate, dict) or candidate.get(&quot;kind&quot;) != &quot;decision_tree_classifier&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.kind&quot;,
+                &quot;observed&quot;: candidate.get(&quot;kind&quot;) if isinstance(candidate, dict) else candidate,
+                &quot;expected&quot;: &quot;decision_tree_classifier&quot;,
+            }
+        )
+    else:
+        params = candidate.get(&quot;params&quot;) if isinstance(candidate.get(&quot;params&quot;), dict) else {}
+        if params.get(&quot;criterion&quot;) not in {&quot;gini&quot;, &quot;entropy&quot;, &quot;log_loss&quot;}:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;candidate.params.criterion&quot;,
+                    &quot;observed&quot;: params.get(&quot;criterion&quot;),
+                    &quot;expected&quot;: &quot;gini, entropy or log_loss&quot;,
+                }
+            )
+        max_depth = params.get(&quot;max_depth&quot;)
+        if not isinstance(max_depth, int) or max_depth &lt; 1 or max_depth &gt; 3:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;candidate.params.max_depth&quot;,
+                    &quot;observed&quot;: max_depth,
+                    &quot;expected&quot;: &quot;integer between 1 and 3 for diagnostic tree&quot;,
+                }
+            )
+        min_samples_leaf = params.get(&quot;min_samples_leaf&quot;)
+        if not isinstance(min_samples_leaf, int) or min_samples_leaf &lt; 1:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;candidate.params.min_samples_leaf&quot;,
+                    &quot;observed&quot;: min_samples_leaf,
+                    &quot;expected&quot;: &quot;integer &gt;= 1&quot;,
+                }
+            )
+        if params.get(&quot;random_state&quot;) is None:
+            errors.append({&quot;field&quot;: &quot;candidate.params.random_state&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    overfit_policy = tree_diagnostic_spec.get(&quot;overfit_policy&quot;)
+    if not isinstance(overfit_policy, dict):
+        errors.append({&quot;field&quot;: &quot;overfit_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        if overfit_policy.get(&quot;compare_split_pair&quot;) != [&quot;train&quot;, &quot;validation&quot;]:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;overfit_policy.compare_split_pair&quot;,
+                    &quot;observed&quot;: overfit_policy.get(&quot;compare_split_pair&quot;),
+                    &quot;expected&quot;: [&quot;train&quot;, &quot;validation&quot;],
+                }
+            )
+        thresholds = overfit_policy.get(&quot;warning_thresholds&quot;)
+        if not isinstance(thresholds, dict):
+            errors.append(
+                {&quot;field&quot;: &quot;overfit_policy.warning_thresholds&quot;, &quot;reason&quot;: &quot;object required&quot;}
+            )
+        else:
+            for metric in (&quot;accuracy_at_0_5&quot;, &quot;precision_at_budget&quot;, &quot;log_loss&quot;):
+                if thresholds.get(metric) is None:
+                    errors.append(
+                        {
+                            &quot;field&quot;: f&quot;overfit_policy.warning_thresholds.{metric}&quot;,
+                            &quot;reason&quot;: &quot;required&quot;,
+                        }
+                    )
+
+    rule_export = tree_diagnostic_spec.get(&quot;rule_export&quot;)
+    if not isinstance(rule_export, dict):
+        errors.append({&quot;field&quot;: &quot;rule_export&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        if rule_export.get(&quot;method&quot;) != &quot;sklearn.tree.export_text&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;rule_export.method&quot;,
+                    &quot;observed&quot;: rule_export.get(&quot;method&quot;),
+                    &quot;expected&quot;: &quot;sklearn.tree.export_text&quot;,
+                }
+            )
+        if rule_export.get(&quot;require_feature_names&quot;) is not True:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;rule_export.require_feature_names&quot;,
+                    &quot;observed&quot;: rule_export.get(&quot;require_feature_names&quot;),
+                    &quot;expected&quot;: True,
+                }
+            )
+        limits = rule_export.get(&quot;interpretation_limits&quot;)
+        if not isinstance(limits, list) or len(limits) &lt; 3:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;rule_export.interpretation_limits&quot;,
+                    &quot;observed&quot;: limits,
+                    &quot;expected&quot;: &quot;at least three explicit limits&quot;,
+                }
+            )
+
+    audit_policy = tree_diagnostic_spec.get(&quot;audit_policy&quot;)
+    if not isinstance(audit_policy, dict):
+        errors.append({&quot;field&quot;: &quot;audit_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;require_linear_baseline_handoff&quot;,
+            &quot;require_depth_limit&quot;,
+            &quot;require_min_samples_leaf&quot;,
+            &quot;require_random_state&quot;,
+            &quot;require_train_validation_gap&quot;,
+            &quot;require_rule_export&quot;,
+            &quot;require_feature_schema_alignment&quot;,
+            &quot;forbid_fit_on_validation_or_test&quot;,
+            &quot;forbid_test_selection&quot;,
+        ):
+            if audit_policy.get(field) is not True:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;audit_policy.{field}&quot;,
+                        &quot;observed&quot;: audit_policy.get(field),
+                        &quot;expected&quot;: True,
+                    }
+                )
+
+    output = tree_diagnostic_spec.get(&quot;output&quot;)
+    if not isinstance(output, dict):
+        errors.append({&quot;field&quot;: &quot;output&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;prediction_file&quot;,
+            &quot;overfit_file&quot;,
+            &quot;node_file&quot;,
+            &quot;rules_file&quot;,
+            &quot;report_file&quot;,
+            &quot;serialized_spec_file&quot;,
+        ):
+            if not output.get(field):
+                errors.append({&quot;field&quot;: f&quot;output.{field}&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    if errors:
+        return failed(
+            &quot;tree_diagnostic_spec_declares_constrained_tree&quot;,
+            len(errors),
+            &quot;depth-limited DecisionTreeClassifier with rule export and gap policy&quot;,
+            errors,
+        )
+    return passed(
+        &quot;tree_diagnostic_spec_declares_constrained_tree&quot;,
+        {
+            &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec[&quot;tree_diagnostic_id&quot;],
+            &quot;model_id&quot;: tree_diagnostic_spec[&quot;candidate&quot;][&quot;model_id&quot;],
+            &quot;max_depth&quot;: tree_diagnostic_spec[&quot;candidate&quot;][&quot;params&quot;][&quot;max_depth&quot;],
+        },
+        &quot;diagnostic tree contract is explicit&quot;,
+    )
+
+
+def validate_manifest_for_tree_diagnostic(
+    manifest_rows: list[dict[str, str]], columns: list[str]
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    missing_columns = sorted(REQUIRED_MANIFEST_COLUMNS - set(columns))
+    if missing_columns:
+        errors.append({&quot;reason&quot;: &quot;missing manifest columns&quot;, &quot;sample&quot;: missing_columns})
+    split_counts = {split: 0 for split in (&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;)}
+    for row in manifest_rows:
+        split = row.get(&quot;split&quot;, &quot;&quot;)
+        if split in split_counts:
+            split_counts[split] += 1
+            if row.get(&quot;role&quot;) != ROLE_BY_SPLIT[split]:
+                errors.append(
+                    {
+                        &quot;snapshot_id&quot;: row.get(&quot;snapshot_id&quot;),
+                        &quot;field&quot;: &quot;role&quot;,
+                        &quot;observed&quot;: row.get(&quot;role&quot;),
+                        &quot;expected&quot;: ROLE_BY_SPLIT[split],
+                    }
+                )
+    for split, count in split_counts.items():
+        if count == 0:
+            errors.append({&quot;reason&quot;: &quot;missing split&quot;, &quot;split&quot;: split})
+    if errors:
+        return failed(
+            &quot;split_manifest_supports_tree_diagnostic_roles&quot;,
+            len(errors),
+            &quot;train fit, validation diagnostics and test final evaluation roles&quot;,
+            errors,
+        )
+    return passed(
+        &quot;split_manifest_supports_tree_diagnostic_roles&quot;,
+        split_counts,
+        &quot;manifest exposes correct roles for tree diagnostics&quot;,
+    )
+
+
+def build_tree_pipeline(
+    tree_diagnostic_spec: dict[str, Any], column_transformer_spec: dict[str, Any]
+) -&gt; Pipeline:
+    candidate = tree_diagnostic_spec[&quot;candidate&quot;]
+    params = dict(candidate.get(&quot;params&quot;) or {})
+    estimator = DecisionTreeClassifier(**params)
+    return Pipeline(
+        steps=[
+            (&quot;preprocess&quot;, build_column_transformer(column_transformer_spec)),
+            (&quot;estimator&quot;, estimator),
+        ]
+    )
+
+
+def positive_scores(pipeline: Pipeline, X: Any) -&gt; np.ndarray:
+    estimator = pipeline.named_steps[&quot;estimator&quot;]
+    classes = [int(value) for value in estimator.classes_]
+    try:
+        positive_index = classes.index(1)
+    except ValueError as error:
+        raise TreeDiagnosticError(&quot;fitted tree has no positive class 1&quot;) from error
+    return pipeline.predict_proba(X)[:, positive_index]
+
+
+def node_depths(estimator: DecisionTreeClassifier) -&gt; dict[int, int]:
+    children_left = estimator.tree_.children_left
+    children_right = estimator.tree_.children_right
+    stack = [(0, 0)]
+    depths: dict[int, int] = {}
+    while stack:
+        node_id, depth = stack.pop()
+        depths[node_id] = depth
+        left = int(children_left[node_id])
+        right = int(children_right[node_id])
+        if left != right:
+            stack.append((left, depth + 1))
+            stack.append((right, depth + 1))
+    return depths
+
+
+def build_node_rows(
+    estimator: DecisionTreeClassifier, feature_names: list[str]
+) -&gt; list[dict[str, Any]]:
+    tree = estimator.tree_
+    depths = node_depths(estimator)
+    rows: list[dict[str, Any]] = []
+    for node_id in range(tree.node_count):
+        feature_index = int(tree.feature[node_id])
+        is_leaf = int(tree.children_left[node_id]) == int(tree.children_right[node_id])
+        class_counts = tree.value[node_id][0].tolist()
+        predicted_class = int(estimator.classes_[int(np.argmax(class_counts))])
+        rows.append(
+            {
+                &quot;node_id&quot;: node_id,
+                &quot;depth&quot;: depths[node_id],
+                &quot;is_leaf&quot;: is_leaf,
+                &quot;feature_name&quot;: &quot;&quot; if is_leaf else feature_names[feature_index],
+                &quot;threshold&quot;: &quot;&quot; if is_leaf else rounded(float(tree.threshold[node_id])),
+                &quot;left_child&quot;: &quot;&quot; if is_leaf else int(tree.children_left[node_id]),
+                &quot;right_child&quot;: &quot;&quot; if is_leaf else int(tree.children_right[node_id]),
+                &quot;impurity&quot;: rounded(float(tree.impurity[node_id])),
+                &quot;n_node_samples&quot;: int(tree.n_node_samples[node_id]),
+                &quot;weighted_n_node_samples&quot;: rounded(float(tree.weighted_n_node_samples[node_id])),
+                &quot;class_0_count&quot;: rounded(float(class_counts[0])),
+                &quot;class_1_count&quot;: rounded(float(class_counts[1])),
+                &quot;predicted_class&quot;: predicted_class,
+            }
+        )
+    return rows
+
+
+def tree_rule_text(
+    estimator: DecisionTreeClassifier,
+    feature_names: list[str],
+    tree_diagnostic_spec: dict[str, Any],
+) -&gt; str:
+    rule_export = tree_diagnostic_spec[&quot;rule_export&quot;]
+    return export_text(
+        estimator,
+        feature_names=feature_names,
+        max_depth=int(rule_export[&quot;max_depth&quot;]),
+        show_weights=bool(rule_export[&quot;show_weights&quot;]),
+        decimals=int(rule_export[&quot;decimals&quot;]),
+    )
+
+
+def metrics_by_split(rows: list[dict[str, Any]]) -&gt; dict[str, dict[str, Any]]:
+    return {str(row[&quot;split&quot;]): row for row in rows}
+
+
+def build_overfit_rows(
+    metric_rows: list[dict[str, Any]], tree_diagnostic_spec: dict[str, Any]
+) -&gt; list[dict[str, Any]]:
+    by_split = metrics_by_split(metric_rows)
+    thresholds = tree_diagnostic_spec[&quot;overfit_policy&quot;][&quot;warning_thresholds&quot;]
+    rows: list[dict[str, Any]] = []
+    for metric in tree_diagnostic_spec[&quot;overfit_policy&quot;][&quot;metrics&quot;]:
+        train_value = float(by_split[&quot;train&quot;][metric])
+        validation_value = float(by_split[&quot;validation&quot;][metric])
+        if metric == &quot;log_loss&quot;:
+            gap = validation_value - train_value
+        else:
+            gap = train_value - validation_value
+        threshold = float(thresholds[metric])
+        rows.append(
+            {
+                &quot;model_id&quot;: tree_diagnostic_spec[&quot;candidate&quot;][&quot;model_id&quot;],
+                &quot;metric&quot;: metric,
+                &quot;train&quot;: rounded(train_value),
+                &quot;validation&quot;: rounded(validation_value),
+                &quot;test&quot;: rounded(float(by_split[&quot;test&quot;][metric])),
+                &quot;train_validation_gap&quot;: rounded(gap),
+                &quot;warning_threshold&quot;: threshold,
+                &quot;warning_triggered&quot;: gap &gt;= threshold,
+            }
+        )
+    return rows
+
+
+def validate_fit_trace(trace: list[dict[str, Any]], train_ids: list[str]) -&gt; dict[str, Any]:
+    bad_fit_events = [
+        event
+        for event in trace
+        if event[&quot;event&quot;] == &quot;pipeline.fit&quot; and event[&quot;snapshot_ids&quot;] != train_ids
+    ]
+    if bad_fit_events:
+        return failed(
+            &quot;tree_fit_uses_train_only&quot;,
+            bad_fit_events,
+            &quot;tree Pipeline.fit receives exactly train split ids&quot;,
+        )
+    return passed(
+        &quot;tree_fit_uses_train_only&quot;,
+        {&quot;fit_split&quot;: &quot;train&quot;, &quot;fit_snapshot_ids&quot;: train_ids},
+        &quot;diagnostic tree fit used train only&quot;,
+    )
+
+
+def validate_predictions(
+    prediction_rows: list[dict[str, Any]],
+    manifest_rows: list[dict[str, str]],
+    model_id: str,
+) -&gt; dict[str, Any]:
+    expected_ids = {
+        row[&quot;snapshot_id&quot;]
+        for row in manifest_rows
+        if row[&quot;split&quot;] in {&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;}
+    }
+    observed_ids = [str(row[&quot;snapshot_id&quot;]) for row in prediction_rows]
+    errors: list[dict[str, Any]] = []
+    if len(observed_ids) != len(set(observed_ids)):
+        errors.append({&quot;reason&quot;: &quot;duplicate prediction rows&quot;})
+    missing = sorted(expected_ids - set(observed_ids))
+    extra = sorted(set(observed_ids) - expected_ids)
+    if missing:
+        errors.append({&quot;reason&quot;: &quot;missing predictions&quot;, &quot;sample&quot;: missing[:5]})
+    if extra:
+        errors.append({&quot;reason&quot;: &quot;unexpected predictions&quot;, &quot;sample&quot;: extra[:5]})
+    for row in prediction_rows:
+        score = parse_float(row[&quot;score&quot;])
+        if score &lt; 0 or score &gt; 1:
+            errors.append({&quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;], &quot;reason&quot;: &quot;score outside [0, 1]&quot;})
+        if row[&quot;model_id&quot;] != model_id:
+            errors.append(
+                {
+                    &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                    &quot;observed&quot;: row[&quot;model_id&quot;],
+                    &quot;expected&quot;: model_id,
+                }
+            )
+        if row[&quot;trained_on_split&quot;] != &quot;train&quot;:
+            errors.append(
+                {
+                    &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                    &quot;observed&quot;: row[&quot;trained_on_split&quot;],
+                    &quot;expected&quot;: &quot;train&quot;,
+                }
+            )
+    if errors:
+        return failed(
+            &quot;tree_predictions_cover_train_validation_and_test&quot;,
+            len(errors),
+            &quot;one tree probability row per train/validation/test snapshot&quot;,
+            errors,
+        )
+    return passed(
+        &quot;tree_predictions_cover_train_validation_and_test&quot;,
+        {&quot;rows&quot;: len(prediction_rows), &quot;model_id&quot;: model_id},
+        &quot;tree scored train for gap diagnostics and validation/test for evaluation&quot;,
+    )
+
+
+def validate_tree_structure(
+    estimator: DecisionTreeClassifier, tree_diagnostic_spec: dict[str, Any]
+) -&gt; dict[str, Any]:
+    params = tree_diagnostic_spec[&quot;candidate&quot;][&quot;params&quot;]
+    max_depth_limit = int(params[&quot;max_depth&quot;])
+    min_samples_leaf = int(params[&quot;min_samples_leaf&quot;])
+    leaf_node_ids = np.where(estimator.tree_.children_left == -1)[0]
+    min_leaf_observed = int(min(estimator.tree_.n_node_samples[leaf_node_ids].tolist()))
+    errors: list[dict[str, Any]] = []
+    if estimator.get_depth() &gt; max_depth_limit:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;depth&quot;,
+                &quot;observed&quot;: estimator.get_depth(),
+                &quot;expected&quot;: f&quot;&lt;= {max_depth_limit}&quot;,
+            }
+        )
+    if min_leaf_observed &lt; min_samples_leaf:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;min_leaf_samples&quot;,
+                &quot;observed&quot;: min_leaf_observed,
+                &quot;expected&quot;: f&quot;&gt;= {min_samples_leaf}&quot;,
+            }
+        )
+    if errors:
+        return failed(
+            &quot;tree_depth_and_leaf_constraints_respected&quot;,
+            len(errors),
+            &quot;fitted tree depth and leaf sizes respect diagnostic constraints&quot;,
+            errors,
+        )
+    return passed(
+        &quot;tree_depth_and_leaf_constraints_respected&quot;,
+        {
+            &quot;actual_depth&quot;: estimator.get_depth(),
+            &quot;leaf_count&quot;: estimator.get_n_leaves(),
+            &quot;min_leaf_samples&quot;: min_leaf_observed,
+        },
+        &quot;tree stayed within declared constraints&quot;,
+    )
+
+
+def validate_rules(rules: str, feature_names: list[str]) -&gt; dict[str, Any]:
+    used_feature_names = [feature for feature in feature_names if feature in rules]
+    if not rules.strip() or not used_feature_names:
+        return failed(
+            &quot;tree_rules_exported_with_feature_names&quot;,
+            {&quot;rule_length&quot;: len(rules), &quot;used_feature_names&quot;: used_feature_names},
+            &quot;readable rules with transformed feature names&quot;,
+        )
+    return passed(
+        &quot;tree_rules_exported_with_feature_names&quot;,
+        {&quot;line_count&quot;: len(rules.splitlines()), &quot;used_feature_names&quot;: used_feature_names},
+        &quot;tree rules include transformed feature names&quot;,
+    )
+
+
+def validate_overfit_rows(overfit_rows: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    if not overfit_rows:
+        return failed(
+            &quot;train_validation_gap_reported&quot;,
+            [],
+            &quot;overfit rows for declared metrics&quot;,
+        )
+    return passed(
+        &quot;train_validation_gap_reported&quot;,
+        {
+            &quot;metrics&quot;: [row[&quot;metric&quot;] for row in overfit_rows],
+            &quot;triggered&quot;: [row[&quot;metric&quot;] for row in overfit_rows if row[&quot;warning_triggered&quot;]],
+        },
+        &quot;train-validation gaps are reported&quot;,
+    )
+
+
+def validate_feature_schema(
+    feature_schema_rows: list[dict[str, Any]], node_rows: list[dict[str, Any]]
+) -&gt; dict[str, Any]:
+    known_features = {row[&quot;feature_name&quot;] for row in feature_schema_rows}
+    split_features = {row[&quot;feature_name&quot;] for row in node_rows if row[&quot;feature_name&quot;]}
+    unknown = sorted(split_features - known_features)
+    if unknown:
+        return failed(
+            &quot;tree_rules_align_with_transformed_feature_schema&quot;,
+            unknown,
+            &quot;split features must come from ColumnTransformer feature schema&quot;,
+        )
+    return passed(
+        &quot;tree_rules_align_with_transformed_feature_schema&quot;,
+        {&quot;split_features&quot;: sorted(split_features), &quot;feature_count&quot;: len(feature_schema_rows)},
+        &quot;tree split features align with transformed schema&quot;,
+    )
+
+
+def first_warning_check(upstream_report: dict[str, Any], check_id: str) -&gt; dict[str, Any] | None:
+    for check in upstream_report.get(&quot;checks&quot;, []):
+        if check.get(&quot;id&quot;) == check_id:
+            return check
+    return None
+
+
+def run(
+    *,
+    spec_path: Path,
+    preprocessing_contract_path: Path,
+    pipeline_spec_path: Path,
+    column_transformer_spec_path: Path,
+    linear_baseline_spec_path: Path,
+    tree_diagnostic_spec_path: Path,
+    features_path: Path,
+    labels_path: Path,
+    manifest_path: Path,
+    report_output_path: Path | None = None,
+    overfit_output_path: Path | None = None,
+    node_output_path: Path | None = None,
+    rules_output_path: Path | None = None,
+    predictions_output_path: Path | None = None,
+    serialized_spec_output_path: Path | None = None,
+) -&gt; dict[str, Any]:
+    problem_spec = read_json(spec_path)
+    pipeline_spec = read_json(pipeline_spec_path)
+    column_transformer_spec = read_json(column_transformer_spec_path)
+    linear_baseline_spec = read_json(linear_baseline_spec_path)
+    tree_diagnostic_spec = read_json(tree_diagnostic_spec_path)
+    feature_rows, _feature_columns = read_csv(features_path)
+    labels, _label_columns = read_csv(labels_path)
+    manifest_rows, manifest_columns = read_csv(manifest_path)
+
+    checks: list[dict[str, Any]] = [
+        validate_tree_diagnostic_spec(
+            problem_spec=problem_spec,
+            pipeline_spec=pipeline_spec,
+            column_transformer_spec=column_transformer_spec,
+            linear_baseline_spec=linear_baseline_spec,
+            tree_diagnostic_spec=tree_diagnostic_spec,
+        ),
+        validate_manifest_for_tree_diagnostic(manifest_rows, manifest_columns),
+    ]
+    upstream_report = run_linear_baseline_audit(
+        spec_path=spec_path,
+        preprocessing_contract_path=preprocessing_contract_path,
+        pipeline_spec_path=pipeline_spec_path,
+        column_transformer_spec_path=column_transformer_spec_path,
+        linear_baseline_spec_path=linear_baseline_spec_path,
+        features_path=features_path,
+        labels_path=labels_path,
+        manifest_path=manifest_path,
+    )
+    if upstream_report.get(&quot;valid&quot;):
+        checks.append(
+            passed(
+                &quot;upstream_linear_baseline_audit_is_valid&quot;,
+                {
+                    &quot;linear_baseline_id&quot;: linear_baseline_spec.get(&quot;linear_baseline_id&quot;),
+                    &quot;selected_model_id&quot;: upstream_report[&quot;summary&quot;].get(&quot;selected_model_id&quot;),
+                    &quot;readiness_status&quot;: upstream_report[&quot;summary&quot;].get(&quot;readiness_status&quot;),
+                },
+                &quot;linear baseline handoff is valid&quot;,
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;upstream_linear_baseline_audit_is_valid&quot;,
+                upstream_report.get(&quot;summary&quot;, {}).get(&quot;blocking_errors&quot;, []),
+                &quot;valid linear baseline report before tree diagnostic fit&quot;,
+                upstream_report.get(&quot;checks&quot;, []),
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    if blocking_errors:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec.get(&quot;tree_diagnostic_id&quot;),
+                &quot;blocking_errors&quot;: blocking_errors,
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_tree_fit&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+        if report_output_path is not None:
+            write_json(report_output_path, report)
+        return report
+
+    feature_rows_by_id = rows_by_id(feature_rows)
+    labels_by_id = rows_by_id(labels)
+    train_ids = split_ids(manifest_rows, &quot;train&quot;)
+    validation_ids = split_ids(manifest_rows, &quot;validation&quot;)
+    test_ids = split_ids(manifest_rows, &quot;test&quot;)
+    X_train = make_frame(train_ids, feature_rows_by_id, column_transformer_spec)
+    y_train = make_target(train_ids, labels_by_id, problem_spec)
+    if len(set(y_train.tolist())) &lt; 2:
+        checks.append(
+            failed(
+                &quot;train_split_has_both_classes_for_tree_diagnostic&quot;,
+                sorted(set(y_train.tolist())),
+                &quot;binary train labels&quot;,
+            )
+        )
+        report = {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec.get(&quot;tree_diagnostic_id&quot;),
+                &quot;blocking_errors&quot;: [&quot;train_split_has_both_classes_for_tree_diagnostic&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_tree_fit&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+        if report_output_path is not None:
+            write_json(report_output_path, report)
+        return report
+
+    pipeline = build_tree_pipeline(tree_diagnostic_spec, column_transformer_spec)
+    pipeline.fit(X_train, y_train)
+    preprocess = pipeline.named_steps[&quot;preprocess&quot;]
+    estimator: DecisionTreeClassifier = pipeline.named_steps[&quot;estimator&quot;]
+    feature_names = [str(value) for value in preprocess.get_feature_names_out()]
+    feature_schema_rows = build_feature_schema(feature_names, column_transformer_spec)
+    false_positive_cost, false_negative_cost = cost_weights(problem_spec)
+    budget = selection_budget(problem_spec)
+    model_id = tree_diagnostic_spec[&quot;candidate&quot;][&quot;model_id&quot;]
+    model_kind = tree_diagnostic_spec[&quot;candidate&quot;][&quot;kind&quot;]
+
+    fit_trace: list[dict[str, Any]] = [
+        {
+            &quot;event&quot;: &quot;pipeline.fit&quot;,
+            &quot;model_id&quot;: model_id,
+            &quot;split&quot;: &quot;train&quot;,
+            &quot;snapshot_ids&quot;: train_ids,
+            &quot;row_count&quot;: len(train_ids),
+            &quot;fits_column_transformer&quot;: True,
+            &quot;fits_estimator&quot;: True,
+        }
+    ]
+    metric_rows: list[dict[str, Any]] = []
+    prediction_rows: list[dict[str, Any]] = []
+    for split, ids in ((&quot;train&quot;, train_ids), (&quot;validation&quot;, validation_ids), (&quot;test&quot;, test_ids)):
+        X_split = make_frame(ids, feature_rows_by_id, column_transformer_spec)
+        y_split = make_target(ids, labels_by_id, problem_spec)
+        scores = positive_scores(pipeline, X_split)
+        if split != &quot;train&quot;:
+            fit_trace.append(
+                {
+                    &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+                    &quot;model_id&quot;: model_id,
+                    &quot;split&quot;: split,
+                    &quot;snapshot_ids&quot;: ids,
+                    &quot;row_count&quot;: len(ids),
+                    &quot;uses_fitted_column_transformer&quot;: True,
+                    &quot;fits_anything&quot;: False,
+                }
+            )
+        metric_rows.append(
+            split_metric_row(
+                model_id=model_id,
+                model_kind=model_kind,
+                split=split,
+                ids=ids,
+                y_true=y_split,
+                scores=scores,
+                budget=budget,
+                false_positive_cost=false_positive_cost,
+                false_negative_cost=false_negative_cost,
+            )
+        )
+        split_prediction_rows = prediction_rows_for_split(
+            model_id=model_id,
+            model_kind=model_kind,
+            split=split,
+            ids=ids,
+            y_true=y_split,
+            scores=scores,
+            score_type=tree_diagnostic_spec[&quot;score_type&quot;],
+            budget=budget,
+        )
+        for row in split_prediction_rows:
+            row[&quot;generated_at&quot;] = GENERATED_AT
+        prediction_rows.extend(split_prediction_rows)
+
+    rules = tree_rule_text(estimator, feature_names, tree_diagnostic_spec)
+    node_rows = build_node_rows(estimator, feature_names)
+    overfit_rows = build_overfit_rows(metric_rows, tree_diagnostic_spec)
+    checks.append(validate_fit_trace(fit_trace, train_ids))
+    checks.append(validate_predictions(prediction_rows, manifest_rows, model_id))
+    checks.append(validate_tree_structure(estimator, tree_diagnostic_spec))
+    checks.append(validate_rules(rules, feature_names))
+    checks.append(validate_overfit_rows(overfit_rows))
+    checks.append(validate_feature_schema(feature_schema_rows, node_rows))
+
+    unknown_warning = first_warning_check(
+        upstream_report, &quot;linear_baseline_unknown_categories_bucketed&quot;
+    )
+    if unknown_warning is not None and not unknown_warning.get(&quot;valid&quot;, True):
+        checks.append(
+            failed(
+                &quot;tree_unknown_categories_bucketed&quot;,
+                unknown_warning.get(&quot;observed&quot;),
+                &quot;unknown validation/test categories inherited explicit ColumnTransformer bucket&quot;,
+                unknown_warning.get(&quot;sample&quot;, []),
+                severity=&quot;warning&quot;,
+            )
+        )
+    if len(train_ids) &lt; TINY_TRAIN_WARNING_THRESHOLD:
+        checks.append(
+            failed(
+                &quot;tiny_tree_training_sample_expected&quot;,
+                len(train_ids),
+                f&quot;&gt;= {TINY_TRAIN_WARNING_THRESHOLD} train rows for production tree diagnostics&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    triggered_gaps = [row for row in overfit_rows if row[&quot;warning_triggered&quot;]]
+    if triggered_gaps:
+        checks.append(
+            failed(
+                &quot;tree_train_validation_gap_exceeds_threshold&quot;,
+                [
+                    {
+                        &quot;metric&quot;: row[&quot;metric&quot;],
+                        &quot;train_validation_gap&quot;: row[&quot;train_validation_gap&quot;],
+                        &quot;warning_threshold&quot;: row[&quot;warning_threshold&quot;],
+                    }
+                    for row in triggered_gaps
+                ],
+                &quot;train-validation gap below warning thresholds&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    selected_baseline_id = upstream_report[&quot;summary&quot;][&quot;selected_model_id&quot;]
+    baseline_validation_precision = upstream_report[&quot;summary&quot;][&quot;validation_metrics&quot;][
+        &quot;precision_at_budget&quot;
+    ][selected_baseline_id]
+    tree_validation_precision = metric_by_model(metric_rows, &quot;validation&quot;, &quot;precision_at_budget&quot;)[
+        model_id
+    ]
+    if float(tree_validation_precision) &lt; float(baseline_validation_precision):
+        checks.append(
+            failed(
+                &quot;tree_diagnostic_worse_than_selected_baseline_on_validation&quot;,
+                {
+                    &quot;tree_precision_at_budget&quot;: tree_validation_precision,
+                    &quot;selected_baseline_id&quot;: selected_baseline_id,
+                    &quot;selected_baseline_precision_at_budget&quot;: baseline_validation_precision,
+                },
+                &quot;diagnostic tree should not be promoted when it is worse than selected baseline&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    valid = not blocking_errors
+    by_split = metrics_by_split(metric_rows)
+    train_validation_gaps = {row[&quot;metric&quot;]: row[&quot;train_validation_gap&quot;] for row in overfit_rows}
+    split_features = sorted({row[&quot;feature_name&quot;] for row in node_rows if row[&quot;feature_name&quot;]})
+    serialized_spec = {
+        &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec[&quot;tree_diagnostic_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;column_transformer_id&quot;: column_transformer_spec[&quot;column_transformer_id&quot;],
+        &quot;linear_baseline_id&quot;: linear_baseline_spec[&quot;linear_baseline_id&quot;],
+        &quot;model&quot;: {
+            &quot;model_id&quot;: model_id,
+            &quot;class&quot;: &quot;DecisionTreeClassifier&quot;,
+            &quot;params&quot;: tree_diagnostic_spec[&quot;candidate&quot;][&quot;params&quot;],
+            &quot;classes&quot;: [int(value) for value in estimator.classes_],
+            &quot;actual_depth&quot;: estimator.get_depth(),
+            &quot;leaf_count&quot;: estimator.get_n_leaves(),
+            &quot;node_count&quot;: int(estimator.tree_.node_count),
+            &quot;split_features&quot;: split_features,
+        },
+        &quot;fit_trace&quot;: fit_trace,
+        &quot;feature_schema&quot;: feature_schema_rows,
+        &quot;baseline_reference&quot;: {
+            &quot;selected_baseline_id&quot;: selected_baseline_id,
+            &quot;selected_on_split&quot;: &quot;validation&quot;,
+            &quot;test_used_for_selection&quot;: False,
+        },
+        &quot;rule_export&quot;: {
+            &quot;method&quot;: tree_diagnostic_spec[&quot;rule_export&quot;][&quot;method&quot;],
+            &quot;line_count&quot;: len(rules.splitlines()),
+            &quot;interpretation_limits&quot;: tree_diagnostic_spec[&quot;rule_export&quot;][&quot;interpretation_limits&quot;],
+        },
+    }
+    summary = {
+        &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec[&quot;tree_diagnostic_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;fit_row_count&quot;: len(train_ids),
+        &quot;diagnostic_splits&quot;: tree_diagnostic_spec[&quot;diagnostic_splits&quot;],
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;model_id&quot;: model_id,
+        &quot;max_depth_limit&quot;: tree_diagnostic_spec[&quot;candidate&quot;][&quot;params&quot;][&quot;max_depth&quot;],
+        &quot;actual_tree_depth&quot;: estimator.get_depth(),
+        &quot;leaf_count&quot;: estimator.get_n_leaves(),
+        &quot;node_count&quot;: int(estimator.tree_.node_count),
+        &quot;transformed_feature_count&quot;: len(feature_schema_rows),
+        &quot;prediction_row_count&quot;: len(prediction_rows),
+        &quot;rule_line_count&quot;: len(rules.splitlines()),
+        &quot;split_features&quot;: split_features,
+        &quot;selected_linear_baseline_id&quot;: selected_baseline_id,
+        &quot;baseline_validation_precision_at_budget&quot;: baseline_validation_precision,
+        &quot;tree_validation_precision_at_budget&quot;: tree_validation_precision,
+        &quot;train_metrics&quot;: {
+            metric: by_split[&quot;train&quot;][metric]
+            for metric in (
+                &quot;precision_at_budget&quot;,
+                &quot;recall_at_budget&quot;,
+                &quot;average_precision&quot;,
+                &quot;log_loss&quot;,
+                &quot;error_cost_at_budget&quot;,
+                &quot;accuracy_at_0_5&quot;,
+            )
+        },
+        &quot;validation_metrics&quot;: {
+            metric: by_split[&quot;validation&quot;][metric]
+            for metric in (
+                &quot;precision_at_budget&quot;,
+                &quot;recall_at_budget&quot;,
+                &quot;average_precision&quot;,
+                &quot;log_loss&quot;,
+                &quot;error_cost_at_budget&quot;,
+                &quot;accuracy_at_0_5&quot;,
+            )
+        },
+        &quot;test_metrics&quot;: {
+            metric: by_split[&quot;test&quot;][metric]
+            for metric in (
+                &quot;precision_at_budget&quot;,
+                &quot;recall_at_budget&quot;,
+                &quot;average_precision&quot;,
+                &quot;log_loss&quot;,
+                &quot;error_cost_at_budget&quot;,
+                &quot;accuracy_at_0_5&quot;,
+            )
+        },
+        &quot;train_validation_gaps&quot;: train_validation_gaps,
+        &quot;rule_interpretation_limits&quot;: tree_diagnostic_spec[&quot;rule_export&quot;][&quot;interpretation_limits&quot;],
+        &quot;upstream_warnings&quot;: upstream_report[&quot;summary&quot;].get(&quot;warnings&quot;, []),
+        &quot;blocking_errors&quot;: blocking_errors,
+        &quot;warnings&quot;: warnings,
+        &quot;readiness_status&quot;: &quot;ready_for_tree_ensemble_lesson&quot;
+        if valid
+        else &quot;blocked_by_tree_diagnostic_audit&quot;,
+    }
+    report = {
+        &quot;valid&quot;: valid,
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;metrics&quot;: metric_rows,
+        &quot;overfit&quot;: overfit_rows,
+        &quot;nodes&quot;: node_rows,
+        &quot;rules&quot;: rules,
+        &quot;predictions&quot;: prediction_rows,
+        &quot;serialized_spec&quot;: serialized_spec,
+        &quot;checks&quot;: checks,
+    }
+
+    if overfit_output_path is not None:
+        write_csv(
+            overfit_output_path,
+            overfit_rows,
+            [
+                &quot;model_id&quot;,
+                &quot;metric&quot;,
+                &quot;train&quot;,
+                &quot;validation&quot;,
+                &quot;test&quot;,
+                &quot;train_validation_gap&quot;,
+                &quot;warning_threshold&quot;,
+                &quot;warning_triggered&quot;,
+            ],
+        )
+    if node_output_path is not None:
+        write_csv(
+            node_output_path,
+            node_rows,
+            [
+                &quot;node_id&quot;,
+                &quot;depth&quot;,
+                &quot;is_leaf&quot;,
+                &quot;feature_name&quot;,
+                &quot;threshold&quot;,
+                &quot;left_child&quot;,
+                &quot;right_child&quot;,
+                &quot;impurity&quot;,
+                &quot;n_node_samples&quot;,
+                &quot;weighted_n_node_samples&quot;,
+                &quot;class_0_count&quot;,
+                &quot;class_1_count&quot;,
+                &quot;predicted_class&quot;,
+            ],
+        )
+    if rules_output_path is not None:
+        write_text(rules_output_path, rules)
+    if predictions_output_path is not None:
+        write_csv(
+            predictions_output_path,
+            prediction_rows,
+            [
+                &quot;snapshot_id&quot;,
+                &quot;model_id&quot;,
+                &quot;model_kind&quot;,
+                &quot;split&quot;,
+                &quot;score&quot;,
+                &quot;score_type&quot;,
+                &quot;actual_label&quot;,
+                &quot;predicted_label_at_0_5&quot;,
+                &quot;selected_at_budget&quot;,
+                &quot;trained_on_split&quot;,
+                &quot;generated_at&quot;,
+            ],
+        )
+    if serialized_spec_output_path is not None:
+        write_json(serialized_spec_output_path, json_ready(serialized_spec))
+    if report_output_path is not None:
+        write_json(report_output_path, json_ready(report))
+    return report
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Train and audit a diagnostic decision tree&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--preprocessing-contract&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--pipeline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--column-transformer-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--linear-baseline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--tree-diagnostic-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--features&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--labels&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--overfit-output&quot;, type=Path)
+    parser.add_argument(&quot;--node-output&quot;, type=Path)
+    parser.add_argument(&quot;--rules-output&quot;, type=Path)
+    parser.add_argument(&quot;--predictions-output&quot;, type=Path)
+    parser.add_argument(&quot;--serialized-spec-output&quot;, type=Path)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args(argv)
+
+    try:
+        report = run(
+            spec_path=args.spec,
+            preprocessing_contract_path=args.preprocessing_contract,
+            pipeline_spec_path=args.pipeline_spec,
+            column_transformer_spec_path=args.column_transformer_spec,
+            linear_baseline_spec_path=args.linear_baseline_spec,
+            tree_diagnostic_spec_path=args.tree_diagnostic_spec,
+            features_path=args.features,
+            labels_path=args.labels,
+            manifest_path=args.manifest,
+            report_output_path=args.output,
+            overfit_output_path=args.overfit_output,
+            node_output_path=args.node_output,
+            rules_output_path=args.rules_output,
+            predictions_output_path=args.predictions_output,
+            serialized_spec_output_path=args.serialized_spec_output,
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+        ColumnTransformerAuditError,
+        LinearBaselineError,
+        TreeDiagnosticError,
+        KeyError,
+        ValueError,
+    ) as error:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;summary&quot;: {
+                &quot;blocking_errors&quot;: [&quot;tree_diagnostic_runtime_error&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;runtime_error&quot;,
+            },
+            &quot;checks&quot;: [
+                failed(
+                    &quot;tree_diagnostic_runtime_error&quot;,
+                    str(error),
+                    &quot;readable inputs and fit-able diagnostic DecisionTreeClassifier Pipeline&quot;,
+                )
+            ],
+        }
+        if args.output is not None:
+            write_json(args.output, report)
+
+    if args.output is None:
+        print(json.dumps(json_ready(report), ensure_ascii=False, indent=2))
+
+    has_errors = any(
+        check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    has_warnings = any(
+        check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    if has_errors or (args.fail_on_warning and has_warnings):
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_diagnostic_trainer.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_node_report.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>node_id,depth,is_leaf,feature_name,threshold,left_child,right_child,impurity,n_node_samples,weighted_n_node_samples,class_0_count,class_1_count,predicted_class
+0,0,False,categorical__platform_android,0.5,1,2,0.5,4,4.0,0.5,0.5,0
+1,1,True,,,,,0.0,2,2.0,1.0,0.0,0
+2,1,True,,,,,0.0,2,2.0,0.0,1.0,1
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_node_report.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_overfit_report.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>model_id,metric,train,validation,test,train_validation_gap,warning_threshold,warning_triggered
+decision_tree_depth2,accuracy_at_0_5,1.0,0.333333,0.4,0.666667,0.25,True
+decision_tree_depth2,precision_at_budget,1.0,0.0,0.0,1.0,0.5,True
+decision_tree_depth2,log_loss,0.0,24.029102,21.626192,24.029102,1.0,True
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_overfit_report.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,model_id,model_kind,split,score,score_type,actual_label,predicted_label_at_0_5,selected_at_budget,trained_on_split,generated_at
+S001,decision_tree_depth2,decision_tree_classifier,train,1.0,churn_risk_probability,1,1,1,train,2026-07-02T12:00:00+03:00
+S002,decision_tree_depth2,decision_tree_classifier,train,0.0,churn_risk_probability,0,0,0,train,2026-07-02T12:00:00+03:00
+S003,decision_tree_depth2,decision_tree_classifier,train,0.0,churn_risk_probability,0,0,0,train,2026-07-02T12:00:00+03:00
+S004,decision_tree_depth2,decision_tree_classifier,train,1.0,churn_risk_probability,1,1,1,train,2026-07-02T12:00:00+03:00
+S005,decision_tree_depth2,decision_tree_classifier,validation,0.0,churn_risk_probability,0,0,1,train,2026-07-02T12:00:00+03:00
+S006,decision_tree_depth2,decision_tree_classifier,validation,0.0,churn_risk_probability,1,0,0,train,2026-07-02T12:00:00+03:00
+S007,decision_tree_depth2,decision_tree_classifier,validation,1.0,churn_risk_probability,0,1,1,train,2026-07-02T12:00:00+03:00
+S009,decision_tree_depth2,decision_tree_classifier,test,1.0,churn_risk_probability,0,1,1,train,2026-07-02T12:00:00+03:00
+S010,decision_tree_depth2,decision_tree_classifier,test,0.0,churn_risk_probability,1,0,0,train,2026-07-02T12:00:00+03:00
+S011,decision_tree_depth2,decision_tree_classifier,test,0.0,churn_risk_probability,0,0,0,train,2026-07-02T12:00:00+03:00
+S012,decision_tree_depth2,decision_tree_classifier,test,1.0,churn_risk_probability,0,1,1,train,2026-07-02T12:00:00+03:00
+S013,decision_tree_depth2,decision_tree_classifier,test,0.0,churn_risk_probability,0,0,0,train,2026-07-02T12:00:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;tree_diagnostic_id&quot;: &quot;trial-churn-tree-diagnostic-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;fit_row_count&quot;: 4,
+    &quot;diagnostic_splits&quot;: [
+      &quot;train&quot;,
+      &quot;validation&quot;
+    ],
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+    &quot;max_depth_limit&quot;: 2,
+    &quot;actual_tree_depth&quot;: 1,
+    &quot;leaf_count&quot;: 2,
+    &quot;node_count&quot;: 3,
+    &quot;transformed_feature_count&quot;: 24,
+    &quot;prediction_row_count&quot;: 12,
+    &quot;rule_line_count&quot;: 4,
+    &quot;split_features&quot;: [
+      &quot;categorical__platform_android&quot;
+    ],
+    &quot;selected_linear_baseline_id&quot;: &quot;dummy_prior&quot;,
+    &quot;baseline_validation_precision_at_budget&quot;: 0.5,
+    &quot;tree_validation_precision_at_budget&quot;: 0.0,
+    &quot;train_metrics&quot;: {
+      &quot;precision_at_budget&quot;: 1.0,
+      &quot;recall_at_budget&quot;: 1.0,
+      &quot;average_precision&quot;: 1.0,
+      &quot;log_loss&quot;: 0.0,
+      &quot;error_cost_at_budget&quot;: 0.0,
+      &quot;accuracy_at_0_5&quot;: 1.0
+    },
+    &quot;validation_metrics&quot;: {
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;average_precision&quot;: 0.333333,
+      &quot;log_loss&quot;: 24.029102,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.333333
+    },
+    &quot;test_metrics&quot;: {
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;average_precision&quot;: 0.2,
+      &quot;log_loss&quot;: 21.626192,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.4
+    },
+    &quot;train_validation_gaps&quot;: {
+      &quot;accuracy_at_0_5&quot;: 0.666667,
+      &quot;precision_at_budget&quot;: 1.0,
+      &quot;log_loss&quot;: 24.029102
+    },
+    &quot;rule_interpretation_limits&quot;: [
+      &quot;rules split transformed features produced by ColumnTransformer&quot;,
+      &quot;one-hot rules are not causal explanations of churn&quot;,
+      &quot;tiny train leaves can be pure by memorization&quot;,
+      &quot;tree diagnostics do not override validation/test split policy&quot;
+    ],
+    &quot;upstream_warnings&quot;: [
+      &quot;linear_baseline_unknown_categories_bucketed&quot;,
+      &quot;tiny_linear_baseline_training_sample_expected&quot;,
+      &quot;linear_baseline_does_not_beat_dummy_on_tiny_validation&quot;
+    ],
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;tree_unknown_categories_bucketed&quot;,
+      &quot;tiny_tree_training_sample_expected&quot;,
+      &quot;tree_train_validation_gap_exceeds_threshold&quot;,
+      &quot;tree_diagnostic_worse_than_selected_baseline_on_validation&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_tree_ensemble_lesson&quot;
+  },
+  &quot;metrics&quot;: [
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;positive_count&quot;: 2,
+      &quot;negative_count&quot;: 2,
+      &quot;selection_budget&quot;: 2,
+      &quot;log_loss&quot;: 0.0,
+      &quot;average_precision&quot;: 1.0,
+      &quot;roc_auc&quot;: 1.0,
+      &quot;precision_at_budget&quot;: 1.0,
+      &quot;recall_at_budget&quot;: 1.0,
+      &quot;tp_at_budget&quot;: 2,
+      &quot;fp_at_budget&quot;: 0,
+      &quot;fn_at_budget&quot;: 0,
+      &quot;tn_at_budget&quot;: 2,
+      &quot;error_cost_at_budget&quot;: 0.0,
+      &quot;accuracy_at_0_5&quot;: 1.0,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;selection_budget&quot;: 2,
+      &quot;log_loss&quot;: 24.029102,
+      &quot;average_precision&quot;: 0.333333,
+      &quot;roc_auc&quot;: 0.25,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;tp_at_budget&quot;: 0,
+      &quot;fp_at_budget&quot;: 2,
+      &quot;fn_at_budget&quot;: 1,
+      &quot;tn_at_budget&quot;: 0,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.333333,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: &quot;&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;selection_budget&quot;: 2,
+      &quot;log_loss&quot;: 21.626192,
+      &quot;average_precision&quot;: 0.2,
+      &quot;roc_auc&quot;: 0.25,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;tp_at_budget&quot;: 0,
+      &quot;fp_at_budget&quot;: 2,
+      &quot;fn_at_budget&quot;: 1,
+      &quot;tn_at_budget&quot;: 2,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.4,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: &quot;&quot;
+    }
+  ],
+  &quot;overfit&quot;: [
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;metric&quot;: &quot;accuracy_at_0_5&quot;,
+      &quot;train&quot;: 1.0,
+      &quot;validation&quot;: 0.333333,
+      &quot;test&quot;: 0.4,
+      &quot;train_validation_gap&quot;: 0.666667,
+      &quot;warning_threshold&quot;: 0.25,
+      &quot;warning_triggered&quot;: true
+    },
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;metric&quot;: &quot;precision_at_budget&quot;,
+      &quot;train&quot;: 1.0,
+      &quot;validation&quot;: 0.0,
+      &quot;test&quot;: 0.0,
+      &quot;train_validation_gap&quot;: 1.0,
+      &quot;warning_threshold&quot;: 0.5,
+      &quot;warning_triggered&quot;: true
+    },
+    {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;metric&quot;: &quot;log_loss&quot;,
+      &quot;train&quot;: 0.0,
+      &quot;validation&quot;: 24.029102,
+      &quot;test&quot;: 21.626192,
+      &quot;train_validation_gap&quot;: 24.029102,
+      &quot;warning_threshold&quot;: 1.0,
+      &quot;warning_triggered&quot;: true
+    }
+  ],
+  &quot;nodes&quot;: [
+    {
+      &quot;node_id&quot;: 0,
+      &quot;depth&quot;: 0,
+      &quot;is_leaf&quot;: false,
+      &quot;feature_name&quot;: &quot;categorical__platform_android&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;left_child&quot;: 1,
+      &quot;right_child&quot;: 2,
+      &quot;impurity&quot;: 0.5,
+      &quot;n_node_samples&quot;: 4,
+      &quot;weighted_n_node_samples&quot;: 4.0,
+      &quot;class_0_count&quot;: 0.5,
+      &quot;class_1_count&quot;: 0.5,
+      &quot;predicted_class&quot;: 0
+    },
+    {
+      &quot;node_id&quot;: 1,
+      &quot;depth&quot;: 1,
+      &quot;is_leaf&quot;: true,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;left_child&quot;: &quot;&quot;,
+      &quot;right_child&quot;: &quot;&quot;,
+      &quot;impurity&quot;: 0.0,
+      &quot;n_node_samples&quot;: 2,
+      &quot;weighted_n_node_samples&quot;: 2.0,
+      &quot;class_0_count&quot;: 1.0,
+      &quot;class_1_count&quot;: 0.0,
+      &quot;predicted_class&quot;: 0
+    },
+    {
+      &quot;node_id&quot;: 2,
+      &quot;depth&quot;: 1,
+      &quot;is_leaf&quot;: true,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;left_child&quot;: &quot;&quot;,
+      &quot;right_child&quot;: &quot;&quot;,
+      &quot;impurity&quot;: 0.0,
+      &quot;n_node_samples&quot;: 2,
+      &quot;weighted_n_node_samples&quot;: 2.0,
+      &quot;class_0_count&quot;: 0.0,
+      &quot;class_1_count&quot;: 1.0,
+      &quot;predicted_class&quot;: 1
+    }
+  ],
+  &quot;rules&quot;: &quot;|--- categorical__platform_android &lt;= 0.500\n|   |--- weights: [2.000, 0.000] class: 0\n|--- categorical__platform_android &gt;  0.500\n|   |--- weights: [0.000, 2.000] class: 1\n&quot;,
+  &quot;predictions&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S001&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 1.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S002&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 1.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 1.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S009&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 1.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S011&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S012&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 1.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S013&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;model_kind&quot;: &quot;decision_tree_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.0,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T12:00:00+03:00&quot;
+    }
+  ],
+  &quot;serialized_spec&quot;: {
+    &quot;tree_diagnostic_id&quot;: &quot;trial-churn-tree-diagnostic-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;column_transformer_id&quot;: &quot;trial-churn-column-transformer-v0&quot;,
+    &quot;linear_baseline_id&quot;: &quot;trial-churn-linear-baseline-v0&quot;,
+    &quot;model&quot;: {
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;class&quot;: &quot;DecisionTreeClassifier&quot;,
+      &quot;params&quot;: {
+        &quot;criterion&quot;: &quot;gini&quot;,
+        &quot;max_depth&quot;: 2,
+        &quot;min_samples_split&quot;: 2,
+        &quot;min_samples_leaf&quot;: 1,
+        &quot;max_leaf_nodes&quot;: null,
+        &quot;class_weight&quot;: null,
+        &quot;ccp_alpha&quot;: 0.0,
+        &quot;random_state&quot;: 0
+      },
+      &quot;classes&quot;: [
+        0,
+        1
+      ],
+      &quot;actual_depth&quot;: 1,
+      &quot;leaf_count&quot;: 2,
+      &quot;node_count&quot;: 3,
+      &quot;split_features&quot;: [
+        &quot;categorical__platform_android&quot;
+      ]
+    },
+    &quot;fit_trace&quot;: [
+      {
+        &quot;event&quot;: &quot;pipeline.fit&quot;,
+        &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+        &quot;split&quot;: &quot;train&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ],
+        &quot;row_count&quot;: 4,
+        &quot;fits_column_transformer&quot;: true,
+        &quot;fits_estimator&quot;: true
+      },
+      {
+        &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+        &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+        &quot;split&quot;: &quot;validation&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;row_count&quot;: 3,
+        &quot;uses_fitted_column_transformer&quot;: true,
+        &quot;fits_anything&quot;: false
+      },
+      {
+        &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+        &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+        &quot;split&quot;: &quot;test&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S009&quot;,
+          &quot;S010&quot;,
+          &quot;S011&quot;,
+          &quot;S012&quot;,
+          &quot;S013&quot;
+        ],
+        &quot;row_count&quot;: 5,
+        &quot;uses_fitted_column_transformer&quot;: true,
+        &quot;fits_anything&quot;: false
+      }
+    ],
+    &quot;feature_schema&quot;: [
+      {
+        &quot;position&quot;: 0,
+        &quot;feature_name&quot;: &quot;numeric_median__sessions_14d&quot;,
+        &quot;source_route&quot;: &quot;numeric_median&quot;,
+        &quot;source_column&quot;: &quot;sessions_14d&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      },
+      {
+        &quot;position&quot;: 1,
+        &quot;feature_name&quot;: &quot;numeric_median__active_days_14d&quot;,
+        &quot;source_route&quot;: &quot;numeric_median&quot;,
+        &quot;source_column&quot;: &quot;active_days_14d&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      },
+      {
+        &quot;position&quot;: 2,
+        &quot;feature_name&quot;: &quot;numeric_median__days_since_signup&quot;,
+        &quot;source_route&quot;: &quot;numeric_median&quot;,
+        &quot;source_column&quot;: &quot;days_since_signup&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      },
+      {
+        &quot;position&quot;: 3,
+        &quot;feature_name&quot;: &quot;numeric_constant__support_tickets_14d&quot;,
+        &quot;source_route&quot;: &quot;numeric_constant&quot;,
+        &quot;source_column&quot;: &quot;support_tickets_14d&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      },
+      {
+        &quot;position&quot;: 4,
+        &quot;feature_name&quot;: &quot;numeric_constant__revenue_30d&quot;,
+        &quot;source_route&quot;: &quot;numeric_constant&quot;,
+        &quot;source_column&quot;: &quot;revenue_30d&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      },
+      {
+        &quot;position&quot;: 5,
+        &quot;feature_name&quot;: &quot;categorical__plan_id_trial_basic&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;plan_id&quot;,
+        &quot;source_category&quot;: &quot;trial_basic&quot;
+      },
+      {
+        &quot;position&quot;: 6,
+        &quot;feature_name&quot;: &quot;categorical__plan_id_trial_pro&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;plan_id&quot;,
+        &quot;source_category&quot;: &quot;trial_pro&quot;
+      },
+      {
+        &quot;position&quot;: 7,
+        &quot;feature_name&quot;: &quot;categorical__plan_id___missing__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;plan_id&quot;,
+        &quot;source_category&quot;: &quot;__missing__&quot;
+      },
+      {
+        &quot;position&quot;: 8,
+        &quot;feature_name&quot;: &quot;categorical__plan_id___unknown__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;plan_id&quot;,
+        &quot;source_category&quot;: &quot;__unknown__&quot;
+      },
+      {
+        &quot;position&quot;: 9,
+        &quot;feature_name&quot;: &quot;categorical__platform_android&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;platform&quot;,
+        &quot;source_category&quot;: &quot;android&quot;
+      },
+      {
+        &quot;position&quot;: 10,
+        &quot;feature_name&quot;: &quot;categorical__platform_ios&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;platform&quot;,
+        &quot;source_category&quot;: &quot;ios&quot;
+      },
+      {
+        &quot;position&quot;: 11,
+        &quot;feature_name&quot;: &quot;categorical__platform_web&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;platform&quot;,
+        &quot;source_category&quot;: &quot;web&quot;
+      },
+      {
+        &quot;position&quot;: 12,
+        &quot;feature_name&quot;: &quot;categorical__platform___missing__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;platform&quot;,
+        &quot;source_category&quot;: &quot;__missing__&quot;
+      },
+      {
+        &quot;position&quot;: 13,
+        &quot;feature_name&quot;: &quot;categorical__platform___unknown__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;platform&quot;,
+        &quot;source_category&quot;: &quot;__unknown__&quot;
+      },
+      {
+        &quot;position&quot;: 14,
+        &quot;feature_name&quot;: &quot;categorical__country_KZ&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;country&quot;,
+        &quot;source_category&quot;: &quot;KZ&quot;
+      },
+      {
+        &quot;position&quot;: 15,
+        &quot;feature_name&quot;: &quot;categorical__country_RU&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;country&quot;,
+        &quot;source_category&quot;: &quot;RU&quot;
+      },
+      {
+        &quot;position&quot;: 16,
+        &quot;feature_name&quot;: &quot;categorical__country___missing__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;country&quot;,
+        &quot;source_category&quot;: &quot;__missing__&quot;
+      },
+      {
+        &quot;position&quot;: 17,
+        &quot;feature_name&quot;: &quot;categorical__country___unknown__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;country&quot;,
+        &quot;source_category&quot;: &quot;__unknown__&quot;
+      },
+      {
+        &quot;position&quot;: 18,
+        &quot;feature_name&quot;: &quot;categorical__acquisition_channel_organic&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+        &quot;source_category&quot;: &quot;organic&quot;
+      },
+      {
+        &quot;position&quot;: 19,
+        &quot;feature_name&quot;: &quot;categorical__acquisition_channel_paid_search&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+        &quot;source_category&quot;: &quot;paid_search&quot;
+      },
+      {
+        &quot;position&quot;: 20,
+        &quot;feature_name&quot;: &quot;categorical__acquisition_channel_referral&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+        &quot;source_category&quot;: &quot;referral&quot;
+      },
+      {
+        &quot;position&quot;: 21,
+        &quot;feature_name&quot;: &quot;categorical__acquisition_channel___missing__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+        &quot;source_category&quot;: &quot;__missing__&quot;
+      },
+      {
+        &quot;position&quot;: 22,
+        &quot;feature_name&quot;: &quot;categorical__acquisition_channel___unknown__&quot;,
+        &quot;source_route&quot;: &quot;categorical&quot;,
+        &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+        &quot;source_category&quot;: &quot;__unknown__&quot;
+      },
+      {
+        &quot;position&quot;: 23,
+        &quot;feature_name&quot;: &quot;binary__had_support_ticket_14d&quot;,
+        &quot;source_route&quot;: &quot;binary&quot;,
+        &quot;source_column&quot;: &quot;had_support_ticket_14d&quot;,
+        &quot;source_category&quot;: &quot;&quot;
+      }
+    ],
+    &quot;baseline_reference&quot;: {
+      &quot;selected_baseline_id&quot;: &quot;dummy_prior&quot;,
+      &quot;selected_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_selection&quot;: false
+    },
+    &quot;rule_export&quot;: {
+      &quot;method&quot;: &quot;sklearn.tree.export_text&quot;,
+      &quot;line_count&quot;: 4,
+      &quot;interpretation_limits&quot;: [
+        &quot;rules split transformed features produced by ColumnTransformer&quot;,
+        &quot;one-hot rules are not causal explanations of churn&quot;,
+        &quot;tiny train leaves can be pure by memorization&quot;,
+        &quot;tree diagnostics do not override validation/test split policy&quot;
+      ]
+    }
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;tree_diagnostic_spec_declares_constrained_tree&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;tree_diagnostic_id&quot;: &quot;trial-churn-tree-diagnostic-v0&quot;,
+        &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+        &quot;max_depth&quot;: 2
+      },
+      &quot;expected&quot;: &quot;diagnostic tree contract is explicit&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;split_manifest_supports_tree_diagnostic_roles&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;train&quot;: 4,
+        &quot;validation&quot;: 3,
+        &quot;test&quot;: 5
+      },
+      &quot;expected&quot;: &quot;manifest exposes correct roles for tree diagnostics&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_linear_baseline_audit_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;linear_baseline_id&quot;: &quot;trial-churn-linear-baseline-v0&quot;,
+        &quot;selected_model_id&quot;: &quot;dummy_prior&quot;,
+        &quot;readiness_status&quot;: &quot;ready_for_tree_diagnostics_lesson&quot;
+      },
+      &quot;expected&quot;: &quot;linear baseline handoff is valid&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_fit_uses_train_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;fit_snapshot_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;diagnostic tree fit used train only&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_predictions_cover_train_validation_and_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 12,
+        &quot;model_id&quot;: &quot;decision_tree_depth2&quot;
+      },
+      &quot;expected&quot;: &quot;tree scored train for gap diagnostics and validation/test for evaluation&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_depth_and_leaf_constraints_respected&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;actual_depth&quot;: 1,
+        &quot;leaf_count&quot;: 2,
+        &quot;min_leaf_samples&quot;: 2
+      },
+      &quot;expected&quot;: &quot;tree stayed within declared constraints&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_rules_exported_with_feature_names&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;line_count&quot;: 4,
+        &quot;used_feature_names&quot;: [
+          &quot;categorical__platform_android&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;tree rules include transformed feature names&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;train_validation_gap_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;metrics&quot;: [
+          &quot;accuracy_at_0_5&quot;,
+          &quot;precision_at_budget&quot;,
+          &quot;log_loss&quot;
+        ],
+        &quot;triggered&quot;: [
+          &quot;accuracy_at_0_5&quot;,
+          &quot;precision_at_budget&quot;,
+          &quot;log_loss&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;train-validation gaps are reported&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_rules_align_with_transformed_feature_schema&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;split_features&quot;: [
+          &quot;categorical__platform_android&quot;
+        ],
+        &quot;feature_count&quot;: 24
+      },
+      &quot;expected&quot;: &quot;tree split features align with transformed schema&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_unknown_categories_bucketed&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: &quot;unknown validation/test categories inherited explicit ColumnTransformer bucket&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;snapshot_id&quot;: &quot;S006&quot;,
+          &quot;split&quot;: &quot;validation&quot;,
+          &quot;feature&quot;: &quot;acquisition_channel&quot;,
+          &quot;value&quot;: &quot;influencer&quot;
+        },
+        {
+          &quot;snapshot_id&quot;: &quot;S010&quot;,
+          &quot;split&quot;: &quot;test&quot;,
+          &quot;feature&quot;: &quot;acquisition_channel&quot;,
+          &quot;value&quot;: &quot;partnership&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_tree_training_sample_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: &quot;&gt;= 20 train rows for production tree diagnostics&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_train_validation_gap_exceeds_threshold&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        {
+          &quot;metric&quot;: &quot;accuracy_at_0_5&quot;,
+          &quot;train_validation_gap&quot;: 0.666667,
+          &quot;warning_threshold&quot;: 0.25
+        },
+        {
+          &quot;metric&quot;: &quot;precision_at_budget&quot;,
+          &quot;train_validation_gap&quot;: 1.0,
+          &quot;warning_threshold&quot;: 0.5
+        },
+        {
+          &quot;metric&quot;: &quot;log_loss&quot;,
+          &quot;train_validation_gap&quot;: 24.029102,
+          &quot;warning_threshold&quot;: 1.0
+        }
+      ],
+      &quot;expected&quot;: &quot;train-validation gap below warning thresholds&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_diagnostic_worse_than_selected_baseline_on_validation&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;tree_precision_at_budget&quot;: 0.0,
+        &quot;selected_baseline_id&quot;: &quot;dummy_prior&quot;,
+        &quot;selected_baseline_precision_at_budget&quot;: 0.5
+      },
+      &quot;expected&quot;: &quot;diagnostic tree should not be promoted when it is worse than selected baseline&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_rules.txt</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>|--- categorical__platform_android &lt;= 0.500
+|   |--- weights: [2.000, 0.000] class: 0
+|--- categorical__platform_android &gt;  0.500
+|   |--- weights: [0.000, 2.000] class: 1
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_rules.txt" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;tree_diagnostic_id&quot;: &quot;trial-churn-tree-diagnostic-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;column_transformer_id&quot;: &quot;trial-churn-column-transformer-v0&quot;,
+  &quot;linear_baseline_id&quot;: &quot;trial-churn-linear-baseline-v0&quot;,
+  &quot;model&quot;: {
+    &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+    &quot;class&quot;: &quot;DecisionTreeClassifier&quot;,
+    &quot;params&quot;: {
+      &quot;criterion&quot;: &quot;gini&quot;,
+      &quot;max_depth&quot;: 2,
+      &quot;min_samples_split&quot;: 2,
+      &quot;min_samples_leaf&quot;: 1,
+      &quot;max_leaf_nodes&quot;: null,
+      &quot;class_weight&quot;: null,
+      &quot;ccp_alpha&quot;: 0.0,
+      &quot;random_state&quot;: 0
+    },
+    &quot;classes&quot;: [
+      0,
+      1
+    ],
+    &quot;actual_depth&quot;: 1,
+    &quot;leaf_count&quot;: 2,
+    &quot;node_count&quot;: 3,
+    &quot;split_features&quot;: [
+      &quot;categorical__platform_android&quot;
+    ]
+  },
+  &quot;fit_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;pipeline.fit&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;,
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;row_count&quot;: 4,
+      &quot;fits_column_transformer&quot;: true,
+      &quot;fits_estimator&quot;: true
+    },
+    {
+      &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;row_count&quot;: 3,
+      &quot;uses_fitted_column_transformer&quot;: true,
+      &quot;fits_anything&quot;: false
+    },
+    {
+      &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+      &quot;model_id&quot;: &quot;decision_tree_depth2&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S009&quot;,
+        &quot;S010&quot;,
+        &quot;S011&quot;,
+        &quot;S012&quot;,
+        &quot;S013&quot;
+      ],
+      &quot;row_count&quot;: 5,
+      &quot;uses_fitted_column_transformer&quot;: true,
+      &quot;fits_anything&quot;: false
+    }
+  ],
+  &quot;feature_schema&quot;: [
+    {
+      &quot;position&quot;: 0,
+      &quot;feature_name&quot;: &quot;numeric_median__sessions_14d&quot;,
+      &quot;source_route&quot;: &quot;numeric_median&quot;,
+      &quot;source_column&quot;: &quot;sessions_14d&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    },
+    {
+      &quot;position&quot;: 1,
+      &quot;feature_name&quot;: &quot;numeric_median__active_days_14d&quot;,
+      &quot;source_route&quot;: &quot;numeric_median&quot;,
+      &quot;source_column&quot;: &quot;active_days_14d&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    },
+    {
+      &quot;position&quot;: 2,
+      &quot;feature_name&quot;: &quot;numeric_median__days_since_signup&quot;,
+      &quot;source_route&quot;: &quot;numeric_median&quot;,
+      &quot;source_column&quot;: &quot;days_since_signup&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    },
+    {
+      &quot;position&quot;: 3,
+      &quot;feature_name&quot;: &quot;numeric_constant__support_tickets_14d&quot;,
+      &quot;source_route&quot;: &quot;numeric_constant&quot;,
+      &quot;source_column&quot;: &quot;support_tickets_14d&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    },
+    {
+      &quot;position&quot;: 4,
+      &quot;feature_name&quot;: &quot;numeric_constant__revenue_30d&quot;,
+      &quot;source_route&quot;: &quot;numeric_constant&quot;,
+      &quot;source_column&quot;: &quot;revenue_30d&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    },
+    {
+      &quot;position&quot;: 5,
+      &quot;feature_name&quot;: &quot;categorical__plan_id_trial_basic&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;plan_id&quot;,
+      &quot;source_category&quot;: &quot;trial_basic&quot;
+    },
+    {
+      &quot;position&quot;: 6,
+      &quot;feature_name&quot;: &quot;categorical__plan_id_trial_pro&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;plan_id&quot;,
+      &quot;source_category&quot;: &quot;trial_pro&quot;
+    },
+    {
+      &quot;position&quot;: 7,
+      &quot;feature_name&quot;: &quot;categorical__plan_id___missing__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;plan_id&quot;,
+      &quot;source_category&quot;: &quot;__missing__&quot;
+    },
+    {
+      &quot;position&quot;: 8,
+      &quot;feature_name&quot;: &quot;categorical__plan_id___unknown__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;plan_id&quot;,
+      &quot;source_category&quot;: &quot;__unknown__&quot;
+    },
+    {
+      &quot;position&quot;: 9,
+      &quot;feature_name&quot;: &quot;categorical__platform_android&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;platform&quot;,
+      &quot;source_category&quot;: &quot;android&quot;
+    },
+    {
+      &quot;position&quot;: 10,
+      &quot;feature_name&quot;: &quot;categorical__platform_ios&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;platform&quot;,
+      &quot;source_category&quot;: &quot;ios&quot;
+    },
+    {
+      &quot;position&quot;: 11,
+      &quot;feature_name&quot;: &quot;categorical__platform_web&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;platform&quot;,
+      &quot;source_category&quot;: &quot;web&quot;
+    },
+    {
+      &quot;position&quot;: 12,
+      &quot;feature_name&quot;: &quot;categorical__platform___missing__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;platform&quot;,
+      &quot;source_category&quot;: &quot;__missing__&quot;
+    },
+    {
+      &quot;position&quot;: 13,
+      &quot;feature_name&quot;: &quot;categorical__platform___unknown__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;platform&quot;,
+      &quot;source_category&quot;: &quot;__unknown__&quot;
+    },
+    {
+      &quot;position&quot;: 14,
+      &quot;feature_name&quot;: &quot;categorical__country_KZ&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;country&quot;,
+      &quot;source_category&quot;: &quot;KZ&quot;
+    },
+    {
+      &quot;position&quot;: 15,
+      &quot;feature_name&quot;: &quot;categorical__country_RU&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;country&quot;,
+      &quot;source_category&quot;: &quot;RU&quot;
+    },
+    {
+      &quot;position&quot;: 16,
+      &quot;feature_name&quot;: &quot;categorical__country___missing__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;country&quot;,
+      &quot;source_category&quot;: &quot;__missing__&quot;
+    },
+    {
+      &quot;position&quot;: 17,
+      &quot;feature_name&quot;: &quot;categorical__country___unknown__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;country&quot;,
+      &quot;source_category&quot;: &quot;__unknown__&quot;
+    },
+    {
+      &quot;position&quot;: 18,
+      &quot;feature_name&quot;: &quot;categorical__acquisition_channel_organic&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+      &quot;source_category&quot;: &quot;organic&quot;
+    },
+    {
+      &quot;position&quot;: 19,
+      &quot;feature_name&quot;: &quot;categorical__acquisition_channel_paid_search&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+      &quot;source_category&quot;: &quot;paid_search&quot;
+    },
+    {
+      &quot;position&quot;: 20,
+      &quot;feature_name&quot;: &quot;categorical__acquisition_channel_referral&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+      &quot;source_category&quot;: &quot;referral&quot;
+    },
+    {
+      &quot;position&quot;: 21,
+      &quot;feature_name&quot;: &quot;categorical__acquisition_channel___missing__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+      &quot;source_category&quot;: &quot;__missing__&quot;
+    },
+    {
+      &quot;position&quot;: 22,
+      &quot;feature_name&quot;: &quot;categorical__acquisition_channel___unknown__&quot;,
+      &quot;source_route&quot;: &quot;categorical&quot;,
+      &quot;source_column&quot;: &quot;acquisition_channel&quot;,
+      &quot;source_category&quot;: &quot;__unknown__&quot;
+    },
+    {
+      &quot;position&quot;: 23,
+      &quot;feature_name&quot;: &quot;binary__had_support_ticket_14d&quot;,
+      &quot;source_route&quot;: &quot;binary&quot;,
+      &quot;source_column&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;source_category&quot;: &quot;&quot;
+    }
+  ],
+  &quot;baseline_reference&quot;: {
+    &quot;selected_baseline_id&quot;: &quot;dummy_prior&quot;,
+    &quot;selected_on_split&quot;: &quot;validation&quot;,
+    &quot;test_used_for_selection&quot;: false
+  },
+  &quot;rule_export&quot;: {
+    &quot;method&quot;: &quot;sklearn.tree.export_text&quot;,
+    &quot;line_count&quot;: 4,
+    &quot;interpretation_limits&quot;: [
+      &quot;rules split transformed features produced by ColumnTransformer&quot;,
+      &quot;one-hot rules are not causal explanations of churn&quot;,
+      &quot;tiny train leaves can be pure by memorization&quot;,
+      &quot;tree diagnostics do not override validation/test split policy&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/08-trees/outputs/tree_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/08-trees" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/applied-machine-learning/linear-models/"><span>← Предыдущий урок</span><strong>Линейные baseline</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/applied-machine-learning/ensembles/"><span>Следующий урок →</span><strong>Ансамбли деревьев</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,2059 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 14/09 у нас есть backtesterrors.csv: каждая строка знает model, segment, origin, horizon step, forecast, actual и raw error. Этого еще недостаточно для решения.…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/time-series/forecast-metrics/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Метрики прогноза">
+  <meta property="og:description" content="После 14/09 у нас есть backtesterrors.csv: каждая строка знает model, segment, origin, horizon step, forecast, actual и raw error. Этого еще недостаточно для решения.…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/time-series/forecast-metrics/">
+  <meta name="twitter:card" content="summary">
+  <title>Метрики прогноза — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Метрики прогноза", "description": "После 14/09 у нас есть backtesterrors.csv: каждая строка знает model, segment, origin, horizon step, forecast, actual и raw error. Этого еще недостаточно для решения.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/forecast-metrics/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 14: Временные ряды", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=14"}, {"@type": "ListItem", "position": 3, "name": "Метрики прогноза", "item": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/forecast-metrics/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 14</p><h2>Временные ряды</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-index/"><span>01</span>Временной индекс, частота и календарный grain</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/resampling/"><span>02</span>Resampling и агрегация</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/rolling/"><span>03</span>Rolling и expanding windows</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/trend-and-seasonality/"><span>04</span>Тренд, сезонность и календарные эффекты</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/temporal-leakage/"><span>05</span>Временная утечка</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-baselines/"><span>06</span>Наивные и сезонные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/decomposition/"><span>07</span>Декомпозиция ряда</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/ets-and-arima/"><span>08</span>ETS и ARIMA</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/backtesting/"><span>09</span>Rolling backtesting</a><a class="lesson-sidebar-link is-active" href="../../../lessons/time-series/forecast-metrics/"><span>10</span>Метрики прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/prediction-intervals/"><span>11</span>Интервалы прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-series-anomalies/"><span>12</span>Аномалии временных рядов и forecast package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 14 · Временные ряды</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 154 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/14-time-series/10-forecast-metrics" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему MAE по segment `all` нельзя напрямую сложить с MAE по маленькому segment без политики весов?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ошибки измеряются в разных масштабах, поэтому нужен segment weighting или scale-free metric.</button><button type="button" class="quiz-option" data-choice="1">MAE нельзя считать на временных рядах.</button><button type="button" class="quiz-option" data-choice="2">Segment-level метрики всегда должны игнорироваться.</button><button type="button" class="quiz-option" data-choice="3">RMSE автоматически решает проблему разных масштабов.</button></div><p class="quiz-feedback" hidden>MAE остается в единицах target metric. Большой segment естественно дает большие абсолютные ошибки, поэтому сравнение требует весов или scaled metric вроде MASE.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Когда MAPE становится опасной forecast-метрикой?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда actual может быть нулем или очень маленьким, и процентная ошибка взрывается или становится неопределенной.</button><button type="button" class="quiz-option" data-choice="1">Когда forecast построен seasonal naive baseline.</button><button type="button" class="quiz-option" data-choice="2">Когда horizon больше одного дня.</button><button type="button" class="quiz-option" data-choice="3">Когда модель имеет convergence warning.</button></div><p class="quiz-feedback" hidden>MAPE делит absolute error на actual. При нуле или маленьком actual метрика становится бесконечной, нестабильной или доминирует leaderboard не по бизнес-стоимости.</p></article></section>
+        <article class="lesson-article"><h1 id="метрики-прогноза">Метрики прогноза</h1>
+<blockquote>
+<p>Leaderboard полезен только тогда, когда metric policy заранее говорит, какую
+ошибку считать дорогой, а какую - просто диагностической.</p>
+</blockquote>
+<ul>
+<li><strong>Тип:</strong> Case</li>
+<li><strong>Треки:</strong> Decision</li>
+<li><strong>Пререквизиты:</strong> <code>14-time-series/09-backtesting</code></li>
+<li><strong>Время:</strong> ~75 минут</li>
+<li><strong>Результат:</strong> вы считаете MAE, RMSE, MAPE/sMAPE, WAPE и MASE по rolling-origin
+errors, публикуете overall, segment-level и horizon-level slices, проверяете
+пригодность метрик и выпускаете leaderboard без production overclaim.</li>
+</ul>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать raw forecast errors от metric policy.</li>
+<li>Считать MAE, RMSE, MAPE, sMAPE, WAPE и MASE из одной backtest error table.</li>
+<li>Объяснять, почему MAE/RMSE scale-dependent, а MASE удобнее для сравнения сегментов.</li>
+<li>Блокировать или помечать MAPE/sMAPE при нулевых и маленьких denominator.</li>
+<li>Строить leaderboard по primary metric и не объявлять production winner при
+warning-ах backtest-дизайна.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>14/09</code> у нас есть <code>backtest_errors.csv</code>: каждая строка знает model, segment,
+origin, horizon step, forecast, actual и raw error. Этого еще недостаточно для решения.
+Можно взять первую строку, где ETS почти идеально попала в actual, и сказать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">&quot;ETS выиграла, выкатываем&quot;.
+</code></pre></div><p>Это снова слишком сильный вывод. Разные метрики отвечают на разные вопросы:</p>
+<ul>
+<li>MAE легко объяснить в единицах продукта, но она зависит от масштаба segment.</li>
+<li>RMSE сильнее наказывает крупные промахи, но менее прозрачен бизнесу.</li>
+<li>MAPE кажется удобной процентной метрикой, но ломается на нулях и маленьких actuals.</li>
+<li>WAPE нормирует absolute error общим объемом и часто понятен в бизнес-отчетах.</li>
+<li>MASE сравнивает ошибку модели с in-sample seasonal-naive scale и подходит для разных
+масштабов.</li>
+</ul>
+<p>Задача урока - не найти красивое число, а сделать metric handoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw errors -&gt; suitability audit -&gt; metric slices -&gt; weighted leaderboard -&gt;
+limited decision status
+</code></pre></div><h2 id="концепция">Концепция</h2>
+<p>Forecast error:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">error = actual - forecast
+absolute_error = abs(error)
+squared_error = error ** 2
+</code></pre></div><p>Scale-dependent metrics:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">MAE  = mean(abs(error))
+RMSE = sqrt(mean(error ** 2))
+</code></pre></div><p>Percentage metrics:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">MAPE  = mean(abs(error) / abs(actual)) * 100
+sMAPE = mean(2 * abs(error) / (abs(actual) + abs(forecast))) * 100
+WAPE  = sum(abs(error)) / sum(abs(actual)) * 100
+</code></pre></div><p>MAPE и sMAPE не становятся primary metric только потому, что они в процентах. Если
+<code>actual = 0</code>, MAPE не определена. Если <code>actual</code> и <code>forecast</code> оба около нуля, sMAPE
+тоже нестабильна. Поэтому spec держит их в роли <code>diagnostic_only</code>.</p>
+<p>Scaled metric:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">MASE = mean(abs(error) / seasonal_naive_training_mae)
+</code></pre></div><p>Для weekly seasonal daily series denominator считается внутри каждого split и segment:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">seasonal_naive_training_mae =
+  mean(abs(y_t - y_{t-7})) over training window
+</code></pre></div><p>В tiny profile:</p>
+<table>
+<thead>
+<tr>
+<th>Split</th>
+<th>Segment</th>
+<th style="text-align:right">MASE denominator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bt-expanding-2026-02-24</code></td>
+<td><code>all</code></td>
+<td style="text-align:right"><code>63</code></td>
+</tr>
+<tr>
+<td><code>bt-expanding-2026-02-24</code></td>
+<td><code>android</code></td>
+<td style="text-align:right"><code>28</code></td>
+</tr>
+<tr>
+<td><code>bt-rolling-2026-03-14</code></td>
+<td><code>all</code></td>
+<td style="text-align:right"><code>66.428571</code></td>
+</tr>
+</tbody>
+</table>
+<p>Эта таблица важна: без denominator MASE выглядит как магическое число.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Начните с одной backtest row:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">actual = 944
+forecast = 881
+error = actual - forecast
+absolute_error = abs(error)
+squared_error = error * error
+
+assert error == 63
+assert absolute_error == 63
+assert squared_error == 3969
+</code></pre></div><p>Для MAE/RMSE достаточно raw errors:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">absolute_errors = [63, 63, 63]
+squared_errors = [3969, 3969, 3969]
+
+mae = sum(absolute_errors) / len(absolute_errors)
+rmse = (sum(squared_errors) / len(squared_errors)) ** 0.5
+</code></pre></div><p>Для MAPE добавьте safety gate:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">if any(abs(actual) &lt; 1 for actual in actual_values):
+    mape_status = &quot;blocked&quot;
+else:
+    mape = mean(abs(error) / abs(actual) * 100)
+</code></pre></div><p>Для MASE нужен training window:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">seasonal_period = 7
+denominator = mean(
+    abs(y[day] - y[day - seasonal_period])
+    for day in training_dates
+    if day - seasonal_period in training_dates
+)
+mase = mean(abs(error) / denominator for error in forecast_errors)
+</code></pre></div><p>После этого задайте slices. В уроке их три:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">overall: model_id
+segment: model_id x segment_id
+horizon: model_id x horizon_step
+</code></pre></div><p>Для трех моделей, двух сегментов и трех horizon steps получается:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">metric_rows = 3 * (1 + 2 + 3)
+assert metric_rows == 18
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Готовый artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/forecast_metric_evaluator.py
+</code></pre></div><p>Запуск из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/forecast_metric_evaluator.py \
+  --errors ../09-backtesting/outputs/backtest_errors.csv \
+  --split-manifest ../09-backtesting/outputs/split_manifest.csv \
+  --series ../data/tiny/backtest_observations.csv \
+  --backtest-report ../09-backtesting/outputs/backtest_report.json \
+  --spec ../data/tiny/forecast_metric_spec.json \
+  --output-dir outputs
+</code></pre></div><p>Или из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/14-time-series/10-forecast-metrics/code/main.py
+</code></pre></div><p>CLI пишет пять файлов:</p>
+<ul>
+<li><code>outputs/forecast_metrics.csv</code> - MAE/RMSE/MAPE/sMAPE/WAPE/MASE по overall,
+segment и horizon slices;</li>
+<li><code>outputs/metric_suitability_audit.csv</code> - роль каждой метрики, zero/scale risks и
+decision eligibility;</li>
+<li><code>outputs/mase_denominators.csv</code> - training seasonal-naive denominator по split и
+segment;</li>
+<li><code>outputs/metric_leaderboard.csv</code> - weighted-MASE leaderboard;</li>
+<li><code>outputs/metric_report.json</code> - quality gates, warnings и output summary.</li>
+</ul>
+<p>Tiny profile валиден, но warning остается:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;warnings&quot;: [&quot;backtest_warnings_limit_model_selection&quot;],
+  &quot;metric_rows&quot;: 18,
+  &quot;leaderboard_rows&quot;: 3,
+  &quot;primary_metric&quot;: &quot;weighted_mase&quot;,
+  &quot;top_model_id&quot;: &quot;ets_additive_trend_seasonal_7&quot;
+}
+</code></pre></div><p>Overall metrics:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align:right">MAE</th>
+<th style="text-align:right">RMSE</th>
+<th style="text-align:right">WAPE</th>
+<th style="text-align:right">MASE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>seasonal_naive_7</code></td>
+<td style="text-align:right"><code>46.5</code></td>
+<td style="text-align:right"><code>50.264301</code></td>
+<td style="text-align:right"><code>6.782133</code></td>
+<td style="text-align:right"><code>1.009831</code></td>
+</tr>
+<tr>
+<td><code>ets_additive_trend_seasonal_7</code></td>
+<td style="text-align:right"><code>3.166694</code></td>
+<td style="text-align:right"><code>6.377098</code></td>
+<td style="text-align:right"><code>0.46187</code></td>
+<td style="text-align:right"><code>0.0489</code></td>
+</tr>
+<tr>
+<td><code>arima_1_1_0</code></td>
+<td style="text-align:right"><code>41.765465</code></td>
+<td style="text-align:right"><code>47.942236</code></td>
+<td style="text-align:right"><code>6.09159</code></td>
+<td style="text-align:right"><code>0.897672</code></td>
+</tr>
+</tbody>
+</table>
+<p>Weighted-MASE leaderboard:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Rank</th>
+<th>Model</th>
+<th style="text-align:right">Weighted MASE</th>
+<th style="text-align:right">Relative improvement</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td><code>ets_additive_trend_seasonal_7</code></td>
+<td style="text-align:right"><code>0.068459</code></td>
+<td style="text-align:right"><code>0.93247</code></td>
+<td><code>diagnostic_leaderboard_not_production_selection</code></td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td><code>arima_1_1_0</code></td>
+<td style="text-align:right"><code>0.914565</code></td>
+<td style="text-align:right"><code>0.097852</code></td>
+<td><code>diagnostic_leaderboard_not_production_selection</code></td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td><code>seasonal_naive_7</code></td>
+<td style="text-align:right"><code>1.013763</code></td>
+<td style="text-align:right"><code>0</code></td>
+<td><code>primary_baseline</code></td>
+</tr>
+</tbody>
+</table>
+<p>Почему status не <code>selected_for_production</code>? Потому что backtest из tiny profile сам
+предупредил: origins меньше production threshold, а 3-day backtest horizon короче
+финального 28-day forecast horizon.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте failure modes.</p>
+<ol>
+<li>Сделайте <code>primary_metric = &quot;mape&quot;</code>. Check
+<code>percentage_metrics_not_primary_decision_metric</code> должен заблокировать report.</li>
+<li>Удалите weight для <code>android</code>. Check
+<code>segment_weights_cover_targets_and_sum_to_one</code> должен упасть.</li>
+<li>Удалите одну строку из <code>backtest_errors.csv</code>. Check
+<code>backtest_error_rows_match_report</code> должен остановить metrics.</li>
+<li>Продублируйте любую строку error table. Check <code>backtest_error_grain_unique</code>
+должен найти broken grain.</li>
+<li>Поставьте <code>actual_value = 0</code> в одной error row. Package остается valid, но
+<code>percentage_denominators_are_safe_or_blocked</code> становится warning, а MAPE status
+становится <code>blocked</code>.</li>
+<li>Сделайте history series постоянным для <code>android</code>. MASE denominator станет нулевым,
+и check <code>mase_denominator_positive</code> заблокирует scaled metrics.</li>
+<li>Сделайте upstream <code>backtest_report.json.valid = false</code>. Check
+<code>backtest_report_is_valid</code> должен остановить evaluator.</li>
+</ol>
+<p>Строгий режим:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/forecast_metric_evaluator.py \
+  --errors ../09-backtesting/outputs/backtest_errors.csv \
+  --split-manifest ../09-backtesting/outputs/split_manifest.csv \
+  --series ../data/tiny/backtest_observations.csv \
+  --backtest-report ../09-backtesting/outputs/backtest_report.json \
+  --spec ../data/tiny/forecast_metric_spec.json \
+  --fail-on-warning
+</code></pre></div><p>На tiny profile он завершится non-zero, потому что warning upstream backtest не
+позволяет тихо использовать leaderboard как production selection.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/14-time-series/10-forecast-metrics/tests -v
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>воспроизводимость <code>forecast_metric_spec.json</code>;</li>
+<li>MASE denominators по split и segment;</li>
+<li>locked overall, segment и horizon metrics;</li>
+<li>suitability audit для MAPE/sMAPE и MASE;</li>
+<li>weighted-MASE leaderboard values и blocked model selection status;</li>
+<li>zero-actual handling без подмены primary MASE;</li>
+<li>блокировки percentage primary metric, bad segment weights, missing/duplicate error row,
+invalid upstream report и нулевого MASE denominator;</li>
+<li>CLI output files и <code>--fail-on-warning</code>.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Переиспользуемый artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/forecast_metric_evaluator.py
+</code></pre></div><p>Минимальный handoff:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/forecast_metric_evaluator.py \
+  --errors path/to/backtest_errors.csv \
+  --split-manifest path/to/split_manifest.csv \
+  --series path/to/backtest_observations.csv \
+  --backtest-report path/to/backtest_report.json \
+  --spec path/to/forecast_metric_spec.json \
+  --output-dir path/to/metric_package
+</code></pre></div><p>Перед передачей результата проверьте:</p>
+<ul>
+<li><code>metric_report.json.valid = true</code>;</li>
+<li><code>metric_suitability_audit.csv</code> не разрешает MAPE/sMAPE как primary decision metric;</li>
+<li><code>mase_denominators.csv</code> имеет положительный denominator для каждого split и segment;</li>
+<li><code>forecast_metrics.csv</code> содержит overall, segment и horizon slices;</li>
+<li><code>metric_leaderboard.csv</code> не объявляет production selection при backtest warning-ах.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Измените segment weights на <code>all=0.5</code>, <code>android=0.5</code> и объясните, почему
+weighted MASE меняется, а segment-level MASE - нет.</li>
+<li>Добавьте horizon weights, где <code>horizon_step=3</code> в два раза важнее первого шага.
+Какие строки output должны измениться?</li>
+<li>Создайте synthetic zero-actual row для support-like metric и убедитесь, что MAPE
+заблокирована, а WAPE/MASE остаются интерпретируемыми при положительном масштабе.</li>
+<li>Добавьте business-cost metric, где over-forecast и under-forecast имеют разную цену.
+Почему MAE/RMSE этого не выражают?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forecast error</td>
+<td>Ошибка модели в training residuals</td>
+<td>Разница <code>actual - forecast</code> на out-of-sample horizon</td>
+</tr>
+<tr>
+<td>MAE</td>
+<td>Универсальный winner metric</td>
+<td>Средняя absolute error в единицах target, не scale-free</td>
+</tr>
+<tr>
+<td>RMSE</td>
+<td>Просто MAE с корнем</td>
+<td>Метрика, которая сильнее наказывает крупные промахи</td>
+</tr>
+<tr>
+<td>MAPE</td>
+<td>Удобная процентная метрика без условий</td>
+<td>Делит на actual и ломается на нулях или маленьких значениях</td>
+</tr>
+<tr>
+<td>WAPE</td>
+<td>То же самое, что MAPE</td>
+<td>Volume-normalized absolute error: <code>sum(abs(error)) / sum(abs(actual))</code></td>
+</tr>
+<tr>
+<td>MASE</td>
+<td>Сложная версия MAE</td>
+<td>Absolute error, нормированная in-sample naive или seasonal-naive scale</td>
+</tr>
+<tr>
+<td>Leaderboard policy</td>
+<td>Таблица rank сама выбирает модель</td>
+<td>Правила, которые связывают metric, baseline threshold, segments и ограничения backtest</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://otexts.com/fpp3/accuracy.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Evaluating point forecast accuracy</a> - основной источник по forecast errors, MAE/RMSE, MAPE/sMAPE failure modes и seasonal MASE denominator.</li>
+<li><a href="https://otexts.com/fpp3/tscv.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Time series cross-validation</a> - как связать metric evaluation с rolling-origin backtests, а не с fit на train.</li>
+<li><a href="https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics" target="_blank" rel="noopener">scikit-learn Regression metrics</a> - официальный обзор regression metrics API; полезно сравнить generic ML metrics с time-series-specific MASE policy.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html" target="_blank" rel="noopener">scikit-learn <code>mean_absolute_error</code></a> - пример production API для MAE и sample weights, который помогает думать о segment/horizon weighting.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем evaluator публикует `mase_denominators.csv`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы показать in-sample seasonal-naive scale, которым нормируются ошибки MASE по каждому split и segment.</button><button type="button" class="quiz-option" data-choice="1">Чтобы заменить backtest forecast table.</button><button type="button" class="quiz-option" data-choice="2">Чтобы скрыть абсолютные ошибки от пользователя.</button><button type="button" class="quiz-option" data-choice="3">Чтобы выбирать модель по in-sample fit.</button></div><p class="quiz-feedback" hidden>MASE требует denominator из исторической seasonal-naive ошибки. Отдельная таблица делает scale проверяемым и не смешивает его с forecast rows.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему top model в tiny leaderboard не получает `eligible_for_model_selection=true`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Upstream backtest имеет warning-и про мало origins и короткий horizon относительно финального 28-day прогноза.</button><button type="button" class="quiz-option" data-choice="1">ETS не посчитал forecast rows.</button><button type="button" class="quiz-option" data-choice="2">MASE нельзя использовать для выбора модели.</button><button type="button" class="quiz-option" data-choice="3">Baseline отсутствует из leaderboard.</button></div><p class="quiz-feedback" hidden>Weighted MASE показывает диагностического лидера, но leaderboard policy требует backtest без warning-ограничений для production model selection.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой набор output-таблиц нужен для честного metric handoff?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`forecast_metrics.csv`, `metric_suitability_audit.csv`, `mase_denominators.csv`, `metric_leaderboard.csv` и `metric_report.json`.</button><button type="button" class="quiz-option" data-choice="1">Только один CSV с rank моделей.</button><button type="button" class="quiz-option" data-choice="2">Только график actual vs forecast.</button><button type="button" class="quiz-option" data-choice="3">Только средний MAPE по всем строкам.</button></div><p class="quiz-feedback" hidden>Метрики должны быть воспроизводимыми: нужны сами slices, audit пригодности метрик, denominator для MASE, leaderboard policy и отчет quality gates.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+BACKTEST_ROOT = PHASE_ROOT / &quot;09-backtesting&quot; / &quot;outputs&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from forecast_metric_evaluator import build_forecast_metric_package  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    fieldnames = list(rows[0]) if rows else []
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def row_for(rows: list[dict[str, str]], **criteria: str) -&gt; dict[str, str]:
+    return next(row for row in rows if all(str(row[key]) == value for key, value in criteria.items()))
+
+
+class ForecastMetricEvaluatorTest(TestCase):
+    def build(
+        self,
+        *,
+        root: Path = DATA_ROOT,
+        errors_path: Path = BACKTEST_ROOT / &quot;backtest_errors.csv&quot;,
+        split_manifest_path: Path = BACKTEST_ROOT / &quot;split_manifest.csv&quot;,
+        series_path: Path | None = None,
+        backtest_report_path: Path = BACKTEST_ROOT / &quot;backtest_report.json&quot;,
+    ) -&gt; dict:
+        return build_forecast_metric_package(
+            errors_path=errors_path,
+            split_manifest_path=split_manifest_path,
+            series_path=series_path or root / &quot;backtest_observations.csv&quot;,
+            backtest_report_path=backtest_report_path,
+            spec_path=root / &quot;forecast_metric_spec.json&quot;,
+        )
+
+    def test_tiny_profile_builds_metric_tables_with_expected_warning(self) -&gt; None:
+        package = self.build()
+        report = package[&quot;report&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;error_count&quot;], 0)
+        self.assertEqual(report[&quot;summary&quot;][&quot;warnings&quot;], [&quot;backtest_warnings_limit_model_selection&quot;])
+        self.assertEqual(report[&quot;outputs&quot;][&quot;metric_rows&quot;], 18)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;leaderboard_rows&quot;], 3)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;suitability_rows&quot;], 6)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;mase_denominator_rows&quot;], 8)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;primary_metric&quot;], &quot;weighted_mase&quot;)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;top_model_id&quot;], &quot;ets_additive_trend_seasonal_7&quot;)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;top_model_decision_status&quot;], &quot;diagnostic_leaderboard_not_production_selection&quot;)
+
+    def test_data_generator_check_rebuilds_committed_metric_spec(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;),
+                &quot;--check&quot;,
+                &quot;--output&quot;,
+                str(DATA_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+
+    def test_mase_denominators_match_tiny_seasonal_naive_scales(self) -&gt; None:
+        denominators = self.build()[&quot;denominator_rows&quot;]
+
+        self.assertEqual(
+            row_for(denominators, split_id=&quot;bt-expanding-2026-02-24&quot;, segment_id=&quot;all&quot;)[&quot;mase_denominator&quot;],
+            &quot;63&quot;,
+        )
+        self.assertEqual(
+            row_for(denominators, split_id=&quot;bt-expanding-2026-02-24&quot;, segment_id=&quot;android&quot;)[&quot;mase_denominator&quot;],
+            &quot;28&quot;,
+        )
+        self.assertEqual(
+            row_for(denominators, split_id=&quot;bt-rolling-2026-03-14&quot;, segment_id=&quot;all&quot;)[&quot;mase_denominator&quot;],
+            &quot;66.428571&quot;,
+        )
+
+    def test_overall_segment_and_horizon_metrics_match_locked_values(self) -&gt; None:
+        rows = self.build()[&quot;metric_rows&quot;]
+        baseline = row_for(rows, aggregation_level=&quot;overall&quot;, model_id=&quot;seasonal_naive_7&quot;)
+        ets_segment = row_for(rows, aggregation_level=&quot;segment&quot;, segment_id=&quot;all&quot;, model_id=&quot;ets_additive_trend_seasonal_7&quot;)
+        ets_horizon = row_for(rows, aggregation_level=&quot;horizon&quot;, horizon_step=&quot;3&quot;, model_id=&quot;ets_additive_trend_seasonal_7&quot;)
+        arima_android = row_for(rows, aggregation_level=&quot;segment&quot;, segment_id=&quot;android&quot;, model_id=&quot;arima_1_1_0&quot;)
+
+        self.assertEqual(baseline[&quot;mae&quot;], &quot;46.5&quot;)
+        self.assertEqual(baseline[&quot;rmse&quot;], &quot;50.264301&quot;)
+        self.assertEqual(baseline[&quot;wape&quot;], &quot;6.782133&quot;)
+        self.assertEqual(baseline[&quot;mase&quot;], &quot;1.009831&quot;)
+        self.assertEqual(ets_segment[&quot;mae&quot;], &quot;6.333388&quot;)
+        self.assertEqual(ets_segment[&quot;mase&quot;], &quot;0.097799&quot;)
+        self.assertEqual(ets_horizon[&quot;mase&quot;], &quot;0.053918&quot;)
+        self.assertEqual(arima_android[&quot;mase&quot;], &quot;0.855441&quot;)
+
+    def test_suitability_audit_keeps_percentage_metrics_diagnostic_only(self) -&gt; None:
+        rows = self.build()[&quot;suitability_rows&quot;]
+        mape = row_for(rows, metric_name=&quot;mape&quot;)
+        smape = row_for(rows, metric_name=&quot;smape&quot;)
+        mase = row_for(rows, metric_name=&quot;mase&quot;)
+
+        self.assertEqual(mape[&quot;decision_role&quot;], &quot;diagnostic_only&quot;)
+        self.assertEqual(mape[&quot;status&quot;], &quot;diagnostic_only&quot;)
+        self.assertEqual(smape[&quot;status&quot;], &quot;diagnostic_only&quot;)
+        self.assertEqual(mase[&quot;decision_role&quot;], &quot;primary&quot;)
+        self.assertEqual(mase[&quot;status&quot;], &quot;allowed&quot;)
+        self.assertEqual(mase[&quot;observed_min_actual&quot;], &quot;294&quot;)
+
+    def test_leaderboard_uses_weighted_mase_but_blocks_selection_on_backtest_warnings(self) -&gt; None:
+        rows = self.build()[&quot;leaderboard_rows&quot;]
+        top = row_for(rows, rank=&quot;1&quot;)
+        arima = row_for(rows, model_id=&quot;arima_1_1_0&quot;)
+        baseline = row_for(rows, model_id=&quot;seasonal_naive_7&quot;)
+
+        self.assertEqual(top[&quot;model_id&quot;], &quot;ets_additive_trend_seasonal_7&quot;)
+        self.assertEqual(top[&quot;primary_metric_value&quot;], &quot;0.068459&quot;)
+        self.assertEqual(top[&quot;baseline_metric_value&quot;], &quot;1.013763&quot;)
+        self.assertEqual(top[&quot;relative_improvement_vs_baseline&quot;], &quot;0.93247&quot;)
+        self.assertEqual(top[&quot;eligible_for_model_selection&quot;], &quot;false&quot;)
+        self.assertEqual(top[&quot;decision_status&quot;], &quot;diagnostic_leaderboard_not_production_selection&quot;)
+        self.assertIn(&quot;small_origin_count_blocks_model_selection_claim&quot;, top[&quot;warning_ids&quot;])
+        self.assertEqual(arima[&quot;rank&quot;], 2)
+        self.assertEqual(arima[&quot;primary_metric_value&quot;], &quot;0.914565&quot;)
+        self.assertEqual(baseline[&quot;rank&quot;], 3)
+
+    def test_zero_actual_blocks_percentage_metrics_without_invalidating_primary_mase(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            errors_path = Path(directory) / &quot;backtest_errors.csv&quot;
+            rows = read_csv(BACKTEST_ROOT / &quot;backtest_errors.csv&quot;)
+            rows[0][&quot;actual_value&quot;] = &quot;0&quot;
+            write_csv(errors_path, rows)
+
+            package = self.build(errors_path=errors_path)
+
+        report = package[&quot;report&quot;]
+        suitability = package[&quot;suitability_rows&quot;]
+        mape = row_for(suitability, metric_name=&quot;mape&quot;)
+        mase = row_for(suitability, metric_name=&quot;mase&quot;)
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertIn(&quot;percentage_denominators_are_safe_or_blocked&quot;, report[&quot;summary&quot;][&quot;warnings&quot;])
+        self.assertEqual(mape[&quot;status&quot;], &quot;blocked&quot;)
+        self.assertEqual(mape[&quot;observed_zero_actual_count&quot;], 1)
+        self.assertEqual(mase[&quot;status&quot;], &quot;allowed&quot;)
+
+    def test_percentage_metric_cannot_be_primary(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;forecast_metric_spec.json&quot;)
+            spec[&quot;primary_metric&quot;] = &quot;mape&quot;
+            write_json(root / &quot;forecast_metric_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;percentage_metrics_not_primary_decision_metric&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_segment_weights_must_cover_targets_and_sum_to_one(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            spec = read_json(root / &quot;forecast_metric_spec.json&quot;)
+            spec[&quot;segment_weights&quot;] = {&quot;all&quot;: 1.0}
+            write_json(root / &quot;forecast_metric_spec.json&quot;, spec)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;segment_weights_cover_targets_and_sum_to_one&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_horizon_error_row_blocks_metric_table(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            errors_path = Path(directory) / &quot;backtest_errors.csv&quot;
+            rows = read_csv(BACKTEST_ROOT / &quot;backtest_errors.csv&quot;)
+            write_csv(errors_path, rows[:-1])
+
+            report = self.build(errors_path=errors_path)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;backtest_error_rows_match_report&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_duplicate_error_grain_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            errors_path = Path(directory) / &quot;backtest_errors.csv&quot;
+            rows = read_csv(BACKTEST_ROOT / &quot;backtest_errors.csv&quot;)
+            rows.append(rows[0].copy())
+            write_csv(errors_path, rows)
+
+            report = self.build(errors_path=errors_path)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;backtest_error_grain_unique&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_invalid_upstream_backtest_report_blocks_metrics(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            backtest_report_path = Path(directory) / &quot;backtest_report.json&quot;
+            report = read_json(BACKTEST_ROOT / &quot;backtest_report.json&quot;)
+            report[&quot;valid&quot;] = False
+            write_json(backtest_report_path, report)
+
+            result = self.build(backtest_report_path=backtest_report_path)[&quot;report&quot;]
+
+        self.assertFalse(result[&quot;valid&quot;])
+        self.assertIn(&quot;backtest_report_is_valid&quot;, result[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_zero_mase_denominator_blocks_scaled_metrics(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series_path = Path(directory) / &quot;backtest_observations.csv&quot;
+            rows = read_csv(DATA_ROOT / &quot;backtest_observations.csv&quot;)
+            for row in rows:
+                if row[&quot;segment_id&quot;] == &quot;android&quot;:
+                    row[&quot;value&quot;] = &quot;100&quot;
+            write_csv(series_path, rows)
+
+            report = self.build(series_path=series_path)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;mase_denominator_positive&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_cli_writes_package_and_can_fail_on_warning(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;package&quot;
+            command = [
+                sys.executable,
+                str(LESSON_ROOT / &quot;outputs&quot; / &quot;forecast_metric_evaluator.py&quot;),
+                &quot;--errors&quot;,
+                str(BACKTEST_ROOT / &quot;backtest_errors.csv&quot;),
+                &quot;--split-manifest&quot;,
+                str(BACKTEST_ROOT / &quot;split_manifest.csv&quot;),
+                &quot;--series&quot;,
+                str(DATA_ROOT / &quot;backtest_observations.csv&quot;),
+                &quot;--backtest-report&quot;,
+                str(BACKTEST_ROOT / &quot;backtest_report.json&quot;),
+                &quot;--spec&quot;,
+                str(DATA_ROOT / &quot;forecast_metric_spec.json&quot;),
+                &quot;--output-dir&quot;,
+                str(output_dir),
+            ]
+            ok = subprocess.run(command, check=True, capture_output=True, text=True)
+            strict = subprocess.run([*command, &quot;--fail-on-warning&quot;], check=False, capture_output=True, text=True)
+            written_files = sorted(path.name for path in output_dir.iterdir())
+
+        self.assertTrue(json.loads(ok.stdout)[&quot;valid&quot;])
+        self.assertEqual(strict.returncode, 1)
+        self.assertEqual(
+            written_files,
+            [
+                &quot;forecast_metrics.csv&quot;,
+                &quot;mase_denominators.csv&quot;,
+                &quot;metric_leaderboard.csv&quot;,
+                &quot;metric_report.json&quot;,
+                &quot;metric_suitability_audit.csv&quot;,
+            ],
+        )
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUTS_ROOT = LESSON_ROOT / &quot;outputs&quot;
+BACKTEST_ROOT = PHASE_ROOT / &quot;09-backtesting&quot; / &quot;outputs&quot;
+
+sys.path.insert(0, str(OUTPUTS_ROOT))
+
+from forecast_metric_evaluator import build_forecast_metric_package, write_package  # noqa: E402
+
+
+def main() -&gt; None:
+    package = build_forecast_metric_package(
+        errors_path=BACKTEST_ROOT / &quot;backtest_errors.csv&quot;,
+        split_manifest_path=BACKTEST_ROOT / &quot;split_manifest.csv&quot;,
+        series_path=DATA_ROOT / &quot;backtest_observations.csv&quot;,
+        backtest_report_path=BACKTEST_ROOT / &quot;backtest_report.json&quot;,
+        spec_path=DATA_ROOT / &quot;forecast_metric_spec.json&quot;,
+    )
+    write_package(package, OUTPUTS_ROOT)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;metric_rows&quot;: report[&quot;outputs&quot;][&quot;metric_rows&quot;],
+                &quot;leaderboard_rows&quot;: report[&quot;outputs&quot;][&quot;leaderboard_rows&quot;],
+                &quot;primary_metric&quot;: report[&quot;outputs&quot;][&quot;primary_metric&quot;],
+                &quot;top_model_id&quot;: report[&quot;outputs&quot;][&quot;top_model_id&quot;],
+                &quot;top_model_decision_status&quot;: report[&quot;outputs&quot;][&quot;top_model_decision_status&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;forecast-metric-evaluator&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/forecast_metric_evaluator.py&quot;,
+  &quot;description&quot;: &quot;Evaluates rolling-origin forecast errors with MAE, RMSE, MAPE, sMAPE, WAPE and MASE, publishes metric slices, metric suitability audit, MASE denominators, and a weighted-MASE leaderboard policy.&quot;,
+  &quot;usage&quot;: &quot;python outputs/forecast_metric_evaluator.py --errors ../09-backtesting/outputs/backtest_errors.csv --split-manifest ../09-backtesting/outputs/split_manifest.csv --series ../data/tiny/backtest_observations.csv --backtest-report ../09-backtesting/outputs/backtest_report.json --spec ../data/tiny/forecast_metric_spec.json --output-dir outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/forecast_metric_evaluator.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+import math
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+from pathlib import Path
+from typing import Any
+
+
+REQUIRED_SPEC_FIELDS = {
+    &quot;metric_evaluation_id&quot;,
+    &quot;forecast_id&quot;,
+    &quot;backtest_id&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;primary_baseline_model&quot;,
+    &quot;candidate_model_ids&quot;,
+    &quot;required_metrics&quot;,
+    &quot;primary_metric&quot;,
+    &quot;seasonal_period_days&quot;,
+    &quot;segment_weights&quot;,
+    &quot;horizon_weighting&quot;,
+    &quot;percentage_metric_policy&quot;,
+    &quot;leaderboard_policy&quot;,
+}
+REQUIRED_ERROR_COLUMNS = {
+    &quot;backtest_id&quot;,
+    &quot;forecast_id&quot;,
+    &quot;split_id&quot;,
+    &quot;window_type&quot;,
+    &quot;metric_id&quot;,
+    &quot;segment_id&quot;,
+    &quot;model_id&quot;,
+    &quot;model_role&quot;,
+    &quot;family&quot;,
+    &quot;forecast_date&quot;,
+    &quot;horizon_step&quot;,
+    &quot;forecast_value&quot;,
+    &quot;actual_value&quot;,
+    &quot;error&quot;,
+    &quot;absolute_error&quot;,
+    &quot;squared_error&quot;,
+}
+REQUIRED_SPLIT_COLUMNS = {
+    &quot;split_id&quot;,
+    &quot;training_start&quot;,
+    &quot;training_end&quot;,
+}
+REQUIRED_SOURCE_COLUMNS = {
+    &quot;metric_id&quot;,
+    &quot;segment_id&quot;,
+    &quot;observed_date&quot;,
+    &quot;frequency&quot;,
+    &quot;value&quot;,
+    &quot;is_complete_period&quot;,
+    &quot;include_in_backtest&quot;,
+}
+REQUIRED_METRICS = [&quot;mae&quot;, &quot;rmse&quot;, &quot;mape&quot;, &quot;smape&quot;, &quot;wape&quot;, &quot;mase&quot;]
+
+
+class ForecastMetricError(ValueError):
+    &quot;&quot;&quot;Raised when forecast metric inputs cannot be interpreted.&quot;&quot;&quot;
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    value = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(value, dict):
+        raise ForecastMetricError(f&quot;{path.name} must contain a JSON object&quot;)
+    return value
+
+
+def parse_date(value: str, field: str) -&gt; date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        raise ForecastMetricError(f&quot;{field} must be ISO date: {value}&quot;) from error
+
+
+def parse_float(value: Any, field: str) -&gt; float:
+    try:
+        return float(value)
+    except (TypeError, ValueError) as error:
+        raise ForecastMetricError(f&quot;{field} must be numeric: {value}&quot;) from error
+
+
+def parse_int(value: Any, field: str) -&gt; int:
+    if isinstance(value, bool):
+        raise ForecastMetricError(f&quot;{field} must be an integer: {value}&quot;)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise ForecastMetricError(f&quot;{field} must be an integer: {value}&quot;) from error
+
+
+def parse_bool(value: str | bool, field: str) -&gt; bool:
+    if isinstance(value, bool):
+        return value
+    normalized = value.strip().lower()
+    if normalized not in {&quot;true&quot;, &quot;false&quot;}:
+        raise ForecastMetricError(f&quot;{field} must be true or false: {value}&quot;)
+    return normalized == &quot;true&quot;
+
+
+def daterange(start: date, end: date) -&gt; list[date]:
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def format_number(value: float | int | None) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    number = float(value)
+    if math.isnan(number) or math.isinf(number):
+        return &quot;&quot;
+    rounded = round(number, 6)
+    if rounded == 0:
+        return &quot;0&quot;
+    if rounded.is_integer():
+        return str(int(rounded))
+    return f&quot;{rounded:.6f}&quot;.rstrip(&quot;0&quot;).rstrip(&quot;.&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: list[Any] | None = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def has_blocking_errors(checks: list[dict[str, Any]]) -&gt; bool:
+    return any(not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot; for check in checks)
+
+
+def mean(values: list[float]) -&gt; float:
+    if not values:
+        raise ForecastMetricError(&quot;mean requires at least one value&quot;)
+    return sum(values) / len(values)
+
+
+def normalize_spec_and_report(spec: dict[str, Any], backtest_report: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    checks: list[dict[str, Any]] = []
+    missing_spec = sorted(REQUIRED_SPEC_FIELDS - set(spec))
+    if missing_spec:
+        checks.append(failed(&quot;forecast_metric_spec_required_fields&quot;, missing_spec, &quot;all forecast metric spec fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;forecast_metric_spec_required_fields&quot;, len(REQUIRED_SPEC_FIELDS)))
+
+    if backtest_report.get(&quot;valid&quot;) is not True:
+        checks.append(failed(&quot;backtest_report_is_valid&quot;, backtest_report.get(&quot;valid&quot;), True))
+    else:
+        checks.append(passed(&quot;backtest_report_is_valid&quot;, True))
+
+    align_errors: list[str] = []
+    if spec[&quot;forecast_id&quot;] != backtest_report.get(&quot;forecast_id&quot;):
+        align_errors.append(&quot;forecast_id&quot;)
+    if spec[&quot;backtest_id&quot;] != backtest_report.get(&quot;backtest_id&quot;):
+        align_errors.append(&quot;backtest_id&quot;)
+    report_outputs = backtest_report.get(&quot;outputs&quot;, {})
+    if sorted(spec[&quot;target_segments&quot;]) != sorted(report_outputs.get(&quot;segments&quot;, [])):
+        align_errors.append(&quot;target_segments&quot;)
+    expected_models = [spec[&quot;primary_baseline_model&quot;], *spec[&quot;candidate_model_ids&quot;]]
+    if expected_models != report_outputs.get(&quot;models&quot;):
+        align_errors.append(&quot;model_ids&quot;)
+    if align_errors:
+        checks.append(failed(&quot;metric_spec_and_backtest_align&quot;, sorted(set(align_errors)), &quot;spec and backtest report agree&quot;))
+    else:
+        checks.append(passed(&quot;metric_spec_and_backtest_align&quot;, &quot;forecast, backtest, segments, and models aligned&quot;))
+
+    required_metrics = spec.get(&quot;required_metrics&quot;)
+    if required_metrics != REQUIRED_METRICS:
+        checks.append(failed(&quot;required_metrics_declared&quot;, required_metrics, REQUIRED_METRICS))
+    else:
+        checks.append(passed(&quot;required_metrics_declared&quot;, required_metrics))
+    if spec.get(&quot;primary_metric&quot;) in {&quot;mape&quot;, &quot;smape&quot;}:
+        checks.append(failed(&quot;percentage_metrics_not_primary_decision_metric&quot;, spec.get(&quot;primary_metric&quot;), &quot;non-percentage primary metric&quot;))
+    else:
+        checks.append(passed(&quot;percentage_metrics_not_primary_decision_metric&quot;, spec.get(&quot;primary_metric&quot;)))
+
+    segment_weights = spec.get(&quot;segment_weights&quot;)
+    segments = spec.get(&quot;target_segments&quot;)
+    if not isinstance(segment_weights, dict) or not isinstance(segments, list):
+        checks.append(failed(&quot;segment_weights_cover_targets_and_sum_to_one&quot;, segment_weights, &quot;weights for every target segment&quot;))
+        return checks, None
+    try:
+        weights = {str(segment): parse_float(weight, f&quot;segment_weights.{segment}&quot;) for segment, weight in segment_weights.items()}
+        weight_sum = sum(weights.values())
+    except ForecastMetricError as error:
+        checks.append(failed(&quot;segment_weights_cover_targets_and_sum_to_one&quot;, str(error), &quot;numeric weights&quot;))
+        return checks, None
+    if set(weights) != set(segments) or not math.isclose(weight_sum, 1.0, abs_tol=0.000001):
+        checks.append(failed(&quot;segment_weights_cover_targets_and_sum_to_one&quot;, {&quot;segments&quot;: sorted(weights), &quot;sum&quot;: weight_sum}, &quot;target segments and sum=1&quot;))
+    else:
+        checks.append(passed(&quot;segment_weights_cover_targets_and_sum_to_one&quot;, weights))
+
+    horizon_policy = spec.get(&quot;horizon_weighting&quot;, {})
+    required_horizon_steps = horizon_policy.get(&quot;required_horizon_steps&quot;)
+    if not isinstance(required_horizon_steps, list) or not required_horizon_steps:
+        checks.append(failed(&quot;horizon_steps_match_policy&quot;, required_horizon_steps, &quot;non-empty required horizon steps&quot;))
+        return checks, None
+    try:
+        horizon_steps = [parse_int(step, &quot;horizon_weighting.required_horizon_steps&quot;) for step in required_horizon_steps]
+        seasonal_period_days = parse_int(spec[&quot;seasonal_period_days&quot;], &quot;seasonal_period_days&quot;)
+        minimum_abs_actual = parse_float(
+            spec[&quot;percentage_metric_policy&quot;][&quot;minimum_abs_actual_for_mape&quot;],
+            &quot;percentage_metric_policy.minimum_abs_actual_for_mape&quot;,
+        )
+        minimum_smape_denominator = parse_float(
+            spec[&quot;percentage_metric_policy&quot;][&quot;minimum_abs_actual_plus_forecast_for_smape&quot;],
+            &quot;percentage_metric_policy.minimum_abs_actual_plus_forecast_for_smape&quot;,
+        )
+        improvement_threshold = parse_float(
+            spec[&quot;leaderboard_policy&quot;][&quot;candidate_must_beat_baseline_by_relative&quot;],
+            &quot;leaderboard_policy.candidate_must_beat_baseline_by_relative&quot;,
+        )
+    except (ForecastMetricError, KeyError) as error:
+        checks.append(failed(&quot;forecast_metric_spec_values_parse&quot;, str(error), &quot;valid numeric metric policy settings&quot;))
+        return checks, None
+    checks.append(passed(&quot;forecast_metric_spec_values_parse&quot;, spec[&quot;metric_evaluation_id&quot;]))
+
+    backtest_warning_ids = list(backtest_report.get(&quot;summary&quot;, {}).get(&quot;warnings&quot;, []))
+    if backtest_warning_ids:
+        checks.append(
+            failed(
+                &quot;backtest_warnings_limit_model_selection&quot;,
+                backtest_warning_ids,
+                &quot;no upstream warnings for production model selection&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;backtest_warnings_limit_model_selection&quot;, []))
+
+    if has_blocking_errors(checks):
+        return checks, None
+    return checks, {
+        &quot;segments&quot;: list(segments),
+        &quot;model_ids&quot;: expected_models,
+        &quot;candidate_model_ids&quot;: list(spec[&quot;candidate_model_ids&quot;]),
+        &quot;segment_weights&quot;: weights,
+        &quot;horizon_steps&quot;: horizon_steps,
+        &quot;seasonal_period_days&quot;: seasonal_period_days,
+        &quot;minimum_abs_actual&quot;: minimum_abs_actual,
+        &quot;minimum_smape_denominator&quot;: minimum_smape_denominator,
+        &quot;improvement_threshold&quot;: improvement_threshold,
+        &quot;backtest_warning_ids&quot;: backtest_warning_ids,
+        &quot;expected_error_rows&quot;: report_outputs.get(&quot;error_rows&quot;),
+    }
+
+
+def parse_error_rows(
+    rows: list[dict[str, str]],
+    fields: list[str],
+    spec: dict[str, Any],
+    context: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_ERROR_COLUMNS - set(fields))
+    if missing:
+        checks.append(failed(&quot;backtest_errors_required_columns&quot;, missing, &quot;required backtest error columns&quot;))
+        return checks, None
+    checks.append(passed(&quot;backtest_errors_required_columns&quot;, len(fields)))
+    parsed_rows: list[dict[str, Any]] = []
+    parse_errors: list[dict[str, str]] = []
+    for row in rows:
+        try:
+            parsed_rows.append(
+                {
+                    &quot;backtest_id&quot;: row[&quot;backtest_id&quot;],
+                    &quot;forecast_id&quot;: row[&quot;forecast_id&quot;],
+                    &quot;split_id&quot;: row[&quot;split_id&quot;],
+                    &quot;window_type&quot;: row[&quot;window_type&quot;],
+                    &quot;metric_id&quot;: row[&quot;metric_id&quot;],
+                    &quot;segment_id&quot;: row[&quot;segment_id&quot;],
+                    &quot;model_id&quot;: row[&quot;model_id&quot;],
+                    &quot;model_role&quot;: row[&quot;model_role&quot;],
+                    &quot;family&quot;: row[&quot;family&quot;],
+                    &quot;forecast_date&quot;: parse_date(row[&quot;forecast_date&quot;], &quot;forecast_date&quot;),
+                    &quot;horizon_step&quot;: parse_int(row[&quot;horizon_step&quot;], &quot;horizon_step&quot;),
+                    &quot;forecast_value&quot;: parse_float(row[&quot;forecast_value&quot;], &quot;forecast_value&quot;),
+                    &quot;actual_value&quot;: parse_float(row[&quot;actual_value&quot;], &quot;actual_value&quot;),
+                    &quot;error&quot;: parse_float(row[&quot;error&quot;], &quot;error&quot;),
+                    &quot;absolute_error&quot;: parse_float(row[&quot;absolute_error&quot;], &quot;absolute_error&quot;),
+                    &quot;squared_error&quot;: parse_float(row[&quot;squared_error&quot;], &quot;squared_error&quot;),
+                }
+            )
+        except ForecastMetricError as error:
+            parse_errors.append({&quot;split_id&quot;: row.get(&quot;split_id&quot;, &quot;&quot;), &quot;model_id&quot;: row.get(&quot;model_id&quot;, &quot;&quot;), &quot;error&quot;: str(error)})
+    if parse_errors:
+        checks.append(failed(&quot;backtest_errors_parse&quot;, len(parse_errors), &quot;all error rows parse&quot;, parse_errors[:5]))
+        return checks, None
+    checks.append(passed(&quot;backtest_errors_parse&quot;, len(parsed_rows)))
+
+    target_rows = [
+        row
+        for row in parsed_rows
+        if row[&quot;backtest_id&quot;] == spec[&quot;backtest_id&quot;]
+        and row[&quot;forecast_id&quot;] == spec[&quot;forecast_id&quot;]
+        and row[&quot;metric_id&quot;] == spec[&quot;target_metric&quot;]
+        and row[&quot;segment_id&quot;] in context[&quot;segments&quot;]
+        and row[&quot;model_id&quot;] in context[&quot;model_ids&quot;]
+    ]
+    expected_error_rows = context.get(&quot;expected_error_rows&quot;)
+    if expected_error_rows is not None and len(target_rows) != expected_error_rows:
+        checks.append(failed(&quot;backtest_error_rows_match_report&quot;, len(target_rows), expected_error_rows))
+    else:
+        checks.append(passed(&quot;backtest_error_rows_match_report&quot;, len(target_rows)))
+
+    keys = [
+        (row[&quot;split_id&quot;], row[&quot;metric_id&quot;], row[&quot;segment_id&quot;], row[&quot;model_id&quot;], row[&quot;forecast_date&quot;])
+        for row in target_rows
+    ]
+    duplicate_keys = [key for key, count in Counter(keys).items() if count &gt; 1]
+    if duplicate_keys:
+        checks.append(failed(&quot;backtest_error_grain_unique&quot;, len(duplicate_keys), &quot;unique split/segment/model/date errors&quot;))
+    else:
+        checks.append(passed(&quot;backtest_error_grain_unique&quot;, len(target_rows)))
+
+    observed_horizon_steps = sorted({row[&quot;horizon_step&quot;] for row in target_rows})
+    if observed_horizon_steps != context[&quot;horizon_steps&quot;]:
+        checks.append(failed(&quot;horizon_steps_match_policy&quot;, observed_horizon_steps, context[&quot;horizon_steps&quot;]))
+    else:
+        checks.append(passed(&quot;horizon_steps_match_policy&quot;, observed_horizon_steps))
+    if has_blocking_errors(checks):
+        return checks, None
+    return checks, target_rows
+
+
+def parse_split_rows(rows: list[dict[str, str]], fields: list[str]) -&gt; tuple[list[dict[str, Any]], dict[str, dict[str, Any]] | None]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SPLIT_COLUMNS - set(fields))
+    if missing:
+        checks.append(failed(&quot;split_manifest_required_columns&quot;, missing, &quot;split manifest training columns&quot;))
+        return checks, None
+    splits: dict[str, dict[str, Any]] = {}
+    parse_errors: list[dict[str, str]] = []
+    for row in rows:
+        try:
+            splits[row[&quot;split_id&quot;]] = {
+                &quot;split_id&quot;: row[&quot;split_id&quot;],
+                &quot;training_start&quot;: parse_date(row[&quot;training_start&quot;], &quot;training_start&quot;),
+                &quot;training_end&quot;: parse_date(row[&quot;training_end&quot;], &quot;training_end&quot;),
+            }
+        except ForecastMetricError as error:
+            parse_errors.append({&quot;split_id&quot;: row.get(&quot;split_id&quot;, &quot;&quot;), &quot;error&quot;: str(error)})
+    if parse_errors:
+        checks.append(failed(&quot;split_manifest_parse&quot;, len(parse_errors), &quot;all split manifest rows parse&quot;, parse_errors[:5]))
+        return checks, None
+    checks.append(passed(&quot;split_manifest_parse&quot;, len(splits)))
+    return checks, splits
+
+
+def parse_source_series(
+    rows: list[dict[str, str]],
+    fields: list[str],
+    spec: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], dict[tuple[str, date], float] | None]:
+    checks: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SOURCE_COLUMNS - set(fields))
+    if missing:
+        checks.append(failed(&quot;history_series_required_columns&quot;, missing, &quot;history series columns&quot;))
+        return checks, None
+    by_key: dict[tuple[str, date], float] = {}
+    duplicate_keys: list[str] = []
+    parse_errors: list[dict[str, str]] = []
+    for row in rows:
+        try:
+            if row[&quot;metric_id&quot;] != spec[&quot;target_metric&quot;] or row[&quot;segment_id&quot;] not in spec[&quot;target_segments&quot;]:
+                continue
+            if row[&quot;frequency&quot;] != &quot;D&quot; or not parse_bool(row[&quot;is_complete_period&quot;], &quot;is_complete_period&quot;) or not parse_bool(row[&quot;include_in_backtest&quot;], &quot;include_in_backtest&quot;):
+                continue
+            key = (row[&quot;segment_id&quot;], parse_date(row[&quot;observed_date&quot;], &quot;observed_date&quot;))
+            if key in by_key:
+                duplicate_keys.append(f&quot;{key[0]}:{key[1].isoformat()}&quot;)
+            by_key[key] = parse_float(row[&quot;value&quot;], &quot;value&quot;)
+        except ForecastMetricError as error:
+            parse_errors.append({&quot;date&quot;: row.get(&quot;observed_date&quot;, &quot;&quot;), &quot;error&quot;: str(error)})
+    if parse_errors:
+        checks.append(failed(&quot;history_series_parse&quot;, len(parse_errors), &quot;all history rows parse&quot;, parse_errors[:5]))
+        return checks, None
+    if duplicate_keys:
+        checks.append(failed(&quot;history_series_grain_unique&quot;, duplicate_keys[:5], &quot;unique segment/date history&quot;))
+    else:
+        checks.append(passed(&quot;history_series_grain_unique&quot;, len(by_key)))
+    if has_blocking_errors(checks):
+        return checks, None
+    return checks, by_key
+
+
+def build_mase_denominators(
+    spec: dict[str, Any],
+    context: dict[str, Any],
+    splits_by_id: dict[str, dict[str, Any]],
+    series_by_key: dict[tuple[str, date], float],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]], dict[tuple[str, str], float] | None]:
+    checks: list[dict[str, Any]] = []
+    denominator_rows: list[dict[str, Any]] = []
+    denominators: dict[tuple[str, str], float] = {}
+    denominator_errors: list[str] = []
+    seasonal_period_days = context[&quot;seasonal_period_days&quot;]
+    for split in splits_by_id.values():
+        for segment in context[&quot;segments&quot;]:
+            diffs: list[float] = []
+            for day in daterange(split[&quot;training_start&quot;], split[&quot;training_end&quot;]):
+                previous = day - timedelta(days=seasonal_period_days)
+                if previous &lt; split[&quot;training_start&quot;]:
+                    continue
+                key = (segment, day)
+                previous_key = (segment, previous)
+                if key not in series_by_key or previous_key not in series_by_key:
+                    denominator_errors.append(f&quot;{split[&#x27;split_id&#x27;]}:{segment}:{day.isoformat()}&quot;)
+                    continue
+                diffs.append(abs(series_by_key[key] - series_by_key[previous_key]))
+            denominator = mean(diffs) if diffs else 0.0
+            denominators[(split[&quot;split_id&quot;], segment)] = denominator
+            denominator_rows.append(
+                {
+                    &quot;metric_evaluation_id&quot;: spec[&quot;metric_evaluation_id&quot;],
+                    &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+                    &quot;split_id&quot;: split[&quot;split_id&quot;],
+                    &quot;segment_id&quot;: segment,
+                    &quot;training_start&quot;: split[&quot;training_start&quot;].isoformat(),
+                    &quot;training_end&quot;: split[&quot;training_end&quot;].isoformat(),
+                    &quot;seasonal_period_days&quot;: seasonal_period_days,
+                    &quot;scale_type&quot;: &quot;seasonal_naive_in_sample_mae&quot;,
+                    &quot;denominator_rows&quot;: len(diffs),
+                    &quot;mase_denominator&quot;: format_number(denominator),
+                }
+            )
+            if denominator &lt;= 0:
+                denominator_errors.append(f&quot;{split[&#x27;split_id&#x27;]}:{segment}:non_positive&quot;)
+    if denominator_errors:
+        checks.append(failed(&quot;mase_denominator_positive&quot;, len(denominator_errors), &quot;positive MASE denominator for every split and segment&quot;, denominator_errors[:10]))
+    else:
+        checks.append(passed(&quot;mase_denominator_positive&quot;, len(denominator_rows)))
+    if has_blocking_errors(checks):
+        return checks, denominator_rows, None
+    return checks, denominator_rows, denominators
+
+
+def attach_mase_denominators(
+    rows: list[dict[str, Any]],
+    denominators: dict[tuple[str, str], float],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for row in rows:
+        key = (row[&quot;split_id&quot;], row[&quot;segment_id&quot;])
+        if key not in denominators:
+            missing.append(f&quot;{key[0]}:{key[1]}&quot;)
+            continue
+        row[&quot;mase_denominator&quot;] = denominators[key]
+        row[&quot;scaled_absolute_error&quot;] = row[&quot;absolute_error&quot;] / denominators[key]
+    if missing:
+        checks.append(failed(&quot;mase_denominator_attached_to_every_error&quot;, sorted(set(missing)), &quot;every error row has a scale&quot;))
+    else:
+        checks.append(passed(&quot;mase_denominator_attached_to_every_error&quot;, len(rows)))
+    return checks, rows
+
+
+def metric_values_for_group(
+    rows: list[dict[str, Any]],
+    context: dict[str, Any],
+) -&gt; dict[str, Any]:
+    absolute_errors = [row[&quot;absolute_error&quot;] for row in rows]
+    squared_errors = [row[&quot;squared_error&quot;] for row in rows]
+    actual_values = [row[&quot;actual_value&quot;] for row in rows]
+    forecast_values = [row[&quot;forecast_value&quot;] for row in rows]
+    mape_blocked = any(abs(actual) &lt; context[&quot;minimum_abs_actual&quot;] for actual in actual_values)
+    smape_blocked = any(
+        abs(actual) + abs(forecast) &lt; context[&quot;minimum_smape_denominator&quot;]
+        for actual, forecast in zip(actual_values, forecast_values, strict=True)
+    )
+    wape_denominator = sum(abs(actual) for actual in actual_values)
+    return {
+        &quot;n_errors&quot;: len(rows),
+        &quot;mae&quot;: mean(absolute_errors),
+        &quot;rmse&quot;: math.sqrt(mean(squared_errors)),
+        &quot;mape&quot;: None if mape_blocked else mean([absolute / abs(actual) * 100 for absolute, actual in zip(absolute_errors, actual_values, strict=True)]),
+        &quot;smape&quot;: None
+        if smape_blocked
+        else mean(
+            [
+                2 * absolute / (abs(actual) + abs(forecast)) * 100
+                for absolute, actual, forecast in zip(absolute_errors, actual_values, forecast_values, strict=True)
+            ]
+        ),
+        &quot;wape&quot;: None if wape_denominator == 0 else sum(absolute_errors) / wape_denominator * 100,
+        &quot;mase&quot;: mean([row[&quot;scaled_absolute_error&quot;] for row in rows]),
+        &quot;mape_status&quot;: &quot;blocked&quot; if mape_blocked else &quot;reported&quot;,
+        &quot;smape_status&quot;: &quot;blocked&quot; if smape_blocked else &quot;reported&quot;,
+    }
+
+
+def metric_row(
+    *,
+    spec: dict[str, Any],
+    aggregation_level: str,
+    target_metric: str,
+    segment_id: str,
+    horizon_step: str,
+    model_row: dict[str, Any],
+    metrics: dict[str, Any],
+) -&gt; dict[str, Any]:
+    return {
+        &quot;metric_evaluation_id&quot;: spec[&quot;metric_evaluation_id&quot;],
+        &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+        &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+        &quot;aggregation_level&quot;: aggregation_level,
+        &quot;target_metric&quot;: target_metric,
+        &quot;segment_id&quot;: segment_id,
+        &quot;horizon_step&quot;: horizon_step,
+        &quot;model_id&quot;: model_row[&quot;model_id&quot;],
+        &quot;model_role&quot;: model_row[&quot;model_role&quot;],
+        &quot;family&quot;: model_row[&quot;family&quot;],
+        &quot;n_errors&quot;: metrics[&quot;n_errors&quot;],
+        &quot;mae&quot;: format_number(metrics[&quot;mae&quot;]),
+        &quot;rmse&quot;: format_number(metrics[&quot;rmse&quot;]),
+        &quot;mape&quot;: format_number(metrics[&quot;mape&quot;]),
+        &quot;smape&quot;: format_number(metrics[&quot;smape&quot;]),
+        &quot;wape&quot;: format_number(metrics[&quot;wape&quot;]),
+        &quot;mase&quot;: format_number(metrics[&quot;mase&quot;]),
+        &quot;mape_status&quot;: metrics[&quot;mape_status&quot;],
+        &quot;smape_status&quot;: metrics[&quot;smape_status&quot;],
+    }
+
+
+def build_metric_rows(spec: dict[str, Any], context: dict[str, Any], rows: list[dict[str, Any]]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    metric_rows: list[dict[str, Any]] = []
+    by_model: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_model_segment: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    by_model_horizon: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        by_model[row[&quot;model_id&quot;]].append(row)
+        by_model_segment[(row[&quot;model_id&quot;], row[&quot;segment_id&quot;])].append(row)
+        by_model_horizon[(row[&quot;model_id&quot;], row[&quot;horizon_step&quot;])].append(row)
+
+    first_row_by_model = {model_id: model_rows[0] for model_id, model_rows in by_model.items()}
+    for model_id in context[&quot;model_ids&quot;]:
+        model_rows = by_model.get(model_id, [])
+        if model_rows:
+            metric_rows.append(
+                metric_row(
+                    spec=spec,
+                    aggregation_level=&quot;overall&quot;,
+                    target_metric=spec[&quot;target_metric&quot;],
+                    segment_id=&quot;*&quot;,
+                    horizon_step=&quot;*&quot;,
+                    model_row=first_row_by_model[model_id],
+                    metrics=metric_values_for_group(model_rows, context),
+                )
+            )
+        for segment in context[&quot;segments&quot;]:
+            group = by_model_segment.get((model_id, segment), [])
+            if group:
+                metric_rows.append(
+                    metric_row(
+                        spec=spec,
+                        aggregation_level=&quot;segment&quot;,
+                        target_metric=spec[&quot;target_metric&quot;],
+                        segment_id=segment,
+                        horizon_step=&quot;*&quot;,
+                        model_row=first_row_by_model[model_id],
+                        metrics=metric_values_for_group(group, context),
+                    )
+                )
+        for horizon_step in context[&quot;horizon_steps&quot;]:
+            group = by_model_horizon.get((model_id, horizon_step), [])
+            if group:
+                metric_rows.append(
+                    metric_row(
+                        spec=spec,
+                        aggregation_level=&quot;horizon&quot;,
+                        target_metric=spec[&quot;target_metric&quot;],
+                        segment_id=&quot;*&quot;,
+                        horizon_step=str(horizon_step),
+                        model_row=first_row_by_model[model_id],
+                        metrics=metric_values_for_group(group, context),
+                    )
+                )
+
+    expected_rows = len(context[&quot;model_ids&quot;]) * (1 + len(context[&quot;segments&quot;]) + len(context[&quot;horizon_steps&quot;]))
+    observed_levels = sorted({row[&quot;aggregation_level&quot;] for row in metric_rows})
+    if len(metric_rows) != expected_rows or observed_levels != [&quot;horizon&quot;, &quot;overall&quot;, &quot;segment&quot;]:
+        checks.append(failed(&quot;metric_table_contains_overall_segment_and_horizon_rows&quot;, {&quot;rows&quot;: len(metric_rows), &quot;levels&quot;: observed_levels}, expected_rows))
+    else:
+        checks.append(passed(&quot;metric_table_contains_overall_segment_and_horizon_rows&quot;, len(metric_rows)))
+    return checks, metric_rows
+
+
+def build_suitability_rows(spec: dict[str, Any], context: dict[str, Any], rows: list[dict[str, Any]]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    actual_values = [row[&quot;actual_value&quot;] for row in rows]
+    forecast_values = [row[&quot;forecast_value&quot;] for row in rows]
+    min_actual = min(abs(value) for value in actual_values)
+    zero_actual_count = sum(1 for value in actual_values if value == 0)
+    small_actual_count = sum(1 for value in actual_values if abs(value) &lt; context[&quot;minimum_abs_actual&quot;])
+    smape_small_count = sum(
+        1
+        for actual, forecast in zip(actual_values, forecast_values, strict=True)
+        if abs(actual) + abs(forecast) &lt; context[&quot;minimum_smape_denominator&quot;]
+    )
+    percentage_blocked = small_actual_count &gt; 0 or smape_small_count &gt; 0
+    rows_out: list[dict[str, Any]] = []
+    definitions = [
+        (&quot;mae&quot;, &quot;support&quot;, &quot;false&quot;, &quot;scale_sensitive&quot;, &quot;absolute error in target units&quot;, &quot;allowed&quot;, &quot;easy to explain but not scale-comparable across segments&quot;),
+        (&quot;rmse&quot;, &quot;support&quot;, &quot;false&quot;, &quot;outlier_sensitive&quot;, &quot;squared error in target units&quot;, &quot;allowed&quot;, &quot;penalizes large misses and complements MAE&quot;),
+        (&quot;mape&quot;, &quot;diagnostic_only&quot;, &quot;true&quot;, &quot;zero_sensitive&quot;, &quot;absolute actual value&quot;, &quot;blocked&quot; if small_actual_count else &quot;diagnostic_only&quot;, &quot;blocked by zero/small actuals&quot; if small_actual_count else &quot;percentage metric is not the decision metric&quot;),
+        (&quot;smape&quot;, &quot;diagnostic_only&quot;, &quot;true&quot;, &quot;zero_sensitive&quot;, &quot;actual plus forecast magnitude&quot;, &quot;blocked&quot; if smape_small_count else &quot;diagnostic_only&quot;, &quot;blocked by zero/small actual+forecast denominators&quot; if smape_small_count else &quot;bounded percentage diagnostic, still not primary&quot;),
+        (&quot;wape&quot;, &quot;support&quot;, &quot;false&quot;, &quot;volume_weighted&quot;, &quot;sum absolute actual value&quot;, &quot;allowed&quot;, &quot;useful business-volume normalized aggregate&quot;),
+        (&quot;mase&quot;, &quot;primary&quot;, &quot;true&quot;, &quot;scale_denominator_sensitive&quot;, &quot;in-sample seasonal naive MAE&quot;, &quot;allowed&quot;, &quot;scale-comparable and aligned with the seasonal baseline policy&quot;),
+    ]
+    for metric_name, decision_role, scale_comparable, sensitivity, denominator_basis, status, reason in definitions:
+        rows_out.append(
+            {
+                &quot;metric_evaluation_id&quot;: spec[&quot;metric_evaluation_id&quot;],
+                &quot;metric_name&quot;: metric_name,
+                &quot;decision_role&quot;: decision_role,
+                &quot;lower_is_better&quot;: &quot;true&quot;,
+                &quot;scale_comparable&quot;: scale_comparable,
+                &quot;zero_or_scale_sensitive&quot;: sensitivity,
+                &quot;denominator_basis&quot;: denominator_basis,
+                &quot;observed_min_actual&quot;: format_number(min_actual),
+                &quot;observed_zero_actual_count&quot;: zero_actual_count,
+                &quot;observed_small_actual_count&quot;: small_actual_count,
+                &quot;status&quot;: status,
+                &quot;reason&quot;: reason,
+            }
+        )
+    if percentage_blocked:
+        checks.append(
+            failed(
+                &quot;percentage_denominators_are_safe_or_blocked&quot;,
+                {&quot;small_actual_count&quot;: small_actual_count, &quot;small_smape_count&quot;: smape_small_count},
+                &quot;percentage metrics blocked when denominators are unsafe&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;percentage_denominators_are_safe_or_blocked&quot;, &quot;percentage metrics reported as diagnostic-only&quot;))
+    return checks, rows_out
+
+
+def build_leaderboard_rows(
+    spec: dict[str, Any],
+    context: dict[str, Any],
+    metric_rows: list[dict[str, Any]],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    segment_mase: dict[tuple[str, str], float] = {}
+    model_roles: dict[str, str] = {}
+    for row in metric_rows:
+        if row[&quot;aggregation_level&quot;] == &quot;segment&quot;:
+            segment_mase[(row[&quot;model_id&quot;], row[&quot;segment_id&quot;])] = parse_float(row[&quot;mase&quot;], &quot;mase&quot;)
+            model_roles[row[&quot;model_id&quot;]] = row[&quot;model_role&quot;]
+    weighted_scores: dict[str, float] = {}
+    for model_id in context[&quot;model_ids&quot;]:
+        weighted_scores[model_id] = sum(
+            context[&quot;segment_weights&quot;][segment] * segment_mase[(model_id, segment)]
+            for segment in context[&quot;segments&quot;]
+        )
+    baseline_id = spec[&quot;primary_baseline_model&quot;]
+    baseline_score = weighted_scores[baseline_id]
+    ranked_model_ids = sorted(context[&quot;model_ids&quot;], key=lambda model_id: (weighted_scores[model_id], model_id))
+    rows_out: list[dict[str, Any]] = []
+    for rank, model_id in enumerate(ranked_model_ids, start=1):
+        score = weighted_scores[model_id]
+        relative_improvement = 0.0 if model_id == baseline_id else (baseline_score - score) / baseline_score
+        clears_threshold = model_id != baseline_id and relative_improvement &gt;= context[&quot;improvement_threshold&quot;]
+        all_segments_clear = model_id != baseline_id and all(
+            segment_mase[(model_id, segment)] &lt; segment_mase[(baseline_id, segment)] * (1 - context[&quot;improvement_threshold&quot;])
+            for segment in context[&quot;segments&quot;]
+        )
+        eligible = clears_threshold and all_segments_clear and not context[&quot;backtest_warning_ids&quot;]
+        if model_id == baseline_id:
+            decision_status = &quot;primary_baseline&quot;
+        elif clears_threshold and all_segments_clear and context[&quot;backtest_warning_ids&quot;]:
+            decision_status = spec[&quot;leaderboard_policy&quot;][&quot;tiny_profile_decision_status&quot;]
+        elif eligible:
+            decision_status = &quot;candidate_clears_policy&quot;
+        else:
+            decision_status = &quot;does_not_clear_baseline_policy&quot;
+        rows_out.append(
+            {
+                &quot;metric_evaluation_id&quot;: spec[&quot;metric_evaluation_id&quot;],
+                &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+                &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+                &quot;rank&quot;: rank,
+                &quot;model_id&quot;: model_id,
+                &quot;model_role&quot;: model_roles.get(model_id, &quot;candidate&quot;),
+                &quot;primary_metric&quot;: spec[&quot;primary_metric&quot;],
+                &quot;primary_metric_value&quot;: format_number(score),
+                &quot;baseline_metric_value&quot;: format_number(baseline_score),
+                &quot;relative_improvement_vs_baseline&quot;: format_number(relative_improvement),
+                &quot;clears_baseline_threshold&quot;: str(clears_threshold).lower(),
+                &quot;all_segments_clear_baseline&quot;: str(all_segments_clear).lower(),
+                &quot;eligible_for_model_selection&quot;: str(eligible).lower(),
+                &quot;decision_status&quot;: decision_status,
+                &quot;warning_ids&quot;: &quot;;&quot;.join(context[&quot;backtest_warning_ids&quot;]),
+            }
+        )
+
+    if baseline_id not in weighted_scores or len(rows_out) != len(context[&quot;model_ids&quot;]):
+        checks.append(failed(&quot;leaderboard_uses_primary_metric_and_baseline&quot;, len(rows_out), len(context[&quot;model_ids&quot;])))
+    else:
+        checks.append(passed(&quot;leaderboard_uses_primary_metric_and_baseline&quot;, baseline_id))
+    if context[&quot;backtest_warning_ids&quot;] and any(row[&quot;eligible_for_model_selection&quot;] == &quot;true&quot; for row in rows_out):
+        checks.append(
+            failed(
+                &quot;leaderboard_policy_blocks_selection_when_backtest_warnings_exist&quot;,
+                &quot;eligible model despite upstream warnings&quot;,
+                &quot;no eligible model selection while backtest has warning limitations&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;leaderboard_policy_blocks_selection_when_backtest_warnings_exist&quot;, context[&quot;backtest_warning_ids&quot;]))
+    return checks, rows_out
+
+
+def empty_report(spec: dict[str, Any] | None, checks: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    warning_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;)
+    error_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;)
+    return {
+        &quot;audit_id&quot;: &quot;forecast-metric-evaluation-report&quot;,
+        &quot;metric_evaluation_id&quot;: spec.get(&quot;metric_evaluation_id&quot;) if spec else None,
+        &quot;forecast_id&quot;: spec.get(&quot;forecast_id&quot;) if spec else None,
+        &quot;backtest_id&quot;: spec.get(&quot;backtest_id&quot;) if spec else None,
+        &quot;valid&quot;: error_count == 0,
+        &quot;warning_count&quot;: warning_count,
+        &quot;error_count&quot;: error_count,
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;metric_rows&quot;: 0,
+            &quot;leaderboard_rows&quot;: 0,
+            &quot;suitability_rows&quot;: 0,
+            &quot;mase_denominator_rows&quot;: 0,
+        },
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: warning_count + error_count,
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;],
+        },
+    }
+
+
+def build_report(
+    spec: dict[str, Any],
+    checks: list[dict[str, Any]],
+    metric_rows: list[dict[str, Any]],
+    leaderboard_rows: list[dict[str, Any]],
+    suitability_rows: list[dict[str, Any]],
+    denominator_rows: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    warning_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;)
+    error_count = sum(1 for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;)
+    top_row = min(leaderboard_rows, key=lambda row: row[&quot;rank&quot;]) if leaderboard_rows else {}
+    return {
+        &quot;audit_id&quot;: &quot;forecast-metric-evaluation-report&quot;,
+        &quot;metric_evaluation_id&quot;: spec[&quot;metric_evaluation_id&quot;],
+        &quot;forecast_id&quot;: spec[&quot;forecast_id&quot;],
+        &quot;backtest_id&quot;: spec[&quot;backtest_id&quot;],
+        &quot;valid&quot;: error_count == 0,
+        &quot;warning_count&quot;: warning_count,
+        &quot;error_count&quot;: error_count,
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;metric_rows&quot;: len(metric_rows),
+            &quot;leaderboard_rows&quot;: len(leaderboard_rows),
+            &quot;suitability_rows&quot;: len(suitability_rows),
+            &quot;mase_denominator_rows&quot;: len(denominator_rows),
+            &quot;primary_metric&quot;: spec[&quot;primary_metric&quot;],
+            &quot;top_model_id&quot;: top_row.get(&quot;model_id&quot;),
+            &quot;top_model_decision_status&quot;: top_row.get(&quot;decision_status&quot;),
+        },
+        &quot;leaderboard_policy&quot;: spec[&quot;leaderboard_policy&quot;],
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: warning_count + error_count,
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;],
+        },
+    }
+
+
+def build_forecast_metric_package(
+    *,
+    errors_path: Path,
+    split_manifest_path: Path,
+    series_path: Path,
+    backtest_report_path: Path,
+    spec_path: Path,
+) -&gt; dict[str, Any]:
+    spec = read_json(spec_path)
+    backtest_report = read_json(backtest_report_path)
+    checks, context = normalize_spec_and_report(spec, backtest_report)
+    if context is None:
+        return {
+            &quot;metric_rows&quot;: [],
+            &quot;leaderboard_rows&quot;: [],
+            &quot;suitability_rows&quot;: [],
+            &quot;denominator_rows&quot;: [],
+            &quot;report&quot;: empty_report(spec, checks),
+        }
+
+    error_rows_raw, error_fields = read_csv(errors_path)
+    error_checks, error_rows = parse_error_rows(error_rows_raw, error_fields, spec, context)
+    checks.extend(error_checks)
+    split_rows_raw, split_fields = read_csv(split_manifest_path)
+    split_checks, splits_by_id = parse_split_rows(split_rows_raw, split_fields)
+    checks.extend(split_checks)
+    source_rows_raw, source_fields = read_csv(series_path)
+    source_checks, series_by_key = parse_source_series(source_rows_raw, source_fields, spec)
+    checks.extend(source_checks)
+    if has_blocking_errors(checks) or error_rows is None or splits_by_id is None or series_by_key is None:
+        return {
+            &quot;metric_rows&quot;: [],
+            &quot;leaderboard_rows&quot;: [],
+            &quot;suitability_rows&quot;: [],
+            &quot;denominator_rows&quot;: [],
+            &quot;report&quot;: empty_report(spec, checks),
+        }
+
+    denominator_checks, denominator_rows, denominators = build_mase_denominators(spec, context, splits_by_id, series_by_key)
+    checks.extend(denominator_checks)
+    if has_blocking_errors(checks) or denominators is None:
+        return {
+            &quot;metric_rows&quot;: [],
+            &quot;leaderboard_rows&quot;: [],
+            &quot;suitability_rows&quot;: [],
+            &quot;denominator_rows&quot;: denominator_rows,
+            &quot;report&quot;: empty_report(spec, checks),
+        }
+    attach_checks, scaled_error_rows = attach_mase_denominators(error_rows, denominators)
+    checks.extend(attach_checks)
+    if has_blocking_errors(checks):
+        return {
+            &quot;metric_rows&quot;: [],
+            &quot;leaderboard_rows&quot;: [],
+            &quot;suitability_rows&quot;: [],
+            &quot;denominator_rows&quot;: denominator_rows,
+            &quot;report&quot;: empty_report(spec, checks),
+        }
+
+    metric_checks, metric_rows = build_metric_rows(spec, context, scaled_error_rows)
+    checks.extend(metric_checks)
+    suitability_checks, suitability_rows = build_suitability_rows(spec, context, scaled_error_rows)
+    checks.extend(suitability_checks)
+    leaderboard_checks, leaderboard_rows = build_leaderboard_rows(spec, context, metric_rows)
+    checks.extend(leaderboard_checks)
+    report = build_report(spec, checks, metric_rows, leaderboard_rows, suitability_rows, denominator_rows)
+    return {
+        &quot;metric_rows&quot;: metric_rows,
+        &quot;leaderboard_rows&quot;: leaderboard_rows,
+        &quot;suitability_rows&quot;: suitability_rows,
+        &quot;denominator_rows&quot;: denominator_rows,
+        &quot;report&quot;: report,
+    }
+
+
+def write_package(package: dict[str, Any], output_dir: Path) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_csv(
+        output_dir / &quot;forecast_metrics.csv&quot;,
+        package[&quot;metric_rows&quot;],
+        [
+            &quot;metric_evaluation_id&quot;,
+            &quot;forecast_id&quot;,
+            &quot;backtest_id&quot;,
+            &quot;aggregation_level&quot;,
+            &quot;target_metric&quot;,
+            &quot;segment_id&quot;,
+            &quot;horizon_step&quot;,
+            &quot;model_id&quot;,
+            &quot;model_role&quot;,
+            &quot;family&quot;,
+            &quot;n_errors&quot;,
+            &quot;mae&quot;,
+            &quot;rmse&quot;,
+            &quot;mape&quot;,
+            &quot;smape&quot;,
+            &quot;wape&quot;,
+            &quot;mase&quot;,
+            &quot;mape_status&quot;,
+            &quot;smape_status&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;metric_suitability_audit.csv&quot;,
+        package[&quot;suitability_rows&quot;],
+        [
+            &quot;metric_evaluation_id&quot;,
+            &quot;metric_name&quot;,
+            &quot;decision_role&quot;,
+            &quot;lower_is_better&quot;,
+            &quot;scale_comparable&quot;,
+            &quot;zero_or_scale_sensitive&quot;,
+            &quot;denominator_basis&quot;,
+            &quot;observed_min_actual&quot;,
+            &quot;observed_zero_actual_count&quot;,
+            &quot;observed_small_actual_count&quot;,
+            &quot;status&quot;,
+            &quot;reason&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;metric_leaderboard.csv&quot;,
+        package[&quot;leaderboard_rows&quot;],
+        [
+            &quot;metric_evaluation_id&quot;,
+            &quot;forecast_id&quot;,
+            &quot;backtest_id&quot;,
+            &quot;rank&quot;,
+            &quot;model_id&quot;,
+            &quot;model_role&quot;,
+            &quot;primary_metric&quot;,
+            &quot;primary_metric_value&quot;,
+            &quot;baseline_metric_value&quot;,
+            &quot;relative_improvement_vs_baseline&quot;,
+            &quot;clears_baseline_threshold&quot;,
+            &quot;all_segments_clear_baseline&quot;,
+            &quot;eligible_for_model_selection&quot;,
+            &quot;decision_status&quot;,
+            &quot;warning_ids&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;mase_denominators.csv&quot;,
+        package[&quot;denominator_rows&quot;],
+        [
+            &quot;metric_evaluation_id&quot;,
+            &quot;backtest_id&quot;,
+            &quot;split_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;training_start&quot;,
+            &quot;training_end&quot;,
+            &quot;seasonal_period_days&quot;,
+            &quot;scale_type&quot;,
+            &quot;denominator_rows&quot;,
+            &quot;mase_denominator&quot;,
+        ],
+    )
+    (output_dir / &quot;metric_report.json&quot;).write_text(
+        json.dumps(package[&quot;report&quot;], ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Evaluate rolling-origin forecast metrics and leaderboard policy.&quot;)
+    parser.add_argument(&quot;--errors&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--split-manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--series&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--backtest-report&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=Path(&quot;outputs&quot;))
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args()
+
+    package = build_forecast_metric_package(
+        errors_path=args.errors,
+        split_manifest_path=args.split_manifest,
+        series_path=args.series,
+        backtest_report_path=args.backtest_report,
+        spec_path=args.spec,
+    )
+    write_package(package, args.output_dir)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;metric_rows&quot;: report[&quot;outputs&quot;][&quot;metric_rows&quot;],
+                &quot;leaderboard_rows&quot;: report[&quot;outputs&quot;][&quot;leaderboard_rows&quot;],
+                &quot;primary_metric&quot;: report[&quot;outputs&quot;].get(&quot;primary_metric&quot;),
+                &quot;top_model_id&quot;: report[&quot;outputs&quot;].get(&quot;top_model_id&quot;),
+                &quot;top_model_decision_status&quot;: report[&quot;outputs&quot;].get(&quot;top_model_decision_status&quot;),
+            },
+            ensure_ascii=False,
+        )
+    )
+    if not report[&quot;valid&quot;] or (args.fail_on_warning and report[&quot;warning_count&quot;]):
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/forecast_metric_evaluator.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/forecast_metrics.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>metric_evaluation_id,forecast_id,backtest_id,aggregation_level,target_metric,segment_id,horizon_step,model_id,model_role,family,n_errors,mae,rmse,mape,smape,wape,mase,mape_status,smape_status
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,overall,active_subscriptions,*,*,seasonal_naive_7,primary_baseline,Baseline,24,46.5,50.264301,7.354241,7.643729,6.782133,1.009831,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,all,*,seasonal_naive_7,primary_baseline,Baseline,12,65,65.337585,6.280718,6.48653,6.267577,1.019662,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,android,*,seasonal_naive_7,primary_baseline,Baseline,12,28,28,8.427764,8.800928,8.379052,1,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,1,seasonal_naive_7,primary_baseline,Baseline,8,47,50.828142,7.501734,7.801894,6.944958,1.017358,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,2,seasonal_naive_7,primary_baseline,Baseline,8,47,50.828142,7.421616,7.715095,6.878888,1.017358,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,3,seasonal_naive_7,primary_baseline,Baseline,8,45.5,49.117207,7.139372,7.414198,6.529148,0.994777,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,overall,active_subscriptions,*,*,ets_additive_trend_seasonal_7,candidate,ETS,24,3.166694,6.377098,0.290225,0.290046,0.46187,0.0489,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,all,*,ets_additive_trend_seasonal_7,candidate,ETS,12,6.333388,9.018579,0.58045,0.580091,0.610692,0.097799,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,android,*,ets_additive_trend_seasonal_7,candidate,ETS,12,0.000001,0,0,0,0,0,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,1,ets_additive_trend_seasonal_7,candidate,ETS,8,3.000015,6.000027,0.279347,0.279332,0.443297,0.04639,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,2,ets_additive_trend_seasonal_7,candidate,ETS,8,3.000028,6.000052,0.277026,0.277012,0.439082,0.046391,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,3,ets_additive_trend_seasonal_7,candidate,ETS,8,3.50004,7.071152,0.314303,0.313794,0.502248,0.053918,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,overall,active_subscriptions,*,*,arima_1_1_0,candidate,ARIMA,24,41.765465,47.942236,6.543852,6.788417,6.09159,0.897672,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,all,*,arima_1_1_0,candidate,ARIMA,12,59.578571,62.844198,5.792477,5.971556,5.74482,0.939904,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,segment,active_subscriptions,android,*,arima_1_1_0,candidate,ARIMA,12,23.952358,25.446468,7.295227,7.605277,7.167788,0.855441,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,1,arima_1_1_0,candidate,ARIMA,8,37.78225,42.499807,5.902386,6.075714,5.582896,0.802894,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,2,arima_1_1_0,candidate,ARIMA,8,41.035462,47.429474,6.387759,6.625951,6.005922,0.87531,reported,reported
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,horizon,active_subscriptions,*,3,arima_1_1_0,candidate,ARIMA,8,46.478683,53.28776,7.341411,7.663585,6.669587,1.014814,reported,reported
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/forecast_metrics.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mase_denominators.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>metric_evaluation_id,backtest_id,split_id,segment_id,training_start,training_end,seasonal_period_days,scale_type,denominator_rows,mase_denominator
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-expanding-2026-02-24,all,2026-02-02,2026-02-22,7,seasonal_naive_in_sample_mae,14,63
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-expanding-2026-02-24,android,2026-02-02,2026-02-22,7,seasonal_naive_in_sample_mae,14,28
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-expanding-2026-03-03,all,2026-02-02,2026-03-01,7,seasonal_naive_in_sample_mae,21,63
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-expanding-2026-03-03,android,2026-02-02,2026-03-01,7,seasonal_naive_in_sample_mae,21,28
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-10,all,2026-02-16,2026-03-08,7,seasonal_naive_in_sample_mae,14,63
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-10,android,2026-02-16,2026-03-08,7,seasonal_naive_in_sample_mae,14,28
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-14,all,2026-02-20,2026-03-12,7,seasonal_naive_in_sample_mae,14,66.428571
+active-subscriptions-forecast-metrics,active-subscriptions-rolling-origin-backtest,bt-rolling-2026-03-14,android,2026-02-20,2026-03-12,7,seasonal_naive_in_sample_mae,14,28
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/mase_denominators.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/metric_leaderboard.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>metric_evaluation_id,forecast_id,backtest_id,rank,model_id,model_role,primary_metric,primary_metric_value,baseline_metric_value,relative_improvement_vs_baseline,clears_baseline_threshold,all_segments_clear_baseline,eligible_for_model_selection,decision_status,warning_ids
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,1,ets_additive_trend_seasonal_7,candidate,weighted_mase,0.068459,1.013763,0.93247,true,true,false,diagnostic_leaderboard_not_production_selection,small_origin_count_blocks_model_selection_claim;backtest_horizon_shorter_than_final_forecast_horizon
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,2,arima_1_1_0,candidate,weighted_mase,0.914565,1.013763,0.097852,true,true,false,diagnostic_leaderboard_not_production_selection,small_origin_count_blocks_model_selection_claim;backtest_horizon_shorter_than_final_forecast_horizon
+active-subscriptions-forecast-metrics,active-subscriptions-4w-capacity,active-subscriptions-rolling-origin-backtest,3,seasonal_naive_7,primary_baseline,weighted_mase,1.013763,1.013763,0,false,false,false,primary_baseline,small_origin_count_blocks_model_selection_claim;backtest_horizon_shorter_than_final_forecast_horizon
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/metric_leaderboard.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/metric_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;audit_id&quot;: &quot;forecast-metric-evaluation-report&quot;,
+  &quot;metric_evaluation_id&quot;: &quot;active-subscriptions-forecast-metrics&quot;,
+  &quot;forecast_id&quot;: &quot;active-subscriptions-4w-capacity&quot;,
+  &quot;backtest_id&quot;: &quot;active-subscriptions-rolling-origin-backtest&quot;,
+  &quot;valid&quot;: true,
+  &quot;warning_count&quot;: 1,
+  &quot;error_count&quot;: 0,
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;forecast_metric_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 14,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_report_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: true,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;metric_spec_and_backtest_align&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;forecast, backtest, segments, and models aligned&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_metrics_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;mae&quot;,
+        &quot;rmse&quot;,
+        &quot;mape&quot;,
+        &quot;smape&quot;,
+        &quot;wape&quot;,
+        &quot;mase&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;percentage_metrics_not_primary_decision_metric&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;weighted_mase&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;segment_weights_cover_targets_and_sum_to_one&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;all&quot;: 0.7,
+        &quot;android&quot;: 0.3
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;forecast_metric_spec_values_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;active-subscriptions-forecast-metrics&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_warnings_limit_model_selection&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;small_origin_count_blocks_model_selection_claim&quot;,
+        &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;
+      ],
+      &quot;expected&quot;: &quot;no upstream warnings for production model selection&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_errors_required_columns&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 16,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_errors_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_error_rows_match_report&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;backtest_error_grain_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;horizon_steps_match_policy&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        1,
+        2,
+        3
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;split_manifest_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;history_series_grain_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 86,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mase_denominator_positive&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 8,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mase_denominator_attached_to_every_error&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 72,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;metric_table_contains_overall_segment_and_horizon_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 18,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;percentage_denominators_are_safe_or_blocked&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;percentage metrics reported as diagnostic-only&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;leaderboard_uses_primary_metric_and_baseline&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;seasonal_naive_7&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;leaderboard_policy_blocks_selection_when_backtest_warnings_exist&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;small_origin_count_blocks_model_selection_claim&quot;,
+        &quot;backtest_horizon_shorter_than_final_forecast_horizon&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;metric_rows&quot;: 18,
+    &quot;leaderboard_rows&quot;: 3,
+    &quot;suitability_rows&quot;: 6,
+    &quot;mase_denominator_rows&quot;: 8,
+    &quot;primary_metric&quot;: &quot;weighted_mase&quot;,
+    &quot;top_model_id&quot;: &quot;ets_additive_trend_seasonal_7&quot;,
+    &quot;top_model_decision_status&quot;: &quot;diagnostic_leaderboard_not_production_selection&quot;
+  },
+  &quot;leaderboard_policy&quot;: {
+    &quot;rank_by&quot;: &quot;weighted_mase&quot;,
+    &quot;lower_is_better&quot;: true,
+    &quot;candidate_must_beat_baseline_by_relative&quot;: 0.05,
+    &quot;baseline_model_id&quot;: &quot;seasonal_naive_7&quot;,
+    &quot;selection_requires_no_backtest_warnings&quot;: true,
+    &quot;selection_requires_all_segments_clear_baseline&quot;: true,
+    &quot;tiny_profile_decision_status&quot;: &quot;diagnostic_leaderboard_not_production_selection&quot;
+  },
+  &quot;summary&quot;: {
+    &quot;checks_total&quot;: 21,
+    &quot;checks_failed&quot;: 1,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;backtest_warnings_limit_model_selection&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/metric_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/metric_suitability_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>metric_evaluation_id,metric_name,decision_role,lower_is_better,scale_comparable,zero_or_scale_sensitive,denominator_basis,observed_min_actual,observed_zero_actual_count,observed_small_actual_count,status,reason
+active-subscriptions-forecast-metrics,mae,support,true,false,scale_sensitive,absolute error in target units,294,0,0,allowed,easy to explain but not scale-comparable across segments
+active-subscriptions-forecast-metrics,rmse,support,true,false,outlier_sensitive,squared error in target units,294,0,0,allowed,penalizes large misses and complements MAE
+active-subscriptions-forecast-metrics,mape,diagnostic_only,true,true,zero_sensitive,absolute actual value,294,0,0,diagnostic_only,percentage metric is not the decision metric
+active-subscriptions-forecast-metrics,smape,diagnostic_only,true,true,zero_sensitive,actual plus forecast magnitude,294,0,0,diagnostic_only,&quot;bounded percentage diagnostic, still not primary&quot;
+active-subscriptions-forecast-metrics,wape,support,true,false,volume_weighted,sum absolute actual value,294,0,0,allowed,useful business-volume normalized aggregate
+active-subscriptions-forecast-metrics,mase,primary,true,true,scale_denominator_sensitive,in-sample seasonal naive MAE,294,0,0,allowed,scale-comparable and aligned with the seasonal baseline policy
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/10-forecast-metrics/outputs/metric_suitability_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/10-forecast-metrics" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/time-series/backtesting/"><span>← Предыдущий урок</span><strong>Rolling backtesting</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/time-series/prediction-intervals/"><span>Следующий урок →</span><strong>Интервалы прогноза</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 11/02 у нас есть рабочий dbt skeleton, но smoke graph не знает настоящих данных. Теперь команда добавляет raw extract:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/sources-and-refs/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Sources, refs и зависимости">
+  <meta property="og:description" content="После 11/02 у нас есть рабочий dbt skeleton, но smoke graph не знает настоящих данных. Теперь команда добавляет raw extract:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/sources-and-refs/">
+  <meta name="twitter:card" content="summary">
+  <title>Sources, refs и зависимости — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Sources, refs и зависимости", "description": "После 11/02 у нас есть рабочий dbt skeleton, но smoke graph не знает настоящих данных. Теперь команда добавляет raw extract:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/sources-and-refs/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 11: Analytics Engineering", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=11"}, {"@type": "ListItem", "position": 3, "name": "Sources, refs и зависимости", "item": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/sources-and-refs/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 11</p><h2>Analytics Engineering</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-layers/"><span>01</span>Слои и контракты аналитических данных</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-project/"><span>02</span>Структура dbt-проекта</a><a class="lesson-sidebar-link is-active" href="../../../lessons/analytics-engineering/sources-and-refs/"><span>03</span>Sources, refs и зависимости</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/models/"><span>04</span>Модели и materializations</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-tests/"><span>05</span>Data tests</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/macros/"><span>06</span>Jinja и macros без злоупотребления</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/incremental-models/"><span>07</span>Инкрементальные модели</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/snapshots/"><span>08</span>Snapshots и история изменений</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/documentation-and-lineage/"><span>09</span>Документация и lineage</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/sqlfluff/"><span>10</span>SQLFluff и единый стиль</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-duckdb-project/"><span>11</span>Локальный проект с dbt-duckdb</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 11 · Analytics Engineering</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 114 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/11-analytics-engineering/03-sources-and-refs" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем объявлять raw-таблицы как dbt sources вместо прямого `select * from raw.raw_orders`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы dbt видел lineage, мог выбирать downstream models, документировать источник и считать freshness.</button><button type="button" class="quiz-option" data-choice="1">Чтобы dbt автоматически исправлял все плохие значения в raw-таблице.</button><button type="button" class="quiz-option" data-choice="2">Чтобы raw-таблица стала mart-моделью.</button><button type="button" class="quiz-option" data-choice="3">Чтобы больше не нужен был `dbt_project.yml`.</button></div><p class="quiz-feedback" hidden>`source()` делает raw dependency видимой для manifest, docs, selection и source freshness; качество данных все равно нужно проверять отдельно.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что делает `ref(&#x27;stg_orders&#x27;)` в модели `int_order_line_revenue`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Создает dependency между моделями и компилируется в полное имя relation для текущего target.</button><button type="button" class="quiz-option" data-choice="1">Выполняет Python import из файла `stg_orders.py`.</button><button type="button" class="quiz-option" data-choice="2">Заменяет data tests для `stg_orders`.</button><button type="button" class="quiz-option" data-choice="3">Сохраняет результат модели как CSV.</button></div><p class="quiz-feedback" hidden>`ref()` одновременно дает переносимое имя relation и сообщает dbt порядок зависимостей в graph.</p></article></section>
+        <article class="lesson-article"><h1 id="sources-refs-и-зависимости">Sources, refs и зависимости</h1>
+<blockquote>
+<p>Lineage появляется не от красивой диаграммы, а от того, что raw читается через
+<code>source()</code>, а модели друг друга - через <code>ref()</code>.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Data<br />
+<strong>Пререквизиты:</strong> 11/02 - Структура dbt-проекта<br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> объявляет raw tables как sources, строит model dependencies через
+<code>source()</code> и <code>ref()</code>, проверяет source freshness и запрещает скрытые прямые обращения к
+raw-таблицам.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объявить все raw tables фазы как dbt sources с <code>identifier</code> и <code>loaded_at_field</code>.</li>
+<li>Построить staging models, которые читают raw только через <code>source()</code>.</li>
+<li>Построить intermediate и mart models, которые читают upstream models только через
+<code>ref()</code>.</li>
+<li>Проверить manifest dependencies: sources видны как source nodes, downstream models не
+прыгают напрямую в raw.</li>
+<li>Запустить <code>dbt source freshness</code> в локальном DuckDB-проекте и сохранить machine-readable
+audit.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>11/02</code> у нас есть рабочий dbt skeleton, но smoke graph не знает настоящих данных.
+Теперь команда добавляет raw extract:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw_users
+raw_orders
+raw_order_items
+raw_events
+raw_subscriptions
+raw_support_tickets
+raw_refunds
+raw_currency_rates
+</code></pre></div><p>Быстрый способ - написать в модели:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">select *
+from raw.raw_orders
+</code></pre></div><p>Он соблазнительный, потому что сразу работает в DuckDB. Но dbt тогда не знает, что модель
+зависит от source. Документация, source freshness, selectors, downstream lineage и ревью
+графа становятся неполными. Ошибка не синтаксическая, а инженерная: SQL вернул строки, но
+контракт источника исчез.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="source-именованная-raw-boundary">Source - именованная raw boundary</h3>
+<p>В <code>models/sources.yml</code> raw table получает dbt-имя:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">sources:
+  - name: raw_app
+    schema: raw
+    tables:
+      - name: orders
+        identifier: raw_orders
+</code></pre></div><p>В SQL модель читает:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">from {{ source(&#x27;raw_app&#x27;, &#x27;orders&#x27;) }}
+</code></pre></div><p>dbt компилирует это в relation для текущего target и добавляет source dependency в
+manifest.</p>
+<h3 id="identifier-отделяет-удобное-имя-от-физической-таблицы"><code>identifier</code> отделяет удобное имя от физической таблицы</h3>
+<p>Физическая таблица может называться <code>raw_order_items</code>, а в dbt source ее удобнее читать
+как <code>order_items</code>:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">- name: order_items
+  identifier: raw_order_items
+</code></pre></div><p>Так source name остается стабильным для аналитика, а физический raw naming не протекает в
+каждый SQL-файл.</p>
+<h3 id="freshness-sla-источника-а-не-тест-mart">Freshness - SLA источника, а не тест mart</h3>
+<p><code>dbt source freshness</code> смотрит на timestamp загрузки:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">config:
+  loaded_at_field: updated_at
+  freshness:
+    warn_after: {count: 10000, period: day}
+    error_after: {count: 20000, period: day}
+</code></pre></div><p>В продакшене пороги должны отражать настоящий SLA. В уроке окно большое, чтобы tiny
+fixture оставался воспроизводимым независимо от даты запуска курса.</p>
+<h3 id="ref-связывает-модели-внутри-graph"><code>ref()</code> связывает модели внутри graph</h3>
+<p>Intermediate модель читает staging так:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">from {{ ref(&#x27;stg_order_items&#x27;) }} as items
+join {{ ref(&#x27;stg_orders&#x27;) }} as orders
+</code></pre></div><p>Mart читает intermediate/staging так:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">from {{ ref(&#x27;stg_users&#x27;) }} as users
+left join {{ ref(&#x27;int_order_line_revenue&#x27;) }} as revenue
+</code></pre></div><p>Это дает dbt порядок сборки: сначала sources и staging, затем intermediate, затем mart.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-соберите-ручную-карту-зависимостей">Шаг 1: соберите ручную карту зависимостей</h3>
+<p>До dbt можно описать graph как список ребер:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw_app.orders -&gt; stg_orders
+raw_app.order_items -&gt; stg_order_items
+stg_orders -&gt; int_order_line_revenue
+stg_order_items -&gt; int_order_line_revenue
+stg_users -&gt; mart_customer_revenue_health
+int_order_line_revenue -&gt; mart_customer_revenue_health
+</code></pre></div><p>Это минимальный механизм: если модель читает raw напрямую, ребро должно быть видно.</p>
+<h3 id="шаг-2-откройте-dbt-source-declaration">Шаг 2: откройте dbt source declaration</h3>
+<p>Файл:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/source_ref_project/models/sources.yml
+</code></pre></div><p>объявляет все восемь raw tables из <code>../data/contract.json</code>. У каждой таблицы есть:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">name
+identifier
+loaded_at_field
+freshness.warn_after
+freshness.error_after
+</code></pre></div><p><code>identifier</code> должен совпадать с физическим raw table из data contract, а
+<code>loaded_at_field</code> - с <code>freshness_column</code>.</p>
+<h3 id="шаг-3-прочитайте-staging-sql">Шаг 3: прочитайте staging SQL</h3>
+<p>Файлы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">models/staging/stg_users.sql
+models/staging/stg_orders.sql
+models/staging/stg_order_items.sql
+</code></pre></div><p>читают raw только через <code>source()</code>. В этих моделях нормализуются имена, типы, case и
+timestamp, но не строится mart.</p>
+<h3 id="шаг-4-прочитайте-ref-graph">Шаг 4: прочитайте <code>ref()</code> graph</h3>
+<p>Файлы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">models/intermediate/int_order_line_revenue.sql
+models/marts/mart_customer_revenue_health.sql
+</code></pre></div><p>не читают raw. Они используют только <code>ref()</code>, чтобы зависеть от уже объявленных моделей.</p>
+<h3 id="шаг-5-запустите-аудитор">Шаг 5: запустите аудитор</h3>
+<p>Из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/source_ref_lineage_auditor.py \
+  --project outputs/source_ref_project \
+  --data-contract ../data/contract.json \
+  --output outputs/source_ref_lineage_audit.json \
+  --run-dbt
+</code></pre></div><p>Аудитор создает временную DuckDB-базу, загружает <code>../data/tiny/*.csv</code> в schema <code>raw</code>,
+запускает <code>dbt parse</code>, <code>dbt compile</code>, <code>dbt source freshness</code> и проверяет manifest.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>В рабочем dbt-проекте вы будете часто смотреть не только SQL, но и artifacts:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">target/manifest.json
+target/sources.json
+</code></pre></div><p><code>manifest.json</code> показывает, какие source/model nodes реально попали в graph. Если в SQL
+есть <code>raw.raw_orders</code>, но нет <code>source.raw_app.orders</code> в dependencies, lineage сломан.</p>
+<p><code>sources.json</code> показывает результат freshness check. В этом уроке все 8 sources получают
+status <code>pass</code>, потому что tiny fixture фиксированный, а freshness window учебно широкий.</p>
+<p>Проверьте compact summary:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python code/main.py
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="staging-читает-raw-напрямую">Staging читает raw напрямую</h3>
+<p>Плохой вариант:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">select *
+from raw.raw_orders
+</code></pre></div><p>Аудитор должен провалить:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source_calls_stay_in_staging
+sql_has_no_direct_raw_references
+</code></pre></div><h3 id="mart-читает-source-напрямую">Mart читает source напрямую</h3>
+<p>Плохой вариант:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">select user_id
+from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}
+</code></pre></div><p>Технически dbt может это скомпилировать. Архитектурно mart обходит staging boundary, и
+manifest покажет source dependency там, где должен быть model dependency.</p>
+<h3 id="ref-заменен-hardcoded-relation"><code>ref()</code> заменен hardcoded relation</h3>
+<p>Плохой вариант:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">select *
+from analytics.stg_orders
+</code></pre></div><p>Такой SQL зависит от конкретной schema и не создает dbt dependency. При переезде target,
+изменении materialization или выборочном запуске порядок сборки станет неявным.</p>
+<h3 id="freshness-column-расходится-с-contract">Freshness column расходится с contract</h3>
+<p>Если для <code>orders</code> указать:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">loaded_at_field: loaded_at
+</code></pre></div><p>а data contract говорит <code>updated_at</code>, freshness check уже не проверяет ту границу, которую
+согласовала команда.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Behavioral tests проверяют:</p>
+<ul>
+<li>valid project объявляет 8 raw sources из data contract;</li>
+<li>source identifiers совпадают с <code>raw_*</code> таблицами;</li>
+<li><code>loaded_at_field</code> совпадает с <code>freshness_column</code>;</li>
+<li>у каждой source table есть <code>warn_after</code> и <code>error_after</code>;</li>
+<li>staging models читают через <code>source()</code>;</li>
+<li>downstream models не читают source напрямую;</li>
+<li>intermediate/mart models используют <code>ref()</code>;</li>
+<li>SQL не содержит hardcoded <code>raw_*</code> identifiers;</li>
+<li>live dbt run создает manifest с source/model dependencies;</li>
+<li>source freshness возвращает 8 pass statuses.</li>
+</ul>
+<p>Запуск:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Итоговый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/source_ref_lineage_auditor.py
+</code></pre></div><p>Он работает отдельно от текста урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/source_ref_lineage_auditor.py \
+  --project outputs/source_ref_project \
+  --data-contract ../data/contract.json \
+  --output outputs/source_ref_lineage_audit.json \
+  --run-dbt
+</code></pre></div><p>Передайте вместе с ним:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/source_ref_project/
+outputs/source_ref_lineage_audit.json
+</code></pre></div><p>Следующий урок будет расширять этот graph настоящими model materializations и compiled SQL
+review.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте staging-модель <code>stg_subscriptions.sql</code>, которая читает
+<code>{{ source('raw_app', 'subscriptions') }}</code> и не меняет grain.</li>
+<li>Сделайте <code>mart_customer_revenue_health.sql</code> зависящим напрямую от <code>source('raw_app', 'orders')</code>, запустите аудитор и объясните, почему ошибка не сводится к SQL syntax.</li>
+<li>Уменьшите freshness window для <code>events</code> до одного дня и посмотрите, как изменится
+<code>target/sources.json</code> в live-прогоне.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source</td>
+<td>Просто alias для таблицы</td>
+<td>Именованная raw boundary, которая попадает в dbt manifest, docs, selectors и freshness</td>
+</tr>
+<tr>
+<td><code>identifier</code></td>
+<td>Новое физическое имя таблицы</td>
+<td>Связь удобного dbt source name с реальным warehouse table name</td>
+</tr>
+<tr>
+<td><code>source()</code></td>
+<td>Сокращение для <code>schema.table</code></td>
+<td>Jinja-функция, которая возвращает relation и создает source dependency</td>
+</tr>
+<tr>
+<td><code>ref()</code></td>
+<td>Текстовая подстановка имени файла</td>
+<td>Jinja-функция, которая возвращает relation и создает model dependency</td>
+</tr>
+<tr>
+<td>Source freshness</td>
+<td>Проверка всех значений в таблице</td>
+<td>SLA-проверка максимального loaded timestamp source table</td>
+</tr>
+<tr>
+<td>Direct raw reference</td>
+<td>Нормальная оптимизация SQL</td>
+<td>Скрытый обход dbt lineage, staging boundary и source freshness contract</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.getdbt.com/docs/build/sources" target="_blank" rel="noopener">dbt: Add sources to your DAG</a> — разберите declaration, <code>identifier</code>, source tests, source freshness и selectors для downstream models.</li>
+<li><a href="https://docs.getdbt.com/reference/dbt-jinja-functions/source" target="_blank" rel="noopener">dbt: About source function</a> — посмотрите точные аргументы <code>source_name</code> и <code>table_name</code>, которые используются в staging SQL урока.</li>
+<li><a href="https://docs.getdbt.com/reference/dbt-jinja-functions/ref" target="_blank" rel="noopener">dbt: About ref function</a> — свяжите <code>ref()</code> с Relation object, dependency graph и порядком запуска моделей.</li>
+<li><a href="https://docs.getdbt.com/reference/commands/source" target="_blank" rel="noopener">dbt: About dbt source command</a> — изучите формат <code>dbt source freshness</code>, exit codes и artifact <code>target/sources.json</code>.</li>
+<li><a href="https://docs.getdbt.com/reference/node-selection/syntax" target="_blank" rel="noopener">dbt: Node selection syntax</a> — примените source selectors вроде <code>source:raw_app.orders+</code> к graph из этого урока.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему в этом уроке только staging models читают `source()`, а intermediate/mart models читают `ref()`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что staging является границей нормализации raw, а downstream слои должны зависеть от проверенных моделей графа.</button><button type="button" class="quiz-option" data-choice="1">Потому что `source()` технически запрещен в mart SQL.</button><button type="button" class="quiz-option" data-choice="2">Потому что `ref()` можно использовать только в mart-слое.</button><button type="button" class="quiz-option" data-choice="3">Потому что source freshness работает только для staging views.</button></div><p class="quiz-feedback" hidden>Это архитектурное правило фазы: raw boundary видна в staging, а downstream логика должна проходить через ref graph.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что проверяет `dbt source freshness`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Максимальный loaded_at timestamp source table против настроенных warn/error thresholds.</button><button type="button" class="quiz-option" data-choice="1">Уникальность primary key в mart-модели.</button><button type="button" class="quiz-option" data-choice="2">Стиль SQL по правилам SQLFluff.</button><button type="button" class="quiz-option" data-choice="3">Полноту описаний колонок в docs site.</button></div><p class="quiz-feedback" hidden>Freshness использует `loaded_at_field` или аналогичную настройку источника и сравнивает свежесть с SLA-порогами.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что плохого в hardcoded `raw.raw_orders` внутри mart SQL?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">dbt manifest не увидит source dependency, нормализация staging будет обойдена, а порядок сборки и lineage станут неполными.</button><button type="button" class="quiz-option" data-choice="1">DuckDB перестанет читать таблицу.</button><button type="button" class="quiz-option" data-choice="2">Такой SQL всегда медленнее `ref()`.</button><button type="button" class="quiz-option" data-choice="3">Это допустимо, если добавить комментарий над запросом.</button></div><p class="quiz-feedback" hidden>Direct raw reference может технически выполниться, но ломает управляемость dbt graph и скрывает контракт источника.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;source_ref_lineage_auditor.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;source_ref_project&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;source_ref_lineage_auditor&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDITOR = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDITOR)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def read_yaml(path: Path) -&gt; dict:
+    return yaml.safe_load(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_yaml(path: Path, value: dict) -&gt; None:
+    path.write_text(yaml.safe_dump(value, sort_keys=False), encoding=&quot;utf-8&quot;)
+
+
+class SourceRefLineageAuditorTest(unittest.TestCase):
+    def copy_project(self, tmp: str) -&gt; Path:
+        destination = Path(tmp) / &quot;project&quot;
+        shutil.copytree(PROJECT, destination)
+        return destination
+
+    def test_valid_project_declares_sources_and_ref_graph(self) -&gt; None:
+        report = AUDITOR.validate_project(PROJECT, DATA_CONTRACT, run_dbt=False)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(len(report[&quot;summary&quot;][&quot;declared_sources&quot;]), 8)
+        self.assertTrue(check(report, &quot;sources_match_data_contract&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;downstream_models_use_ref&quot;)[&quot;valid&quot;])
+
+    def test_missing_raw_source_declaration_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            sources_path = project / &quot;models&quot; / &quot;sources.yml&quot;
+            sources = read_yaml(sources_path)
+            sources[&quot;sources&quot;][0][&quot;name&quot;] = &quot;not_raw_app&quot;
+            write_yaml(sources_path, sources)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            source_check = check(report, &quot;raw_source_declared&quot;)
+            self.assertFalse(source_check[&quot;valid&quot;])
+            self.assertEqual(source_check[&quot;sample&quot;], [&quot;raw_app&quot;])
+
+    def test_sources_must_match_data_contract_identifiers(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            sources_path = project / &quot;models&quot; / &quot;sources.yml&quot;
+            sources = read_yaml(sources_path)
+            sources[&quot;sources&quot;][0][&quot;tables&quot;][0][&quot;identifier&quot;] = &quot;raw_wrong_users&quot;
+            sources[&quot;sources&quot;][0][&quot;tables&quot;] = sources[&quot;sources&quot;][0][&quot;tables&quot;][:-1]
+            write_yaml(sources_path, sources)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            contract_check = check(report, &quot;sources_match_data_contract&quot;)
+            self.assertFalse(contract_check[&quot;valid&quot;])
+            self.assertIn({&quot;missing&quot;: &quot;currency_rates&quot;}, contract_check[&quot;sample&quot;])
+            self.assertIn(
+                {
+                    &quot;source&quot;: &quot;users&quot;,
+                    &quot;observed&quot;: &quot;raw_wrong_users&quot;,
+                    &quot;expected&quot;: &quot;raw_users&quot;,
+                },
+                contract_check[&quot;sample&quot;],
+            )
+
+    def test_freshness_config_must_match_contract_column(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            sources_path = project / &quot;models&quot; / &quot;sources.yml&quot;
+            sources = read_yaml(sources_path)
+            sources[&quot;sources&quot;][0][&quot;tables&quot;][2][&quot;config&quot;][&quot;loaded_at_field&quot;] = &quot;loaded_at&quot;
+            del sources[&quot;sources&quot;][0][&quot;tables&quot;][2][&quot;config&quot;][&quot;freshness&quot;][&quot;error_after&quot;]
+            write_yaml(sources_path, sources)
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            freshness_check = check(report, &quot;sources_have_freshness_config&quot;)
+            self.assertFalse(freshness_check[&quot;valid&quot;])
+            self.assertEqual(freshness_check[&quot;sample&quot;][0][&quot;source&quot;], &quot;orders&quot;)
+
+    def test_staging_models_must_use_source_function(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            staging_model = project / &quot;models&quot; / &quot;staging&quot; / &quot;stg_orders.sql&quot;
+            staging_model.write_text(
+                &quot;select * from raw.raw_orders\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            source_check = check(report, &quot;source_calls_stay_in_staging&quot;)
+            raw_check = check(report, &quot;sql_has_no_direct_raw_references&quot;)
+            self.assertFalse(source_check[&quot;valid&quot;])
+            self.assertIn(&quot;stg_orders&quot;, source_check[&quot;sample&quot;])
+            self.assertFalse(raw_check[&quot;valid&quot;])
+            self.assertEqual(raw_check[&quot;sample&quot;][0][&quot;raw_identifiers&quot;], [&quot;raw_orders&quot;])
+
+    def test_downstream_model_cannot_read_source_directly(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            mart = project / &quot;models&quot; / &quot;marts&quot; / &quot;mart_customer_revenue_health.sql&quot;
+            mart.write_text(
+                &quot;select user_id from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            source_check = check(report, &quot;source_calls_stay_in_staging&quot;)
+            ref_check = check(report, &quot;downstream_models_use_ref&quot;)
+            self.assertFalse(source_check[&quot;valid&quot;])
+            self.assertIn(&quot;mart_customer_revenue_health&quot;, source_check[&quot;sample&quot;])
+            self.assertFalse(ref_check[&quot;valid&quot;])
+
+    def test_downstream_models_need_ref_calls(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            intermediate = project / &quot;models&quot; / &quot;intermediate&quot; / &quot;int_order_line_revenue.sql&quot;
+            intermediate.write_text(
+                &quot;select order_id, user_id from analytics.stg_orders\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = AUDITOR.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            ref_check = check(report, &quot;downstream_models_use_ref&quot;)
+            self.assertFalse(ref_check[&quot;valid&quot;])
+            self.assertEqual(ref_check[&quot;sample&quot;], [&quot;int_order_line_revenue&quot;])
+
+    def test_live_dbt_manifest_and_freshness_checks_pass(self) -&gt; None:
+        report = AUDITOR.validate_project(PROJECT, DATA_CONTRACT, run_dbt=True)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;freshness_state_counts&quot;], {&quot;pass&quot;: 8})
+        self.assertTrue(check(report, &quot;manifest_contains_declared_sources&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;manifest_downstream_uses_ref_graph&quot;)[&quot;valid&quot;])
+
+    def test_missing_csv_blocks_live_source_freshness(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            data_dir = Path(directory) / &quot;data&quot;
+            shutil.copytree(DATA_CONTRACT.parent / &quot;tiny&quot;, data_dir)
+            (data_dir / &quot;raw_orders.csv&quot;).unlink()
+            with self.assertRaises(FileNotFoundError):
+                AUDITOR.validate_project(project, DATA_CONTRACT, data_dir=data_dir, run_dbt=True)
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_project(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            output = Path(directory) / &quot;audit.json&quot;
+            (project / &quot;models&quot; / &quot;staging&quot; / &quot;stg_users.sql&quot;).write_text(
+                &quot;select * from raw.raw_users\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--project&quot;,
+                    project,
+                    &quot;--data-contract&quot;,
+                    DATA_CONTRACT,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            report = json.loads(output.read_text(encoding=&quot;utf-8&quot;))
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;sql_has_no_direct_raw_references&quot;)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;source_ref_lineage_auditor.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;source_ref_project&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+
+
+def load_auditor():
+    spec = importlib.util.spec_from_file_location(&quot;source_ref_lineage_auditor&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    auditor = load_auditor()
+    report = auditor.validate_project(PROJECT, DATA_CONTRACT, run_dbt=False)
+    summary = {
+        &quot;valid&quot;: report[&quot;valid&quot;],
+        &quot;declared_sources&quot;: len(report[&quot;summary&quot;].get(&quot;declared_sources&quot;, [])),
+        &quot;models&quot;: report[&quot;summary&quot;].get(&quot;models&quot;, []),
+        &quot;checks_passed&quot;: sum(1 for check in report[&quot;checks&quot;] if check[&quot;valid&quot;]),
+        &quot;checks_total&quot;: len(report[&quot;checks&quot;]),
+    }
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;source-ref-lineage-auditor&quot;,
+  &quot;type&quot;: &quot;tool&quot;,
+  &quot;path&quot;: &quot;outputs/source_ref_lineage_auditor.py&quot;,
+  &quot;description&quot;: &quot;Audits dbt sources, source freshness configuration, source()/ref() usage and manifest lineage for a local dbt-duckdb graph.&quot;,
+  &quot;usage&quot;: &quot;python outputs/source_ref_lineage_auditor.py --project outputs/source_ref_project --data-contract ../data/contract.json --output outputs/source_ref_lineage_audit.json --run-dbt&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_lineage_audit.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;project_root&quot;: &quot;outputs/source_ref_project&quot;,
+    &quot;declared_sources&quot;: [
+      &quot;currency_rates&quot;,
+      &quot;events&quot;,
+      &quot;order_items&quot;,
+      &quot;orders&quot;,
+      &quot;refunds&quot;,
+      &quot;subscriptions&quot;,
+      &quot;support_tickets&quot;,
+      &quot;users&quot;
+    ],
+    &quot;models&quot;: [
+      &quot;int_order_line_revenue&quot;,
+      &quot;mart_customer_revenue_health&quot;,
+      &quot;stg_order_items&quot;,
+      &quot;stg_orders&quot;,
+      &quot;stg_users&quot;
+    ],
+    &quot;data_contract&quot;: &quot;../data/contract.json&quot;,
+    &quot;data_dir&quot;: &quot;../data/tiny&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;project_root_exists&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;outputs/source_ref_project&quot;,
+      &quot;expected&quot;: &quot;existing directory&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;raw_source_declared&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;raw_app&quot;,
+      &quot;expected&quot;: &quot;source declaration exists&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;sources_match_data_contract&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 8,
+      &quot;expected&quot;: &quot;all data contract tables&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;sources_have_freshness_config&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 8,
+      &quot;expected&quot;: &quot;freshness configured&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_calls_stay_in_staging&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;stg_order_items&quot;,
+        &quot;stg_orders&quot;,
+        &quot;stg_users&quot;
+      ],
+      &quot;expected&quot;: &quot;source() in staging&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;downstream_models_use_ref&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;int_order_line_revenue&quot;,
+        &quot;mart_customer_revenue_health&quot;
+      ],
+      &quot;expected&quot;: &quot;ref() present&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;sql_has_no_direct_raw_references&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ok&quot;,
+      &quot;expected&quot;: &quot;no raw_* identifiers in SQL&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_lineage_audit.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_lineage_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from collections import Counter
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import yaml
+
+
+SOURCE_NAME = &quot;raw_app&quot;
+EXPECTED_STAGING_MODELS = {&quot;stg_users&quot;, &quot;stg_orders&quot;, &quot;stg_order_items&quot;}
+EXPECTED_DOWNSTREAM_MODELS = {&quot;int_order_line_revenue&quot;, &quot;mart_customer_revenue_health&quot;}
+EXPECTED_DBT_COMMANDS = (&quot;parse&quot;, &quot;compile&quot;, &quot;source freshness&quot;)
+RAW_IDENTIFIER_RE = re.compile(r&quot;\braw_[a-z0-9_]+\b&quot;, flags=re.IGNORECASE)
+SOURCE_CALL_RE = re.compile(r&quot;\{\{\s*source\(\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]\s*,\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]\s*\)&quot;)
+REF_CALL_RE = re.compile(r&quot;\{\{\s*ref\(\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]&quot;)
+ANSI_RE = re.compile(r&quot;\x1b\[[0-9;]*m&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None) -&gt; dict[str, Any]:
+    return {&quot;id&quot;: check_id, &quot;valid&quot;: True, &quot;observed&quot;: observed, &quot;expected&quot;: expected, &quot;sample&quot;: []}
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def read_json(path: Path) -&gt; Any:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def read_yaml(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        value = yaml.safe_load(source)
+    if not isinstance(value, dict):
+        raise ValueError(f&quot;{path} must contain a YAML mapping&quot;)
+    return value
+
+
+def source_table_name(raw_identifier: str) -&gt; str:
+    return raw_identifier.removeprefix(&quot;raw_&quot;)
+
+
+def data_contract_tables(data_contract: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    tables = data_contract.get(&quot;tables&quot;)
+    if not isinstance(tables, dict):
+        raise ValueError(&quot;data contract must contain a tables object&quot;)
+    return {str(name): table for name, table in tables.items() if isinstance(table, dict)}
+
+
+def load_source_declarations(project_root: Path) -&gt; list[dict[str, Any]]:
+    declarations: list[dict[str, Any]] = []
+    for yaml_path in sorted((project_root / &quot;models&quot;).rglob(&quot;*.yml&quot;)):
+        value = read_yaml(yaml_path)
+        sources = value.get(&quot;sources&quot;, [])
+        if isinstance(sources, list):
+            declarations.extend(source for source in sources if isinstance(source, dict))
+    return declarations
+
+
+def find_source(declarations: list[dict[str, Any]], name: str) -&gt; dict[str, Any] | None:
+    return next((source for source in declarations if source.get(&quot;name&quot;) == name), None)
+
+
+def sql_files(project_root: Path) -&gt; list[Path]:
+    return sorted((project_root / &quot;models&quot;).rglob(&quot;*.sql&quot;))
+
+
+def model_name_from_path(path: Path) -&gt; str:
+    return path.stem
+
+
+def path_layer(project_root: Path, path: Path) -&gt; str:
+    try:
+        relative = path.relative_to(project_root / &quot;models&quot;)
+    except ValueError:
+        return &quot;unknown&quot;
+    return relative.parts[0] if relative.parts else &quot;unknown&quot;
+
+
+def collect_sql_usage(project_root: Path, raw_identifiers: set[str]) -&gt; dict[str, dict[str, Any]]:
+    usage: dict[str, dict[str, Any]] = {}
+    for path in sql_files(project_root):
+        text = path.read_text(encoding=&quot;utf-8&quot;)
+        usage[model_name_from_path(path)] = {
+            &quot;path&quot;: str(path.relative_to(project_root)),
+            &quot;layer&quot;: path_layer(project_root, path),
+            &quot;source_calls&quot;: SOURCE_CALL_RE.findall(text),
+            &quot;ref_calls&quot;: REF_CALL_RE.findall(text),
+            &quot;raw_identifiers&quot;: sorted(
+                {identifier for identifier in RAW_IDENTIFIER_RE.findall(text) if identifier in raw_identifiers}
+            ),
+        }
+    return usage
+
+
+def validate_static_project(project_root: Path, data_contract: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {&quot;project_root&quot;: str(project_root)}
+    if not project_root.is_dir():
+        return [failed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;)], summary
+    checks.append(passed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;))
+
+    tables = data_contract_tables(data_contract)
+    expected_sources = {source_table_name(name): name for name in tables}
+    declarations = load_source_declarations(project_root)
+    raw_source = find_source(declarations, SOURCE_NAME)
+    if raw_source is None:
+        checks.append(failed(&quot;raw_source_declared&quot;, None, f&quot;source named {SOURCE_NAME}&quot;, [SOURCE_NAME]))
+        return checks, summary
+    checks.append(passed(&quot;raw_source_declared&quot;, SOURCE_NAME, &quot;source declaration exists&quot;))
+
+    source_tables = raw_source.get(&quot;tables&quot;, [])
+    declared: dict[str, dict[str, Any]] = {}
+    if isinstance(source_tables, list):
+        for table in source_tables:
+            if isinstance(table, dict) and isinstance(table.get(&quot;name&quot;), str):
+                declared[table[&quot;name&quot;]] = table
+    summary[&quot;declared_sources&quot;] = sorted(declared)
+    missing = sorted(set(expected_sources) - set(declared))
+    extra = sorted(set(declared) - set(expected_sources))
+    identifier_errors: list[dict[str, Any]] = []
+    freshness_errors: list[dict[str, Any]] = []
+    for source_name, raw_identifier in expected_sources.items():
+        table = declared.get(source_name)
+        if table is None:
+            continue
+        if table.get(&quot;identifier&quot;) != raw_identifier:
+            identifier_errors.append(
+                {
+                    &quot;source&quot;: source_name,
+                    &quot;observed&quot;: table.get(&quot;identifier&quot;),
+                    &quot;expected&quot;: raw_identifier,
+                }
+            )
+        config = table.get(&quot;config&quot;) if isinstance(table.get(&quot;config&quot;), dict) else {}
+        contract_freshness = tables[raw_identifier].get(&quot;freshness_column&quot;)
+        if config.get(&quot;loaded_at_field&quot;) != contract_freshness:
+            freshness_errors.append(
+                {
+                    &quot;source&quot;: source_name,
+                    &quot;observed&quot;: config.get(&quot;loaded_at_field&quot;),
+                    &quot;expected&quot;: contract_freshness,
+                }
+            )
+        freshness = config.get(&quot;freshness&quot;) if isinstance(config.get(&quot;freshness&quot;), dict) else {}
+        if &quot;warn_after&quot; not in freshness or &quot;error_after&quot; not in freshness:
+            freshness_errors.append(
+                {
+                    &quot;source&quot;: source_name,
+                    &quot;observed&quot;: sorted(freshness),
+                    &quot;expected&quot;: [&quot;warn_after&quot;, &quot;error_after&quot;],
+                }
+            )
+
+    if missing or extra or identifier_errors:
+        sample: list[Any] = []
+        sample.extend({&quot;missing&quot;: item} for item in missing)
+        sample.extend({&quot;extra&quot;: item} for item in extra)
+        sample.extend(identifier_errors)
+        checks.append(
+            failed(
+                &quot;sources_match_data_contract&quot;,
+                {&quot;missing&quot;: missing, &quot;extra&quot;: extra, &quot;identifier_errors&quot;: identifier_errors},
+                &quot;all data contract tables declared as sources with matching identifiers&quot;,
+                sample,
+            )
+        )
+    else:
+        checks.append(passed(&quot;sources_match_data_contract&quot;, len(expected_sources), &quot;all data contract tables&quot;))
+
+    if freshness_errors:
+        checks.append(
+            failed(
+                &quot;sources_have_freshness_config&quot;,
+                len(freshness_errors),
+                &quot;loaded_at_field plus warn_after/error_after per source table&quot;,
+                freshness_errors,
+            )
+        )
+    else:
+        checks.append(passed(&quot;sources_have_freshness_config&quot;, len(expected_sources), &quot;freshness configured&quot;))
+
+    usage = collect_sql_usage(project_root, set(tables))
+    summary[&quot;models&quot;] = sorted(usage)
+    staging_without_source = sorted(
+        name
+        for name, item in usage.items()
+        if item[&quot;layer&quot;] == &quot;staging&quot; and not item[&quot;source_calls&quot;]
+    )
+    non_staging_with_source = sorted(
+        name
+        for name, item in usage.items()
+        if item[&quot;layer&quot;] != &quot;staging&quot; and item[&quot;source_calls&quot;]
+    )
+    missing_expected_staging = sorted(EXPECTED_STAGING_MODELS - set(usage))
+    if staging_without_source or non_staging_with_source or missing_expected_staging:
+        checks.append(
+            failed(
+                &quot;source_calls_stay_in_staging&quot;,
+                {
+                    &quot;staging_without_source&quot;: staging_without_source,
+                    &quot;non_staging_with_source&quot;: non_staging_with_source,
+                    &quot;missing_expected_staging&quot;: missing_expected_staging,
+                },
+                &quot;staging models use source(); downstream models do not&quot;,
+                staging_without_source + non_staging_with_source + missing_expected_staging,
+            )
+        )
+    else:
+        checks.append(passed(&quot;source_calls_stay_in_staging&quot;, sorted(EXPECTED_STAGING_MODELS), &quot;source() in staging&quot;))
+
+    downstream_without_ref = sorted(
+        name for name in EXPECTED_DOWNSTREAM_MODELS if not usage.get(name, {}).get(&quot;ref_calls&quot;)
+    )
+    if downstream_without_ref:
+        checks.append(
+            failed(
+                &quot;downstream_models_use_ref&quot;,
+                downstream_without_ref,
+                &quot;intermediate and mart models use ref()&quot;,
+                downstream_without_ref,
+            )
+        )
+    else:
+        checks.append(passed(&quot;downstream_models_use_ref&quot;, sorted(EXPECTED_DOWNSTREAM_MODELS), &quot;ref() present&quot;))
+
+    raw_mentions = [
+        {&quot;model&quot;: name, &quot;path&quot;: item[&quot;path&quot;], &quot;raw_identifiers&quot;: item[&quot;raw_identifiers&quot;]}
+        for name, item in usage.items()
+        if item[&quot;raw_identifiers&quot;]
+    ]
+    if raw_mentions:
+        checks.append(
+            failed(
+                &quot;sql_has_no_direct_raw_references&quot;,
+                len(raw_mentions),
+                &quot;SQL models use source()/ref(), not raw_* names&quot;,
+                raw_mentions,
+            )
+        )
+    else:
+        checks.append(passed(&quot;sql_has_no_direct_raw_references&quot;, &quot;ok&quot;, &quot;no raw_* identifiers in SQL&quot;))
+
+    return checks, summary
+
+
+def safe_identifier(value: str) -&gt; str:
+    if not re.fullmatch(r&quot;[A-Za-z_][A-Za-z0-9_]*&quot;, value):
+        raise ValueError(f&quot;unsafe SQL identifier: {value}&quot;)
+    return value
+
+
+def prepare_duckdb_database(db_path: Path, data_contract: dict[str, Any], data_dir: Path) -&gt; dict[str, int]:
+    import duckdb
+
+    tables = data_contract_tables(data_contract)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(db_path))
+    try:
+        con.execute(&quot;create schema if not exists raw&quot;)
+        row_counts: dict[str, int] = {}
+        for table_name in sorted(tables):
+            safe_table = safe_identifier(table_name)
+            csv_path = data_dir / f&quot;{table_name}.csv&quot;
+            if not csv_path.is_file():
+                raise FileNotFoundError(f&quot;missing source CSV: {csv_path}&quot;)
+            con.execute(
+                f&#x27;create or replace table raw.&quot;{safe_table}&quot; as select * from read_csv_auto(?)&#x27;,
+                [str(csv_path)],
+            )
+            row_counts[table_name] = con.execute(
+                f&#x27;select count(*) from raw.&quot;{safe_table}&quot;&#x27;
+            ).fetchone()[0]
+    finally:
+        con.close()
+    return row_counts
+
+
+def tail(text: str, line_count: int = 8) -&gt; str:
+    lines = ANSI_RE.sub(&quot;&quot;, text).splitlines()
+    return &quot;\n&quot;.join(lines[-line_count:])
+
+
+def run_command(command: list[str], env: dict[str, str]) -&gt; dict[str, Any]:
+    completed = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+    return {
+        &quot;command&quot;: &quot; &quot;.join(command[:2]),
+        &quot;returncode&quot;: completed.returncode,
+        &quot;stdout_tail&quot;: tail(completed.stdout),
+        &quot;stderr_tail&quot;: tail(completed.stderr),
+    }
+
+
+def source_state_counts(freshness_path: Path) -&gt; dict[str, int]:
+    value = read_json(freshness_path)
+    counts: Counter[str] = Counter()
+    results = value.get(&quot;results&quot;)
+    if isinstance(results, list):
+        for result in results:
+            if isinstance(result, dict):
+                counts[str(result.get(&quot;status&quot;, &quot;unknown&quot;))] += 1
+        return dict(sorted(counts.items()))
+    sources = value.get(&quot;sources&quot;, {})
+    if isinstance(sources, dict):
+        for source in sources.values():
+            if isinstance(source, dict):
+                counts[str(source.get(&quot;state&quot;, &quot;unknown&quot;))] += 1
+    return dict(sorted(counts.items()))
+
+
+def inspect_manifest(manifest_path: Path, data_contract: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    manifest = read_json(manifest_path)
+    nodes = manifest.get(&quot;nodes&quot;, {})
+    sources = manifest.get(&quot;sources&quot;, {})
+    checks: list[dict[str, Any]] = []
+    tables = data_contract_tables(data_contract)
+    expected_source_names = {source_table_name(name) for name in tables}
+    source_nodes = {
+        source.get(&quot;name&quot;)
+        for source in sources.values()
+        if isinstance(source, dict) and source.get(&quot;source_name&quot;) == SOURCE_NAME
+    }
+    missing_sources = sorted(expected_source_names - {name for name in source_nodes if isinstance(name, str)})
+    if missing_sources:
+        checks.append(
+            failed(&quot;manifest_contains_declared_sources&quot;, missing_sources, &quot;all source nodes&quot;, missing_sources)
+        )
+    else:
+        checks.append(passed(&quot;manifest_contains_declared_sources&quot;, len(expected_source_names), &quot;all source nodes&quot;))
+
+    model_nodes = {
+        node.get(&quot;name&quot;): node
+        for node in nodes.values()
+        if isinstance(node, dict) and node.get(&quot;resource_type&quot;) == &quot;model&quot;
+    }
+    staging_errors: list[dict[str, Any]] = []
+    downstream_errors: list[dict[str, Any]] = []
+    for name in EXPECTED_STAGING_MODELS:
+        node = model_nodes.get(name)
+        deps = set(node.get(&quot;depends_on&quot;, {}).get(&quot;nodes&quot;, [])) if isinstance(node, dict) else set()
+        source_deps = sorted(dep for dep in deps if dep.startswith(&quot;source.&quot;))
+        if len(source_deps) != 1:
+            staging_errors.append({&quot;model&quot;: name, &quot;source_dependencies&quot;: source_deps})
+    for name in EXPECTED_DOWNSTREAM_MODELS:
+        node = model_nodes.get(name)
+        deps = set(node.get(&quot;depends_on&quot;, {}).get(&quot;nodes&quot;, [])) if isinstance(node, dict) else set()
+        source_deps = sorted(dep for dep in deps if dep.startswith(&quot;source.&quot;))
+        ref_deps = sorted(dep for dep in deps if dep.startswith(&quot;model.&quot;))
+        if source_deps or not ref_deps:
+            downstream_errors.append(
+                {&quot;model&quot;: name, &quot;source_dependencies&quot;: source_deps, &quot;model_dependencies&quot;: ref_deps}
+            )
+    if staging_errors:
+        checks.append(
+            failed(
+                &quot;manifest_staging_depends_on_sources&quot;,
+                len(staging_errors),
+                &quot;each staging model has one source dependency&quot;,
+                staging_errors,
+            )
+        )
+    else:
+        checks.append(
+            passed(&quot;manifest_staging_depends_on_sources&quot;, sorted(EXPECTED_STAGING_MODELS), &quot;source dependencies&quot;)
+        )
+    if downstream_errors:
+        checks.append(
+            failed(
+                &quot;manifest_downstream_uses_ref_graph&quot;,
+                len(downstream_errors),
+                &quot;downstream models depend on models, not sources&quot;,
+                downstream_errors,
+            )
+        )
+    else:
+        checks.append(
+            passed(&quot;manifest_downstream_uses_ref_graph&quot;, sorted(EXPECTED_DOWNSTREAM_MODELS), &quot;ref dependencies&quot;)
+        )
+    return checks
+
+
+def run_dbt_audit(
+    project_root: Path,
+    data_contract: dict[str, Any],
+    data_dir: Path,
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    with TemporaryDirectory() as directory:
+        tmp = Path(directory)
+        project_copy = tmp / &quot;project&quot;
+        profiles_dir = tmp / &quot;profiles&quot;
+        shutil.copytree(project_root, project_copy)
+        profiles_dir.mkdir()
+        shutil.copy(project_copy / &quot;profiles.yml.example&quot;, profiles_dir / &quot;profiles.yml&quot;)
+        db_path = tmp / &quot;source_ref.duckdb&quot;
+        row_counts = prepare_duckdb_database(db_path, data_contract, data_dir)
+
+        env = os.environ.copy()
+        env[&quot;DBT_SEND_ANONYMOUS_USAGE_STATS&quot;] = &quot;false&quot;
+        env[&quot;DBT_DUCKDB_PATH&quot;] = str(db_path)
+
+        base = [&quot;dbt&quot;, &quot;&quot;, &quot;--project-dir&quot;, str(project_copy), &quot;--profiles-dir&quot;, str(profiles_dir)]
+        commands = []
+        for command in (&quot;parse&quot;, &quot;compile&quot;):
+            command_line = base.copy()
+            command_line[1] = command
+            commands.append(run_command(command_line, env))
+        freshness_output = project_copy / &quot;target&quot; / &quot;sources.json&quot;
+        commands.append(
+            run_command(
+                [
+                    &quot;dbt&quot;,
+                    &quot;source&quot;,
+                    &quot;freshness&quot;,
+                    &quot;--project-dir&quot;,
+                    str(project_copy),
+                    &quot;--profiles-dir&quot;,
+                    str(profiles_dir),
+                ],
+                env,
+            )
+        )
+
+        summary[&quot;loaded_raw_rows&quot;] = row_counts
+        summary[&quot;dbt_commands&quot;] = commands
+        if all(item[&quot;returncode&quot;] == 0 for item in commands):
+            checks.append(passed(&quot;dbt_parse_compile_freshness_succeed&quot;, &quot;ok&quot;, &quot;all dbt commands exit 0&quot;))
+            checks.extend(inspect_manifest(project_copy / &quot;target&quot; / &quot;manifest.json&quot;, data_contract))
+            summary[&quot;freshness_state_counts&quot;] = source_state_counts(freshness_output)
+            freshness_counts = summary[&quot;freshness_state_counts&quot;]
+            if freshness_counts.get(&quot;error&quot;) or freshness_counts.get(&quot;warn&quot;):
+                checks.append(
+                    failed(
+                        &quot;source_freshness_passes&quot;,
+                        freshness_counts,
+                        &quot;all selected sources pass freshness&quot;,
+                        [freshness_counts],
+                    )
+                )
+            else:
+                checks.append(passed(&quot;source_freshness_passes&quot;, freshness_counts, &quot;all selected sources pass&quot;))
+        else:
+            checks.append(
+                failed(
+                    &quot;dbt_parse_compile_freshness_succeed&quot;,
+                    commands,
+                    &quot;all dbt commands exit 0&quot;,
+                    commands,
+                )
+            )
+    return checks, summary
+
+
+def validate_project(
+    project_root: Path,
+    data_contract_path: Path,
+    data_dir: Path | None = None,
+    run_dbt: bool = False,
+) -&gt; dict[str, Any]:
+    data_contract = read_json(data_contract_path)
+    resolved_data_dir = data_dir or data_contract_path.parent / &quot;tiny&quot;
+    checks, summary = validate_static_project(project_root, data_contract)
+    summary[&quot;data_contract&quot;] = str(data_contract_path)
+    summary[&quot;data_dir&quot;] = str(resolved_data_dir)
+
+    if run_dbt and all(check[&quot;valid&quot;] for check in checks):
+        live_checks, live_summary = run_dbt_audit(project_root, data_contract, resolved_data_dir)
+        checks.extend(live_checks)
+        summary.update(live_summary)
+    elif run_dbt:
+        checks.append(
+            failed(
+                &quot;dbt_parse_compile_freshness_succeed&quot;,
+                &quot;skipped because static checks failed&quot;,
+                &quot;all dbt commands exit 0&quot;,
+            )
+        )
+
+    return {
+        &quot;valid&quot;: all(check[&quot;valid&quot;] for check in checks),
+        &quot;summary&quot;: summary,
+        &quot;checks&quot;: checks,
+    }
+
+
+def parse_args() -&gt; argparse.Namespace:
+    lesson_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description=&quot;Audit dbt source()/ref() lineage.&quot;)
+    parser.add_argument(
+        &quot;--project&quot;,
+        type=Path,
+        default=Path(__file__).resolve().parent / &quot;source_ref_project&quot;,
+        help=&quot;Path to the dbt project.&quot;,
+    )
+    parser.add_argument(
+        &quot;--data-contract&quot;,
+        type=Path,
+        default=lesson_root.parent / &quot;data&quot; / &quot;contract.json&quot;,
+        help=&quot;Path to the phase data contract.&quot;,
+    )
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, help=&quot;Directory containing raw CSV files.&quot;)
+    parser.add_argument(&quot;--output&quot;, type=Path, help=&quot;Optional path to write audit JSON.&quot;)
+    parser.add_argument(
+        &quot;--run-dbt&quot;,
+        action=&quot;store_true&quot;,
+        help=&quot;Run dbt parse, compile and source freshness in an isolated temporary copy.&quot;,
+    )
+    return parser.parse_args()
+
+
+def main() -&gt; None:
+    args = parse_args()
+    report = validate_project(
+        args.project,
+        args.data_contract,
+        data_dir=args.data_dir,
+        run_dbt=args.run_dbt,
+    )
+    rendered = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.write_text(rendered + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+    print(rendered)
+    if not report[&quot;valid&quot;]:
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_lineage_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/commands.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Reproducible source/ref commands
+
+The lesson auditor creates a temporary DuckDB database and loads `../data/tiny/*.csv`
+into schema `raw`. To run dbt manually, create a working `profiles.yml` from the example
+and preload the raw schema first.
+
+```bash
+mkdir -p /tmp/source-ref-profiles
+cp outputs/source_ref_project/profiles.yml.example /tmp/source-ref-profiles/profiles.yml
+uv run --locked dbt parse --project-dir outputs/source_ref_project --profiles-dir /tmp/source-ref-profiles
+uv run --locked dbt compile --project-dir outputs/source_ref_project --profiles-dir /tmp/source-ref-profiles
+uv run --locked dbt source freshness --project-dir outputs/source_ref_project --profiles-dir /tmp/source-ref-profiles
+```
+
+Use `python outputs/source_ref_lineage_auditor.py --run-dbt` for the reproducible path.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/commands.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/dbt_project.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>name: source_ref_lineage_project
+version: &quot;1.0.0&quot;
+config-version: 2
+
+profile: source_ref_lineage_project
+
+model-paths: [&quot;models&quot;]
+test-paths: [&quot;tests&quot;]
+macro-paths: [&quot;macros&quot;]
+snapshot-paths: [&quot;snapshots&quot;]
+seed-paths: [&quot;seeds&quot;]
+
+target-path: &quot;target&quot;
+clean-targets:
+  - &quot;target&quot;
+  - &quot;dbt_packages&quot;
+
+models:
+  source_ref_lineage_project:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/dbt_project.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/macros/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/macros/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/intermediate/int_order_line_revenue.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(materialized=&#x27;view&#x27;) }}
+
+select
+    items.order_id,
+    orders.user_id,
+    items.line_number,
+    items.product_id,
+    items.quantity,
+    items.unit_price,
+    items.currency,
+    orders.status,
+    cast(items.quantity * items.unit_price as decimal(18, 2)) as line_revenue
+from {{ ref(&#x27;stg_order_items&#x27;) }} as items
+inner join {{ ref(&#x27;stg_orders&#x27;) }} as orders
+    on items.order_id = orders.order_id
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/intermediate/int_order_line_revenue.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/marts/mart_customer_revenue_health.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(materialized=&#x27;table&#x27;) }}
+
+select
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan,
+    count(distinct revenue.order_id) as order_count,
+    coalesce(
+        sum(case when revenue.status = &#x27;paid&#x27; then revenue.line_revenue else 0 end),
+        0
+    ) as paid_revenue
+from {{ ref(&#x27;stg_users&#x27;) }} as users
+left join {{ ref(&#x27;int_order_line_revenue&#x27;) }} as revenue
+    on users.user_id = revenue.user_id
+where users.is_deleted = false
+group by
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/marts/mart_customer_revenue_health.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/properties.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+models:
+  - name: stg_users
+    description: &quot;Normalized users source with one row per registered user.&quot;
+    columns:
+      - name: user_id
+        description: &quot;User primary key from raw_users.&quot;
+      - name: updated_at
+        description: &quot;Freshness timestamp carried from the raw source.&quot;
+  - name: stg_orders
+    description: &quot;Normalized orders source with one row per order.&quot;
+    columns:
+      - name: order_id
+        description: &quot;Order primary key from raw_orders.&quot;
+      - name: updated_at
+        description: &quot;Freshness timestamp carried from the raw source.&quot;
+  - name: stg_order_items
+    description: &quot;Normalized order item source with one row per order line.&quot;
+    columns:
+      - name: order_id
+        description: &quot;Order identifier.&quot;
+      - name: line_number
+        description: &quot;Line number inside the order.&quot;
+  - name: int_order_line_revenue
+    description: &quot;Order line revenue joined to order status through ref dependencies.&quot;
+  - name: mart_customer_revenue_health
+    description: &quot;Minimal customer revenue health mart fed only by ref dependencies.&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/properties.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/sources.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+sources:
+  - name: raw_app
+    schema: raw
+    description: &quot;Tiny raw extract for the customer revenue health mart lessons.&quot;
+    tables:
+      - name: users
+        identifier: raw_users
+        description: &quot;One registered user.&quot;
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: events
+        identifier: raw_events
+        description: &quot;One client or server event.&quot;
+        config:
+          loaded_at_field: received_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: orders
+        identifier: raw_orders
+        description: &quot;One order or marketplace payment.&quot;
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: order_items
+        identifier: raw_order_items
+        description: &quot;One line item inside an order.&quot;
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: subscriptions
+        identifier: raw_subscriptions
+        description: &quot;One subscription period.&quot;
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: support_tickets
+        identifier: raw_support_tickets
+        description: &quot;One support ticket.&quot;
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: refunds
+        identifier: raw_refunds
+        description: &quot;One refund event for an order.&quot;
+        config:
+          loaded_at_field: refunded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: currency_rates
+        identifier: raw_currency_rates
+        description: &quot;One currency rate for one calendar date.&quot;
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/sources.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/staging/stg_order_items.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(materialized=&#x27;view&#x27;) }}
+
+select
+    cast(order_id as varchar) as order_id,
+    cast(line_number as integer) as line_number,
+    cast(product_id as varchar) as product_id,
+    cast(quantity as integer) as quantity,
+    cast(unit_price as decimal(18, 2)) as unit_price,
+    upper(cast(currency as varchar)) as currency,
+    cast(loaded_at as timestamptz) as loaded_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;order_items&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/staging/stg_order_items.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/staging/stg_orders.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(materialized=&#x27;view&#x27;) }}
+
+select
+    cast(order_id as varchar) as order_id,
+    cast(user_id as varchar) as user_id,
+    cast(ordered_at as timestamptz) as ordered_at,
+    lower(cast(status as varchar)) as status,
+    upper(cast(currency as varchar)) as currency,
+    cast(amount as decimal(18, 2)) as amount,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;orders&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/staging/stg_orders.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/models/staging/stg_users.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{{ config(materialized=&#x27;view&#x27;) }}
+
+select
+    cast(user_id as varchar) as user_id,
+    cast(registered_at as timestamptz) as registered_at,
+    upper(cast(country as varchar)) as country,
+    lower(cast(platform as varchar)) as platform,
+    lower(cast(acquisition_channel as varchar)) as acquisition_channel,
+    lower(cast(plan as varchar)) as plan,
+    cast(is_deleted as boolean) as is_deleted,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/models/staging/stg_users.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/profiles.yml.example</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>source_ref_lineage_project:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: &quot;{{ env_var(&#x27;DBT_DUCKDB_PATH&#x27;, &#x27;target/source_ref.duckdb&#x27;) }}&quot;
+      schema: analytics
+      threads: 1
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/profiles.yml.example" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/seeds/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/seeds/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/snapshots/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/snapshots/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/source_ref_project/tests/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/03-sources-and-refs/outputs/source_ref_project/tests/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/03-sources-and-refs" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/analytics-engineering/dbt-project/"><span>← Предыдущий урок</span><strong>Структура dbt-проекта</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/analytics-engineering/models/"><span>Следующий урок →</span><strong>Модели и materializations</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

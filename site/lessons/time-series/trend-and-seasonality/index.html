@@ -1,0 +1,2061 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 14/03 у нас есть регулярный ряд и leakage-safe rolling features. Следующий соблазн аналитика - посмотреть на график active subscriptions и сказать:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/time-series/trend-and-seasonality/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Тренд, сезонность и календарные эффекты">
+  <meta property="og:description" content="После 14/03 у нас есть регулярный ряд и leakage-safe rolling features. Следующий соблазн аналитика - посмотреть на график active subscriptions и сказать:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/time-series/trend-and-seasonality/">
+  <meta name="twitter:card" content="summary">
+  <title>Тренд, сезонность и календарные эффекты — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Тренд, сезонность и календарные эффекты", "description": "После 14/03 у нас есть регулярный ряд и leakage-safe rolling features. Следующий соблазн аналитика - посмотреть на график active subscriptions и сказать:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/trend-and-seasonality/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 14: Временные ряды", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=14"}, {"@type": "ListItem", "position": 3, "name": "Тренд, сезонность и календарные эффекты", "item": "https://datascience.xyz/courses/analyst-tools/lessons/time-series/trend-and-seasonality/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 14</p><h2>Временные ряды</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-index/"><span>01</span>Временной индекс, частота и календарный grain</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/resampling/"><span>02</span>Resampling и агрегация</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/rolling/"><span>03</span>Rolling и expanding windows</a><a class="lesson-sidebar-link is-active" href="../../../lessons/time-series/trend-and-seasonality/"><span>04</span>Тренд, сезонность и календарные эффекты</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/temporal-leakage/"><span>05</span>Временная утечка</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-baselines/"><span>06</span>Наивные и сезонные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/decomposition/"><span>07</span>Декомпозиция ряда</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/ets-and-arima/"><span>08</span>ETS и ARIMA</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/backtesting/"><span>09</span>Rolling backtesting</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/forecast-metrics/"><span>10</span>Метрики прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/prediction-intervals/"><span>11</span>Интервалы прогноза</a><a class="lesson-sidebar-link" href="../../../lessons/time-series/time-series-anomalies/"><span>12</span>Аномалии временных рядов и forecast package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 14 · Временные ряды</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 148 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/14-time-series/04-trend-and-seasonality" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему календарный эффект нельзя просто добавить как признак будущего прогноза без проверки `known_before_date`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что признак допустим только если календарная информация была известна до forecast origin.</button><button type="button" class="quiz-option" data-choice="1">Потому что любые календарные признаки запрещены во временных рядах.</button><button type="button" class="quiz-option" data-choice="2">Потому что `known_before_date` нужен только для красивой подписи графика.</button><button type="button" class="quiz-option" data-choice="3">Потому что future horizon всегда должен быть пустым.</button></div><p class="quiz-feedback" hidden>Known future features безопасны только тогда, когда они действительно известны на момент прогноза. Иначе это temporal leakage.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает сезонный профиль по дню недели?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Среднее поведение ряда внутри каждого дня недели, рассчитанное на сопоставимой полной истории.</button><button type="button" class="quiz-option" data-choice="1">Гарантию, что следующий понедельник будет равен среднему понедельнику.</button><button type="button" class="quiz-option" data-choice="2">Случайный train/test split по дням недели.</button><button type="button" class="quiz-option" data-choice="3">Доказательство причинного эффекта выходных.</button></div><p class="quiz-feedback" hidden>Seasonality profile описывает повторяющуюся структуру истории. Он помогает строить baseline и диагностику, но не является гарантией будущего и не доказывает причинность.</p></article></section>
+        <article class="lesson-article"><h1 id="тренд-сезонность-и-календарные-эффекты">Тренд, сезонность и календарные эффекты</h1>
+<blockquote>
+<p>Сезонный профиль описывает структуру истории, но не превращает календарный всплеск в
+причинный вывод и не заменяет forecast baseline.</p>
+</blockquote>
+<ul>
+<li><strong>Тип:</strong> Learn</li>
+<li><strong>Треки:</strong> Decision</li>
+<li><strong>Пререквизиты:</strong> <code>14-time-series/03-rolling</code></li>
+<li><strong>Время:</strong> ~75 минут</li>
+<li><strong>Результат:</strong> вы строите trend summary, weekly/monthly seasonality profile и inventory
+известных календарных эффектов, не используя неполные периоды и неизвестные на момент
+прогноза будущие признаки.</li>
+</ul>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отделить тренд, недельную сезонность и календарные события от data-quality дефектов.</li>
+<li>Построить day-of-week profile по complete history и явно пометить недостаточную
+monthly history.</li>
+<li>Проверить, что holiday, campaign и release context были известны до forecast origin.</li>
+<li>Выпустить календарный inventory, где будущие эффекты без исторических примеров не
+становятся автоматическим forecast uplift.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>14/03</code> у нас есть регулярный ряд и leakage-safe rolling features. Следующий соблазн
+аналитика - посмотреть на график active subscriptions и сказать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">В понедельник рост, в выходные просадка, а перед кампанией будет еще выше.
+</code></pre></div><p>Это опасно сразу по трем причинам.</p>
+<ol>
+<li>Тренд может смешаться с недельным циклом. Если последние понедельники выше первых,
+это может быть общий рост ряда, а не особая сила понедельника.</li>
+<li>Календарный эффект можно использовать в будущем только если он был известен до
+forecast origin. Иначе это такая же временная утечка, как <code>lag=0</code>.</li>
+<li>Единичный holiday, release или campaign day не доказывает устойчивый эффект. Он
+попадает в inventory и review, но не становится причинным claim.</li>
+</ol>
+<p>Урок строит <code>seasonality-profiler</code>: CLI, который выпускает trend summary, профиль по дням
+недели, monthly row с предупреждением о недостаточной истории и календарный inventory для
+holiday, campaign и release.</p>
+<h2 id="концепция">Концепция</h2>
+<p>В этом уроке есть три разных объекта.</p>
+<table>
+<thead>
+<tr>
+<th>Объект</th>
+<th>Что описывает</th>
+<th>Главный риск</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trend</td>
+<td>Долгосрочное направление уровня ряда.</td>
+<td>Принять тренд за сезонность.</td>
+</tr>
+<tr>
+<td>Seasonality</td>
+<td>Повторяемый календарный паттерн внутри периода, например недели.</td>
+<td>Подогнать период по одному удачному окну.</td>
+</tr>
+<tr>
+<td>Calendar effect</td>
+<td>Конкретное событие: праздник, кампания, релиз.</td>
+<td>Использовать событие, которое не было известно на forecast origin, или объявить причинность.</td>
+</tr>
+</tbody>
+</table>
+<p>Для forecast hygiene важны две даты.</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">observed_date &lt;= complete_through       -&gt; можно использовать в историческом профиле
+known_before_date &lt;= forecast_origin    -&gt; можно использовать как известный календарный контекст
+</code></pre></div><p><code>calendar.csv</code> покрывает history и horizon, но этого мало. Нужно еще доказать, что
+объявленная кампания в <code>campaign_calendar.csv</code> совпадает с <code>campaign_active=true</code> в
+daily calendar, а релиз из <code>release_calendar.csv</code> совпадает с <code>release_active=true</code>.
+Иначе разные части pipeline будут видеть разные будущие признаки.</p>
+<p>Monthly seasonality в tiny-профиле специально не считается устойчивой. История содержит
+только март 2026 года, поэтому profiler выпускает строку <code>seasonality_type=month</code>, но
+ставит <code>enough_history=false</code> и warning <code>monthly_profile_has_single_cycle</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала посчитайте weekly profile вручную. Берем только complete training rows.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">from collections import defaultdict
+
+rows = [
+    {&quot;date&quot;: &quot;2026-03-02&quot;, &quot;day_of_week&quot;: &quot;Monday&quot;, &quot;value&quot;: 998, &quot;complete&quot;: True},
+    {&quot;date&quot;: &quot;2026-03-09&quot;, &quot;day_of_week&quot;: &quot;Monday&quot;, &quot;value&quot;: 1073, &quot;complete&quot;: True},
+    {&quot;date&quot;: &quot;2026-03-16&quot;, &quot;day_of_week&quot;: &quot;Monday&quot;, &quot;value&quot;: 1124, &quot;complete&quot;: True},
+    {&quot;date&quot;: &quot;2026-03-17&quot;, &quot;day_of_week&quot;: &quot;Tuesday&quot;, &quot;value&quot;: 1133, &quot;complete&quot;: False},
+]
+
+groups = defaultdict(list)
+for row in rows:
+    if row[&quot;complete&quot;]:
+        groups[row[&quot;day_of_week&quot;]].append(row[&quot;value&quot;])
+
+monday_mean = sum(groups[&quot;Monday&quot;]) / len(groups[&quot;Monday&quot;])
+assert monday_mean == 1065
+</code></pre></div><p>Теперь добавьте seasonal index: разницу между средним дня недели и средним значением
+сегмента.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">all_complete_values = [998, 1007, 1016, 1025, 1034, 1003, 1012,
+                       1073, 1082, 1091, 1100, 1109, 1066, 1075, 1124]
+segment_mean = sum(all_complete_values) / len(all_complete_values)
+seasonal_index_monday = monday_mean - segment_mean
+
+assert round(segment_mean, 6) == 1054.333333
+assert round(seasonal_index_monday, 6) == 10.666667
+</code></pre></div><p>Важно: это не прогноз на следующий понедельник. Это диагностический профиль, который
+позже поможет построить seasonal naive baseline и проверить остатки.</p>
+<p>Календарный effect inventory строится отдельно. Для holiday <code>2026-03-08</code> profiler
+сравнивает значение с обычным Sunday baseline без holiday date:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">holiday all observed = 1012
+normal Sunday baseline = 1075
+lift vs seasonal profile = -63
+</code></pre></div><p>Для будущей кампании <code>2026-03-20</code>-<code>2026-03-27</code> в истории нет campaign days. Поэтому
+правильный статус:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">known_future_effect_without_training_examples
+</code></pre></div><p>Это не ошибка. Ошибкой было бы молча превратить такой статус в ожидаемый uplift.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Готовый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/seasonality_profiler.py
+</code></pre></div><p>Запуск из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/seasonality_profiler.py \
+  --series ../02-resampling/outputs/daily_resampled.csv \
+  --calendar ../data/tiny/calendar.csv \
+  --campaign-calendar ../data/tiny/campaign_calendar.csv \
+  --release-calendar ../data/tiny/release_calendar.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --spec ../data/tiny/seasonality_profile_spec.json \
+  --output-dir outputs
+</code></pre></div><p>CLI пишет четыре файла:</p>
+<ul>
+<li><code>outputs/trend_summary.csv</code> - направление и скорость изменения по complete history;</li>
+<li><code>outputs/seasonality_profile.csv</code> - day-of-week и month profile;</li>
+<li><code>outputs/calendar_effect_inventory.csv</code> - holiday, campaign и release context;</li>
+<li><code>outputs/seasonality_report.json</code> - checks, warnings и summary.</li>
+</ul>
+<p>В tiny-профиле отчет валиден, но содержит три предупреждения:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;warnings&quot;: [
+    &quot;partial_rows_excluded_from_profiles&quot;,
+    &quot;future_calendar_effect_has_no_training_examples&quot;,
+    &quot;monthly_profile_has_single_cycle&quot;
+  ]
+}
+</code></pre></div><p>Эти warnings не блокируют урок: они фиксируют ограничения интерпретации.</p>
+<p>В pandas тот же профиль можно получить через join с календарем и <code>groupby</code>.</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">import pandas as pd
+
+series = pd.read_csv(&quot;../02-resampling/outputs/daily_resampled.csv&quot;)
+calendar = pd.read_csv(&quot;../data/tiny/calendar.csv&quot;)
+
+frame = series.merge(calendar, left_on=&quot;observed_date&quot;, right_on=&quot;date&quot;, validate=&quot;many_to_one&quot;)
+training = frame[frame[&quot;include_in_training&quot;]]
+profile = (
+    training
+    .groupby([&quot;segment_id&quot;, &quot;day_of_week&quot;], as_index=False)
+    .agg(observations=(&quot;value&quot;, &quot;size&quot;), mean_value=(&quot;value&quot;, &quot;mean&quot;))
+)
+</code></pre></div><p>Но pandas не проверит сам, что campaign calendar и daily calendar согласованы, а
+<code>known_before_date</code> не позже forecast origin. Поэтому production-артефакт держит рядом
+spec, checks и inventory.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Проверьте пять поломок.</p>
+<ol>
+<li>Удалите <code>2026-04-14</code> из <code>calendar.csv</code>. Check <code>calendar_covers_history_and_horizon</code>
+должен стать blocking error.</li>
+<li>Скопируйте строку <code>all/2026-03-02</code> в <code>daily_resampled.csv</code>. Check
+<code>source_segment_date_unique</code> должен найти дубликат.</li>
+<li>Поставьте <code>campaign_active=false</code> на <code>2026-03-20</code> в <code>calendar.csv</code>, но оставьте
+<code>campaign_calendar.csv</code> без изменений. Check <code>calendar_flags_cover_declared_events</code>
+должен заблокировать профиль.</li>
+<li>Поставьте <code>known_before_date=2026-03-19</code> для <code>campaign_active=true</code> на <code>2026-03-20</code>.
+Check <code>calendar_effects_known_before_origin</code> должен упасть, потому что forecast origin
+был <code>2026-03-18T09:00:00+03:00</code>.</li>
+<li>Удалите колонку <code>value</code> из source series. Check <code>source_columns_present</code> должен
+остановить расчет до построения красивых, но бессмысленных таблиц.</li>
+</ol>
+<p>Строгий режим:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/seasonality_profiler.py \
+  --series ../02-resampling/outputs/daily_resampled.csv \
+  --calendar ../data/tiny/calendar.csv \
+  --campaign-calendar ../data/tiny/campaign_calendar.csv \
+  --release-calendar ../data/tiny/release_calendar.csv \
+  --scenario ../data/tiny/forecast_scenario.json \
+  --spec ../data/tiny/seasonality_profile_spec.json \
+  --fail-on-warning
+</code></pre></div><p>Он вернет non-zero exit code, потому что tiny history честно предупреждает о partial row,
+будущей кампании без historical examples и недостаточной месячной истории.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/14-time-series/04-trend-and-seasonality/tests -v
+</code></pre></div><p>Они проверяют:</p>
+<ul>
+<li>воспроизводимость <code>seasonality_profile_spec.json</code>;</li>
+<li>ручной Monday mean, Saturday mean и seasonal index;</li>
+<li>trend summary только на complete history;</li>
+<li>future campaign status без исторических примеров;</li>
+<li>segment-specific release lift для Android;</li>
+<li>блокировку missing calendar date, duplicate source grain, рассинхрона campaign flags,
+неизвестного до origin calendar effect, scenario/spec mismatch и missing source column;</li>
+<li>CLI output и режим <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Критерий интерпретации: если <code>summary.blocking_errors</code> не пустой, profile нельзя
+использовать дальше. Если есть warnings, profile можно использовать только вместе с
+ограничениями из отчета.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Итоговый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/seasonality_profiler.py
+</code></pre></div><p><code>code/main.py</code> пересобирает committed outputs:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/14-time-series/04-trend-and-seasonality/code/main.py
+</code></pre></div><p>Следующий урок использует этот профиль как вход для temporal leakage audit: какие
+календарные признаки действительно known future features, какие исторические эффекты
+только diagnostics, а какие rows нельзя использовать из-за partial или insufficient
+history.</p>
+<p>Ограничение: этот урок не строит forecast и не выбирает модель. Он описывает структуру
+ряда и календарный контекст, чтобы baseline и decomposition в следующих уроках не
+начинались с неверной истории.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте <code>payday_week</code> в <code>calendar_effect_columns</code> и объясните, какие будущие даты
+можно считать известными на forecast origin.</li>
+<li>Добавьте отдельный <code>weekend</code> profile и сравните его с day-of-week profile.</li>
+<li>Сделайте campaign calendar с historical campaign period и проверьте, как изменится
+<code>calendar_effect_inventory.csv</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trend</td>
+<td>Любой рост последней точки.</td>
+<td>Устойчивое направление уровня ряда на выбранном историческом окне.</td>
+</tr>
+<tr>
+<td>Seasonality</td>
+<td>Любое повторяющееся среднее в groupby.</td>
+<td>Повторяемая структура с заранее заданным календарным периодом.</td>
+</tr>
+<tr>
+<td>Seasonal index</td>
+<td>Прогноз следующей даты.</td>
+<td>Отклонение сезонной группы от среднего уровня сегмента.</td>
+</tr>
+<tr>
+<td>Calendar effect</td>
+<td>Доказанный эффект события.</td>
+<td>Известный календарный контекст, который требует review и не доказывает причинность.</td>
+</tr>
+<tr>
+<td>Known future feature</td>
+<td>Любая будущая колонка календаря.</td>
+<td>Будущий признак, значение которого известно до forecast origin.</td>
+</tr>
+<tr>
+<td>Monthly profile</td>
+<td>Среднее за один месяц.</td>
+<td>Сезонный месячный паттерн только при наличии повторных месячных циклов.</td>
+</tr>
+<tr>
+<td>Effect inventory</td>
+<td>Список причин.</td>
+<td>Машинная таблица календарных событий, их дат, known-before статуса и ограничений.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://pandas.pydata.org/docs/user_guide/timeseries.html" target="_blank" rel="noopener">pandas: Time series / date functionality</a> — повторите работу с датами, offsets и calendar joins; это база для корректного профиля по business date.</li>
+<li><a href="https://pandas.pydata.org/docs/user_guide/groupby.html" target="_blank" rel="noopener">pandas: Group by: split-apply-combine</a> — разберите именованные агрегации и <code>as_index=False</code>, чтобы строить сезонные профили без потери grain.</li>
+<li><a href="https://otexts.com/fpp3/graphics.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Time plots</a> — посмотрите, как отличать trend, seasonality и calendar variation визуально, не делая причинных выводов.</li>
+<li><a href="https://otexts.com/fpp3/decomposition.html" target="_blank" rel="noopener">Forecasting: Principles and Practice, Time series decomposition</a> — подготовка к следующему блоку: decomposition полезна как диагностика структуры, но не является forecast сама по себе.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему месячный профиль в tiny-данных помечается предупреждением?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">В истории есть только один календарный месяц, поэтому нельзя отличить месячную сезонность от уровня и тренда.</button><button type="button" class="quiz-option" data-choice="1">Март нельзя использовать в прогнозировании.</button><button type="button" class="quiz-option" data-choice="2">Месячная сезонность всегда важнее недельной.</button><button type="button" class="quiz-option" data-choice="3">В данных есть слишком много сегментов.</button></div><p class="quiz-feedback" hidden>Для monthly seasonality нужны повторные циклы. Один месяц дает срез, но не устойчивый сезонный профиль.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Как должен быть классифицирован будущий campaign period, если он известен до origin, но в training history нет похожих campaign days?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Как known future calendar effect без исторических примеров, требующий явного review.</button><button type="button" class="quiz-option" data-choice="1">Как обычное наблюдение training history.</button><button type="button" class="quiz-option" data-choice="2">Как data-quality дефект, который нужно удалить.</button><button type="button" class="quiz-option" data-choice="3">Как доказанный будущий рост метрики.</button></div><p class="quiz-feedback" hidden>Кампания известна и может войти в inventory, но без исторических примеров нельзя автоматически оценить ее lift по текущей истории.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что должен сделать profiler, если строка `campaign_calendar` объявляет кампанию на `2026-03-20`, а `calendar.csv` не содержит `campaign_active=true` для этой даты?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Заблокировать профиль как рассинхрон календарных источников.</button><button type="button" class="quiz-option" data-choice="1">Молча довериться `campaign_calendar` и проигнорировать calendar.</button><button type="button" class="quiz-option" data-choice="2">Заменить дату кампании ближайшей пятницей.</button><button type="button" class="quiz-option" data-choice="3">Удалить все будущие даты из horizon.</button></div><p class="quiz-feedback" hidden>Если event calendar и daily calendar расходятся, downstream features будут непроверяемыми. Это blocking error.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+SOURCE_SERIES = PHASE_ROOT / &quot;02-resampling&quot; / &quot;outputs&quot; / &quot;daily_resampled.csv&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from seasonality_profiler import build_seasonality_profile_package  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    fieldnames = list(rows[0]) if rows else []
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, payload: dict) -&gt; None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def row_for(rows: list[dict], **criteria: str) -&gt; dict:
+    return next(row for row in rows if all(row[key] == value for key, value in criteria.items()))
+
+
+class SeasonalityProfilerTest(TestCase):
+    def build(self, series_path: Path = SOURCE_SERIES, root: Path = DATA_ROOT) -&gt; dict:
+        return build_seasonality_profile_package(
+            series_path=series_path,
+            calendar_path=root / &quot;calendar.csv&quot;,
+            campaign_path=root / &quot;campaign_calendar.csv&quot;,
+            release_path=root / &quot;release_calendar.csv&quot;,
+            scenario_path=root / &quot;forecast_scenario.json&quot;,
+            spec_path=root / &quot;seasonality_profile_spec.json&quot;,
+        )
+
+    def test_tiny_profile_builds_trend_seasonality_and_calendar_inventory(self) -&gt; None:
+        package = self.build()
+        report = package[&quot;report&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;error_count&quot;], 0)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [
+                &quot;partial_rows_excluded_from_profiles&quot;,
+                &quot;future_calendar_effect_has_no_training_examples&quot;,
+                &quot;monthly_profile_has_single_cycle&quot;,
+            ],
+        )
+        self.assertEqual(report[&quot;outputs&quot;][&quot;trend_rows&quot;], 2)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;seasonality_rows&quot;], 16)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;calendar_effect_rows&quot;], 4)
+        self.assertEqual(report[&quot;outputs&quot;][&quot;known_future_effect_rows&quot;], 1)
+
+    def test_data_generator_check_rebuilds_committed_seasonality_spec(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;),
+                &quot;--check&quot;,
+                &quot;--output&quot;,
+                str(DATA_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+
+    def test_manual_weekly_profile_matches_hand_calculation(self) -&gt; None:
+        package = self.build()
+        monday = row_for(
+            package[&quot;seasonality_rows&quot;],
+            segment_id=&quot;all&quot;,
+            seasonality_type=&quot;day_of_week&quot;,
+            seasonal_key=&quot;Monday&quot;,
+        )
+        saturday = row_for(
+            package[&quot;seasonality_rows&quot;],
+            segment_id=&quot;all&quot;,
+            seasonality_type=&quot;day_of_week&quot;,
+            seasonal_key=&quot;Saturday&quot;,
+        )
+
+        self.assertEqual(monday[&quot;observations&quot;], 3)
+        self.assertEqual(monday[&quot;mean_value&quot;], &quot;1065&quot;)
+        self.assertEqual(monday[&quot;seasonal_index&quot;], &quot;10.666667&quot;)
+        self.assertEqual(saturday[&quot;mean_value&quot;], &quot;1034.5&quot;)
+        self.assertEqual(saturday[&quot;seasonal_index&quot;], &quot;-19.833333&quot;)
+        self.assertEqual(saturday[&quot;enough_history&quot;], &quot;true&quot;)
+
+    def test_trend_summary_uses_complete_history_only(self) -&gt; None:
+        package = self.build()
+        all_trend = row_for(package[&quot;trend_rows&quot;], segment_id=&quot;all&quot;)
+        android_trend = row_for(package[&quot;trend_rows&quot;], segment_id=&quot;android&quot;)
+
+        self.assertEqual(all_trend[&quot;first_observed_date&quot;], &quot;2026-03-02&quot;)
+        self.assertEqual(all_trend[&quot;last_observed_date&quot;], &quot;2026-03-16&quot;)
+        self.assertEqual(all_trend[&quot;first_last_change_per_day&quot;], &quot;9&quot;)
+        self.assertEqual(all_trend[&quot;trend_direction&quot;], &quot;up&quot;)
+        self.assertEqual(android_trend[&quot;first_last_change_per_day&quot;], &quot;4&quot;)
+
+    def test_calendar_inventory_marks_future_campaign_without_history(self) -&gt; None:
+        package = self.build()
+        campaign = row_for(package[&quot;calendar_effect_rows&quot;], effect_type=&quot;campaign&quot;)
+
+        self.assertEqual(campaign[&quot;effect_id&quot;], &quot;spring-marketplace-push&quot;)
+        self.assertEqual(campaign[&quot;segment_id&quot;], &quot;all&quot;)
+        self.assertEqual(campaign[&quot;future_horizon_days&quot;], 8)
+        self.assertEqual(campaign[&quot;observed_training_days&quot;], 0)
+        self.assertEqual(campaign[&quot;known_before_origin&quot;], &quot;true&quot;)
+        self.assertEqual(campaign[&quot;status&quot;], &quot;known_future_effect_without_training_examples&quot;)
+
+    def test_release_lift_is_segment_specific(self) -&gt; None:
+        package = self.build()
+        release = row_for(package[&quot;calendar_effect_rows&quot;], effect_type=&quot;release&quot;)
+
+        self.assertEqual(release[&quot;segment_id&quot;], &quot;android&quot;)
+        self.assertEqual(release[&quot;observed_training_days&quot;], 3)
+        self.assertEqual(release[&quot;baseline_mean&quot;], &quot;326&quot;)
+        self.assertEqual(release[&quot;observed_mean&quot;], &quot;354&quot;)
+        self.assertEqual(release[&quot;effect_lift_vs_seasonal_profile&quot;], &quot;28&quot;)
+
+    def test_missing_calendar_date_blocks_profile(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            rows = [row for row in read_csv(root / &quot;calendar.csv&quot;) if row[&quot;date&quot;] != &quot;2026-04-14&quot;]
+            write_csv(root / &quot;calendar.csv&quot;, rows)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;calendar_covers_history_and_horizon&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_duplicate_source_segment_date_blocks_profile(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series = Path(directory) / &quot;daily_resampled.csv&quot;
+            rows = read_csv(SOURCE_SERIES)
+            rows.append(rows[0].copy())
+            write_csv(series, rows)
+
+            report = self.build(series_path=series)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;source_segment_date_unique&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_campaign_calendar_flag_must_cover_declared_event_range(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            rows = read_csv(root / &quot;calendar.csv&quot;)
+            for row in rows:
+                if row[&quot;date&quot;] == &quot;2026-03-20&quot;:
+                    row[&quot;campaign_active&quot;] = &quot;false&quot;
+            write_csv(root / &quot;calendar.csv&quot;, rows)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;calendar_flags_cover_declared_events&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_calendar_effect_must_be_known_before_forecast_origin(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            rows = read_csv(root / &quot;calendar.csv&quot;)
+            for row in rows:
+                if row[&quot;date&quot;] == &quot;2026-03-20&quot;:
+                    row[&quot;known_before_date&quot;] = &quot;2026-03-19&quot;
+            write_csv(root / &quot;calendar.csv&quot;, rows)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        failure = check(report, &quot;calendar_effects_known_before_origin&quot;)
+        self.assertEqual(failure[&quot;sample&quot;][0][&quot;date&quot;], &quot;2026-03-20&quot;)
+
+    def test_scenario_and_spec_must_align(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(DATA_ROOT, root, dirs_exist_ok=True)
+            scenario = read_json(root / &quot;forecast_scenario.json&quot;)
+            scenario[&quot;frequency&quot;] = &quot;W&quot;
+            write_json(root / &quot;forecast_scenario.json&quot;, scenario)
+
+            report = self.build(root=root)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;scenario_and_seasonality_spec_align&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_missing_source_column_blocks_profile(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            series = Path(directory) / &quot;daily_resampled.csv&quot;
+            rows = read_csv(SOURCE_SERIES)
+            for row in rows:
+                row.pop(&quot;value&quot;)
+            write_csv(series, rows)
+
+            report = self.build(series_path=series)[&quot;report&quot;]
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertIn(&quot;source_columns_present&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_cli_writes_package_and_can_fail_on_warning(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;package&quot;
+            command = [
+                sys.executable,
+                str(LESSON_ROOT / &quot;outputs&quot; / &quot;seasonality_profiler.py&quot;),
+                &quot;--series&quot;,
+                str(SOURCE_SERIES),
+                &quot;--calendar&quot;,
+                str(DATA_ROOT / &quot;calendar.csv&quot;),
+                &quot;--campaign-calendar&quot;,
+                str(DATA_ROOT / &quot;campaign_calendar.csv&quot;),
+                &quot;--release-calendar&quot;,
+                str(DATA_ROOT / &quot;release_calendar.csv&quot;),
+                &quot;--scenario&quot;,
+                str(DATA_ROOT / &quot;forecast_scenario.json&quot;),
+                &quot;--spec&quot;,
+                str(DATA_ROOT / &quot;seasonality_profile_spec.json&quot;),
+                &quot;--output-dir&quot;,
+                str(output_dir),
+            ]
+            ok = subprocess.run(command, check=True, capture_output=True, text=True)
+            strict = subprocess.run([*command, &quot;--fail-on-warning&quot;], check=False, capture_output=True, text=True)
+            written_files = sorted(path.name for path in output_dir.iterdir())
+
+        self.assertTrue(json.loads(ok.stdout)[&quot;valid&quot;])
+        self.assertEqual(strict.returncode, 1)
+        self.assertEqual(
+            written_files,
+            [
+                &quot;calendar_effect_inventory.csv&quot;,
+                &quot;seasonality_profile.csv&quot;,
+                &quot;seasonality_report.json&quot;,
+                &quot;trend_summary.csv&quot;,
+            ],
+        )
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUTS_ROOT = LESSON_ROOT / &quot;outputs&quot;
+SOURCE_SERIES = PHASE_ROOT / &quot;02-resampling&quot; / &quot;outputs&quot; / &quot;daily_resampled.csv&quot;
+
+sys.path.insert(0, str(OUTPUTS_ROOT))
+
+from seasonality_profiler import build_seasonality_profile_package, write_package  # noqa: E402
+
+
+def main() -&gt; None:
+    package = build_seasonality_profile_package(
+        series_path=SOURCE_SERIES,
+        calendar_path=DATA_ROOT / &quot;calendar.csv&quot;,
+        campaign_path=DATA_ROOT / &quot;campaign_calendar.csv&quot;,
+        release_path=DATA_ROOT / &quot;release_calendar.csv&quot;,
+        scenario_path=DATA_ROOT / &quot;forecast_scenario.json&quot;,
+        spec_path=DATA_ROOT / &quot;seasonality_profile_spec.json&quot;,
+    )
+    write_package(OUTPUTS_ROOT, package)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;trend_rows&quot;: report[&quot;outputs&quot;][&quot;trend_rows&quot;],
+                &quot;seasonality_rows&quot;: report[&quot;outputs&quot;][&quot;seasonality_rows&quot;],
+                &quot;calendar_effect_rows&quot;: report[&quot;outputs&quot;][&quot;calendar_effect_rows&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;seasonality-profiler&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/seasonality_profiler.py&quot;,
+  &quot;description&quot;: &quot;Profiles complete daily forecast history into trend, day-of-week seasonality, insufficient monthly seasonality, and known-before-origin calendar effect inventory for holiday, campaign, and release context.&quot;,
+  &quot;usage&quot;: &quot;python outputs/seasonality_profiler.py --series ../02-resampling/outputs/daily_resampled.csv --calendar ../data/tiny/calendar.csv --campaign-calendar ../data/tiny/campaign_calendar.csv --release-calendar ../data/tiny/release_calendar.csv --scenario ../data/tiny/forecast_scenario.json --spec ../data/tiny/seasonality_profile_spec.json --output-dir outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calendar_effect_inventory.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>profile_id,effect_type,effect_id,segment_id,start_date,end_date,known_before_date,known_before_origin,observed_training_days,future_horizon_days,baseline_mean,observed_mean,effect_lift_vs_seasonal_profile,status
+active-subscriptions-seasonality-profile,campaign,spring-marketplace-push,all,2026-03-20,2026-03-27,2026-03-01,true,0,8,,,,known_future_effect_without_training_examples
+active-subscriptions-seasonality-profile,holiday,spring_promo_day,all,2026-03-08,2026-03-08,2026-02-22,true,1,0,1075,1012,-63,observed_calendar_effect
+active-subscriptions-seasonality-profile,holiday,spring_promo_day,android,2026-03-08,2026-03-08,2026-02-22,true,1,0,353,325,-28,observed_calendar_effect
+active-subscriptions-seasonality-profile,release,android-2026-03-support-ui,android,2026-03-10,2026-03-12,2026-02-24,true,3,0,326,354,28,observed_calendar_effect
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/calendar_effect_inventory.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/seasonality_profile.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>profile_id,segment_id,seasonality_type,seasonal_key,seasonal_order,observations,mean_value,mean_delta,segment_mean_value,seasonal_index,relative_index,first_observed_date,last_observed_date,enough_history
+active-subscriptions-seasonality-profile,all,day_of_week,Monday,1,3,1065,42.666667,1054.333333,10.666667,1.010117,2026-03-02,2026-03-16,true
+active-subscriptions-seasonality-profile,all,day_of_week,Tuesday,2,2,1044.5,9,1054.333333,-9.833333,0.990673,2026-03-03,2026-03-10,true
+active-subscriptions-seasonality-profile,all,day_of_week,Wednesday,3,2,1053.5,9,1054.333333,-0.833333,0.99921,2026-03-04,2026-03-11,true
+active-subscriptions-seasonality-profile,all,day_of_week,Thursday,4,2,1062.5,9,1054.333333,8.166667,1.007746,2026-03-05,2026-03-12,true
+active-subscriptions-seasonality-profile,all,day_of_week,Friday,5,2,1071.5,9,1054.333333,17.166667,1.016282,2026-03-06,2026-03-13,true
+active-subscriptions-seasonality-profile,all,day_of_week,Saturday,6,2,1034.5,-37,1054.333333,-19.833333,0.981189,2026-03-07,2026-03-14,true
+active-subscriptions-seasonality-profile,all,day_of_week,Sunday,7,2,1043.5,9,1054.333333,-10.833333,0.989725,2026-03-08,2026-03-15,true
+active-subscriptions-seasonality-profile,all,month,2026-03,3,15,1054.333333,9.6,1054.333333,0,1,2026-03-02,2026-03-16,false
+active-subscriptions-seasonality-profile,android,day_of_week,Monday,1,3,346,16.666667,341.466667,4.533333,1.013276,2026-03-02,2026-03-16,true
+active-subscriptions-seasonality-profile,android,day_of_week,Tuesday,2,2,336,4,341.466667,-5.466667,0.983991,2026-03-03,2026-03-10,true
+active-subscriptions-seasonality-profile,android,day_of_week,Wednesday,3,2,340,4,341.466667,-1.466667,0.995705,2026-03-04,2026-03-11,true
+active-subscriptions-seasonality-profile,android,day_of_week,Thursday,4,2,344,4,341.466667,2.533333,1.007419,2026-03-05,2026-03-12,true
+active-subscriptions-seasonality-profile,android,day_of_week,Friday,5,2,348,4,341.466667,6.533333,1.019133,2026-03-06,2026-03-13,true
+active-subscriptions-seasonality-profile,android,day_of_week,Saturday,6,2,335,-13,341.466667,-6.466667,0.981062,2026-03-07,2026-03-14,true
+active-subscriptions-seasonality-profile,android,day_of_week,Sunday,7,2,339,4,341.466667,-2.466667,0.992776,2026-03-08,2026-03-15,true
+active-subscriptions-seasonality-profile,android,month,2026-03,3,15,341.466667,4.266667,341.466667,0,1,2026-03-02,2026-03-16,false
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/seasonality_profile.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/seasonality_profiler.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from collections import Counter, defaultdict
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+
+REQUIRED_SOURCE_COLUMNS = {
+    &quot;metric_id&quot;,
+    &quot;segment_id&quot;,
+    &quot;observed_date&quot;,
+    &quot;frequency&quot;,
+    &quot;delta_active&quot;,
+    &quot;value&quot;,
+    &quot;is_complete_period&quot;,
+    &quot;include_in_training&quot;,
+}
+REQUIRED_CALENDAR_COLUMNS = {
+    &quot;date&quot;,
+    &quot;week_start&quot;,
+    &quot;day_of_week&quot;,
+    &quot;is_weekend&quot;,
+    &quot;is_holiday&quot;,
+    &quot;holiday_name&quot;,
+    &quot;campaign_active&quot;,
+    &quot;release_active&quot;,
+    &quot;known_before_date&quot;,
+}
+REQUIRED_CAMPAIGN_COLUMNS = {&quot;campaign_id&quot;, &quot;start_date&quot;, &quot;end_date&quot;, &quot;known_before_date&quot;, &quot;target_segment&quot;}
+REQUIRED_RELEASE_COLUMNS = {
+    &quot;release_id&quot;,
+    &quot;platform&quot;,
+    &quot;start_date&quot;,
+    &quot;end_date&quot;,
+    &quot;known_before_date&quot;,
+    &quot;expected_metric_impact&quot;,
+}
+REQUIRED_SCENARIO_FIELDS = {
+    &quot;forecast_id&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;expected_start&quot;,
+    &quot;complete_through&quot;,
+    &quot;forecast_origin&quot;,
+    &quot;horizon_days&quot;,
+    &quot;calendar_start&quot;,
+    &quot;calendar_end&quot;,
+}
+REQUIRED_SPEC_FIELDS = {
+    &quot;profile_id&quot;,
+    &quot;source_table&quot;,
+    &quot;calendar_table&quot;,
+    &quot;campaign_table&quot;,
+    &quot;release_table&quot;,
+    &quot;target_metric&quot;,
+    &quot;target_segments&quot;,
+    &quot;time_column&quot;,
+    &quot;value_column&quot;,
+    &quot;delta_column&quot;,
+    &quot;complete_flag_column&quot;,
+    &quot;calendar_date_column&quot;,
+    &quot;timezone&quot;,
+    &quot;frequency&quot;,
+    &quot;expected_start&quot;,
+    &quot;complete_through&quot;,
+    &quot;forecast_origin&quot;,
+    &quot;seasonal_period_days&quot;,
+    &quot;trend_policy&quot;,
+    &quot;seasonality_policy&quot;,
+    &quot;calendar_effect_policy&quot;,
+    &quot;minimum_observations_per_weekday&quot;,
+    &quot;minimum_month_cycles&quot;,
+    &quot;profile_dimensions&quot;,
+    &quot;calendar_effect_columns&quot;,
+}
+WEEKDAY_ORDER = {
+    &quot;Monday&quot;: 1,
+    &quot;Tuesday&quot;: 2,
+    &quot;Wednesday&quot;: 3,
+    &quot;Thursday&quot;: 4,
+    &quot;Friday&quot;: 5,
+    &quot;Saturday&quot;: 6,
+    &quot;Sunday&quot;: 7,
+}
+
+
+class SeasonalityProfileError(ValueError):
+    &quot;&quot;&quot;Raised when seasonality profiling inputs cannot be interpreted.&quot;&quot;&quot;
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    value = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(value, dict):
+        raise SeasonalityProfileError(f&quot;{path.name} must contain a JSON object&quot;)
+    return value
+
+
+def parse_date(value: str, field: str) -&gt; date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as error:
+        raise SeasonalityProfileError(f&quot;{field} must be ISO date: {value}&quot;) from error
+
+
+def parse_timestamp(value: str, field: str) -&gt; datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    except ValueError as error:
+        raise SeasonalityProfileError(f&quot;{field} must be ISO timestamp: {value}&quot;) from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise SeasonalityProfileError(f&quot;{field} must be timezone-aware: {value}&quot;)
+    return parsed
+
+
+def parse_bool(value: str, field: str) -&gt; bool:
+    normalized = value.strip().lower()
+    if normalized not in {&quot;true&quot;, &quot;false&quot;}:
+        raise SeasonalityProfileError(f&quot;{field} must be true or false: {value}&quot;)
+    return normalized == &quot;true&quot;
+
+
+def parse_number(value: str, field: str) -&gt; float:
+    try:
+        return float(value)
+    except ValueError as error:
+        raise SeasonalityProfileError(f&quot;{field} must be numeric: {value}&quot;) from error
+
+
+def daterange(start: date, end: date) -&gt; list[date]:
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def mean(values: list[float]) -&gt; float | None:
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
+def format_value(value: float | int | None) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, int) or float(value).is_integer():
+        return str(int(value))
+    return f&quot;{value:.6f}&quot;.rstrip(&quot;0&quot;).rstrip(&quot;.&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: list[Any] | None = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def normalize_spec(spec: dict[str, Any], scenario: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    checks: list[dict[str, Any]] = []
+    missing_spec = sorted(REQUIRED_SPEC_FIELDS - set(spec))
+    if missing_spec:
+        checks.append(failed(&quot;seasonality_spec_required_fields&quot;, missing_spec, &quot;all required seasonality profile fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;seasonality_spec_required_fields&quot;, len(REQUIRED_SPEC_FIELDS)))
+
+    missing_scenario = sorted(REQUIRED_SCENARIO_FIELDS - set(scenario))
+    if missing_scenario:
+        checks.append(failed(&quot;scenario_required_fields&quot;, missing_scenario, &quot;all required scenario fields&quot;))
+        return checks, None
+    checks.append(passed(&quot;scenario_required_fields&quot;, len(REQUIRED_SCENARIO_FIELDS)))
+
+    segments = spec.get(&quot;target_segments&quot;)
+    if not isinstance(segments, list) or not segments or not all(isinstance(item, str) and item for item in segments):
+        checks.append(failed(&quot;target_segments_declared&quot;, segments, &quot;non-empty list of segment ids&quot;))
+        return checks, None
+    checks.append(passed(&quot;target_segments_declared&quot;, segments))
+
+    try:
+        timezone = ZoneInfo(str(spec[&quot;timezone&quot;]))
+    except ZoneInfoNotFoundError:
+        checks.append(failed(&quot;timezone_valid&quot;, spec[&quot;timezone&quot;], &quot;IANA timezone&quot;))
+        return checks, None
+    checks.append(passed(&quot;timezone_valid&quot;, spec[&quot;timezone&quot;]))
+
+    effect_columns = spec.get(&quot;calendar_effect_columns&quot;)
+    if not isinstance(effect_columns, list) or not effect_columns:
+        checks.append(failed(&quot;calendar_effect_columns_declared&quot;, effect_columns, &quot;non-empty list of calendar boolean columns&quot;))
+        return checks, None
+    checks.append(passed(&quot;calendar_effect_columns_declared&quot;, effect_columns))
+
+    expected_policies = {
+        &quot;trend_policy&quot;: &quot;fit_linear_trend_on_complete_training_rows&quot;,
+        &quot;seasonality_policy&quot;: &quot;profile_complete_history_by_calendar_keys&quot;,
+        &quot;calendar_effect_policy&quot;: &quot;known_before_forecast_origin_only&quot;,
+    }
+    policy_errors = []
+    for field, expected in expected_policies.items():
+        if spec[field] != expected:
+            policy_errors.append({&quot;field&quot;: field, &quot;observed&quot;: spec[field], &quot;expected&quot;: expected})
+    if policy_errors:
+        checks.append(failed(&quot;seasonality_policies_supported&quot;, len(policy_errors), &quot;supported profile policies&quot;, policy_errors))
+    else:
+        checks.append(passed(&quot;seasonality_policies_supported&quot;, expected_policies))
+
+    if int(spec[&quot;seasonal_period_days&quot;]) != 7:
+        checks.append(failed(&quot;seasonal_period_declared_weekly&quot;, spec[&quot;seasonal_period_days&quot;], 7))
+    else:
+        checks.append(passed(&quot;seasonal_period_declared_weekly&quot;, 7))
+
+    alignment_errors = []
+    for field in (&quot;target_metric&quot;, &quot;target_segments&quot;, &quot;timezone&quot;, &quot;frequency&quot;, &quot;expected_start&quot;, &quot;complete_through&quot;, &quot;forecast_origin&quot;):
+        if spec[field] != scenario[field]:
+            alignment_errors.append({&quot;field&quot;: field, &quot;spec&quot;: spec[field], &quot;scenario&quot;: scenario[field]})
+    if alignment_errors:
+        checks.append(failed(&quot;scenario_and_seasonality_spec_align&quot;, len(alignment_errors), &quot;matching forecast setup fields&quot;, alignment_errors))
+    else:
+        checks.append(passed(&quot;scenario_and_seasonality_spec_align&quot;, 7))
+
+    normalized = {
+        &quot;profile_id&quot;: str(spec[&quot;profile_id&quot;]),
+        &quot;forecast_id&quot;: str(scenario[&quot;forecast_id&quot;]),
+        &quot;target_metric&quot;: str(spec[&quot;target_metric&quot;]),
+        &quot;target_segments&quot;: [str(segment) for segment in segments],
+        &quot;time_column&quot;: str(spec[&quot;time_column&quot;]),
+        &quot;value_column&quot;: str(spec[&quot;value_column&quot;]),
+        &quot;delta_column&quot;: str(spec[&quot;delta_column&quot;]),
+        &quot;complete_flag_column&quot;: str(spec[&quot;complete_flag_column&quot;]),
+        &quot;calendar_date_column&quot;: str(spec[&quot;calendar_date_column&quot;]),
+        &quot;timezone&quot;: timezone,
+        &quot;timezone_name&quot;: str(spec[&quot;timezone&quot;]),
+        &quot;frequency&quot;: str(spec[&quot;frequency&quot;]),
+        &quot;expected_start&quot;: parse_date(str(spec[&quot;expected_start&quot;]), &quot;expected_start&quot;),
+        &quot;complete_through&quot;: parse_date(str(spec[&quot;complete_through&quot;]), &quot;complete_through&quot;),
+        &quot;forecast_origin&quot;: parse_timestamp(str(spec[&quot;forecast_origin&quot;]), &quot;forecast_origin&quot;),
+        &quot;horizon_days&quot;: int(scenario[&quot;horizon_days&quot;]),
+        &quot;calendar_start&quot;: parse_date(str(scenario[&quot;calendar_start&quot;]), &quot;calendar_start&quot;),
+        &quot;calendar_end&quot;: parse_date(str(scenario[&quot;calendar_end&quot;]), &quot;calendar_end&quot;),
+        &quot;minimum_observations_per_weekday&quot;: int(spec[&quot;minimum_observations_per_weekday&quot;]),
+        &quot;minimum_month_cycles&quot;: int(spec[&quot;minimum_month_cycles&quot;]),
+        &quot;profile_dimensions&quot;: [str(item) for item in spec[&quot;profile_dimensions&quot;]],
+        &quot;calendar_effect_columns&quot;: [str(item) for item in effect_columns],
+    }
+    return checks, normalized
+
+
+def build_seasonality_profile_package(
+    *,
+    series_path: Path,
+    calendar_path: Path,
+    campaign_path: Path,
+    release_path: Path,
+    scenario_path: Path,
+    spec_path: Path,
+) -&gt; dict[str, Any]:
+    source_rows, source_columns = read_csv(series_path)
+    calendar_rows, calendar_columns = read_csv(calendar_path)
+    campaign_rows, campaign_columns = read_csv(campaign_path)
+    release_rows, release_columns = read_csv(release_path)
+    scenario = read_json(scenario_path)
+    spec = read_json(spec_path)
+
+    spec_checks, normalized = normalize_spec(spec, scenario)
+    checks = list(spec_checks)
+
+    missing_source_columns = sorted(REQUIRED_SOURCE_COLUMNS - set(source_columns))
+    missing_calendar_columns = sorted(REQUIRED_CALENDAR_COLUMNS - set(calendar_columns))
+    missing_campaign_columns = sorted(REQUIRED_CAMPAIGN_COLUMNS - set(campaign_columns))
+    missing_release_columns = sorted(REQUIRED_RELEASE_COLUMNS - set(release_columns))
+
+    if missing_source_columns:
+        checks.append(failed(&quot;source_columns_present&quot;, missing_source_columns, &quot;all required daily source columns&quot;))
+    else:
+        checks.append(passed(&quot;source_columns_present&quot;, len(source_columns)))
+    if missing_calendar_columns:
+        checks.append(failed(&quot;calendar_columns_present&quot;, missing_calendar_columns, &quot;all required calendar columns&quot;))
+    else:
+        checks.append(passed(&quot;calendar_columns_present&quot;, len(calendar_columns)))
+    if missing_campaign_columns:
+        checks.append(failed(&quot;campaign_columns_present&quot;, missing_campaign_columns, &quot;all required campaign columns&quot;))
+    else:
+        checks.append(passed(&quot;campaign_columns_present&quot;, len(campaign_columns)))
+    if missing_release_columns:
+        checks.append(failed(&quot;release_columns_present&quot;, missing_release_columns, &quot;all required release columns&quot;))
+    else:
+        checks.append(passed(&quot;release_columns_present&quot;, len(release_columns)))
+
+    if normalized is None or missing_source_columns or missing_calendar_columns or missing_campaign_columns or missing_release_columns:
+        report = build_report(spec, scenario, checks, [], [], [])
+        return {&quot;report&quot;: report, &quot;trend_rows&quot;: [], &quot;seasonality_rows&quot;: [], &quot;calendar_effect_rows&quot;: []}
+
+    missing_effect_columns = sorted(set(normalized[&quot;calendar_effect_columns&quot;]) - set(calendar_columns))
+    if missing_effect_columns:
+        checks.append(failed(&quot;calendar_effect_columns_present&quot;, missing_effect_columns, &quot;declared effect columns exist in calendar&quot;))
+    else:
+        checks.append(passed(&quot;calendar_effect_columns_present&quot;, normalized[&quot;calendar_effect_columns&quot;]))
+
+    parsed_source, source_parse_checks = parse_source_rows(source_rows, normalized)
+    parsed_calendar, calendar_parse_checks = parse_calendar_rows(calendar_rows, normalized)
+    parsed_campaigns, campaign_parse_checks = parse_event_rows(campaign_rows, &quot;campaign&quot;, normalized)
+    parsed_releases, release_parse_checks = parse_event_rows(release_rows, &quot;release&quot;, normalized)
+    checks.extend(source_parse_checks)
+    checks.extend(calendar_parse_checks)
+    checks.extend(campaign_parse_checks)
+    checks.extend(release_parse_checks)
+
+    source_duplicates = [
+        {&quot;segment_id&quot;: segment, &quot;observed_date&quot;: day.isoformat()}
+        for (segment, day), count in Counter((row[&quot;segment_id&quot;], row[&quot;_date&quot;]) for row in parsed_source).items()
+        if count &gt; 1
+    ]
+    if source_duplicates:
+        checks.append(failed(&quot;source_segment_date_unique&quot;, len(source_duplicates), &quot;0 duplicate segment/date keys&quot;, source_duplicates[:10]))
+    else:
+        checks.append(passed(&quot;source_segment_date_unique&quot;, len(parsed_source)))
+
+    calendar_duplicates = [
+        day.isoformat()
+        for day, count in Counter(row[&quot;_date&quot;] for row in parsed_calendar).items()
+        if count &gt; 1
+    ]
+    if calendar_duplicates:
+        checks.append(failed(&quot;calendar_date_unique&quot;, len(calendar_duplicates), &quot;0 duplicate calendar dates&quot;, calendar_duplicates[:10]))
+    else:
+        checks.append(passed(&quot;calendar_date_unique&quot;, len(parsed_calendar)))
+
+    calendar_by_date = {row[&quot;_date&quot;]: row for row in parsed_calendar}
+    horizon_end = normalized[&quot;forecast_origin&quot;].astimezone(normalized[&quot;timezone&quot;]).date() + timedelta(days=normalized[&quot;horizon_days&quot;] - 1)
+    required_calendar = set(daterange(normalized[&quot;expected_start&quot;], horizon_end))
+    missing_calendar = sorted(required_calendar - set(calendar_by_date))
+    if missing_calendar:
+        checks.append(
+            failed(
+                &quot;calendar_covers_history_and_horizon&quot;,
+                len(missing_calendar),
+                &quot;calendar covers complete history and forecast horizon&quot;,
+                [day.isoformat() for day in missing_calendar[:10]],
+            )
+        )
+    else:
+        checks.append(passed(&quot;calendar_covers_history_and_horizon&quot;, len(required_calendar)))
+
+    missing_complete = find_missing_complete_dates(parsed_source, normalized)
+    if missing_complete:
+        checks.append(
+            failed(
+                &quot;complete_history_has_no_missing_dates&quot;,
+                len(missing_complete),
+                &quot;every target segment has every complete date&quot;,
+                missing_complete,
+            )
+        )
+    else:
+        expected_points = len(daterange(normalized[&quot;expected_start&quot;], normalized[&quot;complete_through&quot;])) * len(normalized[&quot;target_segments&quot;])
+        checks.append(passed(&quot;complete_history_has_no_missing_dates&quot;, expected_points))
+
+    source_dates_missing_calendar = sorted({row[&quot;_date&quot;] for row in parsed_source} - set(calendar_by_date))
+    if source_dates_missing_calendar:
+        checks.append(
+            failed(
+                &quot;source_dates_have_calendar_rows&quot;,
+                len(source_dates_missing_calendar),
+                &quot;every source date joins to calendar&quot;,
+                [day.isoformat() for day in source_dates_missing_calendar[:10]],
+            )
+        )
+    else:
+        checks.append(passed(&quot;source_dates_have_calendar_rows&quot;, len({row[&quot;_date&quot;] for row in parsed_source})))
+
+    origin_date = normalized[&quot;forecast_origin&quot;].astimezone(normalized[&quot;timezone&quot;]).date()
+    late_known_effects = find_effect_rows_known_after_origin(calendar_by_date, normalized, horizon_end, origin_date)
+    if late_known_effects:
+        checks.append(
+            failed(
+                &quot;calendar_effects_known_before_origin&quot;,
+                len(late_known_effects),
+                &quot;declared calendar effects are known before forecast origin&quot;,
+                late_known_effects[:10],
+            )
+        )
+    else:
+        checks.append(passed(&quot;calendar_effects_known_before_origin&quot;, normalized[&quot;calendar_effect_columns&quot;]))
+
+    flag_mismatches = find_event_flag_mismatches(parsed_campaigns, parsed_releases, calendar_by_date)
+    if flag_mismatches:
+        checks.append(
+            failed(
+                &quot;calendar_flags_cover_declared_events&quot;,
+                len(flag_mismatches),
+                &quot;campaign and release date ranges match calendar flags&quot;,
+                flag_mismatches[:10],
+            )
+        )
+    else:
+        checks.append(passed(&quot;calendar_flags_cover_declared_events&quot;, len(parsed_campaigns) + len(parsed_releases)))
+
+    blocking = [check for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;]
+    if blocking:
+        report = build_report(spec, scenario, checks, [], [], [])
+        return {&quot;report&quot;: report, &quot;trend_rows&quot;: [], &quot;seasonality_rows&quot;: [], &quot;calendar_effect_rows&quot;: []}
+
+    training_rows = [
+        row
+        for row in parsed_source
+        if row[&quot;_include_flag&quot;] and normalized[&quot;expected_start&quot;] &lt;= row[&quot;_date&quot;] &lt;= normalized[&quot;complete_through&quot;]
+    ]
+    partial_rows = [
+        row
+        for row in parsed_source
+        if not row[&quot;_include_flag&quot;] or row[&quot;_date&quot;] &gt; normalized[&quot;complete_through&quot;]
+    ]
+    if partial_rows:
+        checks.append(
+            failed(
+                &quot;partial_rows_excluded_from_profiles&quot;,
+                len(partial_rows),
+                &quot;partial or incomplete rows are emitted upstream but excluded from trend and seasonality profiles&quot;,
+                [{&quot;segment_id&quot;: row[&quot;segment_id&quot;], &quot;observed_date&quot;: row[&quot;_date&quot;].isoformat()} for row in partial_rows[:10]],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;partial_rows_excluded_from_profiles&quot;, 0))
+
+    trend_rows = build_trend_rows(training_rows, normalized)
+    seasonality_rows = build_seasonality_rows(training_rows, calendar_by_date, normalized)
+    calendar_effect_rows = build_calendar_effect_rows(
+        training_rows,
+        calendar_by_date,
+        parsed_campaigns,
+        parsed_releases,
+        normalized,
+        origin_date,
+        horizon_end,
+    )
+
+    future_no_history = [
+        row
+        for row in calendar_effect_rows
+        if row[&quot;status&quot;] == &quot;known_future_effect_without_training_examples&quot;
+    ]
+    if future_no_history:
+        checks.append(
+            failed(
+                &quot;future_calendar_effect_has_no_training_examples&quot;,
+                len(future_no_history),
+                &quot;known future calendar effects without historical examples are reviewed explicitly&quot;,
+                future_no_history[:10],
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;future_calendar_effect_has_no_training_examples&quot;, 0))
+
+    month_count = len({row[&quot;_date&quot;].strftime(&quot;%Y-%m&quot;) for row in training_rows})
+    if month_count &lt; normalized[&quot;minimum_month_cycles&quot;]:
+        checks.append(
+            failed(
+                &quot;monthly_profile_has_single_cycle&quot;,
+                month_count,
+                f&quot;&gt;= {normalized[&#x27;minimum_month_cycles&#x27;]} calendar months&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;monthly_profile_has_single_cycle&quot;, month_count))
+
+    report = build_report(spec, scenario, checks, trend_rows, seasonality_rows, calendar_effect_rows)
+    return {
+        &quot;report&quot;: report,
+        &quot;trend_rows&quot;: trend_rows,
+        &quot;seasonality_rows&quot;: seasonality_rows,
+        &quot;calendar_effect_rows&quot;: calendar_effect_rows,
+    }
+
+
+def parse_source_rows(rows: list[dict[str, str]], spec: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    parsed: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    target_segments = set(spec[&quot;target_segments&quot;])
+    for index, row in enumerate(rows, start=2):
+        if row.get(&quot;metric_id&quot;) != spec[&quot;target_metric&quot;] or row.get(&quot;segment_id&quot;) not in target_segments:
+            continue
+        try:
+            parsed.append(
+                {
+                    **row,
+                    &quot;_row&quot;: index,
+                    &quot;_date&quot;: parse_date(row.get(spec[&quot;time_column&quot;], &quot;&quot;), spec[&quot;time_column&quot;]),
+                    &quot;_value&quot;: parse_number(row.get(spec[&quot;value_column&quot;], &quot;&quot;), spec[&quot;value_column&quot;]),
+                    &quot;_delta&quot;: parse_number(row.get(spec[&quot;delta_column&quot;], &quot;&quot;), spec[&quot;delta_column&quot;]),
+                    &quot;_include_flag&quot;: parse_bool(row.get(spec[&quot;complete_flag_column&quot;], &quot;&quot;), spec[&quot;complete_flag_column&quot;]),
+                    &quot;_is_complete_period&quot;: parse_bool(row.get(&quot;is_complete_period&quot;, &quot;&quot;), &quot;is_complete_period&quot;),
+                }
+            )
+        except SeasonalityProfileError as error:
+            errors.append({&quot;row&quot;: index, &quot;segment_id&quot;: row.get(&quot;segment_id&quot;), &quot;error&quot;: str(error)})
+    if errors:
+        return parsed, [failed(&quot;source_rows_parse&quot;, len(errors), &quot;valid source dates, booleans, and numeric values&quot;, errors[:10])]
+    return parsed, [passed(&quot;source_rows_parse&quot;, len(parsed))]
+
+
+def parse_calendar_rows(rows: list[dict[str, str]], spec: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    parsed: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    bool_fields = {&quot;is_weekend&quot;, &quot;is_holiday&quot;, &quot;campaign_active&quot;, &quot;release_active&quot;}
+    for index, row in enumerate(rows, start=2):
+        try:
+            parsed_row = {
+                **row,
+                &quot;_row&quot;: index,
+                &quot;_date&quot;: parse_date(row.get(spec[&quot;calendar_date_column&quot;], &quot;&quot;), spec[&quot;calendar_date_column&quot;]),
+                &quot;_known_before_date&quot;: parse_date(row.get(&quot;known_before_date&quot;, &quot;&quot;), &quot;known_before_date&quot;),
+            }
+            for field in bool_fields:
+                parsed_row[f&quot;_{field}&quot;] = parse_bool(row.get(field, &quot;&quot;), field)
+            parsed.append(parsed_row)
+        except SeasonalityProfileError as error:
+            errors.append({&quot;row&quot;: index, &quot;date&quot;: row.get(&quot;date&quot;), &quot;error&quot;: str(error)})
+    if errors:
+        return parsed, [failed(&quot;calendar_rows_parse&quot;, len(errors), &quot;valid calendar dates and booleans&quot;, errors[:10])]
+    return parsed, [passed(&quot;calendar_rows_parse&quot;, len(parsed))]
+
+
+def parse_event_rows(rows: list[dict[str, str]], event_type: str, spec: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    parsed: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    id_field = &quot;campaign_id&quot; if event_type == &quot;campaign&quot; else &quot;release_id&quot;
+    for index, row in enumerate(rows, start=2):
+        try:
+            start_date = parse_date(row.get(&quot;start_date&quot;, &quot;&quot;), &quot;start_date&quot;)
+            end_date = parse_date(row.get(&quot;end_date&quot;, &quot;&quot;), &quot;end_date&quot;)
+            if end_date &lt; start_date:
+                raise SeasonalityProfileError(f&quot;end_date must be &gt;= start_date for {row.get(id_field)}&quot;)
+            parsed.append(
+                {
+                    **row,
+                    &quot;_row&quot;: index,
+                    &quot;_event_type&quot;: event_type,
+                    &quot;_event_id&quot;: row.get(id_field, &quot;&quot;),
+                    &quot;_start_date&quot;: start_date,
+                    &quot;_end_date&quot;: end_date,
+                    &quot;_known_before_date&quot;: parse_date(row.get(&quot;known_before_date&quot;, &quot;&quot;), &quot;known_before_date&quot;),
+                }
+            )
+        except SeasonalityProfileError as error:
+            errors.append({&quot;row&quot;: index, &quot;event_type&quot;: event_type, &quot;error&quot;: str(error)})
+    check_id = f&quot;{event_type}_rows_parse&quot;
+    if errors:
+        return parsed, [failed(check_id, len(errors), &quot;valid event date ranges&quot;, errors[:10])]
+    return parsed, [passed(check_id, len(parsed))]
+
+
+def find_missing_complete_dates(rows: list[dict[str, Any]], spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    by_segment: dict[str, set[date]] = defaultdict(set)
+    for row in rows:
+        if spec[&quot;expected_start&quot;] &lt;= row[&quot;_date&quot;] &lt;= spec[&quot;complete_through&quot;] and row[&quot;_include_flag&quot;]:
+            by_segment[row[&quot;segment_id&quot;]].add(row[&quot;_date&quot;])
+    expected = set(daterange(spec[&quot;expected_start&quot;], spec[&quot;complete_through&quot;]))
+    missing: list[dict[str, Any]] = []
+    for segment_id in spec[&quot;target_segments&quot;]:
+        segment_missing = sorted(expected - by_segment.get(segment_id, set()))
+        if segment_missing:
+            missing.append({&quot;segment_id&quot;: segment_id, &quot;missing_dates&quot;: [day.isoformat() for day in segment_missing]})
+    return missing
+
+
+def find_effect_rows_known_after_origin(
+    calendar_by_date: dict[date, dict[str, Any]],
+    spec: dict[str, Any],
+    horizon_end: date,
+    origin_date: date,
+) -&gt; list[dict[str, Any]]:
+    late_rows: list[dict[str, Any]] = []
+    for day, row in sorted(calendar_by_date.items()):
+        if day &lt; spec[&quot;expected_start&quot;] or day &gt; horizon_end:
+            continue
+        for column in spec[&quot;calendar_effect_columns&quot;]:
+            if row.get(f&quot;_{column}&quot;) is True and row[&quot;_known_before_date&quot;] &gt; origin_date:
+                late_rows.append(
+                    {
+                        &quot;date&quot;: day.isoformat(),
+                        &quot;effect_column&quot;: column,
+                        &quot;known_before_date&quot;: row[&quot;_known_before_date&quot;].isoformat(),
+                        &quot;forecast_origin_date&quot;: origin_date.isoformat(),
+                    }
+                )
+    return late_rows
+
+
+def find_event_flag_mismatches(
+    campaigns: list[dict[str, Any]],
+    releases: list[dict[str, Any]],
+    calendar_by_date: dict[date, dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    mismatches: list[dict[str, Any]] = []
+    for campaign in campaigns:
+        for day in daterange(campaign[&quot;_start_date&quot;], campaign[&quot;_end_date&quot;]):
+            row = calendar_by_date.get(day)
+            if row is None or row.get(&quot;_campaign_active&quot;) is not True:
+                mismatches.append({&quot;event_type&quot;: &quot;campaign&quot;, &quot;event_id&quot;: campaign[&quot;_event_id&quot;], &quot;date&quot;: day.isoformat()})
+    for release in releases:
+        for day in daterange(release[&quot;_start_date&quot;], release[&quot;_end_date&quot;]):
+            row = calendar_by_date.get(day)
+            if row is None or row.get(&quot;_release_active&quot;) is not True:
+                mismatches.append({&quot;event_type&quot;: &quot;release&quot;, &quot;event_id&quot;: release[&quot;_event_id&quot;], &quot;date&quot;: day.isoformat()})
+    return mismatches
+
+
+def linear_slope(rows: list[dict[str, Any]]) -&gt; float | None:
+    if len(rows) &lt; 2:
+        return None
+    first_date = rows[0][&quot;_date&quot;]
+    x_values = [(row[&quot;_date&quot;] - first_date).days for row in rows]
+    y_values = [row[&quot;_value&quot;] for row in rows]
+    x_mean = sum(x_values) / len(x_values)
+    y_mean = sum(y_values) / len(y_values)
+    denominator = sum((x_value - x_mean) ** 2 for x_value in x_values)
+    if denominator == 0:
+        return None
+    numerator = sum((x_value - x_mean) * (y_value - y_mean) for x_value, y_value in zip(x_values, y_values))
+    return numerator / denominator
+
+
+def build_trend_rows(rows: list[dict[str, Any]], spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    trend_rows: list[dict[str, Any]] = []
+    for segment_id in spec[&quot;target_segments&quot;]:
+        segment_rows = sorted([row for row in rows if row[&quot;segment_id&quot;] == segment_id], key=lambda row: row[&quot;_date&quot;])
+        first = segment_rows[0]
+        last = segment_rows[-1]
+        elapsed_days = (last[&quot;_date&quot;] - first[&quot;_date&quot;]).days
+        first_last_slope = (last[&quot;_value&quot;] - first[&quot;_value&quot;]) / elapsed_days if elapsed_days else None
+        slope = linear_slope(segment_rows)
+        trend_rows.append(
+            {
+                &quot;profile_id&quot;: spec[&quot;profile_id&quot;],
+                &quot;segment_id&quot;: segment_id,
+                &quot;observations&quot;: len(segment_rows),
+                &quot;first_observed_date&quot;: first[&quot;_date&quot;].isoformat(),
+                &quot;last_observed_date&quot;: last[&quot;_date&quot;].isoformat(),
+                &quot;first_value&quot;: format_value(first[&quot;_value&quot;]),
+                &quot;last_value&quot;: format_value(last[&quot;_value&quot;]),
+                &quot;absolute_change&quot;: format_value(last[&quot;_value&quot;] - first[&quot;_value&quot;]),
+                &quot;first_last_change_per_day&quot;: format_value(first_last_slope),
+                &quot;linear_slope_per_day&quot;: format_value(slope),
+                &quot;trend_direction&quot;: &quot;up&quot; if (slope or 0) &gt; 0 else &quot;down&quot; if (slope or 0) &lt; 0 else &quot;flat&quot;,
+            }
+        )
+    return trend_rows
+
+
+def build_seasonality_rows(
+    rows: list[dict[str, Any]],
+    calendar_by_date: dict[date, dict[str, Any]],
+    spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    profile_rows: list[dict[str, Any]] = []
+    for segment_id in spec[&quot;target_segments&quot;]:
+        segment_rows = [row for row in rows if row[&quot;segment_id&quot;] == segment_id]
+        segment_mean = mean([row[&quot;_value&quot;] for row in segment_rows])
+        by_weekday: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        by_month: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in segment_rows:
+            calendar_row = calendar_by_date[row[&quot;_date&quot;]]
+            by_weekday[calendar_row[&quot;day_of_week&quot;]].append(row)
+            by_month[row[&quot;_date&quot;].strftime(&quot;%Y-%m&quot;)].append(row)
+
+        for weekday in sorted(by_weekday, key=lambda item: WEEKDAY_ORDER[item]):
+            group = sorted(by_weekday[weekday], key=lambda row: row[&quot;_date&quot;])
+            append_profile_row(
+                profile_rows,
+                spec,
+                segment_id,
+                &quot;day_of_week&quot;,
+                weekday,
+                WEEKDAY_ORDER[weekday],
+                group,
+                segment_mean,
+                len(group) &gt;= spec[&quot;minimum_observations_per_weekday&quot;],
+            )
+
+        enough_months = len(by_month) &gt;= spec[&quot;minimum_month_cycles&quot;]
+        for month_key in sorted(by_month):
+            group = sorted(by_month[month_key], key=lambda row: row[&quot;_date&quot;])
+            append_profile_row(
+                profile_rows,
+                spec,
+                segment_id,
+                &quot;month&quot;,
+                month_key,
+                int(month_key[-2:]),
+                group,
+                segment_mean,
+                enough_months,
+            )
+    return profile_rows
+
+
+def append_profile_row(
+    output: list[dict[str, Any]],
+    spec: dict[str, Any],
+    segment_id: str,
+    seasonality_type: str,
+    seasonal_key: str,
+    seasonal_order: int,
+    rows: list[dict[str, Any]],
+    segment_mean: float | None,
+    enough_history: bool,
+) -&gt; None:
+    mean_value = mean([row[&quot;_value&quot;] for row in rows])
+    mean_delta = mean([row[&quot;_delta&quot;] for row in rows])
+    output.append(
+        {
+            &quot;profile_id&quot;: spec[&quot;profile_id&quot;],
+            &quot;segment_id&quot;: segment_id,
+            &quot;seasonality_type&quot;: seasonality_type,
+            &quot;seasonal_key&quot;: seasonal_key,
+            &quot;seasonal_order&quot;: seasonal_order,
+            &quot;observations&quot;: len(rows),
+            &quot;mean_value&quot;: format_value(mean_value),
+            &quot;mean_delta&quot;: format_value(mean_delta),
+            &quot;segment_mean_value&quot;: format_value(segment_mean),
+            &quot;seasonal_index&quot;: format_value(None if mean_value is None or segment_mean is None else mean_value - segment_mean),
+            &quot;relative_index&quot;: format_value(None if mean_value is None or not segment_mean else mean_value / segment_mean),
+            &quot;first_observed_date&quot;: rows[0][&quot;_date&quot;].isoformat(),
+            &quot;last_observed_date&quot;: rows[-1][&quot;_date&quot;].isoformat(),
+            &quot;enough_history&quot;: str(enough_history).lower(),
+        }
+    )
+
+
+def build_calendar_effect_rows(
+    training_rows: list[dict[str, Any]],
+    calendar_by_date: dict[date, dict[str, Any]],
+    campaigns: list[dict[str, Any]],
+    releases: list[dict[str, Any]],
+    spec: dict[str, Any],
+    origin_date: date,
+    horizon_end: date,
+) -&gt; list[dict[str, Any]]:
+    rows_by_segment_date = {(row[&quot;segment_id&quot;], row[&quot;_date&quot;]): row for row in training_rows}
+    definitions = build_effect_definitions(calendar_by_date, campaigns, releases, spec, origin_date, horizon_end)
+    inventory_rows: list[dict[str, Any]] = []
+    for definition in definitions:
+        for segment_id in definition[&quot;segments&quot;]:
+            effect_dates = daterange(definition[&quot;start_date&quot;], definition[&quot;end_date&quot;])
+            observed_dates = [day for day in effect_dates if (segment_id, day) in rows_by_segment_date]
+            future_dates = [day for day in effect_dates if origin_date &lt;= day &lt;= horizon_end]
+            observed_values = [rows_by_segment_date[(segment_id, day)][&quot;_value&quot;] for day in observed_dates]
+            observed_mean = mean(observed_values)
+            baseline_values = [
+                seasonal_baseline_for_date(day, segment_id, training_rows, calendar_by_date, set(effect_dates))
+                for day in observed_dates
+            ]
+            baseline_values = [value for value in baseline_values if value is not None]
+            baseline_mean = mean(baseline_values)
+            known_before_origin = definition[&quot;known_before_date&quot;] &lt;= origin_date
+            if not known_before_origin:
+                status = &quot;not_known_before_origin&quot;
+            elif observed_dates:
+                status = &quot;observed_calendar_effect&quot;
+            elif future_dates:
+                status = &quot;known_future_effect_without_training_examples&quot;
+            else:
+                status = &quot;not_in_training_or_forecast_horizon&quot;
+            inventory_rows.append(
+                {
+                    &quot;profile_id&quot;: spec[&quot;profile_id&quot;],
+                    &quot;effect_type&quot;: definition[&quot;effect_type&quot;],
+                    &quot;effect_id&quot;: definition[&quot;effect_id&quot;],
+                    &quot;segment_id&quot;: segment_id,
+                    &quot;start_date&quot;: definition[&quot;start_date&quot;].isoformat(),
+                    &quot;end_date&quot;: definition[&quot;end_date&quot;].isoformat(),
+                    &quot;known_before_date&quot;: definition[&quot;known_before_date&quot;].isoformat(),
+                    &quot;known_before_origin&quot;: str(known_before_origin).lower(),
+                    &quot;observed_training_days&quot;: len(observed_dates),
+                    &quot;future_horizon_days&quot;: len(future_dates),
+                    &quot;baseline_mean&quot;: format_value(baseline_mean),
+                    &quot;observed_mean&quot;: format_value(observed_mean),
+                    &quot;effect_lift_vs_seasonal_profile&quot;: format_value(
+                        None if observed_mean is None or baseline_mean is None else observed_mean - baseline_mean
+                    ),
+                    &quot;status&quot;: status,
+                }
+            )
+    return sorted(inventory_rows, key=lambda row: (row[&quot;effect_type&quot;], row[&quot;effect_id&quot;], row[&quot;segment_id&quot;]))
+
+
+def build_effect_definitions(
+    calendar_by_date: dict[date, dict[str, Any]],
+    campaigns: list[dict[str, Any]],
+    releases: list[dict[str, Any]],
+    spec: dict[str, Any],
+    origin_date: date,
+    horizon_end: date,
+) -&gt; list[dict[str, Any]]:
+    definitions: list[dict[str, Any]] = []
+    holiday_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for day, row in calendar_by_date.items():
+        if spec[&quot;expected_start&quot;] &lt;= day &lt;= horizon_end and row.get(&quot;_is_holiday&quot;) is True:
+            holiday_groups[row.get(&quot;holiday_name&quot;) or &quot;unnamed_holiday&quot;].append(row)
+    for holiday_name, rows in holiday_groups.items():
+        days = sorted(row[&quot;_date&quot;] for row in rows)
+        definitions.append(
+            {
+                &quot;effect_type&quot;: &quot;holiday&quot;,
+                &quot;effect_id&quot;: holiday_name,
+                &quot;segments&quot;: spec[&quot;target_segments&quot;],
+                &quot;start_date&quot;: days[0],
+                &quot;end_date&quot;: days[-1],
+                &quot;known_before_date&quot;: max(row[&quot;_known_before_date&quot;] for row in rows),
+            }
+        )
+
+    for campaign in campaigns:
+        if campaign[&quot;_end_date&quot;] &lt; spec[&quot;expected_start&quot;] or campaign[&quot;_start_date&quot;] &gt; horizon_end:
+            continue
+        target_segment = campaign.get(&quot;target_segment&quot;, &quot;&quot;)
+        segments = [target_segment] if target_segment in spec[&quot;target_segments&quot;] else spec[&quot;target_segments&quot;]
+        definitions.append(
+            {
+                &quot;effect_type&quot;: &quot;campaign&quot;,
+                &quot;effect_id&quot;: campaign[&quot;_event_id&quot;],
+                &quot;segments&quot;: segments,
+                &quot;start_date&quot;: campaign[&quot;_start_date&quot;],
+                &quot;end_date&quot;: campaign[&quot;_end_date&quot;],
+                &quot;known_before_date&quot;: campaign[&quot;_known_before_date&quot;],
+            }
+        )
+
+    for release in releases:
+        if release[&quot;_end_date&quot;] &lt; spec[&quot;expected_start&quot;] or release[&quot;_start_date&quot;] &gt; horizon_end:
+            continue
+        platform = release.get(&quot;platform&quot;, &quot;&quot;)
+        segments = [platform] if platform in spec[&quot;target_segments&quot;] else []
+        if not segments and &quot;all&quot; in spec[&quot;target_segments&quot;]:
+            segments = [&quot;all&quot;]
+        definitions.append(
+            {
+                &quot;effect_type&quot;: &quot;release&quot;,
+                &quot;effect_id&quot;: release[&quot;_event_id&quot;],
+                &quot;segments&quot;: segments,
+                &quot;start_date&quot;: release[&quot;_start_date&quot;],
+                &quot;end_date&quot;: release[&quot;_end_date&quot;],
+                &quot;known_before_date&quot;: release[&quot;_known_before_date&quot;],
+            }
+        )
+    return definitions
+
+
+def seasonal_baseline_for_date(
+    day: date,
+    segment_id: str,
+    training_rows: list[dict[str, Any]],
+    calendar_by_date: dict[date, dict[str, Any]],
+    excluded_dates: set[date],
+) -&gt; float | None:
+    weekday = calendar_by_date[day][&quot;day_of_week&quot;]
+    same_weekday_values = [
+        row[&quot;_value&quot;]
+        for row in training_rows
+        if row[&quot;segment_id&quot;] == segment_id
+        and row[&quot;_date&quot;] not in excluded_dates
+        and calendar_by_date[row[&quot;_date&quot;]][&quot;day_of_week&quot;] == weekday
+    ]
+    if same_weekday_values:
+        return mean(same_weekday_values)
+    segment_values = [
+        row[&quot;_value&quot;]
+        for row in training_rows
+        if row[&quot;segment_id&quot;] == segment_id and row[&quot;_date&quot;] not in excluded_dates
+    ]
+    return mean(segment_values)
+
+
+def build_report(
+    spec: dict[str, Any],
+    scenario: dict[str, Any],
+    checks: list[dict[str, Any]],
+    trend_rows: list[dict[str, Any]],
+    seasonality_rows: list[dict[str, Any]],
+    calendar_effect_rows: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    error_failures = [check for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;]
+    warning_failures = [check for check in checks if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;warning&quot;]
+    return {
+        &quot;audit_id&quot;: &quot;seasonality-profile-audit&quot;,
+        &quot;profile_id&quot;: spec.get(&quot;profile_id&quot;),
+        &quot;forecast_id&quot;: scenario.get(&quot;forecast_id&quot;),
+        &quot;valid&quot;: not error_failures,
+        &quot;warning_count&quot;: len(warning_failures),
+        &quot;error_count&quot;: len(error_failures),
+        &quot;checks&quot;: checks,
+        &quot;outputs&quot;: {
+            &quot;trend_rows&quot;: len(trend_rows),
+            &quot;seasonality_rows&quot;: len(seasonality_rows),
+            &quot;calendar_effect_rows&quot;: len(calendar_effect_rows),
+            &quot;known_future_effect_rows&quot;: sum(
+                1 for row in calendar_effect_rows if row.get(&quot;status&quot;) == &quot;known_future_effect_without_training_examples&quot;
+            ),
+        },
+        &quot;series&quot;: [
+            {
+                &quot;segment_id&quot;: row[&quot;segment_id&quot;],
+                &quot;observations&quot;: row[&quot;observations&quot;],
+                &quot;first_observed_date&quot;: row[&quot;first_observed_date&quot;],
+                &quot;last_observed_date&quot;: row[&quot;last_observed_date&quot;],
+                &quot;trend_direction&quot;: row[&quot;trend_direction&quot;],
+                &quot;linear_slope_per_day&quot;: row[&quot;linear_slope_per_day&quot;],
+            }
+            for row in trend_rows
+        ],
+        &quot;summary&quot;: {
+            &quot;checks_total&quot;: len(checks),
+            &quot;checks_failed&quot;: len(error_failures) + len(warning_failures),
+            &quot;blocking_errors&quot;: [check[&quot;id&quot;] for check in error_failures],
+            &quot;warnings&quot;: [check[&quot;id&quot;] for check in warning_failures],
+        },
+    }
+
+
+def write_package(output_dir: Path, package: dict[str, Any]) -&gt; None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_csv(
+        output_dir / &quot;trend_summary.csv&quot;,
+        package[&quot;trend_rows&quot;],
+        [
+            &quot;profile_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;observations&quot;,
+            &quot;first_observed_date&quot;,
+            &quot;last_observed_date&quot;,
+            &quot;first_value&quot;,
+            &quot;last_value&quot;,
+            &quot;absolute_change&quot;,
+            &quot;first_last_change_per_day&quot;,
+            &quot;linear_slope_per_day&quot;,
+            &quot;trend_direction&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;seasonality_profile.csv&quot;,
+        package[&quot;seasonality_rows&quot;],
+        [
+            &quot;profile_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;seasonality_type&quot;,
+            &quot;seasonal_key&quot;,
+            &quot;seasonal_order&quot;,
+            &quot;observations&quot;,
+            &quot;mean_value&quot;,
+            &quot;mean_delta&quot;,
+            &quot;segment_mean_value&quot;,
+            &quot;seasonal_index&quot;,
+            &quot;relative_index&quot;,
+            &quot;first_observed_date&quot;,
+            &quot;last_observed_date&quot;,
+            &quot;enough_history&quot;,
+        ],
+    )
+    write_csv(
+        output_dir / &quot;calendar_effect_inventory.csv&quot;,
+        package[&quot;calendar_effect_rows&quot;],
+        [
+            &quot;profile_id&quot;,
+            &quot;effect_type&quot;,
+            &quot;effect_id&quot;,
+            &quot;segment_id&quot;,
+            &quot;start_date&quot;,
+            &quot;end_date&quot;,
+            &quot;known_before_date&quot;,
+            &quot;known_before_origin&quot;,
+            &quot;observed_training_days&quot;,
+            &quot;future_horizon_days&quot;,
+            &quot;baseline_mean&quot;,
+            &quot;observed_mean&quot;,
+            &quot;effect_lift_vs_seasonal_profile&quot;,
+            &quot;status&quot;,
+        ],
+    )
+    (output_dir / &quot;seasonality_report.json&quot;).write_text(
+        json.dumps(package[&quot;report&quot;], ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Profile trend, seasonality, and known calendar effects.&quot;)
+    parser.add_argument(&quot;--series&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--calendar&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--campaign-calendar&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--release-calendar&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--scenario&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=Path(&quot;outputs&quot;))
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args()
+
+    package = build_seasonality_profile_package(
+        series_path=args.series,
+        calendar_path=args.calendar,
+        campaign_path=args.campaign_calendar,
+        release_path=args.release_calendar,
+        scenario_path=args.scenario,
+        spec_path=args.spec,
+    )
+    write_package(args.output_dir, package)
+    report = package[&quot;report&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;valid&quot;: report[&quot;valid&quot;],
+                &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+                &quot;trend_rows&quot;: report[&quot;outputs&quot;][&quot;trend_rows&quot;],
+                &quot;seasonality_rows&quot;: report[&quot;outputs&quot;][&quot;seasonality_rows&quot;],
+                &quot;calendar_effect_rows&quot;: report[&quot;outputs&quot;][&quot;calendar_effect_rows&quot;],
+            },
+            ensure_ascii=False,
+        )
+    )
+    if not report[&quot;valid&quot;] or (args.fail_on_warning and report[&quot;warning_count&quot;]):
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/seasonality_profiler.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/seasonality_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;audit_id&quot;: &quot;seasonality-profile-audit&quot;,
+  &quot;profile_id&quot;: &quot;active-subscriptions-seasonality-profile&quot;,
+  &quot;forecast_id&quot;: &quot;active-subscriptions-4w-capacity&quot;,
+  &quot;valid&quot;: true,
+  &quot;warning_count&quot;: 3,
+  &quot;error_count&quot;: 0,
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;seasonality_spec_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 25,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_required_fields&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 11,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;target_segments_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;all&quot;,
+        &quot;android&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;timezone_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;Europe/Moscow&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_effect_columns_declared&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;is_holiday&quot;,
+        &quot;campaign_active&quot;,
+        &quot;release_active&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;seasonality_policies_supported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;trend_policy&quot;: &quot;fit_linear_trend_on_complete_training_rows&quot;,
+        &quot;seasonality_policy&quot;: &quot;profile_complete_history_by_calendar_keys&quot;,
+        &quot;calendar_effect_policy&quot;: &quot;known_before_forecast_origin_only&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;seasonal_period_declared_weekly&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 7,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;scenario_and_seasonality_spec_align&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 7,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 9,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 11,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;campaign_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;release_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 6,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_effect_columns_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;is_holiday&quot;,
+        &quot;campaign_active&quot;,
+        &quot;release_active&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 32,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 44,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;campaign_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;release_rows_parse&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_segment_date_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 32,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_date_unique&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 44,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_covers_history_and_horizon&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 44,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;complete_history_has_no_missing_dates&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 30,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_dates_have_calendar_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 16,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_effects_known_before_origin&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;is_holiday&quot;,
+        &quot;campaign_active&quot;,
+        &quot;release_active&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calendar_flags_cover_declared_events&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;partial_rows_excluded_from_profiles&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: &quot;partial or incomplete rows are emitted upstream but excluded from trend and seasonality profiles&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-17&quot;
+        },
+        {
+          &quot;segment_id&quot;: &quot;android&quot;,
+          &quot;observed_date&quot;: &quot;2026-03-17&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;future_calendar_effect_has_no_training_examples&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;known future calendar effects without historical examples are reviewed explicitly&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;profile_id&quot;: &quot;active-subscriptions-seasonality-profile&quot;,
+          &quot;effect_type&quot;: &quot;campaign&quot;,
+          &quot;effect_id&quot;: &quot;spring-marketplace-push&quot;,
+          &quot;segment_id&quot;: &quot;all&quot;,
+          &quot;start_date&quot;: &quot;2026-03-20&quot;,
+          &quot;end_date&quot;: &quot;2026-03-27&quot;,
+          &quot;known_before_date&quot;: &quot;2026-03-01&quot;,
+          &quot;known_before_origin&quot;: &quot;true&quot;,
+          &quot;observed_training_days&quot;: 0,
+          &quot;future_horizon_days&quot;: 8,
+          &quot;baseline_mean&quot;: &quot;&quot;,
+          &quot;observed_mean&quot;: &quot;&quot;,
+          &quot;effect_lift_vs_seasonal_profile&quot;: &quot;&quot;,
+          &quot;status&quot;: &quot;known_future_effect_without_training_examples&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;monthly_profile_has_single_cycle&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;&gt;= 2 calendar months&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;trend_rows&quot;: 2,
+    &quot;seasonality_rows&quot;: 16,
+    &quot;calendar_effect_rows&quot;: 4,
+    &quot;known_future_effect_rows&quot;: 1
+  },
+  &quot;series&quot;: [
+    {
+      &quot;segment_id&quot;: &quot;all&quot;,
+      &quot;observations&quot;: 15,
+      &quot;first_observed_date&quot;: &quot;2026-03-02&quot;,
+      &quot;last_observed_date&quot;: &quot;2026-03-16&quot;,
+      &quot;trend_direction&quot;: &quot;up&quot;,
+      &quot;linear_slope_per_day&quot;: &quot;8.285714&quot;
+    },
+    {
+      &quot;segment_id&quot;: &quot;android&quot;,
+      &quot;observations&quot;: 15,
+      &quot;first_observed_date&quot;: &quot;2026-03-02&quot;,
+      &quot;last_observed_date&quot;: &quot;2026-03-16&quot;,
+      &quot;trend_direction&quot;: &quot;up&quot;,
+      &quot;linear_slope_per_day&quot;: &quot;3.514286&quot;
+    }
+  ],
+  &quot;summary&quot;: {
+    &quot;checks_total&quot;: 27,
+    &quot;checks_failed&quot;: 3,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;partial_rows_excluded_from_profiles&quot;,
+      &quot;future_calendar_effect_has_no_training_examples&quot;,
+      &quot;monthly_profile_has_single_cycle&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/seasonality_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/trend_summary.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>profile_id,segment_id,observations,first_observed_date,last_observed_date,first_value,last_value,absolute_change,first_last_change_per_day,linear_slope_per_day,trend_direction
+active-subscriptions-seasonality-profile,all,15,2026-03-02,2026-03-16,998,1124,126,9,8.285714,up
+active-subscriptions-seasonality-profile,android,15,2026-03-02,2026-03-16,318,374,56,4,3.514286,up
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/14-time-series/04-trend-and-seasonality/outputs/trend_summary.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/14-time-series/04-trend-and-seasonality" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/time-series/rolling/"><span>← Предыдущий урок</span><strong>Rolling и expanding windows</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/time-series/temporal-leakage/"><span>Следующий урок →</span><strong>Временная утечка</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

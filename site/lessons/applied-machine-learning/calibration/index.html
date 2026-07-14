@@ -1,0 +1,3403 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После урока про imbalance selected model стала randomforestdepth2classweightbalanced. Она выбрана по validation precisionatbudget, но на test top-k промахивается:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/calibration/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Калибровка вероятностей">
+  <meta property="og:description" content="После урока про imbalance selected model стала randomforestdepth2classweightbalanced. Она выбрана по validation precisionatbudget, но на test top-k промахивается:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/calibration/">
+  <meta name="twitter:card" content="summary">
+  <title>Калибровка вероятностей — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Калибровка вероятностей", "description": "После урока про imbalance selected model стала randomforestdepth2classweightbalanced. Она выбрана по validation precisionatbudget, но на test top-k промахивается:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/calibration/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 15: Прикладное машинное обучение", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=15"}, {"@type": "ListItem", "position": 3, "name": "Калибровка вероятностей", "item": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/calibration/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 15</p><h2>Прикладное машинное обучение</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/problem-framing/"><span>01</span>Постановка ML-задачи</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/data-splitting/"><span>02</span>Train, validation и test</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/metrics/"><span>03</span>Метрики и стоимость ошибки</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/preprocessing/"><span>04</span>Предобработка как часть модели</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/pipeline/"><span>05</span>scikit-learn Pipeline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/column-transformer/"><span>06</span>ColumnTransformer</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/linear-models/"><span>07</span>Линейные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/trees/"><span>08</span>Деревья решений</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/ensembles/"><span>09</span>Ансамбли деревьев</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/cross-validation/"><span>10</span>Cross-validation</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>11</span>Несбалансированные классы</a><a class="lesson-sidebar-link is-active" href="../../../lessons/applied-machine-learning/calibration/"><span>12</span>Калибровка вероятностей</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/leakage/"><span>13</span>Data leakage</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/error-analysis/"><span>14</span>Анализ ошибок по сегментам</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/model-card/"><span>15</span>Model card и ограничения</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 15 · Прикладное машинное обучение</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 168 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/15-applied-machine-learning/12-calibration" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему хорошее ранжирование top-k не означает, что score можно интерпретировать как вероятность?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ранжирование проверяет порядок объектов, а probability calibration проверяет соответствие score фактической частоте события.</button><button type="button" class="quiz-option" data-choice="1">Top-k всегда использует только labels train split.</button><button type="button" class="quiz-option" data-choice="2">Вероятности нельзя считать для tree models.</button><button type="button" class="quiz-option" data-choice="3">Калибровка нужна только для regression задач.</button></div><p class="quiz-feedback" hidden>Модель может правильно упорядочивать пользователей, но завышать или занижать численные probabilities. Для порогов, expected cost и коммуникации риска нужна отдельная calibration check.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>На каком split в уроке обучается калибратор?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">На validation split, отдельно от train fit и без использования test.</button><button type="button" class="quiz-option" data-choice="1">На test split, потому что там финальная оценка.</button><button type="button" class="quiz-option" data-choice="2">На объединении train+validation+test, чтобы было больше строк.</button><button type="button" class="quiz-option" data-choice="3">На строках, выбранных fixed threshold 0.5.</button></div><p class="quiz-feedback" hidden>Base model уже обучена на train. Калибратор является отдельным fit step, поэтому он использует independent calibration split, а test остается final once-only evaluation.</p></article></section>
+        <article class="lesson-article"><h1 id="калибровка-вероятностей">Калибровка вероятностей</h1>
+<blockquote>
+<p>Score может хорошо ранжировать пользователей и при этом быть плохой вероятностью.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> ML<br />
+<strong>Пререквизиты:</strong> <code>15-applied-machine-learning/11-imbalanced-data</code><br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> вы проверяете probability calibration через bins, Brier/log loss и
+сравниваете calibrated vs uncalibrated threshold decisions.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличить ranking quality от calibrated probability.</li>
+<li>Построить calibration bins на independent calibration split.</li>
+<li>Посчитать Brier score, log loss и expected calibration error для raw и calibrated scores.</li>
+<li>Показать, как калибровка меняет fixed threshold decisions.</li>
+<li>Зафиксировать запрет на calibration fit и threshold selection по test.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После урока про imbalance selected model стала
+<code>random_forest_depth2_class_weight_balanced</code>. Она выбрана по validation
+<code>precision_at_budget</code>, но на test top-k промахивается:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">uncalibrated top-k test selected ids = S009,S012
+precision_at_budget = 0.0
+</code></pre></div><p>Это еще не вся проблема. Даже если top-k используется как primary decision rule, бизнес
+часто задает вопросы в вероятностной шкале:</p>
+<ul>
+<li>&quot;Если score 0.7, это правда примерно 70% churn risk?&quot;</li>
+<li>&quot;Можно ли ставить фиксированный threshold <code>0.5</code>?&quot;</li>
+<li>&quot;Какой expected error cost у calibrated threshold?&quot;</li>
+</ul>
+<p>Для таких вопросов мало знать порядок строк. Нужно проверить, похожи ли scores на
+вероятности.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Калиброванная вероятность означает: среди объектов, которым модель дала примерно <code>0.6</code>,
+событие должно происходить примерно в 60% случаев. На практике это проверяют через bins:</p>
+<table>
+<thead>
+<tr>
+<th>Шаг</th>
+<th>Что делаем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Берем score модели, обученной только на train.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>На independent calibration split группируем scores в bins.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>В каждом bin считаем <code>fraction_positive</code>.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Строим mapping <code>raw_score_bin -&gt; calibrated_probability</code>.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>На test только применяем mapping и считаем метрики.</td>
+</tr>
+</tbody>
+</table>
+<p>В большом production-профиле можно использовать <code>CalibratedClassifierCV</code> с sigmoid или
+isotonic calibration. В tiny-профиле урока это было бы методологически сомнительно:
+validation содержит всего 3 строки, а фолды не дадут надежного class coverage. Поэтому
+урок строит прозрачный bin-map calibrator со сглаживанием и явно возвращает warnings.</p>
+<p>Policy этого урока:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;calibration_method&quot;: {
+    &quot;kind&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;,
+    &quot;bin_edges&quot;: [0.0, 0.5, 0.6, 1.0],
+    &quot;smoothing_alpha&quot;: 2.0,
+    &quot;prior_source&quot;: &quot;calibration_split_positive_rate&quot;
+  },
+  &quot;metrics&quot;: {
+    &quot;proper_scoring_rules&quot;: [&quot;brier_score&quot;, &quot;log_loss&quot;],
+    &quot;diagnostics&quot;: [&quot;expected_calibration_error&quot;, &quot;calibration_bins&quot;]
+  }
+}
+</code></pre></div><p>Сглаживание нужно, чтобы bin с одной строкой не превращал вероятность в жесткие <code>0</code> или
+<code>1</code>. Формула для bin:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">calibrated_probability =
+  (positive_count + alpha * validation_positive_rate) / (row_count + alpha)
+</code></pre></div><h2 id="соберите-это">Соберите это</h2>
+<p>В validation split после 15/11 у selected model такие scores:</p>
+<table>
+<thead>
+<tr>
+<th>snapshot_id</th>
+<th style="text-align:right">label</th>
+<th style="text-align:right">raw score</th>
+<th>bin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>S005</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.46</td>
+<td><code>[0.0, 0.5)</code></td>
+</tr>
+<tr>
+<td><code>S006</code></td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.50</td>
+<td><code>[0.5, 0.6)</code></td>
+</tr>
+<tr>
+<td><code>S007</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.64</td>
+<td><code>[0.6, 1.0]</code></td>
+</tr>
+</tbody>
+</table>
+<p>Validation positive rate:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">1 / 3 = 0.333333
+</code></pre></div><p>Для первого bin:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">positive_count = 0
+row_count = 1
+alpha = 2
+
+calibrated_probability =
+  (0 + 2 * 0.333333) / (1 + 2)
+  = 0.222222
+</code></pre></div><p>Для второго bin:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">calibrated_probability =
+  (1 + 2 * 0.333333) / (1 + 2)
+  = 0.555556
+</code></pre></div><p>Для третьего bin снова <code>0.222222</code>.</p>
+<p>Теперь примените mapping к test:</p>
+<table>
+<thead>
+<tr>
+<th>snapshot_id</th>
+<th style="text-align:right">label</th>
+<th style="text-align:right">raw score</th>
+<th style="text-align:right">calibrated score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>S009</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.70</td>
+<td style="text-align:right">0.222222</td>
+</tr>
+<tr>
+<td><code>S010</code></td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.58</td>
+<td style="text-align:right">0.555556</td>
+</tr>
+<tr>
+<td><code>S011</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.32</td>
+<td style="text-align:right">0.222222</td>
+</tr>
+<tr>
+<td><code>S012</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.60</td>
+<td style="text-align:right">0.222222</td>
+</tr>
+<tr>
+<td><code>S013</code></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.38</td>
+<td style="text-align:right">0.222222</td>
+</tr>
+</tbody>
+</table>
+<p>На этом tiny test Brier score меняется так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">uncalibrated_test_brier = 0.25464
+calibrated_test_brier   = 0.079012
+</code></pre></div><p>Но это не production claim: validation слишком маленький, bins содержат по одной строке,
+поэтому auditor возвращает warnings.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите готовый пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/15-applied-machine-learning/12-calibration/code/main.py
+</code></pre></div><p>Он запишет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/calibration_report.json
+outputs/calibration_bins.csv
+outputs/calibration_metrics.csv
+outputs/calibrated_predictions.csv
+outputs/calibration_threshold_impact.csv
+outputs/calibration_policy_audit.csv
+outputs/calibration_serialized_spec.json
+</code></pre></div><p>Короткий stdout:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+  &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+  &quot;uncalibrated_test_brier&quot;: 0.25464,
+  &quot;calibrated_test_brier&quot;: 0.079012,
+  &quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;: 3,
+  &quot;test_fixed_threshold_0_5_action_count_calibrated&quot;: 1,
+  &quot;readiness_status&quot;: &quot;ready_for_leakage_lesson&quot;
+}
+</code></pre></div><p>CLI можно запускать напрямую:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/15-applied-machine-learning/12-calibration/outputs/probability_calibration_auditor.py \
+  --spec phases/15-applied-machine-learning/data/tiny/problem_spec.json \
+  --preprocessing-contract phases/15-applied-machine-learning/data/tiny/preprocessing_contract.json \
+  --pipeline-spec phases/15-applied-machine-learning/data/tiny/pipeline_spec.json \
+  --column-transformer-spec phases/15-applied-machine-learning/data/tiny/column_transformer_spec.json \
+  --linear-baseline-spec phases/15-applied-machine-learning/data/tiny/linear_baseline_spec.json \
+  --tree-diagnostic-spec phases/15-applied-machine-learning/data/tiny/tree_diagnostic_spec.json \
+  --tree-ensemble-spec phases/15-applied-machine-learning/data/tiny/tree_ensemble_spec.json \
+  --cv-plan-spec phases/15-applied-machine-learning/data/tiny/cv_plan_spec.json \
+  --imbalance-policy-spec phases/15-applied-machine-learning/data/tiny/imbalance_policy_spec.json \
+  --calibration-policy-spec phases/15-applied-machine-learning/data/tiny/calibration_policy_spec.json \
+  --features phases/15-applied-machine-learning/data/tiny/ml_raw_features.csv \
+  --labels phases/15-applied-machine-learning/data/tiny/ml_labels.csv \
+  --manifest phases/15-applied-machine-learning/data/tiny/ml_split_manifest.csv \
+  --cv-fold-manifest phases/15-applied-machine-learning/data/tiny/ml_cv_fold_manifest.csv
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<p>Попробуйте три намеренные поломки.</p>
+<ol>
+<li>
+<p>Поставьте <code>&quot;calibration_split&quot;: &quot;test&quot;</code> в <code>calibration_policy_spec.json</code>.
+Auditor должен заблокировать отчет через
+<code>calibration_policy_spec_declares_probability_contract</code>.</p>
+</li>
+<li>
+<p>Замените <code>source_model_id</code> на <code>random_forest_depth2_unweighted</code>.
+Калибратор должен работать с моделью, выбранной imbalance policy, иначе handoff
+становится несогласованным.</p>
+</li>
+<li>
+<p>Удалите <code>log_loss</code> из <code>metrics.proper_scoring_rules</code>.
+Один Brier score полезен, но policy требует оба proper scoring rules.</p>
+</li>
+</ol>
+<p>Для строгого CI можно включить warning gate:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/15-applied-machine-learning/12-calibration/outputs/probability_calibration_auditor.py \
+  ... \
+  --fail-on-warning
+</code></pre></div><p>На tiny profile команда должна завершиться ненулевым кодом, потому что warnings
+ожидаемы и важны.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest discover -s phases/15-applied-machine-learning/12-calibration/tests
+</code></pre></div><p>Ключевые инварианты:</p>
+<ul>
+<li><code>test_used_for_calibration == false</code>;</li>
+<li><code>calibrated_on_split == &quot;validation&quot;</code> для всех predictions;</li>
+<li><code>calibration_bins.csv</code> содержит validation и test rows, но bin probabilities learned on validation;</li>
+<li><code>calibration_metrics.csv</code> содержит Brier score и log loss для <code>uncalibrated</code> и <code>calibrated</code>;</li>
+<li>fixed threshold impact считается отдельно от top-k budget rule.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/probability_calibration_auditor.py
+</code></pre></div><p>Он принимает problem/pipeline/imbalance/calibration specs, upstream data files и возвращает
+<code>calibration_report.json</code>. В handoff следующего урока передавайте:</p>
+<ul>
+<li><code>calibration_report.json</code> как summary вероятностной шкалы;</li>
+<li><code>calibrated_predictions.csv</code> как score handoff;</li>
+<li><code>calibration_policy_audit.csv</code> как evidence, что test не использовался для calibration fit;</li>
+<li>warnings как ограничения, которые нельзя скрывать в model card.</li>
+</ul>
+<p>Урок считается завершенным, если:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">readiness_status = ready_for_leakage_lesson
+blocking_errors = []
+</code></pre></div><p>Warnings на tiny profile остаются: они не ломают урок, но запрещают переинтерпретировать
+результат как production launch decision.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте новый bin edge <code>0.7</code> и объясните, почему на tiny validation это ухудшает
+надежность оценки.</li>
+<li>Замените fixed threshold <code>0.5</code> на <code>0.3</code> и сравните action count до и после calibration.</li>
+<li>Добавьте в отчет колонку <code>calibration_gap_direction</code>: <code>overconfident</code>,
+<code>underconfident</code> или <code>aligned</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Calibration</td>
+<td>Если модель лучше ранжирует, она автоматически calibrated.</td>
+<td>Проверка соответствия predicted probability фактической частоте события.</td>
+</tr>
+<tr>
+<td>Brier score</td>
+<td>Это просто accuracy для вероятностей.</td>
+<td>Средняя квадратичная ошибка probability prediction.</td>
+</tr>
+<tr>
+<td>Log loss</td>
+<td>Дублирует Brier score.</td>
+<td>Proper scoring rule, который особенно сильно штрафует уверенные неверные вероятности.</td>
+</tr>
+<tr>
+<td>Calibration split</td>
+<td>Его можно заменить test split ради большей честности.</td>
+<td>Отдельный split для fit калибратора; test остается только для final evaluation.</td>
+</tr>
+<tr>
+<td>Fixed threshold</td>
+<td>После calibration старый threshold можно переносить без проверки.</td>
+<td>Threshold impact нужно пересчитать, потому что шкала probability изменилась.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/calibration.html" target="_blank" rel="noopener">scikit-learn: Probability calibration</a> — прочитайте разделы про calibration curves, proper scoring rules и риск overfit у isotonic calibration.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.calibration.CalibratedClassifierCV.html" target="_blank" rel="noopener">scikit-learn: CalibratedClassifierCV</a> — посмотрите, как sklearn отделяет estimator fit от calibration fit через CV.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.brier_score_loss.html" target="_blank" rel="noopener">scikit-learn: brier_score_loss</a> — проверьте API и интерпретацию Brier score для binary probabilities.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.calibration.calibration_curve.html" target="_blank" rel="noopener">scikit-learn: calibration_curve</a> — сопоставьте ручные bins из урока с библиотечной функцией для reliability diagram.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем в отчете одновременно Brier score и log loss?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Обе метрики являются proper scoring rules и штрафуют вероятности, но log loss сильнее наказывает уверенные ошибки.</button><button type="button" class="quiz-option" data-choice="1">Brier score нужен только для multiclass, а log loss только для binary.</button><button type="button" class="quiz-option" data-choice="2">Они заменяют проверку calibration bins.</button><button type="button" class="quiz-option" data-choice="3">Они показывают causal effect retention offer.</button></div><p class="quiz-feedback" hidden>Brier score удобен как средняя квадратичная ошибка вероятности, log loss чувствителен к уверенным промахам. В уроке они идут рядом с bins, а не вместо них.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что изменилось для fixed threshold `0.5` на test после калибровки?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Uncalibrated score выбрал 3 действия при budget 2, calibrated score выбрал 1 действие.</button><button type="button" class="quiz-option" data-choice="1">Оба варианта выбрали ровно 2 действия.</button><button type="button" class="quiz-option" data-choice="2">Калибровка запретила top-k rule.</button><button type="button" class="quiz-option" data-choice="3">Калибровка использовала test labels для выбора threshold.</button></div><p class="quiz-feedback" hidden>После изменения шкалы probabilities фиксированный порог меняет action count. Поэтому threshold impact нужно пересчитывать отдельно, а не переносить старый порог автоматически.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Как правильно интерпретировать улучшение Brier score на tiny test в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Как smoke test артефакта и сигнал к дальнейшей проверке, не как production launch claim.</button><button type="button" class="quiz-option" data-choice="1">Как доказательство, что bin calibration всегда улучшает будущие данные.</button><button type="button" class="quiz-option" data-choice="2">Как разрешение удалить validation split.</button><button type="button" class="quiz-option" data-choice="3">Как доказательство causal effect модели.</button></div><p class="quiz-feedback" hidden>В validation всего 3 строки и по одной строке в каждом бине. Auditor специально возвращает warnings про tiny sample и single-class bins.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;probability_calibration_auditor.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+GENERATOR = PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from probability_calibration_auditor import run  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class ProbabilityCalibrationAuditorTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **outputs: Path) -&gt; dict:
+        return run(
+            spec_path=root / &quot;problem_spec.json&quot;,
+            preprocessing_contract_path=root / &quot;preprocessing_contract.json&quot;,
+            pipeline_spec_path=root / &quot;pipeline_spec.json&quot;,
+            column_transformer_spec_path=root / &quot;column_transformer_spec.json&quot;,
+            linear_baseline_spec_path=root / &quot;linear_baseline_spec.json&quot;,
+            tree_diagnostic_spec_path=root / &quot;tree_diagnostic_spec.json&quot;,
+            tree_ensemble_spec_path=root / &quot;tree_ensemble_spec.json&quot;,
+            cv_plan_spec_path=root / &quot;cv_plan_spec.json&quot;,
+            imbalance_policy_spec_path=root / &quot;imbalance_policy_spec.json&quot;,
+            calibration_policy_spec_path=root / &quot;calibration_policy_spec.json&quot;,
+            features_path=root / &quot;ml_raw_features.csv&quot;,
+            labels_path=root / &quot;ml_labels.csv&quot;,
+            manifest_path=root / &quot;ml_split_manifest.csv&quot;,
+            cv_fold_manifest_path=root / &quot;ml_cv_fold_manifest.csv&quot;,
+            **outputs,
+        )
+
+    def copy_profile(self, directory: Path) -&gt; Path:
+        target = directory / &quot;tiny&quot;
+        shutil.copytree(DATA_ROOT, target)
+        return target
+
+    def test_valid_calibration_policy_exports_report(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;calibration_policy_id&quot;],
+            &quot;trial-churn-calibration-policy-v0&quot;,
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;sklearn_version&quot;], &quot;1.9.0&quot;)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;source_model_id&quot;],
+            &quot;random_forest_depth2_class_weight_balanced&quot;,
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;calibration_method&quot;],
+            &quot;validation_bin_map_with_laplace_smoothing&quot;,
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibration_split&quot;], &quot;validation&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;evaluation_split&quot;], &quot;test&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibration_row_count&quot;], 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibration_prior_positive_rate&quot;], 0.333333)
+        self.assertEqual(report[&quot;summary&quot;][&quot;uncalibrated_validation_brier&quot;], 0.2904)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibrated_validation_brier&quot;], 0.098765)
+        self.assertEqual(report[&quot;summary&quot;][&quot;uncalibrated_test_brier&quot;], 0.25464)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibrated_test_brier&quot;], 0.079012)
+        self.assertEqual(report[&quot;summary&quot;][&quot;uncalibrated_test_log_loss&quot;], 0.705738)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibrated_test_log_loss&quot;], 0.318608)
+        self.assertEqual(report[&quot;summary&quot;][&quot;uncalibrated_test_precision_at_budget&quot;], 0.0)
+        self.assertEqual(report[&quot;summary&quot;][&quot;calibrated_test_precision_at_budget&quot;], 0.5)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;test_uncalibrated_top_k_selected_ids&quot;],
+            [&quot;S009&quot;, &quot;S012&quot;],
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;test_calibrated_top_k_selected_ids&quot;],
+            [&quot;S010&quot;, &quot;S009&quot;],
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;], 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;test_fixed_threshold_0_5_action_count_calibrated&quot;], 1)
+        self.assertFalse(report[&quot;summary&quot;][&quot;test_used_for_calibration&quot;])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [
+                &quot;calibration_sample_below_minimum&quot;,
+                &quot;calibration_bins_below_min_rows&quot;,
+                &quot;calibration_bins_missing_class_coverage&quot;,
+                &quot;fixed_threshold_action_count_changes_after_calibration&quot;,
+                &quot;tiny_test_improvement_is_not_production_claim&quot;,
+            ],
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_leakage_lesson&quot;)
+
+    def test_calibration_bins_are_learned_on_validation_with_smoothing(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;split&quot;], row[&quot;bin_id&quot;]): row for row in report[&quot;calibration_bins&quot;]}
+
+        self.assertEqual(len(rows), 6)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;bin_1&quot;)][&quot;row_count&quot;], 1)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;bin_1&quot;)][&quot;fraction_positive&quot;], 0.0)
+        self.assertEqual(
+            rows[(&quot;validation&quot;, &quot;bin_1&quot;)][&quot;calibrated_probability_from_validation&quot;],
+            0.222222,
+        )
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;bin_2&quot;)][&quot;positive_count&quot;], 1)
+        self.assertEqual(
+            rows[(&quot;validation&quot;, &quot;bin_2&quot;)][&quot;calibrated_probability_from_validation&quot;],
+            0.555556,
+        )
+        self.assertEqual(rows[(&quot;test&quot;, &quot;bin_2&quot;)][&quot;row_count&quot;], 1)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;bin_2&quot;)][&quot;mean_uncalibrated_score&quot;], 0.58)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;bin_2&quot;)][&quot;learned_on_split&quot;], &quot;validation&quot;)
+        sparse = check(report, &quot;calibration_bins_below_min_rows&quot;)
+        self.assertEqual(sparse[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(sparse[&quot;valid&quot;])
+
+    def test_metrics_compare_uncalibrated_and_calibrated_probabilities(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;split&quot;], row[&quot;probability_source&quot;]): row for row in report[&quot;metrics&quot;]}
+
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;uncalibrated&quot;)][&quot;brier_score&quot;], 0.25464)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;calibrated&quot;)][&quot;brier_score&quot;], 0.079012)
+        self.assertLess(
+            rows[(&quot;test&quot;, &quot;calibrated&quot;)][&quot;expected_calibration_error&quot;],
+            rows[(&quot;test&quot;, &quot;uncalibrated&quot;)][&quot;expected_calibration_error&quot;],
+        )
+        warning = check(report, &quot;tiny_test_improvement_is_not_production_claim&quot;)
+        self.assertEqual(warning[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(warning[&quot;valid&quot;])
+
+    def test_predictions_keep_raw_and_calibrated_scores_without_test_fit(self) -&gt; None:
+        report = self.audit()
+        rows = {
+            (row[&quot;split&quot;], row[&quot;snapshot_id&quot;]): row
+            for row in report[&quot;predictions&quot;]
+        }
+
+        self.assertEqual(len(rows), 8)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;S006&quot;)][&quot;uncalibrated_score&quot;], 0.5)
+        self.assertEqual(rows[(&quot;validation&quot;, &quot;S006&quot;)][&quot;calibrated_score&quot;], 0.555556)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S010&quot;)][&quot;bin_id&quot;], &quot;bin_2&quot;)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S010&quot;)][&quot;calibrated_score&quot;], 0.555556)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S010&quot;)][&quot;selected_at_budget_uncalibrated&quot;], 0)
+        self.assertEqual(rows[(&quot;test&quot;, &quot;S010&quot;)][&quot;selected_at_budget_calibrated&quot;], 1)
+        self.assertEqual({row[&quot;trained_on_split&quot;] for row in rows.values()}, {&quot;train&quot;})
+        self.assertEqual({row[&quot;calibrated_on_split&quot;] for row in rows.values()}, {&quot;validation&quot;})
+        self.assertEqual({row[&quot;test_used_for_calibration&quot;] for row in rows.values()}, {False})
+
+    def test_threshold_impact_separates_top_k_from_fixed_thresholds(self) -&gt; None:
+        report = self.audit()
+        rows = {
+            (
+                row[&quot;split&quot;],
+                row[&quot;probability_source&quot;],
+                row[&quot;decision_rule&quot;],
+                row[&quot;threshold&quot;],
+            ): row
+            for row in report[&quot;threshold_impact&quot;]
+        }
+
+        self.assertEqual(len(report[&quot;threshold_impact&quot;]), 16)
+        uncalibrated_topk = rows[(&quot;test&quot;, &quot;uncalibrated&quot;, &quot;rank_top_k_within_scoring_batch&quot;, &quot;&quot;)]
+        calibrated_topk = rows[(&quot;test&quot;, &quot;calibrated&quot;, &quot;rank_top_k_within_scoring_batch&quot;, &quot;&quot;)]
+        uncalibrated_threshold = rows[(&quot;test&quot;, &quot;uncalibrated&quot;, &quot;fixed_threshold&quot;, 0.5)]
+        calibrated_threshold = rows[(&quot;test&quot;, &quot;calibrated&quot;, &quot;fixed_threshold&quot;, 0.5)]
+        self.assertEqual(uncalibrated_topk[&quot;precision&quot;], 0.0)
+        self.assertEqual(uncalibrated_topk[&quot;selected_ids&quot;], &quot;S009,S012&quot;)
+        self.assertEqual(calibrated_topk[&quot;precision&quot;], 0.5)
+        self.assertEqual(calibrated_topk[&quot;selected_ids&quot;], &quot;S010,S009&quot;)
+        self.assertEqual(uncalibrated_threshold[&quot;action_count&quot;], 3)
+        self.assertTrue(uncalibrated_threshold[&quot;budget_exceeded&quot;])
+        self.assertEqual(calibrated_threshold[&quot;action_count&quot;], 1)
+        self.assertFalse(calibrated_threshold[&quot;budget_exceeded&quot;])
+        warning = check(report, &quot;fixed_threshold_action_count_changes_after_calibration&quot;)
+        self.assertEqual(warning[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(warning[&quot;valid&quot;])
+
+    def test_serialized_spec_records_validation_only_calibrator(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;calibration_policy_id&quot;], &quot;trial-churn-calibration-policy-v0&quot;)
+        self.assertEqual(
+            serialized[&quot;source_model_id&quot;],
+            &quot;random_forest_depth2_class_weight_balanced&quot;,
+        )
+        self.assertEqual(serialized[&quot;calibration_method&quot;][&quot;prior_positive_rate&quot;], 0.333333)
+        self.assertEqual(len(serialized[&quot;calibration_method&quot;][&quot;learned_bin_map&quot;]), 3)
+        self.assertFalse(serialized[&quot;test_used_for_calibration&quot;])
+        self.assertEqual(serialized[&quot;fit_trace&quot;][0][&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(serialized[&quot;fit_trace&quot;][0][&quot;test_ids_seen&quot;], [])
+        self.assertEqual(serialized[&quot;fit_trace&quot;][1][&quot;fit_split&quot;], &quot;validation&quot;)
+        self.assertEqual(serialized[&quot;fit_trace&quot;][1][&quot;calibration_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertEqual(serialized[&quot;fit_trace&quot;][1][&quot;test_ids_seen&quot;], [])
+
+    def test_code_example_writes_calibration_artifacts(self) -&gt; None:
+        report_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_report.json&quot;
+        bins_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_bins.csv&quot;
+        metrics_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_metrics.csv&quot;
+        predictions_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibrated_predictions.csv&quot;
+        threshold_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_threshold_impact.csv&quot;
+        audit_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_policy_audit.csv&quot;
+        serialized_path = LESSON_ROOT / &quot;outputs&quot; / &quot;calibration_serialized_spec.json&quot;
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;calibration_policy_id&quot;], &quot;trial-churn-calibration-policy-v0&quot;)
+        self.assertEqual(payload[&quot;calibrated_test_brier&quot;], 0.079012)
+        self.assertEqual(payload[&quot;test_fixed_threshold_0_5_action_count_calibrated&quot;], 1)
+        self.assertEqual(read_json(report_path)[&quot;summary&quot;][&quot;calibration_row_count&quot;], 3)
+        self.assertEqual(len(read_csv(bins_path)), 6)
+        self.assertEqual(len(read_csv(metrics_path)), 4)
+        self.assertEqual(len(read_csv(predictions_path)), 8)
+        self.assertEqual(len(read_csv(threshold_path)), 16)
+        self.assertEqual(len(read_csv(audit_path)), 12)
+        self.assertEqual(
+            read_json(serialized_path)[&quot;source_model_id&quot;],
+            payload[&quot;source_model_id&quot;],
+        )
+
+    def test_data_generator_check_rebuilds_committed_calibration_inputs(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, GENERATOR, &quot;--check&quot;, &quot;--output&quot;, DATA_ROOT],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+        self.assertTrue((DATA_ROOT / &quot;calibration_policy_spec.json&quot;).exists())
+
+    def test_calibration_on_test_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;calibration_policy_spec.json&quot;)
+            spec[&quot;calibration_split&quot;] = &quot;test&quot;
+            write_json(root / &quot;calibration_policy_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;calibration_policy_spec_declares_probability_contract&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertIn(
+            &quot;calibration_policy_spec_declares_probability_contract&quot;,
+            report[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_source_model_must_match_imbalance_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;calibration_policy_spec.json&quot;)
+            spec[&quot;source_model_id&quot;] = &quot;random_forest_depth2_unweighted&quot;
+            write_json(root / &quot;calibration_policy_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;calibration_policy_spec_declares_probability_contract&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;source_model_id&quot;)
+
+    def test_brier_and_log_loss_are_required(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;calibration_policy_spec.json&quot;)
+            spec[&quot;metrics&quot;][&quot;proper_scoring_rules&quot;] = [&quot;brier_score&quot;]
+            write_json(root / &quot;calibration_policy_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;calibration_policy_spec_declares_probability_contract&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;metrics.proper_scoring_rules&quot;)
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_spec(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;calibration_policy_spec.json&quot;)
+            spec[&quot;audit_policy&quot;][&quot;forbid_calibration_on_test&quot;] = False
+            write_json(root / &quot;calibration_policy_spec.json&quot;, spec)
+            output = Path(directory) / &quot;report.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    root / &quot;problem_spec.json&quot;,
+                    &quot;--preprocessing-contract&quot;,
+                    root / &quot;preprocessing_contract.json&quot;,
+                    &quot;--pipeline-spec&quot;,
+                    root / &quot;pipeline_spec.json&quot;,
+                    &quot;--column-transformer-spec&quot;,
+                    root / &quot;column_transformer_spec.json&quot;,
+                    &quot;--linear-baseline-spec&quot;,
+                    root / &quot;linear_baseline_spec.json&quot;,
+                    &quot;--tree-diagnostic-spec&quot;,
+                    root / &quot;tree_diagnostic_spec.json&quot;,
+                    &quot;--tree-ensemble-spec&quot;,
+                    root / &quot;tree_ensemble_spec.json&quot;,
+                    &quot;--cv-plan-spec&quot;,
+                    root / &quot;cv_plan_spec.json&quot;,
+                    &quot;--imbalance-policy-spec&quot;,
+                    root / &quot;imbalance_policy_spec.json&quot;,
+                    &quot;--calibration-policy-spec&quot;,
+                    root / &quot;calibration_policy_spec.json&quot;,
+                    &quot;--features&quot;,
+                    root / &quot;ml_raw_features.csv&quot;,
+                    &quot;--labels&quot;,
+                    root / &quot;ml_labels.csv&quot;,
+                    &quot;--manifest&quot;,
+                    root / &quot;ml_split_manifest.csv&quot;,
+                    &quot;--cv-fold-manifest&quot;,
+                    root / &quot;ml_cv_fold_manifest.csv&quot;,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            payload = read_json(output)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(payload[&quot;valid&quot;])
+        self.assertIn(
+            &quot;calibration_policy_spec_declares_probability_contract&quot;,
+            payload[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        )
+
+    def test_cli_can_fail_on_warning_for_strict_gate(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--spec&quot;,
+                DATA_ROOT / &quot;problem_spec.json&quot;,
+                &quot;--preprocessing-contract&quot;,
+                DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+                &quot;--pipeline-spec&quot;,
+                DATA_ROOT / &quot;pipeline_spec.json&quot;,
+                &quot;--column-transformer-spec&quot;,
+                DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+                &quot;--linear-baseline-spec&quot;,
+                DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+                &quot;--tree-diagnostic-spec&quot;,
+                DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+                &quot;--tree-ensemble-spec&quot;,
+                DATA_ROOT / &quot;tree_ensemble_spec.json&quot;,
+                &quot;--cv-plan-spec&quot;,
+                DATA_ROOT / &quot;cv_plan_spec.json&quot;,
+                &quot;--imbalance-policy-spec&quot;,
+                DATA_ROOT / &quot;imbalance_policy_spec.json&quot;,
+                &quot;--calibration-policy-spec&quot;,
+                DATA_ROOT / &quot;calibration_policy_spec.json&quot;,
+                &quot;--features&quot;,
+                DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+                &quot;--labels&quot;,
+                DATA_ROOT / &quot;ml_labels.csv&quot;,
+                &quot;--manifest&quot;,
+                DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+                &quot;--cv-fold-manifest&quot;,
+                DATA_ROOT / &quot;ml_cv_fold_manifest.csv&quot;,
+                &quot;--fail-on-warning&quot;,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(&quot;calibration_sample_below_minimum&quot;, result.stdout)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+sys.path.insert(0, str(OUTPUT_ROOT))
+
+from probability_calibration_auditor import run  # noqa: E402
+
+
+def main() -&gt; None:
+    report = run(
+        spec_path=DATA_ROOT / &quot;problem_spec.json&quot;,
+        preprocessing_contract_path=DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+        pipeline_spec_path=DATA_ROOT / &quot;pipeline_spec.json&quot;,
+        column_transformer_spec_path=DATA_ROOT / &quot;column_transformer_spec.json&quot;,
+        linear_baseline_spec_path=DATA_ROOT / &quot;linear_baseline_spec.json&quot;,
+        tree_diagnostic_spec_path=DATA_ROOT / &quot;tree_diagnostic_spec.json&quot;,
+        tree_ensemble_spec_path=DATA_ROOT / &quot;tree_ensemble_spec.json&quot;,
+        cv_plan_spec_path=DATA_ROOT / &quot;cv_plan_spec.json&quot;,
+        imbalance_policy_spec_path=DATA_ROOT / &quot;imbalance_policy_spec.json&quot;,
+        calibration_policy_spec_path=DATA_ROOT / &quot;calibration_policy_spec.json&quot;,
+        features_path=DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+        labels_path=DATA_ROOT / &quot;ml_labels.csv&quot;,
+        manifest_path=DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+        cv_fold_manifest_path=DATA_ROOT / &quot;ml_cv_fold_manifest.csv&quot;,
+        report_output_path=OUTPUT_ROOT / &quot;calibration_report.json&quot;,
+        bin_output_path=OUTPUT_ROOT / &quot;calibration_bins.csv&quot;,
+        metric_output_path=OUTPUT_ROOT / &quot;calibration_metrics.csv&quot;,
+        predictions_output_path=OUTPUT_ROOT / &quot;calibrated_predictions.csv&quot;,
+        threshold_output_path=OUTPUT_ROOT / &quot;calibration_threshold_impact.csv&quot;,
+        audit_output_path=OUTPUT_ROOT / &quot;calibration_policy_audit.csv&quot;,
+        serialized_spec_output_path=OUTPUT_ROOT / &quot;calibration_serialized_spec.json&quot;,
+    )
+    summary = report[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: report[&quot;valid&quot;],
+                &quot;calibration_policy_id&quot;: summary[&quot;calibration_policy_id&quot;],
+                &quot;source_model_id&quot;: summary[&quot;source_model_id&quot;],
+                &quot;uncalibrated_test_brier&quot;: summary[&quot;uncalibrated_test_brier&quot;],
+                &quot;calibrated_test_brier&quot;: summary[&quot;calibrated_test_brier&quot;],
+                &quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;: summary[
+                    &quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;
+                ],
+                &quot;test_fixed_threshold_0_5_action_count_calibrated&quot;: summary[
+                    &quot;test_fixed_threshold_0_5_action_count_calibrated&quot;
+                ],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;probability-calibration-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/probability_calibration_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет калибровку вероятностей selected ML model: calibration bins, Brier score, log loss и threshold impact без подгонки на test.&quot;,
+  &quot;usage&quot;: &quot;python phases/15-applied-machine-learning/12-calibration/outputs/probability_calibration_auditor.py --spec phases/15-applied-machine-learning/data/tiny/problem_spec.json --preprocessing-contract phases/15-applied-machine-learning/data/tiny/preprocessing_contract.json --pipeline-spec phases/15-applied-machine-learning/data/tiny/pipeline_spec.json --column-transformer-spec phases/15-applied-machine-learning/data/tiny/column_transformer_spec.json --linear-baseline-spec phases/15-applied-machine-learning/data/tiny/linear_baseline_spec.json --tree-diagnostic-spec phases/15-applied-machine-learning/data/tiny/tree_diagnostic_spec.json --tree-ensemble-spec phases/15-applied-machine-learning/data/tiny/tree_ensemble_spec.json --cv-plan-spec phases/15-applied-machine-learning/data/tiny/cv_plan_spec.json --imbalance-policy-spec phases/15-applied-machine-learning/data/tiny/imbalance_policy_spec.json --calibration-policy-spec phases/15-applied-machine-learning/data/tiny/calibration_policy_spec.json --features phases/15-applied-machine-learning/data/tiny/ml_raw_features.csv --labels phases/15-applied-machine-learning/data/tiny/ml_labels.csv --manifest phases/15-applied-machine-learning/data/tiny/ml_split_manifest.csv --cv-fold-manifest phases/15-applied-machine-learning/data/tiny/ml_cv_fold_manifest.csv&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibrated_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,snapshot_id,model_id,score_type,calibrated_score_type,uncalibrated_score,calibrated_score,actual_label,bin_id,bin_lower,bin_upper,calibration_bin_probability,selected_at_budget_uncalibrated,selected_at_budget_calibrated,predicted_at_0_5_uncalibrated,predicted_at_0_5_calibrated,trained_on_split,calibrated_on_split,test_used_for_calibration,generated_at
+validation,S005,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.46,0.222222,0,bin_1,0.0,0.5,0.222222,0,1,0,0,train,validation,False,2026-07-03T10:00:00+03:00
+validation,S006,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.5,0.555556,1,bin_2,0.5,0.6,0.555556,1,1,1,1,train,validation,False,2026-07-03T10:00:00+03:00
+validation,S007,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.64,0.222222,0,bin_3,0.6,1.0,0.222222,1,0,1,0,train,validation,False,2026-07-03T10:00:00+03:00
+test,S009,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.7,0.222222,0,bin_3,0.6,1.0,0.222222,1,1,1,0,train,validation,False,2026-07-03T10:00:00+03:00
+test,S010,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.58,0.555556,1,bin_2,0.5,0.6,0.555556,0,1,1,1,train,validation,False,2026-07-03T10:00:00+03:00
+test,S011,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.32,0.222222,0,bin_1,0.0,0.5,0.222222,0,0,0,0,train,validation,False,2026-07-03T10:00:00+03:00
+test,S012,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.6,0.222222,0,bin_3,0.6,1.0,0.222222,1,0,1,0,train,validation,False,2026-07-03T10:00:00+03:00
+test,S013,random_forest_depth2_class_weight_balanced,churn_risk_probability,calibrated_churn_probability,0.38,0.222222,0,bin_1,0.0,0.5,0.222222,0,0,0,0,train,validation,False,2026-07-03T10:00:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibrated_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_bins.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,bin_id,lower,upper,row_count,positive_count,negative_count,fraction_positive,mean_uncalibrated_score,calibrated_probability_from_validation,absolute_uncalibrated_gap,absolute_calibrated_gap,learned_on_split
+validation,bin_1,0.0,0.5,1,0,1,0.0,0.46,0.222222,0.46,0.222222,validation
+validation,bin_2,0.5,0.6,1,1,0,1.0,0.5,0.555556,0.5,0.444444,validation
+validation,bin_3,0.6,1.0,1,0,1,0.0,0.64,0.222222,0.64,0.222222,validation
+test,bin_1,0.0,0.5,2,0,2,0.0,0.35,0.222222,0.35,0.222222,validation
+test,bin_2,0.5,0.6,1,1,0,1.0,0.58,0.555556,0.42,0.444444,validation
+test,bin_3,0.6,1.0,2,0,2,0.0,0.65,0.222222,0.65,0.222222,validation
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_bins.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_metrics.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,probability_source,row_count,positive_count,negative_count,brier_score,log_loss,expected_calibration_error,score_min,score_max,score_mean
+validation,uncalibrated,3,1,2,0.2904,0.776995,0.533333,0.46,0.64,0.533333
+validation,calibrated,3,1,2,0.098765,0.363471,0.296296,0.222222,0.555556,0.333333
+test,uncalibrated,5,1,4,0.25464,0.705738,0.484,0.32,0.7,0.516
+test,calibrated,5,1,4,0.079012,0.318608,0.266666,0.222222,0.555556,0.288889
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_metrics.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_policy_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>check_id,severity,valid,observed,expected
+calibration_policy_spec_declares_probability_contract,error,True,&quot;{&quot;&quot;calibration_policy_id&quot;&quot;: &quot;&quot;trial-churn-calibration-policy-v0&quot;&quot;, &quot;&quot;source_model_id&quot;&quot;: &quot;&quot;random_forest_depth2_class_weight_balanced&quot;&quot;, &quot;&quot;method&quot;&quot;: &quot;&quot;validation_bin_map_with_laplace_smoothing&quot;&quot;}&quot;,&quot;&quot;&quot;calibration policy contract is explicit&quot;&quot;&quot;
+upstream_imbalance_handoff_is_valid,error,True,&quot;{&quot;&quot;imbalance_policy_id&quot;&quot;: &quot;&quot;trial-churn-imbalance-policy-v0&quot;&quot;, &quot;&quot;selected_model_id&quot;&quot;: &quot;&quot;random_forest_depth2_class_weight_balanced&quot;&quot;, &quot;&quot;readiness_status&quot;&quot;: &quot;&quot;ready_for_calibration_lesson&quot;&quot;}&quot;,&quot;&quot;&quot;imbalance handoff is valid and ready for calibration&quot;&quot;&quot;
+calibration_split_is_independent,error,True,&quot;{&quot;&quot;fit_split&quot;&quot;: &quot;&quot;train&quot;&quot;, &quot;&quot;calibration_split&quot;&quot;: &quot;&quot;validation&quot;&quot;, &quot;&quot;evaluation_split&quot;&quot;: &quot;&quot;test&quot;&quot;}&quot;,&quot;&quot;&quot;fit, calibration and evaluation roles are separate&quot;&quot;&quot;
+calibration_sample_below_minimum,warning,False,3,&quot;&quot;&quot;&gt;= 20 calibration rows&quot;&quot;&quot;
+calibration_bins_below_min_rows,warning,False,&quot;[{&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_1&quot;&quot;, &quot;&quot;row_count&quot;&quot;: 1}, {&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_2&quot;&quot;, &quot;&quot;row_count&quot;&quot;: 1}, {&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_3&quot;&quot;, &quot;&quot;row_count&quot;&quot;: 1}]&quot;,&quot;&quot;&quot;&gt;= 2 calibration rows per bin&quot;&quot;&quot;
+calibration_bins_missing_class_coverage,warning,False,&quot;[{&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_1&quot;&quot;, &quot;&quot;positive_count&quot;&quot;: 0, &quot;&quot;negative_count&quot;&quot;: 1}, {&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_2&quot;&quot;, &quot;&quot;positive_count&quot;&quot;: 1, &quot;&quot;negative_count&quot;&quot;: 0}, {&quot;&quot;bin_id&quot;&quot;: &quot;&quot;bin_3&quot;&quot;, &quot;&quot;positive_count&quot;&quot;: 0, &quot;&quot;negative_count&quot;&quot;: 1}]&quot;,&quot;&quot;&quot;each non-empty calibration bin should contain both classes&quot;&quot;&quot;
+calibration_not_fitted_on_test,error,True,&quot;{&quot;&quot;calibration_split&quot;&quot;: &quot;&quot;validation&quot;&quot;, &quot;&quot;test_used_for_calibration&quot;&quot;: false}&quot;,&quot;&quot;&quot;test split is held out from calibration fit&quot;&quot;&quot;
+calibration_bins_reported,error,True,&quot;{&quot;&quot;rows&quot;&quot;: 6, &quot;&quot;bin_count&quot;&quot;: 3}&quot;,&quot;&quot;&quot;calibration bins are reported for validation and test&quot;&quot;&quot;
+calibration_brier_and_log_loss_reported,error,True,&quot;{&quot;&quot;rows&quot;&quot;: 4, &quot;&quot;metrics&quot;&quot;: [&quot;&quot;brier_score&quot;&quot;, &quot;&quot;log_loss&quot;&quot;]}&quot;,&quot;&quot;&quot;proper scoring rules are reported for calibrated and uncalibrated scores&quot;&quot;&quot;
+calibration_threshold_impact_reported,error,True,&quot;{&quot;&quot;rows&quot;&quot;: 16}&quot;,&quot;&quot;&quot;threshold impact report is available&quot;&quot;&quot;
+fixed_threshold_action_count_changes_after_calibration,warning,False,&quot;{&quot;&quot;uncalibrated_action_count&quot;&quot;: 3, &quot;&quot;calibrated_action_count&quot;&quot;: 1}&quot;,&quot;&quot;&quot;fixed thresholds should be re-audited after calibration&quot;&quot;&quot;
+tiny_test_improvement_is_not_production_claim,warning,False,&quot;{&quot;&quot;uncalibrated_test_brier&quot;&quot;: 0.25464, &quot;&quot;calibrated_test_brier&quot;&quot;: 0.079012}&quot;,&quot;&quot;&quot;tiny test improvement should be treated as a smoke test, not a launch claim&quot;&quot;&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_policy_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;calibration_method&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;,
+    &quot;calibration_split&quot;: &quot;validation&quot;,
+    &quot;evaluation_split&quot;: &quot;test&quot;,
+    &quot;calibration_row_count&quot;: 3,
+    &quot;calibration_prior_positive_rate&quot;: 0.333333,
+    &quot;uncalibrated_validation_brier&quot;: 0.2904,
+    &quot;calibrated_validation_brier&quot;: 0.098765,
+    &quot;uncalibrated_test_brier&quot;: 0.25464,
+    &quot;calibrated_test_brier&quot;: 0.079012,
+    &quot;uncalibrated_test_log_loss&quot;: 0.705738,
+    &quot;calibrated_test_log_loss&quot;: 0.318608,
+    &quot;uncalibrated_test_precision_at_budget&quot;: 0.0,
+    &quot;calibrated_test_precision_at_budget&quot;: 0.5,
+    &quot;test_uncalibrated_top_k_selected_ids&quot;: [
+      &quot;S009&quot;,
+      &quot;S012&quot;
+    ],
+    &quot;test_calibrated_top_k_selected_ids&quot;: [
+      &quot;S010&quot;,
+      &quot;S009&quot;
+    ],
+    &quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;: 3,
+    &quot;test_fixed_threshold_0_5_action_count_calibrated&quot;: 1,
+    &quot;test_used_for_calibration&quot;: false,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;calibration_sample_below_minimum&quot;,
+      &quot;calibration_bins_below_min_rows&quot;,
+      &quot;calibration_bins_missing_class_coverage&quot;,
+      &quot;fixed_threshold_action_count_changes_after_calibration&quot;,
+      &quot;tiny_test_improvement_is_not_production_claim&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_leakage_lesson&quot;
+  },
+  &quot;calibration_bins&quot;: [
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;bin_id&quot;: &quot;bin_1&quot;,
+      &quot;lower&quot;: 0.0,
+      &quot;upper&quot;: 0.5,
+      &quot;row_count&quot;: 1,
+      &quot;positive_count&quot;: 0,
+      &quot;negative_count&quot;: 1,
+      &quot;fraction_positive&quot;: 0.0,
+      &quot;mean_uncalibrated_score&quot;: 0.46,
+      &quot;calibrated_probability_from_validation&quot;: 0.222222,
+      &quot;absolute_uncalibrated_gap&quot;: 0.46,
+      &quot;absolute_calibrated_gap&quot;: 0.222222,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;bin_id&quot;: &quot;bin_2&quot;,
+      &quot;lower&quot;: 0.5,
+      &quot;upper&quot;: 0.6,
+      &quot;row_count&quot;: 1,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 0,
+      &quot;fraction_positive&quot;: 1.0,
+      &quot;mean_uncalibrated_score&quot;: 0.5,
+      &quot;calibrated_probability_from_validation&quot;: 0.555556,
+      &quot;absolute_uncalibrated_gap&quot;: 0.5,
+      &quot;absolute_calibrated_gap&quot;: 0.444444,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;bin_id&quot;: &quot;bin_3&quot;,
+      &quot;lower&quot;: 0.6,
+      &quot;upper&quot;: 1.0,
+      &quot;row_count&quot;: 1,
+      &quot;positive_count&quot;: 0,
+      &quot;negative_count&quot;: 1,
+      &quot;fraction_positive&quot;: 0.0,
+      &quot;mean_uncalibrated_score&quot;: 0.64,
+      &quot;calibrated_probability_from_validation&quot;: 0.222222,
+      &quot;absolute_uncalibrated_gap&quot;: 0.64,
+      &quot;absolute_calibrated_gap&quot;: 0.222222,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;bin_id&quot;: &quot;bin_1&quot;,
+      &quot;lower&quot;: 0.0,
+      &quot;upper&quot;: 0.5,
+      &quot;row_count&quot;: 2,
+      &quot;positive_count&quot;: 0,
+      &quot;negative_count&quot;: 2,
+      &quot;fraction_positive&quot;: 0.0,
+      &quot;mean_uncalibrated_score&quot;: 0.35,
+      &quot;calibrated_probability_from_validation&quot;: 0.222222,
+      &quot;absolute_uncalibrated_gap&quot;: 0.35,
+      &quot;absolute_calibrated_gap&quot;: 0.222222,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;bin_id&quot;: &quot;bin_2&quot;,
+      &quot;lower&quot;: 0.5,
+      &quot;upper&quot;: 0.6,
+      &quot;row_count&quot;: 1,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 0,
+      &quot;fraction_positive&quot;: 1.0,
+      &quot;mean_uncalibrated_score&quot;: 0.58,
+      &quot;calibrated_probability_from_validation&quot;: 0.555556,
+      &quot;absolute_uncalibrated_gap&quot;: 0.42,
+      &quot;absolute_calibrated_gap&quot;: 0.444444,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;bin_id&quot;: &quot;bin_3&quot;,
+      &quot;lower&quot;: 0.6,
+      &quot;upper&quot;: 1.0,
+      &quot;row_count&quot;: 2,
+      &quot;positive_count&quot;: 0,
+      &quot;negative_count&quot;: 2,
+      &quot;fraction_positive&quot;: 0.0,
+      &quot;mean_uncalibrated_score&quot;: 0.65,
+      &quot;calibrated_probability_from_validation&quot;: 0.222222,
+      &quot;absolute_uncalibrated_gap&quot;: 0.65,
+      &quot;absolute_calibrated_gap&quot;: 0.222222,
+      &quot;learned_on_split&quot;: &quot;validation&quot;
+    }
+  ],
+  &quot;metrics&quot;: [
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;brier_score&quot;: 0.2904,
+      &quot;log_loss&quot;: 0.776995,
+      &quot;expected_calibration_error&quot;: 0.533333,
+      &quot;score_min&quot;: 0.46,
+      &quot;score_max&quot;: 0.64,
+      &quot;score_mean&quot;: 0.533333
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;brier_score&quot;: 0.098765,
+      &quot;log_loss&quot;: 0.363471,
+      &quot;expected_calibration_error&quot;: 0.296296,
+      &quot;score_min&quot;: 0.222222,
+      &quot;score_max&quot;: 0.555556,
+      &quot;score_mean&quot;: 0.333333
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;brier_score&quot;: 0.25464,
+      &quot;log_loss&quot;: 0.705738,
+      &quot;expected_calibration_error&quot;: 0.484,
+      &quot;score_min&quot;: 0.32,
+      &quot;score_max&quot;: 0.7,
+      &quot;score_mean&quot;: 0.516
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;brier_score&quot;: 0.079012,
+      &quot;log_loss&quot;: 0.318608,
+      &quot;expected_calibration_error&quot;: 0.266666,
+      &quot;score_min&quot;: 0.222222,
+      &quot;score_max&quot;: 0.555556,
+      &quot;score_mean&quot;: 0.288889
+    }
+  ],
+  &quot;predictions&quot;: [
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.46,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_1&quot;,
+      &quot;bin_lower&quot;: 0.0,
+      &quot;bin_upper&quot;: 0.5,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 0,
+      &quot;selected_at_budget_calibrated&quot;: 1,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 0,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.5,
+      &quot;calibrated_score&quot;: 0.555556,
+      &quot;actual_label&quot;: 1,
+      &quot;bin_id&quot;: &quot;bin_2&quot;,
+      &quot;bin_lower&quot;: 0.5,
+      &quot;bin_upper&quot;: 0.6,
+      &quot;calibration_bin_probability&quot;: 0.555556,
+      &quot;selected_at_budget_uncalibrated&quot;: 1,
+      &quot;selected_at_budget_calibrated&quot;: 1,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 1,
+      &quot;predicted_at_0_5_calibrated&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.64,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_3&quot;,
+      &quot;bin_lower&quot;: 0.6,
+      &quot;bin_upper&quot;: 1.0,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 1,
+      &quot;selected_at_budget_calibrated&quot;: 0,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 1,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S009&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.7,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_3&quot;,
+      &quot;bin_lower&quot;: 0.6,
+      &quot;bin_upper&quot;: 1.0,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 1,
+      &quot;selected_at_budget_calibrated&quot;: 1,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 1,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.58,
+      &quot;calibrated_score&quot;: 0.555556,
+      &quot;actual_label&quot;: 1,
+      &quot;bin_id&quot;: &quot;bin_2&quot;,
+      &quot;bin_lower&quot;: 0.5,
+      &quot;bin_upper&quot;: 0.6,
+      &quot;calibration_bin_probability&quot;: 0.555556,
+      &quot;selected_at_budget_uncalibrated&quot;: 0,
+      &quot;selected_at_budget_calibrated&quot;: 1,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 1,
+      &quot;predicted_at_0_5_calibrated&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S011&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.32,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_1&quot;,
+      &quot;bin_lower&quot;: 0.0,
+      &quot;bin_upper&quot;: 0.5,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 0,
+      &quot;selected_at_budget_calibrated&quot;: 0,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 0,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S012&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.6,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_3&quot;,
+      &quot;bin_lower&quot;: 0.6,
+      &quot;bin_upper&quot;: 1.0,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 1,
+      &quot;selected_at_budget_calibrated&quot;: 0,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 1,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_id&quot;: &quot;S013&quot;,
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+      &quot;uncalibrated_score&quot;: 0.38,
+      &quot;calibrated_score&quot;: 0.222222,
+      &quot;actual_label&quot;: 0,
+      &quot;bin_id&quot;: &quot;bin_1&quot;,
+      &quot;bin_lower&quot;: 0.0,
+      &quot;bin_upper&quot;: 0.5,
+      &quot;calibration_bin_probability&quot;: 0.222222,
+      &quot;selected_at_budget_uncalibrated&quot;: 0,
+      &quot;selected_at_budget_calibrated&quot;: 0,
+      &quot;predicted_at_0_5_uncalibrated&quot;: 0,
+      &quot;predicted_at_0_5_calibrated&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+      &quot;test_used_for_calibration&quot;: false,
+      &quot;generated_at&quot;: &quot;2026-07-03T10:00:00+03:00&quot;
+    }
+  ],
+  &quot;threshold_impact&quot;: [
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.666667,
+      &quot;balanced_accuracy&quot;: 0.75,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.5,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 1,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 1,
+      &quot;error_cost&quot;: 1.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S007,S006&quot;,
+      &quot;threshold_role&quot;: &quot;primary_budget_rule&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 3,
+      &quot;accuracy&quot;: 0.333333,
+      &quot;balanced_accuracy&quot;: 0.5,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.0,
+      &quot;precision&quot;: 0.333333,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 0,
+      &quot;error_cost&quot;: 2.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: true,
+      &quot;selected_ids&quot;: &quot;S005,S006,S007&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.666667,
+      &quot;balanced_accuracy&quot;: 0.75,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.5,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 1,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 1,
+      &quot;error_cost&quot;: 1.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S006,S007&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 1,
+      &quot;accuracy&quot;: 0.333333,
+      &quot;balanced_accuracy&quot;: 0.25,
+      &quot;positive_recall&quot;: 0.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 1,
+      &quot;fn&quot;: 1,
+      &quot;tn&quot;: 1,
+      &quot;error_cost&quot;: 6.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S007&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.666667,
+      &quot;balanced_accuracy&quot;: 0.75,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.5,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 1,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 1,
+      &quot;error_cost&quot;: 1.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S006,S005&quot;,
+      &quot;threshold_role&quot;: &quot;primary_budget_rule&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 1,
+      &quot;accuracy&quot;: 1.0,
+      &quot;balanced_accuracy&quot;: 1.0,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: 1.0,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 0.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 1,
+      &quot;accuracy&quot;: 1.0,
+      &quot;balanced_accuracy&quot;: 1.0,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: 1.0,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 0.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S006&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;action_count&quot;: 0,
+      &quot;accuracy&quot;: 0.666667,
+      &quot;balanced_accuracy&quot;: 0.5,
+      &quot;positive_recall&quot;: 0.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: null,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 1,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 5.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.4,
+      &quot;balanced_accuracy&quot;: 0.25,
+      &quot;positive_recall&quot;: 0.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 7.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S009,S012&quot;,
+      &quot;threshold_role&quot;: &quot;primary_budget_rule&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 5,
+      &quot;accuracy&quot;: 0.2,
+      &quot;balanced_accuracy&quot;: 0.5,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.0,
+      &quot;precision&quot;: 0.2,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 4,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 0,
+      &quot;error_cost&quot;: 4.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: true,
+      &quot;selected_ids&quot;: &quot;S009,S010,S011,S012,S013&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 3,
+      &quot;accuracy&quot;: 0.6,
+      &quot;balanced_accuracy&quot;: 0.75,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.333333,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 2,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 2.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: true,
+      &quot;selected_ids&quot;: &quot;S009,S010,S012&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;uncalibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.4,
+      &quot;balanced_accuracy&quot;: 0.25,
+      &quot;positive_recall&quot;: 0.0,
+      &quot;negative_recall&quot;: 0.5,
+      &quot;precision&quot;: 0.0,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 2,
+      &quot;fn&quot;: 1,
+      &quot;tn&quot;: 2,
+      &quot;error_cost&quot;: 7.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S009,S012&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+      &quot;threshold&quot;: &quot;&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 2,
+      &quot;accuracy&quot;: 0.8,
+      &quot;balanced_accuracy&quot;: 0.875,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 0.75,
+      &quot;precision&quot;: 0.5,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 1,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 3,
+      &quot;error_cost&quot;: 1.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S010,S009&quot;,
+      &quot;threshold_role&quot;: &quot;primary_budget_rule&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.3,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 1,
+      &quot;accuracy&quot;: 1.0,
+      &quot;balanced_accuracy&quot;: 1.0,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: 1.0,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 4,
+      &quot;error_cost&quot;: 0.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S010&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.5,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 1,
+      &quot;accuracy&quot;: 1.0,
+      &quot;balanced_accuracy&quot;: 1.0,
+      &quot;positive_recall&quot;: 1.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: 1.0,
+      &quot;tp&quot;: 1,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 0,
+      &quot;tn&quot;: 4,
+      &quot;error_cost&quot;: 0.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;S010&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    },
+    {
+      &quot;probability_source&quot;: &quot;calibrated&quot;,
+      &quot;decision_rule&quot;: &quot;fixed_threshold&quot;,
+      &quot;threshold&quot;: 0.6,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;action_count&quot;: 0,
+      &quot;accuracy&quot;: 0.8,
+      &quot;balanced_accuracy&quot;: 0.5,
+      &quot;positive_recall&quot;: 0.0,
+      &quot;negative_recall&quot;: 1.0,
+      &quot;precision&quot;: null,
+      &quot;tp&quot;: 0,
+      &quot;fp&quot;: 0,
+      &quot;fn&quot;: 1,
+      &quot;tn&quot;: 4,
+      &quot;error_cost&quot;: 5.0,
+      &quot;selection_budget&quot;: 2,
+      &quot;budget_exceeded&quot;: false,
+      &quot;selected_ids&quot;: &quot;&quot;,
+      &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;
+    }
+  ],
+  &quot;audit&quot;: [
+    {
+      &quot;check_id&quot;: &quot;calibration_policy_spec_declares_probability_contract&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;calibration_policy_id\&quot;: \&quot;trial-churn-calibration-policy-v0\&quot;, \&quot;source_model_id\&quot;: \&quot;random_forest_depth2_class_weight_balanced\&quot;, \&quot;method\&quot;: \&quot;validation_bin_map_with_laplace_smoothing\&quot;}&quot;,
+      &quot;expected&quot;: &quot;\&quot;calibration policy contract is explicit\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;upstream_imbalance_handoff_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;imbalance_policy_id\&quot;: \&quot;trial-churn-imbalance-policy-v0\&quot;, \&quot;selected_model_id\&quot;: \&quot;random_forest_depth2_class_weight_balanced\&quot;, \&quot;readiness_status\&quot;: \&quot;ready_for_calibration_lesson\&quot;}&quot;,
+      &quot;expected&quot;: &quot;\&quot;imbalance handoff is valid and ready for calibration\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_split_is_independent&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;fit_split\&quot;: \&quot;train\&quot;, \&quot;calibration_split\&quot;: \&quot;validation\&quot;, \&quot;evaluation_split\&quot;: \&quot;test\&quot;}&quot;,
+      &quot;expected&quot;: &quot;\&quot;fit, calibration and evaluation roles are separate\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_sample_below_minimum&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;3&quot;,
+      &quot;expected&quot;: &quot;\&quot;&gt;= 20 calibration rows\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_bins_below_min_rows&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;[{\&quot;bin_id\&quot;: \&quot;bin_1\&quot;, \&quot;row_count\&quot;: 1}, {\&quot;bin_id\&quot;: \&quot;bin_2\&quot;, \&quot;row_count\&quot;: 1}, {\&quot;bin_id\&quot;: \&quot;bin_3\&quot;, \&quot;row_count\&quot;: 1}]&quot;,
+      &quot;expected&quot;: &quot;\&quot;&gt;= 2 calibration rows per bin\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_bins_missing_class_coverage&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;[{\&quot;bin_id\&quot;: \&quot;bin_1\&quot;, \&quot;positive_count\&quot;: 0, \&quot;negative_count\&quot;: 1}, {\&quot;bin_id\&quot;: \&quot;bin_2\&quot;, \&quot;positive_count\&quot;: 1, \&quot;negative_count\&quot;: 0}, {\&quot;bin_id\&quot;: \&quot;bin_3\&quot;, \&quot;positive_count\&quot;: 0, \&quot;negative_count\&quot;: 1}]&quot;,
+      &quot;expected&quot;: &quot;\&quot;each non-empty calibration bin should contain both classes\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_not_fitted_on_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;calibration_split\&quot;: \&quot;validation\&quot;, \&quot;test_used_for_calibration\&quot;: false}&quot;,
+      &quot;expected&quot;: &quot;\&quot;test split is held out from calibration fit\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_bins_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;rows\&quot;: 6, \&quot;bin_count\&quot;: 3}&quot;,
+      &quot;expected&quot;: &quot;\&quot;calibration bins are reported for validation and test\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_brier_and_log_loss_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;rows\&quot;: 4, \&quot;metrics\&quot;: [\&quot;brier_score\&quot;, \&quot;log_loss\&quot;]}&quot;,
+      &quot;expected&quot;: &quot;\&quot;proper scoring rules are reported for calibrated and uncalibrated scores\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;calibration_threshold_impact_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;{\&quot;rows\&quot;: 16}&quot;,
+      &quot;expected&quot;: &quot;\&quot;threshold impact report is available\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;fixed_threshold_action_count_changes_after_calibration&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;{\&quot;uncalibrated_action_count\&quot;: 3, \&quot;calibrated_action_count\&quot;: 1}&quot;,
+      &quot;expected&quot;: &quot;\&quot;fixed thresholds should be re-audited after calibration\&quot;&quot;
+    },
+    {
+      &quot;check_id&quot;: &quot;tiny_test_improvement_is_not_production_claim&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: &quot;{\&quot;uncalibrated_test_brier\&quot;: 0.25464, \&quot;calibrated_test_brier\&quot;: 0.079012}&quot;,
+      &quot;expected&quot;: &quot;\&quot;tiny test improvement should be treated as a smoke test, not a launch claim\&quot;&quot;
+    }
+  ],
+  &quot;serialized_spec&quot;: {
+    &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+    &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+    &quot;calibration_method&quot;: {
+      &quot;kind&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;,
+      &quot;bin_edges&quot;: [
+        0.0,
+        0.5,
+        0.6,
+        1.0
+      ],
+      &quot;interval_policy&quot;: &quot;lower_inclusive_upper_exclusive_except_last&quot;,
+      &quot;smoothing_alpha&quot;: 2.0,
+      &quot;prior_source&quot;: &quot;calibration_split_positive_rate&quot;,
+      &quot;min_calibration_rows&quot;: 20,
+      &quot;min_rows_per_bin&quot;: 2,
+      &quot;warn_if_bin_has_single_class&quot;: true,
+      &quot;prior_positive_rate&quot;: 0.333333,
+      &quot;learned_bin_map&quot;: [
+        {
+          &quot;bin_id&quot;: &quot;bin_1&quot;,
+          &quot;bin_index&quot;: 1,
+          &quot;lower&quot;: 0.0,
+          &quot;upper&quot;: 0.5,
+          &quot;calibration_row_count&quot;: 1,
+          &quot;calibration_positive_count&quot;: 0,
+          &quot;calibration_negative_count&quot;: 1,
+          &quot;calibration_fraction_positive&quot;: 0.0,
+          &quot;calibration_mean_uncalibrated_score&quot;: 0.46,
+          &quot;calibrated_probability&quot;: 0.222222,
+          &quot;smoothing_alpha&quot;: 2.0,
+          &quot;prior_positive_rate&quot;: 0.333333,
+          &quot;calibration_ids&quot;: &quot;S005&quot;
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_2&quot;,
+          &quot;bin_index&quot;: 2,
+          &quot;lower&quot;: 0.5,
+          &quot;upper&quot;: 0.6,
+          &quot;calibration_row_count&quot;: 1,
+          &quot;calibration_positive_count&quot;: 1,
+          &quot;calibration_negative_count&quot;: 0,
+          &quot;calibration_fraction_positive&quot;: 1.0,
+          &quot;calibration_mean_uncalibrated_score&quot;: 0.5,
+          &quot;calibrated_probability&quot;: 0.555556,
+          &quot;smoothing_alpha&quot;: 2.0,
+          &quot;prior_positive_rate&quot;: 0.333333,
+          &quot;calibration_ids&quot;: &quot;S006&quot;
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_3&quot;,
+          &quot;bin_index&quot;: 3,
+          &quot;lower&quot;: 0.6,
+          &quot;upper&quot;: 1.0,
+          &quot;calibration_row_count&quot;: 1,
+          &quot;calibration_positive_count&quot;: 0,
+          &quot;calibration_negative_count&quot;: 1,
+          &quot;calibration_fraction_positive&quot;: 0.0,
+          &quot;calibration_mean_uncalibrated_score&quot;: 0.64,
+          &quot;calibrated_probability&quot;: 0.222222,
+          &quot;smoothing_alpha&quot;: 2.0,
+          &quot;prior_positive_rate&quot;: 0.333333,
+          &quot;calibration_ids&quot;: &quot;S007&quot;
+        }
+      ]
+    },
+    &quot;fit_trace&quot;: [
+      {
+        &quot;event&quot;: &quot;base_model_fit&quot;,
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;source&quot;: &quot;imbalance_policy_handoff&quot;,
+        &quot;calibration_ids_seen&quot;: [],
+        &quot;test_ids_seen&quot;: []
+      },
+      {
+        &quot;event&quot;: &quot;calibration_bin_map_fit&quot;,
+        &quot;fit_split&quot;: &quot;validation&quot;,
+        &quot;calibration_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;test_ids_seen&quot;: []
+      }
+    ],
+    &quot;test_used_for_calibration&quot;: false,
+    &quot;threshold_policy&quot;: {
+      &quot;selection_data&quot;: &quot;validation&quot;,
+      &quot;evaluation_data&quot;: &quot;test&quot;,
+      &quot;budget_source&quot;: &quot;problem_spec.decision_budget.max_actions&quot;,
+      &quot;primary_decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+      &quot;fixed_threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;,
+      &quot;candidate_thresholds&quot;: [
+        0.3,
+        0.5,
+        0.6
+      ],
+      &quot;tie_breaker&quot;: &quot;score_desc_snapshot_id_asc&quot;,
+      &quot;forbid_threshold_selection_on_test&quot;: true
+    }
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;calibration_policy_spec_declares_probability_contract&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+        &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+        &quot;method&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;
+      },
+      &quot;expected&quot;: &quot;calibration policy contract is explicit&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;upstream_imbalance_handoff_is_valid&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;imbalance_policy_id&quot;: &quot;trial-churn-imbalance-policy-v0&quot;,
+        &quot;selected_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+        &quot;readiness_status&quot;: &quot;ready_for_calibration_lesson&quot;
+      },
+      &quot;expected&quot;: &quot;imbalance handoff is valid and ready for calibration&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_split_is_independent&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;calibration_split&quot;: &quot;validation&quot;,
+        &quot;evaluation_split&quot;: &quot;test&quot;
+      },
+      &quot;expected&quot;: &quot;fit, calibration and evaluation roles are separate&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_sample_below_minimum&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: &quot;&gt;= 20 calibration rows&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_bins_below_min_rows&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        {
+          &quot;bin_id&quot;: &quot;bin_1&quot;,
+          &quot;row_count&quot;: 1
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_2&quot;,
+          &quot;row_count&quot;: 1
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_3&quot;,
+          &quot;row_count&quot;: 1
+        }
+      ],
+      &quot;expected&quot;: &quot;&gt;= 2 calibration rows per bin&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_bins_missing_class_coverage&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        {
+          &quot;bin_id&quot;: &quot;bin_1&quot;,
+          &quot;positive_count&quot;: 0,
+          &quot;negative_count&quot;: 1
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_2&quot;,
+          &quot;positive_count&quot;: 1,
+          &quot;negative_count&quot;: 0
+        },
+        {
+          &quot;bin_id&quot;: &quot;bin_3&quot;,
+          &quot;positive_count&quot;: 0,
+          &quot;negative_count&quot;: 1
+        }
+      ],
+      &quot;expected&quot;: &quot;each non-empty calibration bin should contain both classes&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_not_fitted_on_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;calibration_split&quot;: &quot;validation&quot;,
+        &quot;test_used_for_calibration&quot;: false
+      },
+      &quot;expected&quot;: &quot;test split is held out from calibration fit&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_bins_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 6,
+        &quot;bin_count&quot;: 3
+      },
+      &quot;expected&quot;: &quot;calibration bins are reported for validation and test&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_brier_and_log_loss_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 4,
+        &quot;metrics&quot;: [
+          &quot;brier_score&quot;,
+          &quot;log_loss&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;proper scoring rules are reported for calibrated and uncalibrated scores&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;calibration_threshold_impact_reported&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 16
+      },
+      &quot;expected&quot;: &quot;threshold impact report is available&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;fixed_threshold_action_count_changes_after_calibration&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;uncalibrated_action_count&quot;: 3,
+        &quot;calibrated_action_count&quot;: 1
+      },
+      &quot;expected&quot;: &quot;fixed thresholds should be re-audited after calibration&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_test_improvement_is_not_production_claim&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;uncalibrated_test_brier&quot;: 0.25464,
+        &quot;calibrated_test_brier&quot;: 0.079012
+      },
+      &quot;expected&quot;: &quot;tiny test improvement should be treated as a smoke test, not a launch claim&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;calibration_policy_id&quot;: &quot;trial-churn-calibration-policy-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+  &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+  &quot;calibrated_score_type&quot;: &quot;calibrated_churn_probability&quot;,
+  &quot;calibration_method&quot;: {
+    &quot;kind&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;,
+    &quot;bin_edges&quot;: [
+      0.0,
+      0.5,
+      0.6,
+      1.0
+    ],
+    &quot;interval_policy&quot;: &quot;lower_inclusive_upper_exclusive_except_last&quot;,
+    &quot;smoothing_alpha&quot;: 2.0,
+    &quot;prior_source&quot;: &quot;calibration_split_positive_rate&quot;,
+    &quot;min_calibration_rows&quot;: 20,
+    &quot;min_rows_per_bin&quot;: 2,
+    &quot;warn_if_bin_has_single_class&quot;: true,
+    &quot;prior_positive_rate&quot;: 0.333333,
+    &quot;learned_bin_map&quot;: [
+      {
+        &quot;bin_id&quot;: &quot;bin_1&quot;,
+        &quot;bin_index&quot;: 1,
+        &quot;lower&quot;: 0.0,
+        &quot;upper&quot;: 0.5,
+        &quot;calibration_row_count&quot;: 1,
+        &quot;calibration_positive_count&quot;: 0,
+        &quot;calibration_negative_count&quot;: 1,
+        &quot;calibration_fraction_positive&quot;: 0.0,
+        &quot;calibration_mean_uncalibrated_score&quot;: 0.46,
+        &quot;calibrated_probability&quot;: 0.222222,
+        &quot;smoothing_alpha&quot;: 2.0,
+        &quot;prior_positive_rate&quot;: 0.333333,
+        &quot;calibration_ids&quot;: &quot;S005&quot;
+      },
+      {
+        &quot;bin_id&quot;: &quot;bin_2&quot;,
+        &quot;bin_index&quot;: 2,
+        &quot;lower&quot;: 0.5,
+        &quot;upper&quot;: 0.6,
+        &quot;calibration_row_count&quot;: 1,
+        &quot;calibration_positive_count&quot;: 1,
+        &quot;calibration_negative_count&quot;: 0,
+        &quot;calibration_fraction_positive&quot;: 1.0,
+        &quot;calibration_mean_uncalibrated_score&quot;: 0.5,
+        &quot;calibrated_probability&quot;: 0.555556,
+        &quot;smoothing_alpha&quot;: 2.0,
+        &quot;prior_positive_rate&quot;: 0.333333,
+        &quot;calibration_ids&quot;: &quot;S006&quot;
+      },
+      {
+        &quot;bin_id&quot;: &quot;bin_3&quot;,
+        &quot;bin_index&quot;: 3,
+        &quot;lower&quot;: 0.6,
+        &quot;upper&quot;: 1.0,
+        &quot;calibration_row_count&quot;: 1,
+        &quot;calibration_positive_count&quot;: 0,
+        &quot;calibration_negative_count&quot;: 1,
+        &quot;calibration_fraction_positive&quot;: 0.0,
+        &quot;calibration_mean_uncalibrated_score&quot;: 0.64,
+        &quot;calibrated_probability&quot;: 0.222222,
+        &quot;smoothing_alpha&quot;: 2.0,
+        &quot;prior_positive_rate&quot;: 0.333333,
+        &quot;calibration_ids&quot;: &quot;S007&quot;
+      }
+    ]
+  },
+  &quot;fit_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;base_model_fit&quot;,
+      &quot;fit_split&quot;: &quot;train&quot;,
+      &quot;source&quot;: &quot;imbalance_policy_handoff&quot;,
+      &quot;calibration_ids_seen&quot;: [],
+      &quot;test_ids_seen&quot;: []
+    },
+    {
+      &quot;event&quot;: &quot;calibration_bin_map_fit&quot;,
+      &quot;fit_split&quot;: &quot;validation&quot;,
+      &quot;calibration_ids&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;test_ids_seen&quot;: []
+    }
+  ],
+  &quot;test_used_for_calibration&quot;: false,
+  &quot;threshold_policy&quot;: {
+    &quot;selection_data&quot;: &quot;validation&quot;,
+    &quot;evaluation_data&quot;: &quot;test&quot;,
+    &quot;budget_source&quot;: &quot;problem_spec.decision_budget.max_actions&quot;,
+    &quot;primary_decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+    &quot;fixed_threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;,
+    &quot;candidate_thresholds&quot;: [
+      0.3,
+      0.5,
+      0.6
+    ],
+    &quot;tie_breaker&quot;: &quot;score_desc_snapshot_id_asc&quot;,
+    &quot;forbid_threshold_selection_on_test&quot;: true
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/calibration_threshold_impact.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>probability_source,decision_rule,threshold,split,row_count,positive_count,negative_count,action_count,accuracy,balanced_accuracy,positive_recall,negative_recall,precision,tp,fp,fn,tn,error_cost,selection_budget,budget_exceeded,selected_ids,threshold_role
+uncalibrated,rank_top_k_within_scoring_batch,,validation,3,1,2,2,0.666667,0.75,1.0,0.5,0.5,1,1,0,1,1.0,2,False,&quot;S007,S006&quot;,primary_budget_rule
+uncalibrated,fixed_threshold,0.3,validation,3,1,2,3,0.333333,0.5,1.0,0.0,0.333333,1,2,0,0,2.0,2,True,&quot;S005,S006,S007&quot;,calibration_impact_diagnostic
+uncalibrated,fixed_threshold,0.5,validation,3,1,2,2,0.666667,0.75,1.0,0.5,0.5,1,1,0,1,1.0,2,False,&quot;S006,S007&quot;,calibration_impact_diagnostic
+uncalibrated,fixed_threshold,0.6,validation,3,1,2,1,0.333333,0.25,0.0,0.5,0.0,0,1,1,1,6.0,2,False,S007,calibration_impact_diagnostic
+calibrated,rank_top_k_within_scoring_batch,,validation,3,1,2,2,0.666667,0.75,1.0,0.5,0.5,1,1,0,1,1.0,2,False,&quot;S006,S005&quot;,primary_budget_rule
+calibrated,fixed_threshold,0.3,validation,3,1,2,1,1.0,1.0,1.0,1.0,1.0,1,0,0,2,0.0,2,False,S006,calibration_impact_diagnostic
+calibrated,fixed_threshold,0.5,validation,3,1,2,1,1.0,1.0,1.0,1.0,1.0,1,0,0,2,0.0,2,False,S006,calibration_impact_diagnostic
+calibrated,fixed_threshold,0.6,validation,3,1,2,0,0.666667,0.5,0.0,1.0,,0,0,1,2,5.0,2,False,,calibration_impact_diagnostic
+uncalibrated,rank_top_k_within_scoring_batch,,test,5,1,4,2,0.4,0.25,0.0,0.5,0.0,0,2,1,2,7.0,2,False,&quot;S009,S012&quot;,primary_budget_rule
+uncalibrated,fixed_threshold,0.3,test,5,1,4,5,0.2,0.5,1.0,0.0,0.2,1,4,0,0,4.0,2,True,&quot;S009,S010,S011,S012,S013&quot;,calibration_impact_diagnostic
+uncalibrated,fixed_threshold,0.5,test,5,1,4,3,0.6,0.75,1.0,0.5,0.333333,1,2,0,2,2.0,2,True,&quot;S009,S010,S012&quot;,calibration_impact_diagnostic
+uncalibrated,fixed_threshold,0.6,test,5,1,4,2,0.4,0.25,0.0,0.5,0.0,0,2,1,2,7.0,2,False,&quot;S009,S012&quot;,calibration_impact_diagnostic
+calibrated,rank_top_k_within_scoring_batch,,test,5,1,4,2,0.8,0.875,1.0,0.75,0.5,1,1,0,3,1.0,2,False,&quot;S010,S009&quot;,primary_budget_rule
+calibrated,fixed_threshold,0.3,test,5,1,4,1,1.0,1.0,1.0,1.0,1.0,1,0,0,4,0.0,2,False,S010,calibration_impact_diagnostic
+calibrated,fixed_threshold,0.5,test,5,1,4,1,1.0,1.0,1.0,1.0,1.0,1,0,0,4,0.0,2,False,S010,calibration_impact_diagnostic
+calibrated,fixed_threshold,0.6,test,5,1,4,0,0.8,0.5,0.0,1.0,,0,0,1,4,5.0,2,False,,calibration_impact_diagnostic
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/calibration_threshold_impact.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/probability_calibration_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402, I001
+
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import sklearn
+from sklearn.metrics import brier_score_loss, log_loss
+
+IMBALANCE_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;11-imbalanced-data&quot; / &quot;outputs&quot;
+LINEAR_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;07-linear-models&quot; / &quot;outputs&quot;
+COLUMN_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / &quot;06-column-transformer&quot; / &quot;outputs&quot;
+for output_root in (IMBALANCE_OUTPUT_ROOT, LINEAR_OUTPUT_ROOT, COLUMN_OUTPUT_ROOT):
+    if str(output_root) not in sys.path:
+        sys.path.insert(0, str(output_root))
+
+from column_transformer_auditor import (  # noqa: E402
+    ColumnTransformerAuditError,
+    failed,
+    passed,
+    read_json,
+    rounded,
+    write_json,
+)
+from imbalance_policy_evaluator import (  # noqa: E402
+    ImbalancePolicyError,
+    binary_metrics_from_predictions,
+    json_ready,
+    run as run_imbalance_audit,
+)
+from linear_baseline_trainer import (  # noqa: E402
+    LinearBaselineError,
+    cost_weights,
+    selected_ids_at_budget,
+    selection_budget,
+)
+
+GENERATED_AT = &quot;2026-07-03T10:00:00+03:00&quot;
+
+
+class CalibrationPolicyError(ValueError):
+    &quot;&quot;&quot;Raised when calibration policy inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def validate_calibration_policy_spec(
+    *,
+    problem_spec: dict[str, Any],
+    pipeline_spec: dict[str, Any],
+    column_transformer_spec: dict[str, Any],
+    linear_baseline_spec: dict[str, Any],
+    tree_diagnostic_spec: dict[str, Any],
+    tree_ensemble_spec: dict[str, Any],
+    cv_plan_spec: dict[str, Any],
+    imbalance_policy_spec: dict[str, Any],
+    calibration_policy_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    expected_identity = {
+        &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+        &quot;pipeline_id&quot;: pipeline_spec.get(&quot;pipeline_id&quot;),
+        &quot;column_transformer_id&quot;: column_transformer_spec.get(&quot;column_transformer_id&quot;),
+        &quot;linear_baseline_id&quot;: linear_baseline_spec.get(&quot;linear_baseline_id&quot;),
+        &quot;tree_diagnostic_id&quot;: tree_diagnostic_spec.get(&quot;tree_diagnostic_id&quot;),
+        &quot;tree_ensemble_id&quot;: tree_ensemble_spec.get(&quot;tree_ensemble_id&quot;),
+        &quot;cv_plan_id&quot;: cv_plan_spec.get(&quot;cv_plan_id&quot;),
+        &quot;imbalance_policy_id&quot;: imbalance_policy_spec.get(&quot;imbalance_policy_id&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if calibration_policy_spec.get(field) != expected:
+            errors.append(
+                {
+                    &quot;field&quot;: field,
+                    &quot;observed&quot;: calibration_policy_spec.get(field),
+                    &quot;expected&quot;: expected,
+                }
+            )
+
+    expected_splits = {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;calibration_split&quot;: &quot;validation&quot;,
+        &quot;evaluation_split&quot;: &quot;test&quot;,
+    }
+    for field, expected in expected_splits.items():
+        if calibration_policy_spec.get(field) != expected:
+            errors.append(
+                {&quot;field&quot;: field, &quot;observed&quot;: calibration_policy_spec.get(field), &quot;expected&quot;: expected}
+            )
+    if calibration_policy_spec.get(&quot;score_type&quot;) != column_transformer_spec.get(&quot;score_type&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;score_type&quot;,
+                &quot;observed&quot;: calibration_policy_spec.get(&quot;score_type&quot;),
+                &quot;expected&quot;: column_transformer_spec.get(&quot;score_type&quot;),
+            }
+        )
+    expected_model = imbalance_policy_spec.get(&quot;class_weight_policy&quot;, {}).get(&quot;candidate_model_id&quot;)
+    if calibration_policy_spec.get(&quot;source_model_id&quot;) != expected_model:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;source_model_id&quot;,
+                &quot;observed&quot;: calibration_policy_spec.get(&quot;source_model_id&quot;),
+                &quot;expected&quot;: expected_model,
+            }
+        )
+    if not calibration_policy_spec.get(&quot;calibrated_score_type&quot;):
+        errors.append({&quot;field&quot;: &quot;calibrated_score_type&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    method = calibration_policy_spec.get(&quot;calibration_method&quot;)
+    if not isinstance(method, dict):
+        errors.append({&quot;field&quot;: &quot;calibration_method&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        if method.get(&quot;kind&quot;) != &quot;validation_bin_map_with_laplace_smoothing&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;calibration_method.kind&quot;,
+                    &quot;observed&quot;: method.get(&quot;kind&quot;),
+                    &quot;expected&quot;: &quot;validation_bin_map_with_laplace_smoothing&quot;,
+                }
+            )
+        edges = method.get(&quot;bin_edges&quot;)
+        if not isinstance(edges, list) or len(edges) &lt; 3:
+            errors.append({&quot;field&quot;: &quot;calibration_method.bin_edges&quot;, &quot;reason&quot;: &quot;at least 3 edges&quot;})
+        else:
+            numeric_edges = [float(edge) for edge in edges]
+            if numeric_edges[0] != 0.0 or numeric_edges[-1] != 1.0:
+                errors.append(
+                    {
+                        &quot;field&quot;: &quot;calibration_method.bin_edges&quot;,
+                        &quot;observed&quot;: edges,
+                        &quot;expected&quot;: &quot;starts at 0.0 and ends at 1.0&quot;,
+                    }
+                )
+            if numeric_edges != sorted(numeric_edges) or len(set(numeric_edges)) != len(numeric_edges):
+                errors.append(
+                    {
+                        &quot;field&quot;: &quot;calibration_method.bin_edges&quot;,
+                        &quot;observed&quot;: edges,
+                        &quot;expected&quot;: &quot;strictly increasing&quot;,
+                    }
+                )
+        if float(method.get(&quot;smoothing_alpha&quot;, 0.0)) &lt;= 0.0:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;calibration_method.smoothing_alpha&quot;,
+                    &quot;observed&quot;: method.get(&quot;smoothing_alpha&quot;),
+                    &quot;expected&quot;: &quot;&gt; 0&quot;,
+                }
+            )
+        if method.get(&quot;prior_source&quot;) != &quot;calibration_split_positive_rate&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;calibration_method.prior_source&quot;,
+                    &quot;observed&quot;: method.get(&quot;prior_source&quot;),
+                    &quot;expected&quot;: &quot;calibration_split_positive_rate&quot;,
+                }
+            )
+
+    metrics = calibration_policy_spec.get(&quot;metrics&quot;)
+    if not isinstance(metrics, dict):
+        errors.append({&quot;field&quot;: &quot;metrics&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        proper = set(metrics.get(&quot;proper_scoring_rules&quot;) or [])
+        diagnostics = set(metrics.get(&quot;diagnostics&quot;) or [])
+        if not {&quot;brier_score&quot;, &quot;log_loss&quot;}.issubset(proper):
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;metrics.proper_scoring_rules&quot;,
+                    &quot;observed&quot;: sorted(proper),
+                    &quot;expected&quot;: [&quot;brier_score&quot;, &quot;log_loss&quot;],
+                }
+            )
+        if &quot;calibration_bins&quot; not in diagnostics:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;metrics.diagnostics&quot;,
+                    &quot;observed&quot;: sorted(diagnostics),
+                    &quot;expected&quot;: &quot;calibration_bins&quot;,
+                }
+            )
+
+    threshold_policy = calibration_policy_spec.get(&quot;threshold_policy&quot;)
+    if not isinstance(threshold_policy, dict):
+        errors.append({&quot;field&quot;: &quot;threshold_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        expected_threshold = {
+            &quot;selection_data&quot;: &quot;validation&quot;,
+            &quot;evaluation_data&quot;: &quot;test&quot;,
+            &quot;primary_decision_rule&quot;: &quot;rank_top_k_within_scoring_batch&quot;,
+            &quot;fixed_threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;,
+            &quot;forbid_threshold_selection_on_test&quot;: True,
+        }
+        for field, expected in expected_threshold.items():
+            if threshold_policy.get(field) != expected:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;threshold_policy.{field}&quot;,
+                        &quot;observed&quot;: threshold_policy.get(field),
+                        &quot;expected&quot;: expected,
+                    }
+                )
+        thresholds = threshold_policy.get(&quot;candidate_thresholds&quot;)
+        if not isinstance(thresholds, list) or not thresholds:
+            errors.append({&quot;field&quot;: &quot;threshold_policy.candidate_thresholds&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    audit_policy = calibration_policy_spec.get(&quot;audit_policy&quot;)
+    if not isinstance(audit_policy, dict):
+        errors.append({&quot;field&quot;: &quot;audit_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;require_imbalance_handoff&quot;,
+            &quot;require_independent_calibration_split&quot;,
+            &quot;require_calibration_bins&quot;,
+            &quot;require_brier_score&quot;,
+            &quot;require_log_loss&quot;,
+            &quot;require_threshold_impact_report&quot;,
+            &quot;forbid_fit_on_calibration_or_test&quot;,
+            &quot;forbid_calibration_on_test&quot;,
+            &quot;forbid_test_threshold_selection&quot;,
+            &quot;warn_small_calibration_sample&quot;,
+        ):
+            if audit_policy.get(field) is not True:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;audit_policy.{field}&quot;,
+                        &quot;observed&quot;: audit_policy.get(field),
+                        &quot;expected&quot;: True,
+                    }
+                )
+
+    output = calibration_policy_spec.get(&quot;output&quot;)
+    if not isinstance(output, dict):
+        errors.append({&quot;field&quot;: &quot;output&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;bin_file&quot;,
+            &quot;metric_file&quot;,
+            &quot;prediction_file&quot;,
+            &quot;threshold_file&quot;,
+            &quot;audit_file&quot;,
+            &quot;report_file&quot;,
+            &quot;serialized_spec_file&quot;,
+        ):
+            if not output.get(field):
+                errors.append({&quot;field&quot;: f&quot;output.{field}&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    if errors:
+        return failed(
+            &quot;calibration_policy_spec_declares_probability_contract&quot;,
+            len(errors),
+            &quot;calibration policy with validation bin map, proper scores and test isolation&quot;,
+            errors,
+        )
+    return passed(
+        &quot;calibration_policy_spec_declares_probability_contract&quot;,
+        {
+            &quot;calibration_policy_id&quot;: calibration_policy_spec[&quot;calibration_policy_id&quot;],
+            &quot;source_model_id&quot;: calibration_policy_spec[&quot;source_model_id&quot;],
+            &quot;method&quot;: calibration_policy_spec[&quot;calibration_method&quot;][&quot;kind&quot;],
+        },
+        &quot;calibration policy contract is explicit&quot;,
+    )
+
+
+def bin_for_score(score: float, edges: list[float]) -&gt; dict[str, Any]:
+    for index, (lower, upper) in enumerate(zip(edges[:-1], edges[1:], strict=True), start=1):
+        is_last = index == len(edges) - 1
+        if score &gt;= lower and (score &lt; upper or (is_last and score &lt;= upper)):
+            return {
+                &quot;bin_id&quot;: f&quot;bin_{index}&quot;,
+                &quot;bin_index&quot;: index,
+                &quot;lower&quot;: lower,
+                &quot;upper&quot;: upper,
+            }
+    raise CalibrationPolicyError(f&quot;score {score} is outside calibration bin edges&quot;)
+
+
+def prediction_payload(
+    imbalance_report: dict[str, Any], *, source_model_id: str
+) -&gt; dict[str, dict[str, list[Any]]]:
+    rows = [
+        row
+        for row in imbalance_report.get(&quot;predictions&quot;, [])
+        if row.get(&quot;model_id&quot;) == source_model_id and row.get(&quot;split&quot;) in {&quot;validation&quot;, &quot;test&quot;}
+    ]
+    if not rows:
+        raise CalibrationPolicyError(f&quot;no predictions for source_model_id={source_model_id}&quot;)
+    payload: dict[str, dict[str, list[Any]]] = {}
+    for split in (&quot;validation&quot;, &quot;test&quot;):
+        split_rows = sorted(
+            [row for row in rows if row[&quot;split&quot;] == split],
+            key=lambda row: row[&quot;snapshot_id&quot;],
+        )
+        payload[split] = {
+            &quot;ids&quot;: [row[&quot;snapshot_id&quot;] for row in split_rows],
+            &quot;labels&quot;: np.array([int(row[&quot;actual_label&quot;]) for row in split_rows], dtype=int),
+            &quot;scores&quot;: np.array([float(row[&quot;score&quot;]) for row in split_rows], dtype=float),
+            &quot;rows&quot;: split_rows,
+        }
+    return payload
+
+
+def build_bin_map(
+    *,
+    ids: list[str],
+    labels: np.ndarray,
+    scores: np.ndarray,
+    edges: list[float],
+    alpha: float,
+) -&gt; tuple[list[dict[str, Any]], float]:
+    positive_rate = float(labels.mean()) if len(labels) else 0.0
+    records: list[dict[str, Any]] = []
+    for index, (lower, upper) in enumerate(zip(edges[:-1], edges[1:], strict=True), start=1):
+        bin_id = f&quot;bin_{index}&quot;
+        members = [
+            position
+            for position, score in enumerate(scores.tolist())
+            if bin_for_score(float(score), edges)[&quot;bin_id&quot;] == bin_id
+        ]
+        row_count = len(members)
+        positive_count = int(labels[members].sum()) if members else 0
+        negative_count = row_count - positive_count
+        fraction_positive = None if row_count == 0 else positive_count / row_count
+        mean_uncalibrated = None if row_count == 0 else float(scores[members].mean())
+        calibrated_probability = (positive_count + alpha * positive_rate) / (row_count + alpha)
+        records.append(
+            {
+                &quot;bin_id&quot;: bin_id,
+                &quot;bin_index&quot;: index,
+                &quot;lower&quot;: rounded(lower),
+                &quot;upper&quot;: rounded(upper),
+                &quot;calibration_row_count&quot;: row_count,
+                &quot;calibration_positive_count&quot;: positive_count,
+                &quot;calibration_negative_count&quot;: negative_count,
+                &quot;calibration_fraction_positive&quot;: None
+                if fraction_positive is None
+                else rounded(fraction_positive),
+                &quot;calibration_mean_uncalibrated_score&quot;: None
+                if mean_uncalibrated is None
+                else rounded(mean_uncalibrated),
+                &quot;calibrated_probability&quot;: rounded(calibrated_probability),
+                &quot;smoothing_alpha&quot;: rounded(alpha),
+                &quot;prior_positive_rate&quot;: rounded(positive_rate),
+                &quot;calibration_ids&quot;: &quot;,&quot;.join(ids[position] for position in members),
+            }
+        )
+    return records, positive_rate
+
+
+def calibrated_probability(score: float, edges: list[float], bin_map: list[dict[str, Any]]) -&gt; float:
+    assigned = bin_for_score(score, edges)
+    record = next(row for row in bin_map if row[&quot;bin_id&quot;] == assigned[&quot;bin_id&quot;])
+    return float(record[&quot;calibrated_probability&quot;])
+
+
+def build_prediction_rows(
+    *,
+    payload: dict[str, dict[str, list[Any]]],
+    source_model_id: str,
+    score_type: str,
+    calibrated_score_type: str,
+    budget: int,
+    edges: list[float],
+    bin_map: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for split in (&quot;validation&quot;, &quot;test&quot;):
+        ids = payload[split][&quot;ids&quot;]
+        labels = payload[split][&quot;labels&quot;]
+        scores = payload[split][&quot;scores&quot;]
+        calibrated_scores = np.array(
+            [calibrated_probability(float(score), edges, bin_map) for score in scores.tolist()]
+        )
+        selected_uncalibrated = selected_ids_at_budget(ids, scores, min(budget, len(ids)))
+        selected_calibrated = selected_ids_at_budget(ids, calibrated_scores, min(budget, len(ids)))
+        for snapshot_id, label, score, calibrated_score in zip(
+            ids, labels.tolist(), scores.tolist(), calibrated_scores.tolist(), strict=True
+        ):
+            assigned = bin_for_score(float(score), edges)
+            bin_record = next(row for row in bin_map if row[&quot;bin_id&quot;] == assigned[&quot;bin_id&quot;])
+            rows.append(
+                {
+                    &quot;split&quot;: split,
+                    &quot;snapshot_id&quot;: snapshot_id,
+                    &quot;model_id&quot;: source_model_id,
+                    &quot;score_type&quot;: score_type,
+                    &quot;calibrated_score_type&quot;: calibrated_score_type,
+                    &quot;uncalibrated_score&quot;: rounded(float(score)),
+                    &quot;calibrated_score&quot;: rounded(float(calibrated_score)),
+                    &quot;actual_label&quot;: int(label),
+                    &quot;bin_id&quot;: assigned[&quot;bin_id&quot;],
+                    &quot;bin_lower&quot;: assigned[&quot;lower&quot;],
+                    &quot;bin_upper&quot;: assigned[&quot;upper&quot;],
+                    &quot;calibration_bin_probability&quot;: bin_record[&quot;calibrated_probability&quot;],
+                    &quot;selected_at_budget_uncalibrated&quot;: int(snapshot_id in selected_uncalibrated),
+                    &quot;selected_at_budget_calibrated&quot;: int(snapshot_id in selected_calibrated),
+                    &quot;predicted_at_0_5_uncalibrated&quot;: int(score &gt;= 0.5),
+                    &quot;predicted_at_0_5_calibrated&quot;: int(calibrated_score &gt;= 0.5),
+                    &quot;trained_on_split&quot;: &quot;train&quot;,
+                    &quot;calibrated_on_split&quot;: &quot;validation&quot;,
+                    &quot;test_used_for_calibration&quot;: False,
+                    &quot;generated_at&quot;: GENERATED_AT,
+                }
+            )
+    return rows
+
+
+def build_calibration_bin_rows(
+    *,
+    payload: dict[str, dict[str, list[Any]]],
+    edges: list[float],
+    bin_map: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for split in (&quot;validation&quot;, &quot;test&quot;):
+        labels = payload[split][&quot;labels&quot;]
+        scores = payload[split][&quot;scores&quot;]
+        for bin_record in bin_map:
+            members = [
+                position
+                for position, score in enumerate(scores.tolist())
+                if bin_for_score(float(score), edges)[&quot;bin_id&quot;] == bin_record[&quot;bin_id&quot;]
+            ]
+            row_count = len(members)
+            positive_count = int(labels[members].sum()) if members else 0
+            negative_count = row_count - positive_count
+            fraction_positive = None if row_count == 0 else positive_count / row_count
+            mean_uncalibrated = None if row_count == 0 else float(scores[members].mean())
+            calibrated_probability_value = float(bin_record[&quot;calibrated_probability&quot;])
+            rows.append(
+                {
+                    &quot;split&quot;: split,
+                    &quot;bin_id&quot;: bin_record[&quot;bin_id&quot;],
+                    &quot;lower&quot;: bin_record[&quot;lower&quot;],
+                    &quot;upper&quot;: bin_record[&quot;upper&quot;],
+                    &quot;row_count&quot;: row_count,
+                    &quot;positive_count&quot;: positive_count,
+                    &quot;negative_count&quot;: negative_count,
+                    &quot;fraction_positive&quot;: None
+                    if fraction_positive is None
+                    else rounded(fraction_positive),
+                    &quot;mean_uncalibrated_score&quot;: None
+                    if mean_uncalibrated is None
+                    else rounded(mean_uncalibrated),
+                    &quot;calibrated_probability_from_validation&quot;: rounded(
+                        calibrated_probability_value
+                    ),
+                    &quot;absolute_uncalibrated_gap&quot;: None
+                    if fraction_positive is None or mean_uncalibrated is None
+                    else rounded(abs(fraction_positive - mean_uncalibrated)),
+                    &quot;absolute_calibrated_gap&quot;: None
+                    if fraction_positive is None
+                    else rounded(abs(fraction_positive - calibrated_probability_value)),
+                    &quot;learned_on_split&quot;: &quot;validation&quot;,
+                }
+            )
+    return rows
+
+
+def expected_calibration_error(labels: np.ndarray, scores: np.ndarray, edges: list[float]) -&gt; float:
+    total = len(labels)
+    if total == 0:
+        return 0.0
+    ece = 0.0
+    for index in range(1, len(edges)):
+        bin_id = f&quot;bin_{index}&quot;
+        members = [
+            position
+            for position, score in enumerate(scores.tolist())
+            if bin_for_score(float(score), edges)[&quot;bin_id&quot;] == bin_id
+        ]
+        if not members:
+            continue
+        fraction_positive = float(labels[members].mean())
+        mean_score = float(scores[members].mean())
+        ece += (len(members) / total) * abs(fraction_positive - mean_score)
+    return ece
+
+
+def metric_row(
+    *,
+    split: str,
+    probability_source: str,
+    labels: np.ndarray,
+    scores: np.ndarray,
+    edges: list[float],
+) -&gt; dict[str, Any]:
+    probability_matrix = np.column_stack([1 - scores, scores])
+    positive_count = int(labels.sum())
+    negative_count = len(labels) - positive_count
+    return {
+        &quot;split&quot;: split,
+        &quot;probability_source&quot;: probability_source,
+        &quot;row_count&quot;: len(labels),
+        &quot;positive_count&quot;: positive_count,
+        &quot;negative_count&quot;: negative_count,
+        &quot;brier_score&quot;: rounded(float(brier_score_loss(labels, scores))),
+        &quot;log_loss&quot;: rounded(float(log_loss(labels, probability_matrix, labels=[0, 1]))),
+        &quot;expected_calibration_error&quot;: rounded(expected_calibration_error(labels, scores, edges)),
+        &quot;score_min&quot;: rounded(float(scores.min())),
+        &quot;score_max&quot;: rounded(float(scores.max())),
+        &quot;score_mean&quot;: rounded(float(scores.mean())),
+    }
+
+
+def build_metric_rows(
+    *,
+    payload: dict[str, dict[str, list[Any]]],
+    edges: list[float],
+    bin_map: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for split in (&quot;validation&quot;, &quot;test&quot;):
+        labels = payload[split][&quot;labels&quot;]
+        uncalibrated_scores = payload[split][&quot;scores&quot;]
+        calibrated_scores = np.array(
+            [
+                calibrated_probability(float(score), edges, bin_map)
+                for score in uncalibrated_scores.tolist()
+            ]
+        )
+        rows.append(
+            metric_row(
+                split=split,
+                probability_source=&quot;uncalibrated&quot;,
+                labels=labels,
+                scores=uncalibrated_scores,
+                edges=edges,
+            )
+        )
+        rows.append(
+            metric_row(
+                split=split,
+                probability_source=&quot;calibrated&quot;,
+                labels=labels,
+                scores=calibrated_scores,
+                edges=edges,
+            )
+        )
+    return rows
+
+
+def ranked_ids_at_budget(ids: list[str], scores: np.ndarray, budget: int) -&gt; list[str]:
+    ranked = sorted(zip(ids, scores.tolist(), strict=True), key=lambda item: (-item[1], item[0]))
+    return [snapshot_id for snapshot_id, _score in ranked[:budget]]
+
+
+def threshold_metrics(
+    *,
+    split: str,
+    probability_source: str,
+    ids: list[str],
+    labels: np.ndarray,
+    scores: np.ndarray,
+    threshold: float | None,
+    budget: int,
+    false_positive_cost: float,
+    false_negative_cost: float,
+) -&gt; dict[str, Any]:
+    if threshold is None:
+        selected = ranked_ids_at_budget(ids, scores, budget)
+        selected_set = set(selected)
+        y_pred = np.array([1 if snapshot_id in selected_set else 0 for snapshot_id in ids])
+        decision_rule = &quot;rank_top_k_within_scoring_batch&quot;
+        threshold_value: float | str = &quot;&quot;
+    else:
+        y_pred = (scores &gt;= threshold).astype(int)
+        decision_rule = &quot;fixed_threshold&quot;
+        threshold_value = threshold
+        selected = [
+            snapshot_id
+            for snapshot_id, pred in zip(ids, y_pred.tolist(), strict=True)
+            if int(pred) == 1
+        ]
+    metrics = binary_metrics_from_predictions(
+        split=split,
+        ids=ids,
+        y_true=labels,
+        y_pred=y_pred,
+        false_positive_cost=false_positive_cost,
+        false_negative_cost=false_negative_cost,
+    )
+    return {
+        &quot;probability_source&quot;: probability_source,
+        &quot;decision_rule&quot;: decision_rule,
+        &quot;threshold&quot;: threshold_value,
+        **metrics,
+        &quot;selection_budget&quot;: budget,
+        &quot;budget_exceeded&quot;: metrics[&quot;action_count&quot;] &gt; budget,
+        &quot;selected_ids&quot;: &quot;,&quot;.join(selected),
+    }
+
+
+def build_threshold_rows(
+    *,
+    payload: dict[str, dict[str, list[Any]]],
+    thresholds: list[float],
+    budget: int,
+    false_positive_cost: float,
+    false_negative_cost: float,
+    edges: list[float],
+    bin_map: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for split in (&quot;validation&quot;, &quot;test&quot;):
+        ids = payload[split][&quot;ids&quot;]
+        labels = payload[split][&quot;labels&quot;]
+        uncalibrated_scores = payload[split][&quot;scores&quot;]
+        calibrated_scores = np.array(
+            [
+                calibrated_probability(float(score), edges, bin_map)
+                for score in uncalibrated_scores.tolist()
+            ]
+        )
+        for probability_source, scores in (
+            (&quot;uncalibrated&quot;, uncalibrated_scores),
+            (&quot;calibrated&quot;, calibrated_scores),
+        ):
+            rows.append(
+                {
+                    **threshold_metrics(
+                        split=split,
+                        probability_source=probability_source,
+                        ids=ids,
+                        labels=labels,
+                        scores=scores,
+                        threshold=None,
+                        budget=min(budget, len(ids)),
+                        false_positive_cost=false_positive_cost,
+                        false_negative_cost=false_negative_cost,
+                    ),
+                    &quot;threshold_role&quot;: &quot;primary_budget_rule&quot;,
+                }
+            )
+            for threshold in thresholds:
+                rows.append(
+                    {
+                        **threshold_metrics(
+                            split=split,
+                            probability_source=probability_source,
+                            ids=ids,
+                            labels=labels,
+                            scores=scores,
+                            threshold=float(threshold),
+                            budget=min(budget, len(ids)),
+                            false_positive_cost=false_positive_cost,
+                            false_negative_cost=false_negative_cost,
+                        ),
+                        &quot;threshold_role&quot;: &quot;calibration_impact_diagnostic&quot;,
+                    }
+                )
+    return rows
+
+
+def build_audit_rows(checks: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for check in checks:
+        rows.append(
+            {
+                &quot;check_id&quot;: check[&quot;id&quot;],
+                &quot;severity&quot;: check[&quot;severity&quot;],
+                &quot;valid&quot;: check[&quot;valid&quot;],
+                &quot;observed&quot;: json.dumps(json_ready(check[&quot;observed&quot;]), ensure_ascii=False),
+                &quot;expected&quot;: json.dumps(json_ready(check[&quot;expected&quot;]), ensure_ascii=False),
+            }
+        )
+    return rows
+
+
+def run(
+    *,
+    spec_path: Path,
+    preprocessing_contract_path: Path,
+    pipeline_spec_path: Path,
+    column_transformer_spec_path: Path,
+    linear_baseline_spec_path: Path,
+    tree_diagnostic_spec_path: Path,
+    tree_ensemble_spec_path: Path,
+    cv_plan_spec_path: Path,
+    imbalance_policy_spec_path: Path,
+    calibration_policy_spec_path: Path,
+    features_path: Path,
+    labels_path: Path,
+    manifest_path: Path,
+    cv_fold_manifest_path: Path,
+    report_output_path: Path | None = None,
+    bin_output_path: Path | None = None,
+    metric_output_path: Path | None = None,
+    predictions_output_path: Path | None = None,
+    threshold_output_path: Path | None = None,
+    audit_output_path: Path | None = None,
+    serialized_spec_output_path: Path | None = None,
+) -&gt; dict[str, Any]:
+    problem_spec = read_json(spec_path)
+    pipeline_spec = read_json(pipeline_spec_path)
+    column_transformer_spec = read_json(column_transformer_spec_path)
+    linear_baseline_spec = read_json(linear_baseline_spec_path)
+    tree_diagnostic_spec = read_json(tree_diagnostic_spec_path)
+    tree_ensemble_spec = read_json(tree_ensemble_spec_path)
+    cv_plan_spec = read_json(cv_plan_spec_path)
+    imbalance_policy_spec = read_json(imbalance_policy_spec_path)
+    calibration_policy_spec = read_json(calibration_policy_spec_path)
+    checks: list[dict[str, Any]] = [
+        validate_calibration_policy_spec(
+            problem_spec=problem_spec,
+            pipeline_spec=pipeline_spec,
+            column_transformer_spec=column_transformer_spec,
+            linear_baseline_spec=linear_baseline_spec,
+            tree_diagnostic_spec=tree_diagnostic_spec,
+            tree_ensemble_spec=tree_ensemble_spec,
+            cv_plan_spec=cv_plan_spec,
+            imbalance_policy_spec=imbalance_policy_spec,
+            calibration_policy_spec=calibration_policy_spec,
+        )
+    ]
+
+    imbalance_report = run_imbalance_audit(
+        spec_path=spec_path,
+        preprocessing_contract_path=preprocessing_contract_path,
+        pipeline_spec_path=pipeline_spec_path,
+        column_transformer_spec_path=column_transformer_spec_path,
+        linear_baseline_spec_path=linear_baseline_spec_path,
+        tree_diagnostic_spec_path=tree_diagnostic_spec_path,
+        tree_ensemble_spec_path=tree_ensemble_spec_path,
+        cv_plan_spec_path=cv_plan_spec_path,
+        imbalance_policy_spec_path=imbalance_policy_spec_path,
+        features_path=features_path,
+        labels_path=labels_path,
+        manifest_path=manifest_path,
+        cv_fold_manifest_path=cv_fold_manifest_path,
+    )
+    if imbalance_report.get(&quot;valid&quot;) and (
+        imbalance_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;)
+        == &quot;ready_for_calibration_lesson&quot;
+    ):
+        checks.append(
+            passed(
+                &quot;upstream_imbalance_handoff_is_valid&quot;,
+                {
+                    &quot;imbalance_policy_id&quot;: imbalance_policy_spec.get(&quot;imbalance_policy_id&quot;),
+                    &quot;selected_model_id&quot;: imbalance_report[&quot;summary&quot;].get(&quot;selected_model_id&quot;),
+                    &quot;readiness_status&quot;: imbalance_report[&quot;summary&quot;].get(&quot;readiness_status&quot;),
+                },
+                &quot;imbalance handoff is valid and ready for calibration&quot;,
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;upstream_imbalance_handoff_is_valid&quot;,
+                imbalance_report.get(&quot;summary&quot;, {}).get(&quot;blocking_errors&quot;, []),
+                &quot;valid imbalance report with ready_for_calibration_lesson&quot;,
+                imbalance_report.get(&quot;checks&quot;, []),
+            )
+        )
+
+    independent_splits = {
+        calibration_policy_spec.get(&quot;fit_split&quot;),
+        calibration_policy_spec.get(&quot;calibration_split&quot;),
+        calibration_policy_spec.get(&quot;evaluation_split&quot;),
+    }
+    if independent_splits == {&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;}:
+        checks.append(
+            passed(
+                &quot;calibration_split_is_independent&quot;,
+                {
+                    &quot;fit_split&quot;: calibration_policy_spec.get(&quot;fit_split&quot;),
+                    &quot;calibration_split&quot;: calibration_policy_spec.get(&quot;calibration_split&quot;),
+                    &quot;evaluation_split&quot;: calibration_policy_spec.get(&quot;evaluation_split&quot;),
+                },
+                &quot;fit, calibration and evaluation roles are separate&quot;,
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;calibration_split_is_independent&quot;,
+                sorted(str(value) for value in independent_splits),
+                [&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;],
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    if blocking_errors:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;calibration_policy_id&quot;: calibration_policy_spec.get(&quot;calibration_policy_id&quot;),
+                &quot;blocking_errors&quot;: blocking_errors,
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_calibration&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+        if report_output_path is not None:
+            write_json(report_output_path, json_ready(report))
+        return report
+
+    source_model_id = calibration_policy_spec[&quot;source_model_id&quot;]
+    method = calibration_policy_spec[&quot;calibration_method&quot;]
+    edges = [float(edge) for edge in method[&quot;bin_edges&quot;]]
+    alpha = float(method[&quot;smoothing_alpha&quot;])
+    payload = prediction_payload(imbalance_report, source_model_id=source_model_id)
+    calibration_ids = payload[&quot;validation&quot;][&quot;ids&quot;]
+    calibration_labels = payload[&quot;validation&quot;][&quot;labels&quot;]
+    calibration_scores = payload[&quot;validation&quot;][&quot;scores&quot;]
+    bin_map, prior_positive_rate = build_bin_map(
+        ids=calibration_ids,
+        labels=calibration_labels,
+        scores=calibration_scores,
+        edges=edges,
+        alpha=alpha,
+    )
+
+    min_calibration_rows = int(method[&quot;min_calibration_rows&quot;])
+    min_rows_per_bin = int(method[&quot;min_rows_per_bin&quot;])
+    if len(calibration_ids) &lt; min_calibration_rows:
+        checks.append(
+            failed(
+                &quot;calibration_sample_below_minimum&quot;,
+                len(calibration_ids),
+                f&quot;&gt;= {min_calibration_rows} calibration rows&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    sparse_bins = [
+        {
+            &quot;bin_id&quot;: row[&quot;bin_id&quot;],
+            &quot;row_count&quot;: row[&quot;calibration_row_count&quot;],
+        }
+        for row in bin_map
+        if row[&quot;calibration_row_count&quot;] &lt; min_rows_per_bin
+    ]
+    if sparse_bins:
+        checks.append(
+            failed(
+                &quot;calibration_bins_below_min_rows&quot;,
+                sparse_bins,
+                f&quot;&gt;= {min_rows_per_bin} calibration rows per bin&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    single_class_bins = [
+        {
+            &quot;bin_id&quot;: row[&quot;bin_id&quot;],
+            &quot;positive_count&quot;: row[&quot;calibration_positive_count&quot;],
+            &quot;negative_count&quot;: row[&quot;calibration_negative_count&quot;],
+        }
+        for row in bin_map
+        if row[&quot;calibration_row_count&quot;] &gt; 0
+        and (
+            row[&quot;calibration_positive_count&quot;] == 0
+            or row[&quot;calibration_negative_count&quot;] == 0
+        )
+    ]
+    if method.get(&quot;warn_if_bin_has_single_class&quot;) and single_class_bins:
+        checks.append(
+            failed(
+                &quot;calibration_bins_missing_class_coverage&quot;,
+                single_class_bins,
+                &quot;each non-empty calibration bin should contain both classes&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    checks.append(
+        passed(
+            &quot;calibration_not_fitted_on_test&quot;,
+            {&quot;calibration_split&quot;: &quot;validation&quot;, &quot;test_used_for_calibration&quot;: False},
+            &quot;test split is held out from calibration fit&quot;,
+        )
+    )
+
+    prediction_rows = build_prediction_rows(
+        payload=payload,
+        source_model_id=source_model_id,
+        score_type=calibration_policy_spec[&quot;score_type&quot;],
+        calibrated_score_type=calibration_policy_spec[&quot;calibrated_score_type&quot;],
+        budget=selection_budget(problem_spec),
+        edges=edges,
+        bin_map=bin_map,
+    )
+    bin_rows = build_calibration_bin_rows(payload=payload, edges=edges, bin_map=bin_map)
+    metric_rows = build_metric_rows(payload=payload, edges=edges, bin_map=bin_map)
+    false_positive_cost, false_negative_cost = cost_weights(problem_spec)
+    threshold_rows = build_threshold_rows(
+        payload=payload,
+        thresholds=calibration_policy_spec[&quot;threshold_policy&quot;][&quot;candidate_thresholds&quot;],
+        budget=selection_budget(problem_spec),
+        false_positive_cost=false_positive_cost,
+        false_negative_cost=false_negative_cost,
+        edges=edges,
+        bin_map=bin_map,
+    )
+
+    checks.append(
+        passed(
+            &quot;calibration_bins_reported&quot;,
+            {&quot;rows&quot;: len(bin_rows), &quot;bin_count&quot;: len(bin_map)},
+            &quot;calibration bins are reported for validation and test&quot;,
+        )
+    )
+    checks.append(
+        passed(
+            &quot;calibration_brier_and_log_loss_reported&quot;,
+            {&quot;rows&quot;: len(metric_rows), &quot;metrics&quot;: [&quot;brier_score&quot;, &quot;log_loss&quot;]},
+            &quot;proper scoring rules are reported for calibrated and uncalibrated scores&quot;,
+        )
+    )
+    checks.append(
+        passed(
+            &quot;calibration_threshold_impact_reported&quot;,
+            {&quot;rows&quot;: len(threshold_rows)},
+            &quot;threshold impact report is available&quot;,
+        )
+    )
+
+    fixed_test_uncalibrated = next(
+        row
+        for row in threshold_rows
+        if row[&quot;split&quot;] == &quot;test&quot;
+        and row[&quot;probability_source&quot;] == &quot;uncalibrated&quot;
+        and row[&quot;decision_rule&quot;] == &quot;fixed_threshold&quot;
+        and row[&quot;threshold&quot;] == 0.5
+    )
+    fixed_test_calibrated = next(
+        row
+        for row in threshold_rows
+        if row[&quot;split&quot;] == &quot;test&quot;
+        and row[&quot;probability_source&quot;] == &quot;calibrated&quot;
+        and row[&quot;decision_rule&quot;] == &quot;fixed_threshold&quot;
+        and row[&quot;threshold&quot;] == 0.5
+    )
+    if fixed_test_uncalibrated[&quot;action_count&quot;] != fixed_test_calibrated[&quot;action_count&quot;]:
+        checks.append(
+            failed(
+                &quot;fixed_threshold_action_count_changes_after_calibration&quot;,
+                {
+                    &quot;uncalibrated_action_count&quot;: fixed_test_uncalibrated[&quot;action_count&quot;],
+                    &quot;calibrated_action_count&quot;: fixed_test_calibrated[&quot;action_count&quot;],
+                },
+                &quot;fixed thresholds should be re-audited after calibration&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    metric_lookup = {
+        (row[&quot;split&quot;], row[&quot;probability_source&quot;]): row
+        for row in metric_rows
+    }
+    if (
+        metric_lookup[(&quot;test&quot;, &quot;calibrated&quot;)][&quot;brier_score&quot;]
+        &lt; metric_lookup[(&quot;test&quot;, &quot;uncalibrated&quot;)][&quot;brier_score&quot;]
+    ):
+        checks.append(
+            failed(
+                &quot;tiny_test_improvement_is_not_production_claim&quot;,
+                {
+                    &quot;uncalibrated_test_brier&quot;: metric_lookup[(&quot;test&quot;, &quot;uncalibrated&quot;)][
+                        &quot;brier_score&quot;
+                    ],
+                    &quot;calibrated_test_brier&quot;: metric_lookup[(&quot;test&quot;, &quot;calibrated&quot;)][
+                        &quot;brier_score&quot;
+                    ],
+                },
+                &quot;tiny test improvement should be treated as a smoke test, not a launch claim&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    valid = not blocking_errors
+    threshold_lookup = {
+        (row[&quot;split&quot;], row[&quot;probability_source&quot;], row[&quot;decision_rule&quot;], row[&quot;threshold&quot;]): row
+        for row in threshold_rows
+    }
+    test_topk_uncalibrated = threshold_lookup[
+        (&quot;test&quot;, &quot;uncalibrated&quot;, &quot;rank_top_k_within_scoring_batch&quot;, &quot;&quot;)
+    ]
+    test_topk_calibrated = threshold_lookup[
+        (&quot;test&quot;, &quot;calibrated&quot;, &quot;rank_top_k_within_scoring_batch&quot;, &quot;&quot;)
+    ]
+    serialized_spec = {
+        &quot;calibration_policy_id&quot;: calibration_policy_spec[&quot;calibration_policy_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;source_model_id&quot;: source_model_id,
+        &quot;score_type&quot;: calibration_policy_spec[&quot;score_type&quot;],
+        &quot;calibrated_score_type&quot;: calibration_policy_spec[&quot;calibrated_score_type&quot;],
+        &quot;calibration_method&quot;: {
+            **method,
+            &quot;prior_positive_rate&quot;: rounded(prior_positive_rate),
+            &quot;learned_bin_map&quot;: bin_map,
+        },
+        &quot;fit_trace&quot;: [
+            {
+                &quot;event&quot;: &quot;base_model_fit&quot;,
+                &quot;fit_split&quot;: &quot;train&quot;,
+                &quot;source&quot;: &quot;imbalance_policy_handoff&quot;,
+                &quot;calibration_ids_seen&quot;: [],
+                &quot;test_ids_seen&quot;: [],
+            },
+            {
+                &quot;event&quot;: &quot;calibration_bin_map_fit&quot;,
+                &quot;fit_split&quot;: &quot;validation&quot;,
+                &quot;calibration_ids&quot;: calibration_ids,
+                &quot;test_ids_seen&quot;: [],
+            },
+        ],
+        &quot;test_used_for_calibration&quot;: False,
+        &quot;threshold_policy&quot;: calibration_policy_spec[&quot;threshold_policy&quot;],
+    }
+    summary = {
+        &quot;calibration_policy_id&quot;: calibration_policy_spec[&quot;calibration_policy_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;source_model_id&quot;: source_model_id,
+        &quot;calibration_method&quot;: method[&quot;kind&quot;],
+        &quot;calibration_split&quot;: calibration_policy_spec[&quot;calibration_split&quot;],
+        &quot;evaluation_split&quot;: calibration_policy_spec[&quot;evaluation_split&quot;],
+        &quot;calibration_row_count&quot;: len(calibration_ids),
+        &quot;calibration_prior_positive_rate&quot;: rounded(prior_positive_rate),
+        &quot;uncalibrated_validation_brier&quot;: metric_lookup[(&quot;validation&quot;, &quot;uncalibrated&quot;)][
+            &quot;brier_score&quot;
+        ],
+        &quot;calibrated_validation_brier&quot;: metric_lookup[(&quot;validation&quot;, &quot;calibrated&quot;)][
+            &quot;brier_score&quot;
+        ],
+        &quot;uncalibrated_test_brier&quot;: metric_lookup[(&quot;test&quot;, &quot;uncalibrated&quot;)][&quot;brier_score&quot;],
+        &quot;calibrated_test_brier&quot;: metric_lookup[(&quot;test&quot;, &quot;calibrated&quot;)][&quot;brier_score&quot;],
+        &quot;uncalibrated_test_log_loss&quot;: metric_lookup[(&quot;test&quot;, &quot;uncalibrated&quot;)][&quot;log_loss&quot;],
+        &quot;calibrated_test_log_loss&quot;: metric_lookup[(&quot;test&quot;, &quot;calibrated&quot;)][&quot;log_loss&quot;],
+        &quot;uncalibrated_test_precision_at_budget&quot;: test_topk_uncalibrated[&quot;precision&quot;],
+        &quot;calibrated_test_precision_at_budget&quot;: test_topk_calibrated[&quot;precision&quot;],
+        &quot;test_uncalibrated_top_k_selected_ids&quot;: test_topk_uncalibrated[&quot;selected_ids&quot;].split(&quot;,&quot;),
+        &quot;test_calibrated_top_k_selected_ids&quot;: test_topk_calibrated[&quot;selected_ids&quot;].split(&quot;,&quot;),
+        &quot;test_fixed_threshold_0_5_action_count_uncalibrated&quot;: fixed_test_uncalibrated[
+            &quot;action_count&quot;
+        ],
+        &quot;test_fixed_threshold_0_5_action_count_calibrated&quot;: fixed_test_calibrated[
+            &quot;action_count&quot;
+        ],
+        &quot;test_used_for_calibration&quot;: False,
+        &quot;blocking_errors&quot;: blocking_errors,
+        &quot;warnings&quot;: warnings,
+        &quot;readiness_status&quot;: &quot;ready_for_leakage_lesson&quot;
+        if valid
+        else &quot;blocked_by_calibration_policy_audit&quot;,
+    }
+    report = {
+        &quot;valid&quot;: valid,
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;calibration_bins&quot;: bin_rows,
+        &quot;metrics&quot;: metric_rows,
+        &quot;predictions&quot;: prediction_rows,
+        &quot;threshold_impact&quot;: threshold_rows,
+        &quot;audit&quot;: build_audit_rows(checks),
+        &quot;serialized_spec&quot;: serialized_spec,
+        &quot;checks&quot;: checks,
+    }
+
+    if bin_output_path is not None:
+        write_csv(
+            bin_output_path,
+            bin_rows,
+            [
+                &quot;split&quot;,
+                &quot;bin_id&quot;,
+                &quot;lower&quot;,
+                &quot;upper&quot;,
+                &quot;row_count&quot;,
+                &quot;positive_count&quot;,
+                &quot;negative_count&quot;,
+                &quot;fraction_positive&quot;,
+                &quot;mean_uncalibrated_score&quot;,
+                &quot;calibrated_probability_from_validation&quot;,
+                &quot;absolute_uncalibrated_gap&quot;,
+                &quot;absolute_calibrated_gap&quot;,
+                &quot;learned_on_split&quot;,
+            ],
+        )
+    if metric_output_path is not None:
+        write_csv(
+            metric_output_path,
+            metric_rows,
+            [
+                &quot;split&quot;,
+                &quot;probability_source&quot;,
+                &quot;row_count&quot;,
+                &quot;positive_count&quot;,
+                &quot;negative_count&quot;,
+                &quot;brier_score&quot;,
+                &quot;log_loss&quot;,
+                &quot;expected_calibration_error&quot;,
+                &quot;score_min&quot;,
+                &quot;score_max&quot;,
+                &quot;score_mean&quot;,
+            ],
+        )
+    if predictions_output_path is not None:
+        write_csv(
+            predictions_output_path,
+            prediction_rows,
+            [
+                &quot;split&quot;,
+                &quot;snapshot_id&quot;,
+                &quot;model_id&quot;,
+                &quot;score_type&quot;,
+                &quot;calibrated_score_type&quot;,
+                &quot;uncalibrated_score&quot;,
+                &quot;calibrated_score&quot;,
+                &quot;actual_label&quot;,
+                &quot;bin_id&quot;,
+                &quot;bin_lower&quot;,
+                &quot;bin_upper&quot;,
+                &quot;calibration_bin_probability&quot;,
+                &quot;selected_at_budget_uncalibrated&quot;,
+                &quot;selected_at_budget_calibrated&quot;,
+                &quot;predicted_at_0_5_uncalibrated&quot;,
+                &quot;predicted_at_0_5_calibrated&quot;,
+                &quot;trained_on_split&quot;,
+                &quot;calibrated_on_split&quot;,
+                &quot;test_used_for_calibration&quot;,
+                &quot;generated_at&quot;,
+            ],
+        )
+    if threshold_output_path is not None:
+        write_csv(
+            threshold_output_path,
+            threshold_rows,
+            [
+                &quot;probability_source&quot;,
+                &quot;decision_rule&quot;,
+                &quot;threshold&quot;,
+                &quot;split&quot;,
+                &quot;row_count&quot;,
+                &quot;positive_count&quot;,
+                &quot;negative_count&quot;,
+                &quot;action_count&quot;,
+                &quot;accuracy&quot;,
+                &quot;balanced_accuracy&quot;,
+                &quot;positive_recall&quot;,
+                &quot;negative_recall&quot;,
+                &quot;precision&quot;,
+                &quot;tp&quot;,
+                &quot;fp&quot;,
+                &quot;fn&quot;,
+                &quot;tn&quot;,
+                &quot;error_cost&quot;,
+                &quot;selection_budget&quot;,
+                &quot;budget_exceeded&quot;,
+                &quot;selected_ids&quot;,
+                &quot;threshold_role&quot;,
+            ],
+        )
+    if audit_output_path is not None:
+        write_csv(
+            audit_output_path,
+            report[&quot;audit&quot;],
+            [&quot;check_id&quot;, &quot;severity&quot;, &quot;valid&quot;, &quot;observed&quot;, &quot;expected&quot;],
+        )
+    if serialized_spec_output_path is not None:
+        write_json(serialized_spec_output_path, json_ready(serialized_spec))
+    if report_output_path is not None:
+        write_json(report_output_path, json_ready(report))
+    return report
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Audit probability calibration for ML baseline&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--preprocessing-contract&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--pipeline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--column-transformer-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--linear-baseline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--tree-diagnostic-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--tree-ensemble-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--cv-plan-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--imbalance-policy-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--calibration-policy-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--features&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--labels&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--cv-fold-manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--bin-output&quot;, type=Path)
+    parser.add_argument(&quot;--metric-output&quot;, type=Path)
+    parser.add_argument(&quot;--predictions-output&quot;, type=Path)
+    parser.add_argument(&quot;--threshold-output&quot;, type=Path)
+    parser.add_argument(&quot;--audit-output&quot;, type=Path)
+    parser.add_argument(&quot;--serialized-spec-output&quot;, type=Path)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args(argv)
+
+    try:
+        report = run(
+            spec_path=args.spec,
+            preprocessing_contract_path=args.preprocessing_contract,
+            pipeline_spec_path=args.pipeline_spec,
+            column_transformer_spec_path=args.column_transformer_spec,
+            linear_baseline_spec_path=args.linear_baseline_spec,
+            tree_diagnostic_spec_path=args.tree_diagnostic_spec,
+            tree_ensemble_spec_path=args.tree_ensemble_spec,
+            cv_plan_spec_path=args.cv_plan_spec,
+            imbalance_policy_spec_path=args.imbalance_policy_spec,
+            calibration_policy_spec_path=args.calibration_policy_spec,
+            features_path=args.features,
+            labels_path=args.labels,
+            manifest_path=args.manifest,
+            cv_fold_manifest_path=args.cv_fold_manifest,
+            report_output_path=args.output,
+            bin_output_path=args.bin_output,
+            metric_output_path=args.metric_output,
+            predictions_output_path=args.predictions_output,
+            threshold_output_path=args.threshold_output,
+            audit_output_path=args.audit_output,
+            serialized_spec_output_path=args.serialized_spec_output,
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+        ColumnTransformerAuditError,
+        LinearBaselineError,
+        ImbalancePolicyError,
+        CalibrationPolicyError,
+        KeyError,
+        ValueError,
+    ) as error:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;summary&quot;: {
+                &quot;blocking_errors&quot;: [&quot;calibration_policy_runtime_error&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;runtime_error&quot;,
+            },
+            &quot;checks&quot;: [
+                failed(
+                    &quot;calibration_policy_runtime_error&quot;,
+                    str(error),
+                    &quot;readable inputs and valid calibration policy&quot;,
+                )
+            ],
+        }
+        if args.output is not None:
+            write_json(args.output, json_ready(report))
+
+    if args.output is None:
+        print(json.dumps(json_ready(report), ensure_ascii=False, indent=2))
+
+    has_errors = any(
+        check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    has_warnings = any(
+        check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    if has_errors or (args.fail_on_warning and has_warnings):
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/12-calibration/outputs/probability_calibration_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/12-calibration" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>← Предыдущий урок</span><strong>Несбалансированные классы</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/applied-machine-learning/leakage/"><span>Следующий урок →</span><strong>Data leakage</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

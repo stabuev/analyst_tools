@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Arrow как контракт обмена таблицами">
+  <meta property="og:description" content="Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/">
+  <meta name="twitter:card" content="summary">
+  <title>Arrow как контракт обмена таблицами — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Arrow как контракт обмена таблицами", "description": "Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT60M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Arrow как контракт обмена таблицами", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 56 из 201</span>
+          <span>60 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/09-arrow" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Является ли Arrow файловым форматом, равным Parquet?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, Arrow прежде всего задает in-memory representation и interfaces</button><button type="button" class="quiz-option" data-choice="2">Только в pandas</button><button type="button" class="quiz-option" data-choice="3">Только в DuckDB</button></div><p class="quiz-feedback" hidden>Parquet хранит данные на диске, Arrow стандартизирует типизированное представление и обмен.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Гарантирует ли любой переход pandas -&gt; Arrow отсутствие копии?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, это зависит от dtype, layout и операции</button><button type="button" class="quiz-option" data-choice="2">Только для CSV</button><button type="button" class="quiz-option" data-choice="3">Копии всегда запрещены</button></div><p class="quiz-feedback" hidden>Zero-copy является свойством конкретного пути обмена, а не общим обещанием.</p></article></section>
+        <article class="lesson-article"><h1 id="arrow-как-контракт-обмена-таблицами">Arrow как контракт обмена таблицами</h1>
+<blockquote>
+<p>Arrow полезен не обещанием zero-copy, а возможностью проверить типизированный обмен без CSV.</p>
+</blockquote>
+<p><strong>Тип:</strong> Learn<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 05/08<br />
+<strong>Время:</strong> ~60 минут<br />
+<strong>Результат:</strong> передает таблицу между pandas, Arrow и DuckDB и проверяет схему, пропуски и
+факт копирования данных.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать Arrow memory model от Parquet file format.</li>
+<li>Сохранять Arrow-backed dtypes в pandas.</li>
+<li>Передавать Arrow Table в DuckDB и получать Arrow result.</li>
+<li>Измерять buffer reuse вместо предположения о zero-copy.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится
+float, timezone требует повторного парсинга, а null policy задается заново. Переход на
+Arrow называют zero-copy, но не проверяют, произошло ли копирование.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Arrow schema описывает fields, types и nullable для in-memory arrays. Parquet использует
+похожие типы, но является форматом хранения.</p>
+<p>Обмен нужно проверять по четырем измерениям:</p>
+<ol>
+<li>schema;</li>
+<li>values;</li>
+<li>null counts;</li>
+<li>memory buffers.</li>
+</ol>
+<p>Zero-copy возможен только при совместимом layout. Конвертация object strings или смена
+типа требует новой памяти. pandas также не переносит field-level <code>nullable=False</code> обратно
+в Arrow schema автоматически: типы и фактические null counts нужно проверять отдельно от
+этого ограничения metadata.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Создайте pandas columns с Arrow-backed dtypes и превратите DataFrame в Table:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">table = pa.Table.from_pandas(frame, preserve_index=False)
+returned = table.to_pandas(types_mapper=pd.ArrowDtype)
+</code></pre></div><p>Для проверки памяти получите <code>buffer.address</code> у chunks до и после roundtrip. Совпадение
+адресов является наблюдаемым фактом reuse; несовпадение не означает ошибку данных.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>DuckDB принимает Arrow Table напрямую:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection.register(&quot;orders_arrow&quot;, table)
+result = connection.execute(&quot;SELECT ... FROM orders_arrow&quot;).arrow().read_all()
+</code></pre></div><p>Артефакт читает Parquet, проходит Arrow -&gt; pandas -&gt; Arrow и Arrow -&gt; DuckDB -&gt; Arrow:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/arrow_compatibility.py \
+  --input orders.parquet \
+  --output compatibility.json
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Превратите Arrow-backed string в Python object.</li>
+<li>Сбросьте timezone timestamp.</li>
+<li>Замените Decimal на float.</li>
+<li>Заполните null пустой строкой.</li>
+<li>Добавьте pandas index в Arrow metadata.</li>
+</ol>
+<p>Отчет должен отделять несовместимость данных от допустимого копирования.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li>пять rows сохраняются во всех системах;</li>
+<li>decimal и UTC timestamp переживают pandas roundtrip;</li>
+<li>два null comment не меняются;</li>
+<li>потеря field-level nullability показана отдельно, а не скрыта;</li>
+<li>pandas dtypes остаются Arrow-backed;</li>
+<li>buffer reuse измеряется по каждому столбцу;</li>
+<li>DuckDB считает сумму <code>3226.59</code>;</li>
+<li>DuckDB возвращает Arrow schema.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/arrow_compatibility.py</code> выпускает JSON-отчет совместимости. Его можно запускать
+после обновления pandas, PyArrow или DuckDB, чтобы проверить реальный exchange contract.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Сравните обычные pandas dtypes и Arrow-backed dtypes.</li>
+<li>Добавьте dictionary-encoded category.</li>
+<li>Проверьте large string и timestamp другой точности.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arrow</td>
+<td>Сжатый файл</td>
+<td>In-memory format и набор interfaces для типизированного обмена</td>
+</tr>
+<tr>
+<td>Buffer</td>
+<td>Python list</td>
+<td>Непрерывная область памяти array</td>
+</tr>
+<tr>
+<td>Zero-copy</td>
+<td>Любой быстрый переход</td>
+<td>Повторное использование существующих buffers</td>
+</tr>
+<tr>
+<td>ArrowDtype</td>
+<td>Обычный object</td>
+<td>pandas dtype с Arrow-backed storage</td>
+</tr>
+<tr>
+<td>Interchange contract</td>
+<td>Совпадающий row count</td>
+<td>Сохранение schema, values, nulls и понятного memory behavior</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://arrow.apache.org/docs/python/pandas.html" target="_blank" rel="noopener">PyArrow: pandas integration</a> — изучите conversion rules, nullable types и zero-copy conditions.</li>
+<li><a href="https://arrow.apache.org/docs/format/Columnar.html" target="_blank" rel="noopener">Arrow columnar format</a> — разберите validity bitmap, buffers и nested layout.</li>
+<li><a href="https://duckdb.org/docs/stable/clients/python/overview" target="_blank" rel="noopener">DuckDB: Python API</a> — изучите регистрацию Arrow objects и возврат результата.</li>
+<li><a href="https://data-apis.org/dataframe-protocol/latest/index.html" target="_blank" rel="noopener">DataFrame interchange protocol</a> — сравните общий protocol обмена с прямой Arrow integration.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что нужно сравнивать между системами кроме числа строк?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только имена библиотек</button><button type="button" class="quiz-option" data-choice="1">Schema, nulls, values и memory behavior</button><button type="button" class="quiz-option" data-choice="2">Только размер файла</button><button type="button" class="quiz-option" data-choice="3">Только время запуска</button></div><p class="quiz-feedback" hidden>Одинаковый row count может скрывать потерю типов, timezone или null semantics.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Как проверить reuse Arrow buffers?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">По имени переменной</button><button type="button" class="quiz-option" data-choice="1">Сравнить адреса underlying buffers до и после</button><button type="button" class="quiz-option" data-choice="2">По размеру CSV</button><button type="button" class="quiz-option" data-choice="3">По SQL-тексту</button></div><p class="quiz-feedback" hidden>Совпадающие buffer addresses дают наблюдаемое свидетельство совместного хранения.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Зачем DuckDB возвращает Arrow result?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы удалить schema</button><button type="button" class="quiz-option" data-choice="1">Для типизированного обмена без промежуточного CSV</button><button type="button" class="quiz-option" data-choice="2">Чтобы создать HTML</button><button type="button" class="quiz-option" data-choice="3">Чтобы выключить SQL</button></div><p class="quiz-feedback" hidden>Arrow сохраняет табличный контракт между execution engine и Python tools.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;arrow_compatibility.py&quot;
+CONVERTER_PATH = ROOT.parent / &quot;08-parquet&quot; / &quot;outputs&quot; / &quot;parquet_converter.py&quot;
+DATA = ROOT.parent / &quot;data&quot;
+CSV = DATA / &quot;tiny&quot; / &quot;orders_typed.csv&quot;
+SCHEMA = DATA / &quot;parquet_schema.json&quot;
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {path}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+REPORTER = load_module(&quot;arrow_compatibility&quot;, ARTIFACT)
+CONVERTER = load_module(&quot;parquet_converter_for_arrow&quot;, CONVERTER_PATH)
+
+
+class ArrowCompatibilityTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -&gt; None:
+        cls.directory = TemporaryDirectory()
+        cls.parquet = Path(cls.directory.name) / &quot;orders.parquet&quot;
+        CONVERTER.convert_csv(CSV, cls.parquet, SCHEMA)
+        cls.report = REPORTER.build_report(cls.parquet)
+
+    @classmethod
+    def tearDownClass(cls) -&gt; None:
+        cls.directory.cleanup()
+
+    def test_report_is_valid(self) -&gt; None:
+        self.assertTrue(self.report[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertEqual(self.report[&quot;arrow&quot;][&quot;rows&quot;], 5)
+
+    def test_schema_survives_pandas_roundtrip(self) -&gt; None:
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;pandas_roundtrip_names_types&quot;])
+        amount = next(
+            field for field in self.report[&quot;roundtrip&quot;][&quot;schema&quot;] if field[&quot;name&quot;] == &quot;amount&quot;
+        )
+        self.assertEqual(amount[&quot;type&quot;], &quot;decimal128(12, 2)&quot;)
+        self.assertFalse(self.report[&quot;roundtrip&quot;][&quot;field_nullability_preserved&quot;])
+        self.assertFalse(self.report[&quot;roundtrip&quot;][&quot;schema_metadata_equal&quot;])
+
+    def test_null_counts_are_preserved(self) -&gt; None:
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;null_counts_preserved&quot;])
+        self.assertEqual(self.report[&quot;pandas&quot;][&quot;null_counts&quot;][&quot;comment&quot;], 2)
+
+    def test_pandas_uses_arrow_backed_dtypes(self) -&gt; None:
+        self.assertIn(&quot;[pyarrow]&quot;, self.report[&quot;pandas&quot;][&quot;dtypes&quot;][&quot;order_id&quot;])
+        self.assertIn(&quot;[pyarrow]&quot;, self.report[&quot;pandas&quot;][&quot;dtypes&quot;][&quot;amount&quot;])
+
+    def test_buffer_reuse_is_measured_per_column(self) -&gt; None:
+        buffers = self.report[&quot;roundtrip&quot;][&quot;buffers&quot;]
+        self.assertEqual(set(buffers), set(self.report[&quot;arrow&quot;][&quot;null_counts&quot;]))
+        self.assertIn(&quot;shared_buffer_count&quot;, buffers[&quot;order_id&quot;])
+
+    def test_duckdb_receives_same_rows_and_aggregate(self) -&gt; None:
+        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;rows&quot;], 5)
+        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;amount_sum&quot;], &quot;3226.59&quot;)
+        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;null_comments&quot;], 2)
+
+    def test_duckdb_can_return_arrow_result(self) -&gt; None:
+        names = [field[&quot;name&quot;] for field in self.report[&quot;duckdb&quot;][&quot;arrow_result_schema&quot;]]
+        self.assertEqual(names, [&quot;order_id&quot;, &quot;amount&quot;])
+
+    def test_cli_writes_report_file(self) -&gt; None:
+        output = Path(self.directory.name) / &quot;report.json&quot;
+        result = subprocess.run(
+            [sys.executable, ARTIFACT, &quot;--input&quot;, self.parquet, &quot;--output&quot;, output],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(output.read_text())[&quot;arrow&quot;][&quot;rows&quot;], 5)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import pandas as pd
+import pyarrow as pa
+
+frame = pd.DataFrame(
+    {
+        &quot;order_id&quot;: pd.Series([&quot;O1&quot;, &quot;O2&quot;], dtype=&quot;string[pyarrow]&quot;),
+        &quot;amount&quot;: pd.Series([1200.5, None], dtype=&quot;float64[pyarrow]&quot;),
+    }
+)
+table = pa.Table.from_pandas(frame, preserve_index=False)
+returned = table.to_pandas(types_mapper=pd.ArrowDtype)
+
+print(&quot;pandas:&quot;, {name: str(dtype) for name, dtype in frame.dtypes.items()})
+print(&quot;Arrow:&quot;, table.schema)
+print(&quot;roundtrip:&quot;, {name: str(dtype) for name, dtype in returned.dtypes.items()})
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/arrow_compatibility.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import sys
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+
+class ArrowCompatibilityError(ValueError):
+    &quot;&quot;&quot;Raised when a table cannot be compared across engines.&quot;&quot;&quot;
+
+
+def buffer_addresses(column: pa.ChunkedArray) -&gt; list[int]:
+    addresses: list[int] = []
+    for chunk in column.chunks:
+        addresses.extend(buffer.address for buffer in chunk.buffers() if buffer is not None)
+    return addresses
+
+
+def schema_manifest(schema: pa.Schema) -&gt; list[dict[str, Any]]:
+    return [
+        {&quot;name&quot;: field.name, &quot;type&quot;: str(field.type), &quot;nullable&quot;: field.nullable}
+        for field in schema
+    ]
+
+
+def scalar_json(value: Any) -&gt; Any:
+    if isinstance(value, Decimal):
+        return str(value)
+    if hasattr(value, &quot;isoformat&quot;):
+        return value.isoformat()
+    return value
+
+
+def build_report(input_path: str | Path) -&gt; dict[str, Any]:
+    path = Path(input_path)
+    if not path.is_file():
+        raise ArrowCompatibilityError(f&quot;Parquet file does not exist: {path}&quot;)
+    arrow_table = pq.read_table(path)
+    pandas_frame = arrow_table.to_pandas(types_mapper=pd.ArrowDtype)
+    roundtrip = pa.Table.from_pandas(pandas_frame, preserve_index=False)
+
+    copy_report = {}
+    for name in arrow_table.column_names:
+        source = buffer_addresses(arrow_table.column(name))
+        returned = buffer_addresses(roundtrip.column(name))
+        copy_report[name] = {
+            &quot;source_buffers&quot;: source,
+            &quot;roundtrip_buffers&quot;: returned,
+            &quot;shared_buffer_count&quot;: len(set(source) &amp; set(returned)),
+            &quot;all_source_buffers_reused&quot;: bool(source) and set(source).issubset(returned),
+        }
+
+    connection = duckdb.connect()
+    try:
+        connection.register(&quot;orders_arrow&quot;, arrow_table)
+        metrics = connection.execute(
+            &quot;&quot;&quot;
+            SELECT
+                count(*) AS rows,
+                sum(amount) AS amount_sum,
+                count(*) FILTER (WHERE comment IS NULL) AS null_comments
+            FROM orders_arrow
+            &quot;&quot;&quot;
+        ).fetchone()
+        duckdb_reader = connection.execute(
+            &quot;SELECT order_id, amount FROM orders_arrow ORDER BY order_id&quot;
+        ).arrow()
+        duckdb_table = duckdb_reader.read_all()
+    finally:
+        connection.close()
+
+    arrow_nulls = {name: arrow_table.column(name).null_count for name in arrow_table.column_names}
+    roundtrip_nulls = {name: roundtrip.column(name).null_count for name in roundtrip.column_names}
+    names_types_preserved = [(field.name, field.type) for field in roundtrip.schema] == [
+        (field.name, field.type) for field in arrow_table.schema
+    ]
+    nullability_preserved = [field.nullable for field in roundtrip.schema] == [
+        field.nullable for field in arrow_table.schema
+    ]
+    checks = {
+        &quot;pandas_roundtrip_names_types&quot;: names_types_preserved,
+        &quot;pandas_roundtrip_values&quot;: roundtrip.to_pylist() == arrow_table.to_pylist(),
+        &quot;null_counts_preserved&quot;: arrow_nulls == roundtrip_nulls,
+        &quot;duckdb_rows_match&quot;: metrics[0] == arrow_table.num_rows,
+    }
+    return {
+        &quot;arrow&quot;: {
+            &quot;rows&quot;: arrow_table.num_rows,
+            &quot;schema&quot;: schema_manifest(arrow_table.schema),
+            &quot;null_counts&quot;: arrow_nulls,
+        },
+        &quot;pandas&quot;: {
+            &quot;rows&quot;: len(pandas_frame),
+            &quot;dtypes&quot;: {name: str(dtype) for name, dtype in pandas_frame.dtypes.items()},
+            &quot;null_counts&quot;: {name: int(value) for name, value in pandas_frame.isna().sum().items()},
+        },
+        &quot;roundtrip&quot;: {
+            &quot;schema&quot;: schema_manifest(roundtrip.schema),
+            &quot;field_nullability_preserved&quot;: nullability_preserved,
+            &quot;schema_metadata_equal&quot;: roundtrip.schema.metadata == arrow_table.schema.metadata,
+            &quot;null_counts&quot;: roundtrip_nulls,
+            &quot;buffers&quot;: copy_report,
+        },
+        &quot;duckdb&quot;: {
+            &quot;rows&quot;: metrics[0],
+            &quot;amount_sum&quot;: scalar_json(metrics[1]),
+            &quot;null_comments&quot;: metrics[2],
+            &quot;arrow_result_schema&quot;: schema_manifest(duckdb_table.schema),
+        },
+        &quot;checks&quot;: checks,
+        &quot;summary&quot;: {
+            &quot;valid&quot;: all(checks.values()),
+            &quot;columns_with_all_buffers_reused&quot;: [
+                name for name, value in copy_report.items() if value[&quot;all_source_buffers_reused&quot;]
+            ],
+        },
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Compare Arrow, pandas and DuckDB exchange&quot;)
+    parser.add_argument(&quot;--input&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        report = build_report(args.input)
+    except ArrowCompatibilityError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        raise SystemExit(2) from error
+    content = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(content, encoding=&quot;utf-8&quot;)
+    sys.stdout.write(content)
+    if not report[&quot;summary&quot;][&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/outputs/arrow_compatibility.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;arrow-compatibility-report&quot;,
+  &quot;type&quot;: &quot;report-template&quot;,
+  &quot;path&quot;: &quot;outputs/arrow_compatibility.py&quot;,
+  &quot;description&quot;: &quot;Сравнивает schema, nulls, values и Arrow buffers при обмене между PyArrow, pandas и DuckDB.&quot;,
+  &quot;usage&quot;: &quot;python outputs/arrow_compatibility.py --input orders.parquet --output report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/09-arrow" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/parquet/"><span>← Предыдущий урок</span><strong>Parquet и колоночное хранение</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/partitioning/"><span>Следующий урок →</span><strong>Партиционирование наборов данных</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

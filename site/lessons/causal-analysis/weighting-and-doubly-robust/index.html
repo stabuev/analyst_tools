@@ -1,0 +1,3057 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 13/05 мы получили outcome-regression g-computation estimate. В 13/06 посмотрели на matching и увидели, что часть treated users вообще плохо сравнима с controls.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/weighting-and-doubly-robust/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Propensity weighting и doubly robust оценка">
+  <meta property="og:description" content="В 13/05 мы получили outcome-regression g-computation estimate. В 13/06 посмотрели на matching и увидели, что часть treated users вообще плохо сравнима с controls.">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/weighting-and-doubly-robust/">
+  <meta name="twitter:card" content="summary">
+  <title>Propensity weighting и doubly robust оценка — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Propensity weighting и doubly robust оценка", "description": "В 13/05 мы получили outcome-regression g-computation estimate. В 13/06 посмотрели на matching и увидели, что часть treated users вообще плохо сравнима с controls.", "url": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/weighting-and-doubly-robust/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 13: Причинный анализ", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=13"}, {"@type": "ListItem", "position": 3, "name": "Propensity weighting и doubly robust оценка", "item": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/weighting-and-doubly-robust/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 13</p><h2>Причинный анализ</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-question-and-estimand/"><span>01</span>Причинный вопрос и estimand</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-dags/"><span>02</span>Причинные DAG и идентификация</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/confounders/"><span>03</span>Confounders и backdoor adjustment</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/colliders/"><span>04</span>Colliders, mediators и selection bias</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/regression-adjustment/"><span>05</span>Regression adjustment и g-formula</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/matching/"><span>06</span>Matching и баланс ковариат</a><a class="lesson-sidebar-link is-active" href="../../../lessons/causal-analysis/weighting-and-doubly-robust/"><span>07</span>Propensity weighting и doubly robust оценка</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/difference-in-differences/"><span>08</span>Difference-in-Differences</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/quasi-experiments/"><span>09</span>RDD и instrumental variables: дизайн до оценки</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/sensitivity/"><span>10</span>Sensitivity analysis и falsification checks</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-workflow/"><span>11</span>Causal workflow и границы автоматизации</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 13 · Причинный анализ</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 140 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/13-causal-analysis/07-weighting-and-doubly-robust" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что такое propensity score в наблюдательном causal study?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Вероятность получить treatment при наблюдаемых pre-treatment covariates.</button><button type="button" class="quiz-option" data-choice="1">Вероятность положительного outcome после treatment.</button><button type="button" class="quiz-option" data-choice="2">p-value теста баланса между treated и control.</button><button type="button" class="quiz-option" data-choice="3">Доля treated units в итоговом отчете.</button></div><p class="quiz-feedback" hidden>Propensity score моделирует assignment mechanism: P(T=1 | X), где X должны быть pre-treatment covariates.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает positivity/overlap для IPW?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">У каждой релевантной комбинации covariates должна быть ненулевая вероятность попасть в обе стратегии treatment.</button><button type="button" class="quiz-option" data-choice="1">Все propensity scores должны быть больше 0.5.</button><button type="button" class="quiz-option" data-choice="2">Все treated и controls должны иметь одинаковый outcome.</button><button type="button" class="quiz-option" data-choice="3">В модели outcome не должно быть intercept.</button></div><p class="quiz-feedback" hidden>Если propensity близок к 0 или 1, counterfactual comparison для этой зоны covariate space почти не поддержан данными.</p></article></section>
+        <article class="lesson-article"><h1 id="propensity-weighting-и-doubly-robust-оценка">Propensity weighting и doubly robust оценка</h1>
+<blockquote>
+<p>Doubly robust не значит «дважды доказано»: estimator устойчивее к misspecification,
+но causal assumptions и overlap всё равно надо показывать явно.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Decision, Product<br />
+<strong>Пререквизиты:</strong> 13/06 — Matching и баланс ковариат<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> оценивает propensity scores, строит stabilized IPW и AIPW estimates,
+проверяет overlap, extreme weights, effective sample size и trimming sensitivity и
+сравнивает методы при misspecified treatment или outcome model.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объяснять propensity score как модель assignment mechanism, а не как «causal score».</li>
+<li>Строить inverse probability weights для ATE и отличать unstabilized от stabilized
+weights.</li>
+<li>Считать IPW Horvitz-Thompson и normalized/Hájek versions и понимать, почему они могут
+расходиться на tiny data.</li>
+<li>Строить AIPW как outcome-regression estimate плюс inverse-weighted residual correction.</li>
+<li>Проверять overlap, tail propensity scores, extreme weights и effective sample size.</li>
+<li>Делать trimming sensitivity и явно показывать изменение target population.</li>
+<li>Блокировать bad controls, complete-case filters и causal wording при оставшемся
+unmeasured confounding.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>13/05</code> мы получили outcome-regression g-computation estimate. В <code>13/06</code> посмотрели на
+matching и увидели, что часть treated users вообще плохо сравнима с controls.</p>
+<p>Теперь бизнес спрашивает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">А если не выбрасывать людей через matching, а взвесить всех по вероятности получить помощь?
+</code></pre></div><p>Это естественный следующий estimator. Но в propensity weighting есть две неприятные
+ловушки:</p>
+<ul>
+<li>если propensity score близок к <code>0</code> или <code>1</code>, веса могут стать огромными;</li>
+<li>если propensity model хорошо предсказывает observed treatment, это может означать не
+хороший estimator, а слабый overlap.</li>
+</ul>
+<p>В tiny data обычная логистическая регрессия по compact baseline score почти разделяет
+treated и controls. Поэтому artifact использует ridge-stabilized logistic propensity
+model и всё равно честно пишет overlap warnings.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="propensity-score-это-модель-treatment-assignment">Propensity score — это модель treatment assignment</h3>
+<p>Для каждого пользователя с pre-treatment covariates <code>X</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">e(X) = P(A = 1 | X)
+</code></pre></div><p>где <code>A = 1</code> означает <code>assisted_within_24h</code>.</p>
+<p>Важно: propensity score не моделирует outcome. Он моделирует, насколько пользователь был
+похож на тех, кто получил treatment, с точки зрения observed baseline information.</p>
+<p>В уроке primary propensity model:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">logit(e(X)) ~ baseline_risk_score + specialist_capacity
+</code></pre></div><p><code>baseline_risk_score</code> — compact teaching basis из <code>13/05</code>, построенный только из
+разрешенных pre-treatment covariates. Он не удаляет <code>latent_motivation</code>, который был
+отмечен как unmeasured confounder в <code>13/03</code> и <code>13/04</code>.</p>
+<h3 id="ipw-строит-псевдопопуляцию">IPW строит псевдопопуляцию</h3>
+<p>Для ATE unstabilized weights:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">w_i = A_i / e(X_i) + (1 - A_i) / (1 - e(X_i))
+</code></pre></div><p>Stabilized weights умножают числитель на marginal probability observed arm:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sw_i =
+  P(A = 1) / e(X_i),       если A_i = 1
+  P(A = 0) / (1 - e(X_i)), если A_i = 0
+</code></pre></div><p>Они не меняют смысл inverse probability weighting, но удобнее для диагностики variance и
+effective sample size.</p>
+<p>В tiny report:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">max stabilized weight = 0.909192
+max unstabilized weight = 1.563840
+stabilized ESS = 9.555332 из 10 rows
+</code></pre></div><p>Сами weights выглядят спокойными, но overlap warning всё равно есть: <code>U001</code> имеет
+propensity <code>0.994474</code>, то есть почти нет comparable controls для counterfactual
+<code>no_assistance</code> в этой зоне.</p>
+<h3 id="ht-и-h-jek-versions-могут-расходиться">HT и Hájek versions могут расходиться</h3>
+<p>Horvitz-Thompson IPW ATE:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">mean(A * Y / e(X)) - mean((1 - A) * Y / (1 - e(X)))
+</code></pre></div><p>Normalized/Hájek version:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sum(A * Y / e(X)) / sum(A / e(X))
+-
+sum((1 - A) * Y / (1 - e(X))) / sum((1 - A) / (1 - e(X)))
+</code></pre></div><p>На больших хорошо поддержанных данных они обычно ближе. На tiny data они могут двигаться
+в разные стороны:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">IPW HT ATE    =  0.078934
+IPW Hájek ATE = -0.085192
+</code></pre></div><p>Artifact выносит обе оценки, но primary summary использует Hájek как более стабильную
+normalized diagnostic estimate.</p>
+<h3 id="aipw-добавляет-residual-correction">AIPW добавляет residual correction</h3>
+<p>Outcome model из <code>13/05</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">E[Y | A, X] ~ A + baseline_risk_score + specialist_capacity
+</code></pre></div><p>Она дает predictions:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">m1(X) = E[Y | A=1, X]
+m0(X) = E[Y | A=0, X]
+</code></pre></div><p>AIPW estimate:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">mean(
+  m1(X_i) - m0(X_i)
+  + A_i * (Y_i - m1(X_i)) / e(X_i)
+  - (1 - A_i) * (Y_i - m0(X_i)) / (1 - e(X_i))
+)
+</code></pre></div><p>Интуиция простая: regression adjustment дает baseline estimate, а propensity weights
+добавляют поправку за residuals, которые outcome model не объяснила.</p>
+<p>В tiny report:</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th style="text-align:right">Estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Naive risk difference</td>
+<td style="text-align:right">-0.083333</td>
+</tr>
+<tr>
+<td>IPW Hájek ATE</td>
+<td style="text-align:right">-0.085192</td>
+</tr>
+<tr>
+<td>Outcome-regression ATE</td>
+<td style="text-align:right">-0.399781</td>
+</tr>
+<tr>
+<td>AIPW ATE</td>
+<td style="text-align:right">-0.386875</td>
+</tr>
+</tbody>
+</table>
+<p>Разброс — не баг. Он показывает, что estimator assumptions и model specification реально
+важны.</p>
+<h3 id="double-robust-не-лечит-bad-identification">Double robust не лечит bad identification</h3>
+<p>AIPW называют doubly robust, потому что при выполненных causal assumptions estimator может
+быть consistent, если корректна хотя бы одна из двух nuisance-моделей: treatment model или
+outcome model.</p>
+<p>Но это не означает:</p>
+<ul>
+<li>можно conditioning on mediators;</li>
+<li>можно игнорировать positivity;</li>
+<li>можно забыть про unmeasured confounding;</li>
+<li>можно выбрать модель по красивому числу.</li>
+</ul>
+<p>Artifact поэтому держит <code>allowed_effect_claim=false</code>, даже когда calculation valid.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакты урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/ipw_aipw_spec.json
+outputs/ipw_aipw_estimator.py
+outputs/ipw_aipw_report.json
+</code></pre></div><h3 id="шаг-1-соберите-target-population-cohort">Шаг 1: соберите target-population cohort</h3>
+<p>Pipeline читает общие tiny tables фазы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">../data/tiny/users.csv
+../data/tiny/pre_treatment_behavior.csv
+../data/tiny/onboarding_assistance.csv
+../data/tiny/outcomes.csv
+</code></pre></div><p>Затем применяет target trial criteria:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">is_test_user == false
+eligible_for_program == true
+friction_score &gt;= 50
+</code></pre></div><p>Получается тот же cohort, что в предыдущих estimator lessons:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cohort_n = 10
+treated_n = 6
+comparator_n = 4
+naive_risk_difference = -0.08333333333333337
+</code></pre></div><h3 id="шаг-2-оцените-propensity-score">Шаг 2: оцените propensity score</h3>
+<p><code>ipw_aipw_spec.json</code> задает ridge logistic propensity model:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;model_type&quot;: &quot;l2_logistic_regression&quot;,
+  &quot;alpha&quot;: 0.5,
+  &quot;terms&quot;: [&quot;intercept&quot;, &quot;baseline_risk_score&quot;, &quot;specialist_capacity&quot;]
+}
+</code></pre></div><p>Ручной solver делает Newton iterations с L2 penalty без penalty на intercept. Это нужно,
+потому что tiny data слишком мала и обычный unpenalized logistic MLE легко ловит
+near-separation.</p>
+<p>Контрольные propensity scores:</p>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th style="text-align:right">Treatment</th>
+<th style="text-align:right">Propensity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U001</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.994474</td>
+</tr>
+<tr>
+<td>U006</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.659926</td>
+</tr>
+<tr>
+<td>U011</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.360548</td>
+</tr>
+</tbody>
+</table>
+<h3 id="шаг-3-посчитайте-ipw-weights-и-ess">Шаг 3: посчитайте IPW weights и ESS</h3>
+<p>Report пишет unit-level table:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;user_id&quot;: &quot;U011&quot;,
+  &quot;treatment&quot;: 0,
+  &quot;outcome&quot;: 0,
+  &quot;propensity_score&quot;: 0.36054832011971855,
+  &quot;stabilized_ate_weight&quot;: 0.625535928023347,
+  &quot;unstabilized_ate_weight&quot;: 1.5638398200583674
+}
+</code></pre></div><p>Effective sample size:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ESS = (sum(weights)^2) / sum(weights^2)
+</code></pre></div><p>В tiny data ESS остается высоким, но это не отменяет overlap tail. Веса могут быть
+умеренными, если observed treatment хорошо совпадает с propensity; counterfactual support
+всё равно может быть слабым.</p>
+<h3 id="шаг-4-добавьте-outcome-model-и-aipw">Шаг 4: добавьте outcome model и AIPW</h3>
+<p>Outcome model считается вручную через matrix OLS и сверяется со <code>statsmodels.OLS</code>.
+Контроль:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">manual_statsmodels_max_param_diff &lt; 1e-10
+manual_statsmodels_max_prediction_diff &lt; 1e-10
+</code></pre></div><p>Затем artifact считает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outcome_regression_ate
+ipw_ht_ate
+ipw_hajek_ate
+aipw_ate
+</code></pre></div><h3 id="шаг-5-сделайте-trimming-sensitivity">Шаг 5: сделайте trimming sensitivity</h3>
+<p>Primary trimming schedule:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[0.02, 0.05, 0.1, 0.2, 0.25]
+</code></pre></div><p>Пример из report:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Threshold</th>
+<th style="text-align:right">Retained n</th>
+<th>Removed users</th>
+<th style="text-align:right">IPW Hájek</th>
+<th style="text-align:right">AIPW</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">0.05</td>
+<td style="text-align:right">9</td>
+<td>U001</td>
+<td style="text-align:right">-0.143656</td>
+<td style="text-align:right">-0.385353</td>
+</tr>
+<tr>
+<td style="text-align:right">0.10</td>
+<td style="text-align:right">7</td>
+<td>U001, U002, U010</td>
+<td style="text-align:right">-0.358463</td>
+<td style="text-align:right">-0.441714</td>
+</tr>
+<tr>
+<td style="text-align:right">0.20</td>
+<td style="text-align:right">6</td>
+<td>U001, U002, U005, U010</td>
+<td style="text-align:right">-0.278435</td>
+<td style="text-align:right">-0.418028</td>
+</tr>
+<tr>
+<td style="text-align:right">0.25</td>
+<td style="text-align:right">4</td>
+<td>U001, U002, U004, U005, U007, U010</td>
+<td style="text-align:right">0.024048</td>
+<td style="text-align:right">-0.169686</td>
+</tr>
+</tbody>
+</table>
+<p>Чем выше threshold, тем сильнее меняется population. Это sensitivity result, а не
+«чистка выбросов».</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запуск из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_estimator.py
+</code></pre></div><p>Скрипт обновляет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_report.json
+</code></pre></div><p>Сокращенный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/07-weighting-and-doubly-robust/code/main.py
+</code></pre></div><p>Ожидаемые ключевые поля:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;estimator_valid&quot;: true,
+  &quot;cohort_n&quot;: 10,
+  &quot;ipw_hajek_ate&quot;: -0.085192,
+  &quot;aipw_ate&quot;: -0.386875,
+  &quot;outcome_regression_ate&quot;: -0.399781,
+  &quot;effect_claim_allowed&quot;: false
+}
+</code></pre></div><p>Для CI или локального gate:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_estimator.py \
+  --fail-on-invalid
+</code></pre></div><p><code>--fail-on-invalid</code> возвращает non-zero exit code только при blocking checks. Warnings
+остаются warnings: они не ломают artifact, но обязаны попасть в интерпретацию.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="bad-controls">Bad controls</h3>
+<p>Если добавить в outcome model:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">onboarding_completed_48h
+</code></pre></div><p>artifact вернет invalid, потому что это mediator для total effect.</p>
+<p>Если фильтровать cohort по:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">telemetry_complete_30d
+</code></pre></div><p>artifact тоже вернет invalid: это post-treatment selection variable.</p>
+<h3 id="missing-adjustment-sources">Missing adjustment sources</h3>
+<p>Stress test <code>misspecified_treatment_friction_capacity</code> использует только:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">friction_score
+specialist_capacity
+</code></pre></div><p>Он полезен для обучения, но как primary estimator rejected: модель omits measured
+baseline sources из <code>13/03</code>.</p>
+<h3 id="outcome-misspecification">Outcome misspecification</h3>
+<p>Stress test <code>misspecified_outcome_friction_capacity</code> оставляет primary propensity model,
+но outcome model строит только по <code>friction_score</code> и <code>specialist_capacity</code>.</p>
+<p>Результат:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outcome_regression_ate = 0.081782
+AIPW ATE               = 0.067304
+</code></pre></div><p>Это хороший холодный душ: AIPW не спасает estimator, если выбранная модель outcome
+выкинула нужный baseline basis, а positivity тоже не идеальна.</p>
+<h3 id="overlap-tail">Overlap tail</h3>
+<p>Primary overlap warning:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">U001 propensity = 0.994474
+</code></pre></div><p>Это значит: для very-high-risk treated user почти нет support для counterfactual
+<code>no_assistance</code>. Report valid, но causal wording restricted.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Поведенческие тесты:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest phases/13-causal-analysis/07-weighting-and-doubly-robust/tests/test_main.py
+</code></pre></div><p>Что проверяется:</p>
+<ul>
+<li>expected tiny estimates для naive, IPW HT, IPW Hájek, outcome regression и AIPW;</li>
+<li>unit-level propensity scores и weights;</li>
+<li>ручная AIPW formula по <code>unit_scores</code>;</li>
+<li>ESS и overlap warnings;</li>
+<li>trimming sensitivity и removed users;</li>
+<li>misspecified treatment/outcome stress tests;</li>
+<li>rejection bad controls и omitted source variants;</li>
+<li>invalid claim policy при unmeasured confounding;</li>
+<li>duplicate source grain, broken treatment timing и incomplete follow-up;</li>
+<li>CLI <code>--fail-on-invalid</code>.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный artifact:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ipw-aipw-estimator
+</code></pre></div><p>Файлы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/ipw_aipw_estimator.py
+outputs/ipw_aipw_spec.json
+outputs/ipw_aipw_report.json
+outputs/artifact.json
+</code></pre></div><p>Как переиспользовать:</p>
+<ol>
+<li>Оставьте target trial, estimand и bad-control gate как upstream inputs.</li>
+<li>Обновите <code>ipw_aipw_spec.json</code>: propensity model, outcome model, diagnostics и claim
+policy.</li>
+<li>Запустите CLI с <code>--fail-on-invalid</code>.</li>
+<li>Передайте downstream не только estimate, но и warnings: overlap tail, ESS, trimming
+sensitivity, model stress tests и <code>allowed_effect_claim</code>.</li>
+</ol>
+<p>Минимальная фраза для handoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Мы получили model-based AIPW estimate -0.3869 under observed-baseline models.
+Но primary report содержит overlap warning по high-propensity treated users,
+LPM bounds warning и upstream unmeasured confounding; causal claim запрещен.
+</code></pre></div><h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Поменяйте <code>alpha</code> ridge propensity model с <code>0.5</code> на <code>1.0</code>. Как изменились
+propensity tail, IPW Hájek и AIPW?</li>
+<li>Добавьте trimming threshold <code>0.15</code>. Каких users он удаляет и ближе ли estimate к
+primary AIPW или к matched ATT из <code>13/06</code>?</li>
+<li>Создайте candidate estimator с <code>opened_support_chat_after_offer</code> в propensity model.
+Какой check должен заблокировать spec?</li>
+<li>Сравните <code>misspecified_treatment_friction_capacity</code> с primary estimator. Почему IPW
+меняет знак, а AIPW остается между misspecified IPW и outcome-regression estimate?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Propensity score</td>
+<td>«Оценка склонности к outcome»</td>
+<td>Вероятность получить treatment при observed pre-treatment covariates</td>
+</tr>
+<tr>
+<td>Positivity / overlap</td>
+<td>«Достаточно, чтобы были treated и controls вообще»</td>
+<td>В каждой релевантной зоне covariate space должны быть обе treatment strategies</td>
+</tr>
+<tr>
+<td>Stabilized weights</td>
+<td>«Исправленные causal weights»</td>
+<td>Inverse probability weights с marginal treatment probability в числителе</td>
+</tr>
+<tr>
+<td>Effective sample size</td>
+<td>«Обычный row count»</td>
+<td>Размер равновесной выборки с похожей weight concentration</td>
+</tr>
+<tr>
+<td>Trimming</td>
+<td>«Удаление выбросов без последствий»</td>
+<td>Ограничение analysis population по propensity support</td>
+</tr>
+<tr>
+<td>AIPW</td>
+<td>«Estimator, которому не нужны assumptions»</td>
+<td>Outcome model плюс inverse-weighted residual correction; требует корректного design и хотя бы одной корректной nuisance-модели для double robustness</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/" target="_blank" rel="noopener">Hernán and Robins, Causal Inference: What If</a> — главы про inverse probability weighting и positivity; лучший источник для связи target trial, weights и интерпретации causal assumptions.</li>
+<li><a href="https://doi.org/10.1080/01621459.1994.10476818" target="_blank" rel="noopener">Robins, Rotnitzky and Zhao, 1994</a> — первичный источник для semiparametric regression и inverse-probability weighted ideas, которые лежат под doubly robust estimators.</li>
+<li><a href="https://doi.org/10.1002/sim.6607" target="_blank" rel="noopener">Austin and Stuart, 2015</a> — практический обзор propensity score methods, balance diagnostics и weighting в medical observational studies; полезен для failure modes.</li>
+<li><a href="https://www.statsmodels.org/stable/generated/statsmodels.regression.linear_model.OLS.html" target="_blank" rel="noopener">statsmodels OLS documentation</a> — API, с которым artifact сверяет ручную matrix OLS часть outcome model.</li>
+<li><a href="https://www.pywhy.org/dowhy/main/user_guide/index.html" target="_blank" rel="noopener">DoWhy User Guide</a> — как современные causal libraries разделяют model, identify, estimate и refute; пригодится в финальном <code>13/11</code>.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем в IPW часто смотрят stabilized weights?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Они сохраняют ту же идею inverse probability weighting, но помогают диагностировать variance и effective sample size.</button><button type="button" class="quiz-option" data-choice="1">Они автоматически исправляют unmeasured confounding.</button><button type="button" class="quiz-option" data-choice="2">Они превращают observational data в randomized experiment.</button><button type="button" class="quiz-option" data-choice="3">Они нужны только для continuous outcomes.</button></div><p class="quiz-feedback" hidden>Stabilization умножает inverse weights на marginal treatment probability; это не чинит identification, но делает весовую диагностику интерпретируемее.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что делает AIPW doubly robust estimator?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Комбинирует outcome model и propensity model: при выполненных assumptions estimator может быть устойчив, если корректна хотя бы одна из двух nuisance-моделей.</button><button type="button" class="quiz-option" data-choice="1">Берет среднее между naive risk difference и matched ATT.</button><button type="button" class="quiz-option" data-choice="2">Использует только propensity score и не нуждается в outcome model.</button><button type="button" class="quiz-option" data-choice="3">Разрешает добавлять mediators в adjustment set без изменения estimand.</button></div><p class="quiz-feedback" hidden>AIPW добавляет к regression standardization inverse-weighted residual correction. Но double robustness не отменяет causal assumptions и запрет bad controls.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Как правильно интерпретировать trimming units с extreme propensity scores?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Как изменение target population/common-support subset, которое нужно явно показать в sensitivity report.</button><button type="button" class="quiz-option" data-choice="1">Как безопасное удаление шумных строк без влияния на estimand.</button><button type="button" class="quiz-option" data-choice="2">Как доказательство, что исходный IPW estimate был unbiased.</button><button type="button" class="quiz-option" data-choice="3">Как обязательный шаг, после которого можно не проверять overlap.</button></div><p class="quiz-feedback" hidden>Trimming может снизить variance, но меняет population, по которой агрегируется эффект; поэтому report обязан показать, кого удалили и как сдвинулась оценка.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Почему AIPW artifact в уроке блокирует `onboarding_completed_48h` и `telemetry_complete_30d`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Первая переменная является mediator, вторая — post-treatment selection variable; обе ломают total-effect design.</button><button type="button" class="quiz-option" data-choice="1">Обе переменные слишком плохо предсказывают treatment.</button><button type="button" class="quiz-option" data-choice="2">Обе переменные являются строковыми и не подходят для pandas.</button><button type="button" class="quiz-option" data-choice="3">AIPW запрещает любые binary covariates.</button></div><p class="quiz-feedback" hidden>Doubly robust estimator не делает post-treatment conditioning безопасным: bad controls остаются bad controls.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DATA_DIR = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+TARGET_TRIAL = PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;target_trial_spec.json&quot;
+ESTIMAND = PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;estimand.json&quot;
+ADJUSTMENT_GATE = PHASE_ROOT / &quot;04-colliders&quot; / &quot;outputs&quot; / &quot;bad_control_selection_audit.json&quot;
+ESTIMATOR_SPEC = ROOT / &quot;outputs&quot; / &quot;ipw_aipw_spec.json&quot;
+REPORT = ROOT / &quot;outputs&quot; / &quot;ipw_aipw_report.json&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;ipw_aipw_estimator.py&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+MODULE_SPEC = importlib.util.spec_from_file_location(&quot;ipw_aipw_estimator&quot;, ARTIFACT)
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+ESTIMATOR = importlib.util.module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(ESTIMATOR)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def candidate(report: dict, estimator_id: str) -&gt; dict:
+    return next(
+        item
+        for item in report[&quot;policy_context&quot;][&quot;candidate_estimator_audits&quot;]
+        if item[&quot;estimator_id&quot;] == estimator_id
+    )
+
+
+def unit(report: dict, user_id: str) -&gt; dict:
+    return next(
+        item for item in report[&quot;primary_estimator&quot;][&quot;unit_scores&quot;] if item[&quot;user_id&quot;] == user_id
+    )
+
+
+def trim_row(report: dict, threshold: float) -&gt; dict:
+    return next(
+        item
+        for item in report[&quot;primary_estimator&quot;][&quot;trimming_sensitivity&quot;]
+        if item[&quot;threshold&quot;] == threshold
+    )
+
+
+def stress(report: dict, stress_test_id: str) -&gt; dict:
+    return next(item for item in report[&quot;stress_tests&quot;] if item[&quot;stress_test_id&quot;] == stress_test_id)
+
+
+class IpwAipwEstimatorTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.target_trial = read_json(TARGET_TRIAL)
+        self.estimand = read_json(ESTIMAND)
+        self.adjustment_gate = read_json(ADJUSTMENT_GATE)
+        self.estimator_spec = read_json(ESTIMATOR_SPEC)
+
+    def estimate(
+        self,
+        *,
+        data_dir: Path | None = None,
+        target_trial: dict | None = None,
+        estimand: dict | None = None,
+        adjustment_gate: dict | None = None,
+        estimator_spec: dict | None = None,
+    ) -&gt; dict:
+        return ESTIMATOR.estimate_ipw_aipw(
+            DATA_DIR if data_dir is None else data_dir,
+            self.target_trial if target_trial is None else target_trial,
+            self.estimand if estimand is None else estimand,
+            self.adjustment_gate if adjustment_gate is None else adjustment_gate,
+            self.estimator_spec if estimator_spec is None else estimator_spec,
+        )
+
+    def test_valid_report_matches_expected_tiny_ipw_aipw_numbers(self) -&gt; None:
+        report = self.estimate()
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;cohort_n&quot;], 10)
+        self.assertEqual(report[&quot;summary&quot;][&quot;treated_n&quot;], 6)
+        self.assertEqual(report[&quot;summary&quot;][&quot;comparator_n&quot;], 4)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;treated_risk&quot;], 2 / 3)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;comparator_risk&quot;], 0.75)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;naive_risk_difference&quot;], -1 / 12)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;ipw_hajek_ate&quot;], -0.08519236630007954)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;ipw_ht_ate&quot;], 0.07893418528076585)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;aipw_ate&quot;], -0.3868752937879506)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;outcome_regression_ate&quot;], -0.399781001916233)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_checks&quot;], [])
+
+    def test_code_example_prints_transferable_summary(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, CODE],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;estimator_valid&quot;])
+        self.assertEqual(payload[&quot;cohort_n&quot;], 10)
+        self.assertEqual(payload[&quot;treated_n&quot;], 6)
+        self.assertEqual(payload[&quot;comparator_n&quot;], 4)
+        self.assertEqual(payload[&quot;ipw_hajek_ate&quot;], -0.085192)
+        self.assertEqual(payload[&quot;aipw_ate&quot;], -0.386875)
+        self.assertFalse(payload[&quot;effect_claim_allowed&quot;])
+        self.assertIn(&quot;propensity_overlap_has_tail_units&quot;, payload[&quot;warning_checks&quot;])
+        self.assertEqual(
+            payload[&quot;stress_tests&quot;][&quot;misspecified_outcome_friction_capacity&quot;][&quot;aipw_ate&quot;],
+            0.067304,
+        )
+
+    def test_ridge_propensity_scores_and_overlap_tail_units_are_visible(self) -&gt; None:
+        report = self.estimate()
+        self.assertTrue(check(report, &quot;ridge_propensity_solver_converged&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;propensity_scores_within_open_unit_interval&quot;)[&quot;valid&quot;])
+        self.assertAlmostEqual(unit(report, &quot;U001&quot;)[&quot;propensity_score&quot;], 0.9944739510580042)
+        self.assertAlmostEqual(unit(report, &quot;U006&quot;)[&quot;propensity_score&quot;], 0.6599264140180411)
+        self.assertAlmostEqual(unit(report, &quot;U011&quot;)[&quot;propensity_score&quot;], 0.36054832011971855)
+        overlap = check(report, &quot;propensity_overlap_has_tail_units&quot;)
+        self.assertFalse(overlap[&quot;valid&quot;])
+        self.assertEqual(overlap[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertEqual([item[&quot;user_id&quot;] for item in overlap[&quot;sample&quot;]], [&quot;U001&quot;, &quot;U002&quot;, &quot;U010&quot;])
+        severe = check(report, &quot;propensity_overlap_has_no_severe_tail_units&quot;)
+        self.assertFalse(severe[&quot;valid&quot;])
+        self.assertEqual(severe[&quot;sample&quot;][0][&quot;user_id&quot;], &quot;U001&quot;)
+
+    def test_stabilized_weights_and_effective_sample_size_are_reported(self) -&gt; None:
+        report = self.estimate()
+        weights = report[&quot;primary_estimator&quot;][&quot;weights&quot;]
+        self.assertAlmostEqual(weights[&quot;max_stabilized_weight&quot;], 0.9091922784948523)
+        self.assertAlmostEqual(weights[&quot;max_unstabilized_weight&quot;], 1.5638398200583674)
+        self.assertAlmostEqual(weights[&quot;stabilized_effective_sample_size&quot;], 9.555331641172497)
+        self.assertAlmostEqual(
+            weights[&quot;treated_unstabilized_effective_sample_size&quot;],
+            5.833947041739177,
+        )
+        self.assertAlmostEqual(
+            weights[&quot;control_unstabilized_effective_sample_size&quot;],
+            3.9515787093124097,
+        )
+        self.assertTrue(check(report, &quot;effective_sample_size_above_minimum&quot;)[&quot;valid&quot;])
+
+    def test_aipw_formula_matches_manual_unit_level_reconstruction(self) -&gt; None:
+        report = self.estimate()
+        rows = report[&quot;primary_estimator&quot;][&quot;unit_scores&quot;]
+        manual = sum(
+            (row[&quot;m1&quot;] - row[&quot;m0&quot;])
+            + row[&quot;treatment&quot;] * (row[&quot;outcome&quot;] - row[&quot;m1&quot;]) / row[&quot;propensity_score&quot;]
+            - (1 - row[&quot;treatment&quot;]) * (row[&quot;outcome&quot;] - row[&quot;m0&quot;]) / (1 - row[&quot;propensity_score&quot;])
+            for row in rows
+        ) / len(rows)
+        self.assertAlmostEqual(manual, report[&quot;summary&quot;][&quot;aipw_ate&quot;])
+        self.assertTrue(check(report, &quot;manual_outcome_ols_matches_statsmodels&quot;)[&quot;valid&quot;])
+
+    def test_trimming_sensitivity_reports_population_change_and_estimate_shift(self) -&gt; None:
+        report = self.estimate()
+        trim_005 = trim_row(report, 0.05)
+        self.assertEqual(trim_005[&quot;removed_user_ids&quot;], [&quot;U001&quot;])
+        self.assertAlmostEqual(trim_005[&quot;ipw_hajek_ate&quot;], -0.14365619458096424)
+        trim_020 = trim_row(report, 0.2)
+        self.assertEqual(trim_020[&quot;retained_n&quot;], 6)
+        self.assertEqual(trim_020[&quot;removed_user_ids&quot;], [&quot;U001&quot;, &quot;U002&quot;, &quot;U005&quot;, &quot;U010&quot;])
+        self.assertAlmostEqual(trim_020[&quot;aipw_ate&quot;], -0.4180284019860759)
+        material = check(report, &quot;trimming_changes_target_population_materially&quot;)
+        self.assertFalse(material[&quot;valid&quot;])
+        self.assertEqual([row[&quot;threshold&quot;] for row in material[&quot;sample&quot;]], [0.2, 0.25])
+
+    def test_stress_tests_show_misspecified_models_move_estimates(self) -&gt; None:
+        report = self.estimate()
+        treatment_stress = stress(report, &quot;misspecified_treatment_friction_capacity&quot;)
+        outcome_stress = stress(report, &quot;misspecified_outcome_friction_capacity&quot;)
+        self.assertAlmostEqual(treatment_stress[&quot;estimates&quot;][&quot;ipw_hajek_ate&quot;], 0.07385687546522224)
+        self.assertAlmostEqual(treatment_stress[&quot;estimates&quot;][&quot;aipw_ate&quot;], -0.24107575155241906)
+        self.assertGreater(treatment_stress[&quot;weights&quot;][&quot;max_stabilized_weight&quot;], 1.5)
+        self.assertAlmostEqual(
+            outcome_stress[&quot;estimates&quot;][&quot;outcome_regression_ate&quot;], 0.08178163351671623
+        )
+        self.assertAlmostEqual(outcome_stress[&quot;estimates&quot;][&quot;aipw_ate&quot;], 0.06730396752272716)
+
+    def test_primary_design_uses_allowed_sources_and_candidate_statuses_match(self) -&gt; None:
+        report = self.estimate()
+        self.assertTrue(check(report, &quot;primary_models_use_only_allowed_baseline_sources&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;primary_models_cover_required_adjustment_sources&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;candidate_estimator_statuses_match_policy&quot;)[&quot;valid&quot;])
+        primary = candidate(report, &quot;ridge_dr_baseline_risk_v1&quot;)
+        self.assertEqual(primary[&quot;calculated_status&quot;], &quot;estimable_with_warnings&quot;)
+        self.assertEqual(primary[&quot;bad_control_variables&quot;], [])
+        self.assertEqual(primary[&quot;missing_propensity_sources&quot;], [])
+        self.assertEqual(primary[&quot;missing_outcome_sources&quot;], [])
+
+    def test_bad_control_and_omitted_source_candidates_are_rejected(self) -&gt; None:
+        report = self.estimate()
+        propensity_only = candidate(report, &quot;propensity_friction_capacity_only&quot;)
+        outcome_only = candidate(report, &quot;outcome_friction_capacity_only&quot;)
+        mediator = candidate(report, &quot;mediator_augmented_outcome_model&quot;)
+        complete_case = candidate(report, &quot;telemetry_complete_case_weighting&quot;)
+        self.assertEqual(
+            propensity_only[&quot;calculated_status&quot;],
+            &quot;invalid_omits_required_adjustment_sources&quot;,
+        )
+        self.assertIn(&quot;platform&quot;, propensity_only[&quot;missing_propensity_sources&quot;])
+        self.assertEqual(
+            outcome_only[&quot;calculated_status&quot;], &quot;invalid_omits_required_adjustment_sources&quot;
+        )
+        self.assertIn(&quot;network_quality&quot;, outcome_only[&quot;missing_outcome_sources&quot;])
+        self.assertEqual(mediator[&quot;calculated_status&quot;], &quot;invalid_bad_control&quot;)
+        self.assertEqual(mediator[&quot;bad_control_variables&quot;], [&quot;onboarding_completed_48h&quot;])
+        self.assertEqual(complete_case[&quot;calculated_status&quot;], &quot;invalid_bad_control&quot;)
+        self.assertEqual(complete_case[&quot;bad_control_variables&quot;], [&quot;telemetry_complete_30d&quot;])
+
+    def test_candidate_declared_status_must_match_policy(self) -&gt; None:
+        spec = copy.deepcopy(self.estimator_spec)
+        spec[&quot;candidate_estimators&quot;][1][&quot;declared_status&quot;] = &quot;estimable_with_warnings&quot;
+        report = self.estimate(estimator_spec=spec)
+        status = check(report, &quot;candidate_estimator_statuses_match_policy&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(status[&quot;valid&quot;])
+        self.assertEqual(status[&quot;sample&quot;][0][&quot;estimator_id&quot;], &quot;propensity_friction_capacity_only&quot;)
+
+    def test_effect_claim_cannot_be_enabled_with_unmeasured_backdoor_path(self) -&gt; None:
+        spec = copy.deepcopy(self.estimator_spec)
+        spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;] = True
+        report = self.estimate(estimator_spec=spec)
+        claim = check(report, &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(claim[&quot;valid&quot;])
+        self.assertEqual(claim[&quot;sample&quot;][0][&quot;field&quot;], &quot;allowed_effect_claim&quot;)
+
+    def test_primary_bad_control_source_is_blocked_before_estimation(self) -&gt; None:
+        spec = copy.deepcopy(self.estimator_spec)
+        spec[&quot;outcome_model&quot;][&quot;terms&quot;].append(&quot;onboarding_completed_48h&quot;)
+        spec[&quot;outcome_model&quot;][&quot;direct_numeric_terms&quot;].append(&quot;onboarding_completed_48h&quot;)
+        report = self.estimate(estimator_spec=spec)
+        source = check(report, &quot;primary_models_use_only_allowed_baseline_sources&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(source[&quot;valid&quot;])
+        self.assertIn(&quot;onboarding_completed_48h&quot;, source[&quot;sample&quot;][&quot;outcome_bad_controls&quot;])
+
+    def test_primary_missing_required_sources_are_blocked(self) -&gt; None:
+        spec = copy.deepcopy(self.estimator_spec)
+        spec[&quot;propensity_model&quot;] = copy.deepcopy(spec[&quot;stress_tests&quot;][0][&quot;propensity_model&quot;])
+        report = self.estimate(estimator_spec=spec)
+        coverage = check(report, &quot;primary_models_cover_required_adjustment_sources&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(coverage[&quot;valid&quot;])
+        self.assertIn(&quot;acquisition_channel&quot;, coverage[&quot;sample&quot;][&quot;propensity_missing_sources&quot;])
+
+    def test_invalid_trimming_threshold_blocks_spec(self) -&gt; None:
+        spec = copy.deepcopy(self.estimator_spec)
+        spec[&quot;diagnostics&quot;][&quot;trim_thresholds&quot;].append(0.5)
+        report = self.estimate(estimator_spec=spec)
+        trimming = check(report, &quot;trimming_thresholds_are_inside_probability_range&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(trimming[&quot;valid&quot;])
+        self.assertEqual(trimming[&quot;sample&quot;], [0.5])
+
+    def test_duplicate_source_grain_blocks_cohort_build(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            users = pd.read_csv(tmp / &quot;users.csv&quot;)
+            users = pd.concat([users, users.iloc[[0]]], ignore_index=True)
+            users.to_csv(tmp / &quot;users.csv&quot;, index=False)
+            report = self.estimate(data_dir=tmp)
+            grain = check(report, &quot;source_tables_preserve_declared_grain&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(grain[&quot;valid&quot;])
+            self.assertEqual(grain[&quot;sample&quot;][0][&quot;table&quot;], &quot;users&quot;)
+
+    def test_treatment_timing_outside_grace_period_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            assistance = pd.read_csv(tmp / &quot;onboarding_assistance.csv&quot;)
+            assistance.loc[assistance[&quot;user_id&quot;] == &quot;U006&quot;, &quot;started_at&quot;] = (
+                &quot;2026-07-05T21:30:00+03:00&quot;
+            )
+            assistance.to_csv(tmp / &quot;onboarding_assistance.csv&quot;, index=False)
+            report = self.estimate(data_dir=tmp)
+            timing = check(report, &quot;treatment_timing_respects_grace_period&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(timing[&quot;valid&quot;])
+            self.assertEqual(timing[&quot;sample&quot;][0][&quot;user_id&quot;], &quot;U006&quot;)
+
+    def test_incomplete_outcome_followup_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            outcomes = pd.read_csv(tmp / &quot;outcomes.csv&quot;)
+            outcomes.loc[outcomes[&quot;user_id&quot;] == &quot;U001&quot;, &quot;followup_end_at&quot;] = (
+                &quot;2026-07-07T10:00:00+03:00&quot;
+            )
+            outcomes.to_csv(tmp / &quot;outcomes.csv&quot;, index=False)
+            report = self.estimate(data_dir=tmp)
+            followup = check(report, &quot;primary_outcome_followup_is_complete&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(followup[&quot;valid&quot;])
+            self.assertEqual(followup[&quot;sample&quot;][0][&quot;user_id&quot;], &quot;U001&quot;)
+
+    def test_cli_fail_on_invalid_exits_nonzero_for_invalid_claim_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            spec = copy.deepcopy(self.estimator_spec)
+            spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;] = True
+            spec_path = tmp / &quot;invalid_spec.json&quot;
+            output_path = tmp / &quot;report.json&quot;
+            write_json(spec_path, spec)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    spec_path,
+                    &quot;--output&quot;,
+                    output_path,
+                    &quot;--fail-on-invalid&quot;,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1)
+            payload = read_json(output_path)
+            self.assertFalse(payload[&quot;valid&quot;])
+            self.assertIn(
+                &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+                payload[&quot;summary&quot;][&quot;blocking_checks&quot;],
+            )
+
+    def test_committed_report_exists_and_matches_artifact_summary(self) -&gt; None:
+        report = read_json(REPORT)
+        fresh = self.estimate()
+        self.assertEqual(report[&quot;summary&quot;], fresh[&quot;summary&quot;])
+        self.assertEqual(
+            report[&quot;primary_estimator&quot;][&quot;overlap&quot;],
+            fresh[&quot;primary_estimator&quot;][&quot;overlap&quot;],
+        )
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;ipw_aipw_estimator.py&quot;
+
+
+def load_estimator():
+    module_spec = importlib.util.spec_from_file_location(&quot;ipw_aipw_estimator&quot;, ARTIFACT)
+    if module_spec is None or module_spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    estimator = load_estimator()
+    paths = estimator.default_paths()
+    report = estimator.estimate_ipw_aipw(
+        paths[&quot;data_dir&quot;],
+        estimator.read_json(paths[&quot;target_trial&quot;]),
+        estimator.read_json(paths[&quot;estimand&quot;]),
+        estimator.read_json(paths[&quot;adjustment_gate&quot;]),
+        estimator.read_json(paths[&quot;spec&quot;]),
+    )
+
+    stress = {
+        item[&quot;stress_test_id&quot;]: {
+            &quot;ipw_hajek_ate&quot;: round(item[&quot;estimates&quot;][&quot;ipw_hajek_ate&quot;], 6),
+            &quot;aipw_ate&quot;: round(item[&quot;estimates&quot;][&quot;aipw_ate&quot;], 6),
+            &quot;max_stabilized_weight&quot;: round(item[&quot;weights&quot;][&quot;max_stabilized_weight&quot;], 6),
+        }
+        for item in report[&quot;stress_tests&quot;]
+    }
+    summary = {
+        &quot;estimator_valid&quot;: report[&quot;valid&quot;],
+        &quot;cohort_n&quot;: report[&quot;summary&quot;][&quot;cohort_n&quot;],
+        &quot;treated_n&quot;: report[&quot;summary&quot;][&quot;treated_n&quot;],
+        &quot;comparator_n&quot;: report[&quot;summary&quot;][&quot;comparator_n&quot;],
+        &quot;naive_risk_difference&quot;: round(report[&quot;summary&quot;][&quot;naive_risk_difference&quot;], 6),
+        &quot;ipw_hajek_ate&quot;: round(report[&quot;summary&quot;][&quot;ipw_hajek_ate&quot;], 6),
+        &quot;aipw_ate&quot;: round(report[&quot;summary&quot;][&quot;aipw_ate&quot;], 6),
+        &quot;outcome_regression_ate&quot;: round(report[&quot;summary&quot;][&quot;outcome_regression_ate&quot;], 6),
+        &quot;min_propensity&quot;: round(report[&quot;summary&quot;][&quot;min_propensity&quot;], 6),
+        &quot;max_propensity&quot;: round(report[&quot;summary&quot;][&quot;max_propensity&quot;], 6),
+        &quot;stabilized_effective_sample_size&quot;: round(
+            report[&quot;summary&quot;][&quot;stabilized_effective_sample_size&quot;],
+            6,
+        ),
+        &quot;effect_claim_allowed&quot;: report[&quot;summary&quot;][&quot;allowed_effect_claim&quot;],
+        &quot;warning_checks&quot;: report[&quot;summary&quot;][&quot;warning_checks&quot;],
+        &quot;stress_tests&quot;: stress,
+    }
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;ipw-aipw-estimator&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/ipw_aipw_estimator.py&quot;,
+  &quot;description&quot;: &quot;Оценивает stabilized IPW и AIPW для наблюдательного causal question, выпуская overlap, weight, effective-sample-size и trimming diagnostics.&quot;,
+  &quot;usage&quot;: &quot;python outputs/ipw_aipw_estimator.py --data-dir ../data/tiny --spec outputs/ipw_aipw_spec.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/ipw_aipw_estimator.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy.special import expit
+
+
+def read_json(path: str | Path) -&gt; dict[str, Any]:
+    with Path(path).open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: str | Path, payload: dict[str, Any]) -&gt; None:
+    Path(path).write_text(
+        json.dumps(to_jsonable(payload), ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def to_jsonable(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {key: to_jsonable(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [to_jsonable(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if pd.isna(value):
+        return None
+    return value
+
+
+def make_check(
+    check_id: str,
+    valid: bool,
+    message: str,
+    *,
+    severity: str = &quot;error&quot;,
+    sample: Any | None = None,
+) -&gt; dict[str, Any]:
+    payload: dict[str, Any] = {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: valid,
+        &quot;severity&quot;: severity,
+        &quot;message&quot;: message,
+    }
+    if sample is not None:
+        payload[&quot;sample&quot;] = sample
+    return payload
+
+
+def invalid_report(checks: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    blocking = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    return {
+        &quot;valid&quot;: not blocking,
+        &quot;summary&quot;: {
+            &quot;blocking_checks&quot;: blocking,
+            &quot;warning_checks&quot;: warnings,
+        },
+        &quot;checks&quot;: checks,
+    }
+
+
+def as_bool(series: pd.Series) -&gt; pd.Series:
+    if series.dtype == bool:
+        return series
+    return series.astype(str).str.lower().isin({&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;})
+
+
+def load_source_tables(data_dir: str | Path) -&gt; dict[str, pd.DataFrame]:
+    root = Path(data_dir)
+    return {
+        &quot;users&quot;: pd.read_csv(root / &quot;users.csv&quot;),
+        &quot;pre_treatment_behavior&quot;: pd.read_csv(root / &quot;pre_treatment_behavior.csv&quot;),
+        &quot;onboarding_assistance&quot;: pd.read_csv(root / &quot;onboarding_assistance.csv&quot;),
+        &quot;outcomes&quot;: pd.read_csv(root / &quot;outcomes.csv&quot;),
+    }
+
+
+def validate_table_grains(tables: dict[str, pd.DataFrame]) -&gt; list[dict[str, Any]]:
+    key_specs = {
+        &quot;users&quot;: [&quot;user_id&quot;],
+        &quot;pre_treatment_behavior&quot;: [&quot;user_id&quot;],
+        &quot;onboarding_assistance&quot;: [&quot;program_id&quot;, &quot;user_id&quot;],
+        &quot;outcomes&quot;: [&quot;user_id&quot;],
+    }
+    errors = []
+    for table_name, keys in key_specs.items():
+        table = tables[table_name]
+        missing = [key for key in keys if key not in table.columns]
+        if missing:
+            errors.append({&quot;table&quot;: table_name, &quot;missing_keys&quot;: missing})
+            continue
+        duplicates = table[table.duplicated(keys, keep=False)][keys].to_dict(&quot;records&quot;)
+        if duplicates:
+            errors.append({&quot;table&quot;: table_name, &quot;duplicate_keys&quot;: duplicates[:10]})
+    return [
+        make_check(
+            &quot;source_tables_preserve_declared_grain&quot;,
+            not errors,
+            &quot;Source tables preserve user/program grain before joining the IPW/AIPW cohort.&quot;,
+            sample=errors or None,
+        )
+    ]
+
+
+def build_analysis_cohort(
+    tables: dict[str, pd.DataFrame],
+    target_trial: dict[str, Any],
+) -&gt; tuple[pd.DataFrame, list[dict[str, Any]]]:
+    users = tables[&quot;users&quot;].copy()
+    pre = tables[&quot;pre_treatment_behavior&quot;].copy()
+    assistance = tables[&quot;onboarding_assistance&quot;].copy()
+    outcomes = tables[&quot;outcomes&quot;].copy()
+
+    for frame, columns in [
+        (users, [&quot;is_test_user&quot;, &quot;eligible_for_program&quot;]),
+        (pre, [&quot;activation_14d_pre&quot;]),
+        (assistance, [&quot;received_assistance&quot;, &quot;offered_assistance&quot;]),
+        (outcomes, [&quot;activation_14d&quot;, &quot;telemetry_complete_30d&quot;]),
+    ]:
+        for column in columns:
+            if column in frame:
+                frame[column] = as_bool(frame[column])
+
+    assistance_subset = assistance[
+        [
+            &quot;user_id&quot;,
+            &quot;program_id&quot;,
+            &quot;received_assistance&quot;,
+            &quot;offered_assistance&quot;,
+            &quot;started_at&quot;,
+            &quot;offered_at&quot;,
+            &quot;assignment_reason&quot;,
+        ]
+    ].copy()
+
+    cohort = (
+        users.merge(pre, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+        .merge(assistance_subset, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+        .merge(outcomes, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+    )
+
+    mask = pd.Series(True, index=cohort.index)
+    criteria_errors = []
+    for criterion in target_trial.get(&quot;target_population&quot;, {}).get(&quot;criteria&quot;, []):
+        field = criterion.get(&quot;field&quot;)
+        operator = criterion.get(&quot;operator&quot;)
+        value = criterion.get(&quot;value&quot;)
+        if field not in cohort:
+            criteria_errors.append({&quot;field&quot;: field, &quot;reason&quot;: &quot;missing from joined cohort&quot;})
+            continue
+        column = cohort[field]
+        if column.dtype == bool:
+            value = bool(value)
+        if operator == &quot;==&quot;:
+            mask &amp;= column == value
+        elif operator == &quot;&gt;=&quot;:
+            mask &amp;= pd.to_numeric(column) &gt;= float(value)
+        else:
+            criteria_errors.append({&quot;field&quot;: field, &quot;operator&quot;: operator})
+
+    cohort = cohort[mask].copy()
+    cohort[&quot;time_zero_ts&quot;] = pd.to_datetime(cohort[&quot;time_zero&quot;], utc=True)
+    cohort[&quot;started_at_ts&quot;] = pd.to_datetime(cohort[&quot;started_at&quot;], utc=True, errors=&quot;coerce&quot;)
+    grace_hours = target_trial.get(&quot;treatment&quot;, {}).get(&quot;grace_period_hours&quot;, 24)
+    start_delay_hours = (cohort[&quot;started_at_ts&quot;] - cohort[&quot;time_zero_ts&quot;]).dt.total_seconds() / 3600
+    cohort[&quot;assisted_within_24h&quot;] = (
+        cohort[&quot;received_assistance&quot;]
+        &amp; cohort[&quot;started_at_ts&quot;].notna()
+        &amp; (start_delay_hours &gt;= 0)
+        &amp; (start_delay_hours &lt;= grace_hours)
+    )
+    cohort[&quot;treatment&quot;] = cohort[&quot;assisted_within_24h&quot;].astype(int)
+    cohort[&quot;outcome&quot;] = cohort[&quot;activation_14d&quot;].astype(int)
+    cohort[&quot;followup_end_ts&quot;] = pd.to_datetime(cohort[&quot;followup_end_at&quot;], utc=True)
+    cohort[&quot;followup_days&quot;] = (
+        cohort[&quot;followup_end_ts&quot;] - cohort[&quot;time_zero_ts&quot;]
+    ).dt.total_seconds() / 86400
+
+    timing_errors = []
+    treated = cohort[cohort[&quot;received_assistance&quot;]]
+    for _, row in treated.iterrows():
+        if pd.isna(row[&quot;started_at_ts&quot;]):
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;missing started_at&quot;})
+        elif row[&quot;started_at_ts&quot;] &lt; row[&quot;time_zero_ts&quot;]:
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;starts before time zero&quot;})
+        elif row[&quot;treatment&quot;] != 1:
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;outside grace period&quot;})
+
+    followup_errors = cohort[cohort[&quot;followup_days&quot;] &lt; 14][[&quot;user_id&quot;, &quot;followup_days&quot;]].to_dict(
+        &quot;records&quot;
+    )
+
+    checks = [
+        make_check(
+            &quot;target_population_criteria_are_supported&quot;,
+            not criteria_errors,
+            &quot;Target-population criteria are applied from target_trial_spec.json.&quot;,
+            sample=criteria_errors or None,
+        ),
+        make_check(
+            &quot;analysis_cohort_has_expected_treated_and_comparator_units&quot;,
+            len(cohort) &gt; 0
+            and int(cohort[&quot;treatment&quot;].sum()) &gt; 0
+            and int((1 - cohort[&quot;treatment&quot;]).sum()) &gt; 0,
+            &quot;Analysis cohort contains both treatment strategies.&quot;,
+            sample={
+                &quot;n&quot;: len(cohort),
+                &quot;treated&quot;: int(cohort[&quot;treatment&quot;].sum()),
+                &quot;comparator&quot;: int((1 - cohort[&quot;treatment&quot;]).sum()),
+            },
+        ),
+        make_check(
+            &quot;treatment_timing_respects_grace_period&quot;,
+            not timing_errors,
+            &quot;Observed treatment starts after time zero and within the declared grace period.&quot;,
+            sample=timing_errors or None,
+        ),
+        make_check(
+            &quot;primary_outcome_followup_is_complete&quot;,
+            not followup_errors,
+            &quot;Every analysis unit has enough follow-up for activation_14d.&quot;,
+            sample=followup_errors or None,
+        ),
+    ]
+    return cohort.reset_index(drop=True), checks
+
+
+def component_values(frame: pd.DataFrame, component: dict[str, Any]) -&gt; pd.Series:
+    kind = component[&quot;type&quot;]
+    field = component[&quot;field&quot;]
+    if field not in frame:
+        raise KeyError(f&quot;Missing source field for derived feature: {field}&quot;)
+    if kind == &quot;scaled_numeric&quot;:
+        return (
+            (pd.to_numeric(frame[field]) - float(component[&quot;center&quot;]))
+            / float(component[&quot;scale&quot;])
+            * float(component[&quot;weight&quot;])
+        )
+    if kind == &quot;numeric&quot;:
+        return pd.to_numeric(frame[field]) * float(component[&quot;weight&quot;])
+    if kind == &quot;categorical_map&quot;:
+        values = frame[field].map(component[&quot;values&quot;])
+        if values.isna().any():
+            unknown = sorted(frame.loc[values.isna(), field].astype(str).unique())
+            raise ValueError(f&quot;Unknown categories for {field}: {unknown}&quot;)
+        return values.astype(float)
+    raise ValueError(f&quot;Unknown derived feature component type: {kind}&quot;)
+
+
+def add_derived_features(frame: pd.DataFrame, model_spec: dict[str, Any]) -&gt; pd.DataFrame:
+    result = frame.copy()
+    for feature in model_spec.get(&quot;derived_features&quot;, []):
+        values = pd.Series(0.0, index=result.index)
+        for component in feature.get(&quot;components&quot;, []):
+            values = values + component_values(result, component)
+        result[feature[&quot;name&quot;]] = values
+    return result
+
+
+def model_source_variables(model_spec: dict[str, Any]) -&gt; set[str]:
+    sources = {
+        variable
+        for variable in model_spec.get(&quot;direct_numeric_terms&quot;, [])
+        if variable != &quot;treatment&quot;
+    }
+    for feature in model_spec.get(&quot;derived_features&quot;, []):
+        sources.update(feature.get(&quot;source_variables&quot;, []))
+    return sources
+
+
+def allowed_action_from_gate(
+    adjustment_gate: dict[str, Any], action_id: str
+) -&gt; dict[str, Any] | None:
+    return next(
+        (
+            action
+            for action in adjustment_gate.get(&quot;candidate_action_audits&quot;, [])
+            if action.get(&quot;action_id&quot;) == action_id
+        ),
+        None,
+    )
+
+
+def candidate_status(
+    candidate: dict[str, Any],
+    *,
+    required_sources: set[str],
+    bad_controls: set[str],
+) -&gt; str:
+    propensity_sources = set(candidate.get(&quot;propensity_source_variables&quot;, []))
+    outcome_sources = set(candidate.get(&quot;outcome_source_variables&quot;, []))
+    filter_variables = set(candidate.get(&quot;filter_variables&quot;, []))
+    if (propensity_sources | outcome_sources | filter_variables) &amp; bad_controls:
+        return &quot;invalid_bad_control&quot;
+    if not required_sources.issubset(propensity_sources) or not required_sources.issubset(
+        outcome_sources
+    ):
+        return &quot;invalid_omits_required_adjustment_sources&quot;
+    return &quot;estimable_with_warnings&quot;
+
+
+def validate_estimator_spec(
+    estimator_spec: dict[str, Any],
+    target_trial: dict[str, Any],
+    estimand: dict[str, Any],
+    adjustment_gate: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    required = [
+        &quot;ipw_aipw_spec_id&quot;,
+        &quot;question_id&quot;,
+        &quot;estimand_id&quot;,
+        &quot;trial_id&quot;,
+        &quot;adjustment_gate_id&quot;,
+        &quot;adjustment_action_id&quot;,
+        &quot;primary_estimator_id&quot;,
+        &quot;treatment&quot;,
+        &quot;outcome&quot;,
+        &quot;propensity_model&quot;,
+        &quot;outcome_model&quot;,
+        &quot;diagnostics&quot;,
+        &quot;candidate_estimators&quot;,
+        &quot;claim_policy&quot;,
+    ]
+    missing = [field for field in required if field not in estimator_spec]
+    checks = [
+        make_check(
+            &quot;ipw_aipw_spec_required_fields&quot;,
+            not missing,
+            &quot;IPW/AIPW spec contains required fields.&quot;,
+            sample=missing or None,
+        )
+    ]
+
+    alignment_errors = []
+    expected = {
+        &quot;question_id&quot;: target_trial.get(&quot;question_id&quot;),
+        &quot;estimand_id&quot;: estimand.get(&quot;estimand_id&quot;),
+        &quot;trial_id&quot;: target_trial.get(&quot;trial_id&quot;),
+        &quot;outcome&quot;: estimand.get(&quot;outcome_id&quot;),
+    }
+    for field, expected_value in expected.items():
+        if estimator_spec.get(field) != expected_value:
+            alignment_errors.append(
+                {&quot;field&quot;: field, &quot;expected&quot;: expected_value, &quot;actual&quot;: estimator_spec.get(field)}
+            )
+    checks.append(
+        make_check(
+            &quot;ipw_aipw_spec_aligns_with_target_trial_and_estimand&quot;,
+            not alignment_errors,
+            &quot;Estimator spec aligns with target trial and ATE estimand.&quot;,
+            sample=alignment_errors or None,
+        )
+    )
+
+    action = allowed_action_from_gate(adjustment_gate, estimator_spec.get(&quot;adjustment_action_id&quot;))
+    bad_controls = set(adjustment_gate.get(&quot;summary&quot;, {}).get(&quot;bad_control_variables&quot;, []))
+    required_sources = set(action.get(&quot;variables&quot;, [])) if action else set()
+    checks.append(
+        make_check(
+            &quot;adjustment_gate_allows_primary_observed_baseline_action&quot;,
+            action is not None and action.get(&quot;allowed_for_estimation&quot;) is True,
+            &quot;Primary estimator reuses the allowed observed-baseline adjustment action from 13/04.&quot;,
+            sample=None
+            if action is not None
+            else {&quot;adjustment_action_id&quot;: estimator_spec.get(&quot;adjustment_action_id&quot;)},
+        )
+    )
+
+    propensity_sources = model_source_variables(estimator_spec.get(&quot;propensity_model&quot;, {}))
+    outcome_sources = model_source_variables(estimator_spec.get(&quot;outcome_model&quot;, {}))
+    source_errors = {
+        &quot;propensity_bad_controls&quot;: sorted(propensity_sources &amp; bad_controls),
+        &quot;outcome_bad_controls&quot;: sorted(outcome_sources &amp; bad_controls),
+    }
+    checks.append(
+        make_check(
+            &quot;primary_models_use_only_allowed_baseline_sources&quot;,
+            not source_errors[&quot;propensity_bad_controls&quot;]
+            and not source_errors[&quot;outcome_bad_controls&quot;],
+            &quot;Primary propensity and outcome models do not use mediators, colliders, &quot;
+            &quot;selection variables or outcome leakage.&quot;,
+            sample=source_errors if any(source_errors.values()) else None,
+        )
+    )
+
+    coverage_errors = {
+        &quot;propensity_missing_sources&quot;: sorted(required_sources - propensity_sources),
+        &quot;outcome_missing_sources&quot;: sorted(required_sources - outcome_sources),
+    }
+    checks.append(
+        make_check(
+            &quot;primary_models_cover_required_adjustment_sources&quot;,
+            not coverage_errors[&quot;propensity_missing_sources&quot;]
+            and not coverage_errors[&quot;outcome_missing_sources&quot;],
+            &quot;Primary propensity and outcome models cover the observed-baseline adjustment basis.&quot;,
+            sample=coverage_errors if any(coverage_errors.values()) else None,
+        )
+    )
+
+    diagnostics = estimator_spec.get(&quot;diagnostics&quot;, {})
+    trim_thresholds = diagnostics.get(&quot;trim_thresholds&quot;, [])
+    trim_errors = [
+        threshold
+        for threshold in trim_thresholds
+        if not isinstance(threshold, int | float) or threshold &lt; 0 or threshold &gt;= 0.5
+    ]
+    checks.append(
+        make_check(
+            &quot;trimming_thresholds_are_inside_probability_range&quot;,
+            not trim_errors and len(trim_thresholds) &gt; 0,
+            &quot;Trimming schedule uses symmetric thresholds inside [0, 0.5).&quot;,
+            sample=trim_errors or None,
+        )
+    )
+
+    candidate_audits = []
+    status_errors = []
+    for candidate in estimator_spec.get(&quot;candidate_estimators&quot;, []):
+        calculated = candidate_status(
+            candidate,
+            required_sources=required_sources,
+            bad_controls=bad_controls,
+        )
+        audit = {
+            &quot;estimator_id&quot;: candidate.get(&quot;estimator_id&quot;),
+            &quot;declared_status&quot;: candidate.get(&quot;declared_status&quot;),
+            &quot;calculated_status&quot;: calculated,
+            &quot;bad_control_variables&quot;: sorted(
+                (
+                    set(candidate.get(&quot;propensity_source_variables&quot;, []))
+                    | set(candidate.get(&quot;outcome_source_variables&quot;, []))
+                    | set(candidate.get(&quot;filter_variables&quot;, []))
+                )
+                &amp; bad_controls
+            ),
+            &quot;missing_propensity_sources&quot;: sorted(
+                required_sources - set(candidate.get(&quot;propensity_source_variables&quot;, []))
+            ),
+            &quot;missing_outcome_sources&quot;: sorted(
+                required_sources - set(candidate.get(&quot;outcome_source_variables&quot;, []))
+            ),
+        }
+        candidate_audits.append(audit)
+        if audit[&quot;declared_status&quot;] != calculated:
+            status_errors.append(audit)
+    checks.append(
+        make_check(
+            &quot;candidate_estimator_statuses_match_policy&quot;,
+            not status_errors,
+            &quot;Candidate estimator statuses match bad-control and source-coverage policy.&quot;,
+            sample=status_errors or None,
+        )
+    )
+
+    open_unmeasured = adjustment_gate.get(&quot;summary&quot;, {}).get(
+        &quot;primary_open_unmeasured_backdoor_paths&quot;
+    )
+    claim_policy = estimator_spec.get(&quot;claim_policy&quot;, {})
+    claim_errors = []
+    if claim_policy.get(&quot;allowed_effect_claim&quot;) and open_unmeasured:
+        claim_errors.append(
+            {
+                &quot;field&quot;: &quot;allowed_effect_claim&quot;,
+                &quot;reason&quot;: &quot;unmeasured backdoor path remains open&quot;,
+                &quot;open_unmeasured_backdoor_paths&quot;: open_unmeasured,
+            }
+        )
+    checks.append(
+        make_check(
+            &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+            not claim_errors,
+            &quot;Estimator may report model-based estimates but cannot claim a proven causal &quot;
+            &quot;effect while unmeasured confounding remains.&quot;,
+            sample=claim_errors or None,
+        )
+    )
+
+    context = {
+        &quot;required_sources&quot;: sorted(required_sources),
+        &quot;bad_control_variables&quot;: sorted(bad_controls),
+        &quot;candidate_estimator_audits&quot;: candidate_audits,
+    }
+    return checks, context
+
+
+def numeric_series(frame: pd.DataFrame, column: str) -&gt; pd.Series:
+    values = frame[column]
+    if values.dtype == bool:
+        return values.astype(int)
+    return pd.to_numeric(values)
+
+
+def propensity_design_matrix(
+    frame: pd.DataFrame,
+    model_spec: dict[str, Any],
+) -&gt; tuple[np.ndarray, list[dict[str, float | str]]]:
+    terms = [term for term in model_spec[&quot;terms&quot;] if term != &quot;intercept&quot;]
+    columns = []
+    standardization = []
+    for term in terms:
+        if term not in frame:
+            raise KeyError(f&quot;Missing propensity term: {term}&quot;)
+        values = numeric_series(frame, term).astype(float)
+        if model_spec.get(&quot;standardize_numeric_terms&quot;, True):
+            mean = float(values.mean())
+            std = float(values.std(ddof=0))
+            if std == 0:
+                std = 1.0
+            transformed = (values - mean) / std
+        else:
+            mean = 0.0
+            std = 1.0
+            transformed = values
+        standardization.append({&quot;term&quot;: term, &quot;mean&quot;: mean, &quot;std&quot;: std})
+        columns.append(transformed.to_numpy())
+    return np.column_stack([np.ones(len(frame)), *columns]), standardization
+
+
+def fit_ridge_logistic(
+    design: np.ndarray,
+    treatment: np.ndarray,
+    *,
+    alpha: float,
+    max_iter: int = 100,
+    tolerance: float = 1e-12,
+) -&gt; dict[str, Any]:
+    beta = np.zeros(design.shape[1])
+    penalty = np.eye(design.shape[1]) * alpha
+    penalty[0, 0] = 0.0
+    converged = False
+    iterations = 0
+    for iteration in range(1, max_iter + 1):
+        iterations = iteration
+        fitted = expit(design @ beta)
+        weights = fitted * (1 - fitted)
+        gradient = design.T @ (treatment - fitted) - penalty @ beta
+        hessian = -((design.T * weights) @ design) - penalty
+        try:
+            step = np.linalg.solve(hessian, gradient)
+        except np.linalg.LinAlgError:
+            step = np.linalg.pinv(hessian) @ gradient
+        candidate = beta - step
+        if float(np.max(np.abs(candidate - beta))) &lt; tolerance:
+            beta = candidate
+            converged = True
+            break
+        beta = candidate
+    fitted = expit(design @ beta)
+    gradient = design.T @ (treatment - fitted) - penalty @ beta
+    return {
+        &quot;params&quot;: beta,
+        &quot;fitted&quot;: fitted,
+        &quot;iterations&quot;: iterations,
+        &quot;converged&quot;: converged,
+        &quot;max_abs_penalized_gradient&quot;: float(np.max(np.abs(gradient))),
+    }
+
+
+def outcome_design_matrix(
+    frame: pd.DataFrame,
+    model_spec: dict[str, Any],
+) -&gt; tuple[np.ndarray, list[str]]:
+    terms = [term for term in model_spec[&quot;terms&quot;] if term != &quot;intercept&quot;]
+    columns = []
+    for term in terms:
+        if term not in frame:
+            raise KeyError(f&quot;Missing outcome term: {term}&quot;)
+        columns.append(numeric_series(frame, term).astype(float).to_numpy())
+    return np.column_stack([np.ones(len(frame)), *columns]), [&quot;intercept&quot;, *terms]
+
+
+def fit_outcome_ols(frame: pd.DataFrame, model_spec: dict[str, Any]) -&gt; dict[str, Any]:
+    design, terms = outcome_design_matrix(frame, model_spec)
+    outcome = frame[&quot;outcome&quot;].to_numpy(dtype=float)
+    params = np.linalg.lstsq(design, outcome, rcond=None)[0]
+    predictions = design @ params
+
+    statsmodels_fit = sm.OLS(outcome, design).fit()
+    statsmodels_predictions = statsmodels_fit.predict(design)
+    max_param_diff = float(np.max(np.abs(params - statsmodels_fit.params)))
+    max_prediction_diff = float(np.max(np.abs(predictions - statsmodels_predictions)))
+
+    cf_predictions = {}
+    treatment_term = model_spec[&quot;treatment_term&quot;]
+    for treatment_value in [1, 0]:
+        counterfactual = frame.copy()
+        counterfactual[treatment_term] = treatment_value
+        cf_design, _ = outcome_design_matrix(counterfactual, model_spec)
+        cf_predictions[str(treatment_value)] = cf_design @ params
+
+    return {
+        &quot;terms&quot;: terms,
+        &quot;params&quot;: params,
+        &quot;predictions_observed&quot;: predictions,
+        &quot;m1&quot;: cf_predictions[&quot;1&quot;],
+        &quot;m0&quot;: cf_predictions[&quot;0&quot;],
+        &quot;manual_statsmodels_max_param_diff&quot;: max_param_diff,
+        &quot;manual_statsmodels_max_prediction_diff&quot;: max_prediction_diff,
+    }
+
+
+def effective_sample_size(weights: np.ndarray) -&gt; float:
+    total = float(weights.sum())
+    squared = float(np.square(weights).sum())
+    if squared == 0:
+        return 0.0
+    return total * total / squared
+
+
+def ipw_and_aipw_estimates(
+    treatment: np.ndarray,
+    outcome: np.ndarray,
+    propensity: np.ndarray,
+    m1: np.ndarray,
+    m0: np.ndarray,
+) -&gt; dict[str, float]:
+    treated_weight = treatment / propensity
+    control_weight = (1 - treatment) / (1 - propensity)
+    mu1_ht = float(np.mean(treated_weight * outcome))
+    mu0_ht = float(np.mean(control_weight * outcome))
+    mu1_hajek = float(np.sum(treated_weight * outcome) / np.sum(treated_weight))
+    mu0_hajek = float(np.sum(control_weight * outcome) / np.sum(control_weight))
+    aipw = float(
+        np.mean(
+            (m1 - m0)
+            + treatment * (outcome - m1) / propensity
+            - (1 - treatment) * (outcome - m0) / (1 - propensity)
+        )
+    )
+    return {
+        &quot;ipw_ht_mu1&quot;: mu1_ht,
+        &quot;ipw_ht_mu0&quot;: mu0_ht,
+        &quot;ipw_ht_ate&quot;: mu1_ht - mu0_ht,
+        &quot;ipw_hajek_mu1&quot;: mu1_hajek,
+        &quot;ipw_hajek_mu0&quot;: mu0_hajek,
+        &quot;ipw_hajek_ate&quot;: mu1_hajek - mu0_hajek,
+        &quot;aipw_ate&quot;: aipw,
+        &quot;outcome_regression_ate&quot;: float(np.mean(m1 - m0)),
+    }
+
+
+def estimate_with_model_pair(
+    cohort: pd.DataFrame,
+    *,
+    propensity_model: dict[str, Any],
+    outcome_model: dict[str, Any],
+    diagnostics: dict[str, Any],
+    include_rows: bool = False,
+) -&gt; dict[str, Any]:
+    propensity_frame = add_derived_features(cohort, propensity_model)
+    propensity_design, standardization = propensity_design_matrix(
+        propensity_frame, propensity_model
+    )
+    treatment = cohort[&quot;treatment&quot;].to_numpy(dtype=float)
+    outcome = cohort[&quot;outcome&quot;].to_numpy(dtype=float)
+    propensity_fit = fit_ridge_logistic(
+        propensity_design,
+        treatment,
+        alpha=float(propensity_model.get(&quot;alpha&quot;, 0.0)),
+    )
+    raw_propensity = propensity_fit[&quot;fitted&quot;]
+    epsilon = float(propensity_model.get(&quot;clip_epsilon&quot;, 0.0))
+    propensity = np.clip(raw_propensity, epsilon, 1 - epsilon)
+
+    outcome_frame = add_derived_features(cohort, outcome_model)
+    outcome_fit = fit_outcome_ols(outcome_frame, outcome_model)
+    m1 = outcome_fit[&quot;m1&quot;]
+    m0 = outcome_fit[&quot;m0&quot;]
+
+    p_treated = float(treatment.mean())
+    unstabilized_weights = np.where(treatment == 1, 1 / propensity, 1 / (1 - propensity))
+    stabilized_weights = np.where(
+        treatment == 1,
+        p_treated / propensity,
+        (1 - p_treated) / (1 - propensity),
+    )
+
+    estimates = ipw_and_aipw_estimates(treatment, outcome, propensity, m1, m0)
+    estimates[&quot;naive_risk_difference&quot;] = float(
+        outcome[treatment == 1].mean() - outcome[treatment == 0].mean()
+    )
+
+    lower, upper = diagnostics[&quot;overlap_warning_bounds&quot;]
+    severe_lower, severe_upper = diagnostics[&quot;overlap_severe_bounds&quot;]
+    outside_warning = (propensity &lt; lower) | (propensity &gt; upper)
+    outside_severe = (propensity &lt; severe_lower) | (propensity &gt; severe_upper)
+
+    row_table = pd.DataFrame(
+        {
+            &quot;user_id&quot;: cohort[&quot;user_id&quot;],
+            &quot;treatment&quot;: cohort[&quot;treatment&quot;],
+            &quot;outcome&quot;: cohort[&quot;outcome&quot;],
+            &quot;propensity_score&quot;: propensity,
+            &quot;raw_propensity_score&quot;: raw_propensity,
+            &quot;stabilized_ate_weight&quot;: stabilized_weights,
+            &quot;unstabilized_ate_weight&quot;: unstabilized_weights,
+            &quot;m1&quot;: m1,
+            &quot;m0&quot;: m0,
+        }
+    )
+
+    trimming = []
+    for threshold in diagnostics[&quot;trim_thresholds&quot;]:
+        mask = (propensity &gt;= threshold) &amp; (propensity &lt;= 1 - threshold)
+        retained = row_table[mask].copy()
+        removed = row_table[~mask].copy()
+        retained_treated = int(retained[&quot;treatment&quot;].sum())
+        retained_control = int((1 - retained[&quot;treatment&quot;]).sum())
+        trimming_row: dict[str, Any] = {
+            &quot;threshold&quot;: threshold,
+            &quot;retained_n&quot;: int(mask.sum()),
+            &quot;removed_n&quot;: int((~mask).sum()),
+            &quot;retained_treated_n&quot;: retained_treated,
+            &quot;retained_control_n&quot;: retained_control,
+            &quot;removed_user_ids&quot;: removed[&quot;user_id&quot;].tolist(),
+        }
+        if retained_treated &gt; 0 and retained_control &gt; 0:
+            subset_estimates = ipw_and_aipw_estimates(
+                treatment[mask],
+                outcome[mask],
+                propensity[mask],
+                m1[mask],
+                m0[mask],
+            )
+            trimming_row.update(
+                {
+                    &quot;estimable&quot;: True,
+                    &quot;ipw_hajek_ate&quot;: subset_estimates[&quot;ipw_hajek_ate&quot;],
+                    &quot;aipw_ate&quot;: subset_estimates[&quot;aipw_ate&quot;],
+                }
+            )
+        else:
+            trimming_row.update({&quot;estimable&quot;: False, &quot;reason&quot;: &quot;one_arm_removed_by_trimming&quot;})
+        trimming.append(trimming_row)
+
+    result: dict[str, Any] = {
+        &quot;propensity_model&quot;: {
+            &quot;model_id&quot;: propensity_model[&quot;model_id&quot;],
+            &quot;terms&quot;: propensity_model[&quot;terms&quot;],
+            &quot;alpha&quot;: propensity_model.get(&quot;alpha&quot;),
+            &quot;params&quot;: dict(zip(propensity_model[&quot;terms&quot;], propensity_fit[&quot;params&quot;], strict=True)),
+            &quot;standardization&quot;: standardization,
+            &quot;converged&quot;: propensity_fit[&quot;converged&quot;],
+            &quot;iterations&quot;: propensity_fit[&quot;iterations&quot;],
+            &quot;max_abs_penalized_gradient&quot;: propensity_fit[&quot;max_abs_penalized_gradient&quot;],
+        },
+        &quot;outcome_model&quot;: {
+            &quot;model_id&quot;: outcome_model[&quot;model_id&quot;],
+            &quot;terms&quot;: outcome_fit[&quot;terms&quot;],
+            &quot;params&quot;: dict(zip(outcome_fit[&quot;terms&quot;], outcome_fit[&quot;params&quot;], strict=True)),
+            &quot;manual_statsmodels_max_param_diff&quot;: outcome_fit[&quot;manual_statsmodels_max_param_diff&quot;],
+            &quot;manual_statsmodels_max_prediction_diff&quot;: outcome_fit[
+                &quot;manual_statsmodels_max_prediction_diff&quot;
+            ],
+        },
+        &quot;estimates&quot;: estimates,
+        &quot;overlap&quot;: {
+            &quot;min_propensity&quot;: float(propensity.min()),
+            &quot;max_propensity&quot;: float(propensity.max()),
+            &quot;outside_warning_bounds_n&quot;: int(outside_warning.sum()),
+            &quot;outside_severe_bounds_n&quot;: int(outside_severe.sum()),
+            &quot;outside_warning_bounds&quot;: row_table.loc[
+                outside_warning, [&quot;user_id&quot;, &quot;treatment&quot;, &quot;propensity_score&quot;]
+            ].to_dict(&quot;records&quot;),
+            &quot;outside_severe_bounds&quot;: row_table.loc[
+                outside_severe, [&quot;user_id&quot;, &quot;treatment&quot;, &quot;propensity_score&quot;]
+            ].to_dict(&quot;records&quot;),
+        },
+        &quot;weights&quot;: {
+            &quot;max_stabilized_weight&quot;: float(stabilized_weights.max()),
+            &quot;max_unstabilized_weight&quot;: float(unstabilized_weights.max()),
+            &quot;stabilized_effective_sample_size&quot;: effective_sample_size(stabilized_weights),
+            &quot;unstabilized_effective_sample_size&quot;: effective_sample_size(unstabilized_weights),
+            &quot;treated_unstabilized_effective_sample_size&quot;: effective_sample_size(
+                unstabilized_weights[treatment == 1]
+            ),
+            &quot;control_unstabilized_effective_sample_size&quot;: effective_sample_size(
+                unstabilized_weights[treatment == 0]
+            ),
+        },
+        &quot;trimming_sensitivity&quot;: trimming,
+        &quot;outcome_prediction_range&quot;: {
+            &quot;m1_min&quot;: float(m1.min()),
+            &quot;m1_max&quot;: float(m1.max()),
+            &quot;m0_min&quot;: float(m0.min()),
+            &quot;m0_max&quot;: float(m0.max()),
+        },
+    }
+    if include_rows:
+        result[&quot;unit_scores&quot;] = row_table.to_dict(&quot;records&quot;)
+    return result
+
+
+def diagnostic_checks(
+    model_result: dict[str, Any], diagnostics: dict[str, Any]
+) -&gt; list[dict[str, Any]]:
+    overlap = model_result[&quot;overlap&quot;]
+    weights = model_result[&quot;weights&quot;]
+    prediction_range = model_result[&quot;outcome_prediction_range&quot;]
+    probability_lower, probability_upper = diagnostics[&quot;probability_bounds&quot;]
+
+    material_trim_rows = [
+        row
+        for row in model_result[&quot;trimming_sensitivity&quot;]
+        if row[&quot;removed_n&quot;] / (row[&quot;retained_n&quot;] + row[&quot;removed_n&quot;])
+        &gt; diagnostics[&quot;material_retention_loss_fraction&quot;]
+    ]
+
+    prediction_outside_bounds = [
+        {&quot;field&quot;: key, &quot;value&quot;: value}
+        for key, value in prediction_range.items()
+        if value &lt; probability_lower or value &gt; probability_upper
+    ]
+
+    return [
+        make_check(
+            &quot;ridge_propensity_solver_converged&quot;,
+            model_result[&quot;propensity_model&quot;][&quot;converged&quot;],
+            &quot;Manual ridge logistic propensity solver converged.&quot;,
+            sample={
+                &quot;iterations&quot;: model_result[&quot;propensity_model&quot;][&quot;iterations&quot;],
+                &quot;max_abs_penalized_gradient&quot;: model_result[&quot;propensity_model&quot;][
+                    &quot;max_abs_penalized_gradient&quot;
+                ],
+            },
+        ),
+        make_check(
+            &quot;propensity_scores_within_open_unit_interval&quot;,
+            overlap[&quot;min_propensity&quot;] &gt; 0 and overlap[&quot;max_propensity&quot;] &lt; 1,
+            &quot;Propensity scores are finite and strictly inside (0, 1).&quot;,
+            sample={
+                &quot;min_propensity&quot;: overlap[&quot;min_propensity&quot;],
+                &quot;max_propensity&quot;: overlap[&quot;max_propensity&quot;],
+            },
+        ),
+        make_check(
+            &quot;propensity_overlap_has_tail_units&quot;,
+            overlap[&quot;outside_warning_bounds_n&quot;] == 0,
+            &quot;No units fall outside configured overlap warning bounds.&quot;,
+            severity=&quot;warning&quot;,
+            sample=overlap[&quot;outside_warning_bounds&quot;] or None,
+        ),
+        make_check(
+            &quot;propensity_overlap_has_no_severe_tail_units&quot;,
+            overlap[&quot;outside_severe_bounds_n&quot;] == 0,
+            &quot;No units fall outside configured severe overlap bounds.&quot;,
+            severity=&quot;warning&quot;,
+            sample=overlap[&quot;outside_severe_bounds&quot;] or None,
+        ),
+        make_check(
+            &quot;stabilized_weights_within_configured_limit&quot;,
+            weights[&quot;max_stabilized_weight&quot;] &lt;= diagnostics[&quot;max_stabilized_weight_warning&quot;],
+            &quot;Stabilized ATE weights stay under the configured warning threshold.&quot;,
+            severity=&quot;warning&quot;,
+            sample={
+                &quot;max_stabilized_weight&quot;: weights[&quot;max_stabilized_weight&quot;],
+                &quot;threshold&quot;: diagnostics[&quot;max_stabilized_weight_warning&quot;],
+            },
+        ),
+        make_check(
+            &quot;unstabilized_weights_within_configured_limit&quot;,
+            weights[&quot;max_unstabilized_weight&quot;] &lt;= diagnostics[&quot;max_unstabilized_weight_warning&quot;],
+            &quot;Unstabilized ATE weights stay under the configured warning threshold.&quot;,
+            severity=&quot;warning&quot;,
+            sample={
+                &quot;max_unstabilized_weight&quot;: weights[&quot;max_unstabilized_weight&quot;],
+                &quot;threshold&quot;: diagnostics[&quot;max_unstabilized_weight_warning&quot;],
+            },
+        ),
+        make_check(
+            &quot;effective_sample_size_above_minimum&quot;,
+            weights[&quot;stabilized_effective_sample_size&quot;] &gt;= diagnostics[&quot;min_effective_sample_size&quot;],
+            &quot;Stabilized weights keep enough effective sample size for the tiny teaching cohort.&quot;,
+            severity=&quot;warning&quot;,
+            sample={
+                &quot;effective_sample_size&quot;: weights[&quot;stabilized_effective_sample_size&quot;],
+                &quot;minimum&quot;: diagnostics[&quot;min_effective_sample_size&quot;],
+            },
+        ),
+        make_check(
+            &quot;trimming_sensitivity_keeps_both_arms&quot;,
+            all(row[&quot;estimable&quot;] for row in model_result[&quot;trimming_sensitivity&quot;]),
+            &quot;Every configured trimming threshold retains at least one treated and one &quot;
+            &quot;comparator unit.&quot;,
+            severity=&quot;warning&quot;,
+            sample=[row for row in model_result[&quot;trimming_sensitivity&quot;] if not row[&quot;estimable&quot;]]
+            or None,
+        ),
+        make_check(
+            &quot;trimming_changes_target_population_materially&quot;,
+            not material_trim_rows,
+            &quot;Configured trimming thresholds do not remove a material fraction of the &quot;
+            &quot;target population.&quot;,
+            severity=&quot;warning&quot;,
+            sample=material_trim_rows or None,
+        ),
+        make_check(
+            &quot;manual_outcome_ols_matches_statsmodels&quot;,
+            model_result[&quot;outcome_model&quot;][&quot;manual_statsmodels_max_param_diff&quot;] &lt; 1e-10
+            and model_result[&quot;outcome_model&quot;][&quot;manual_statsmodels_max_prediction_diff&quot;] &lt; 1e-10,
+            &quot;Manual matrix OLS and statsmodels.OLS agree for the outcome regression used by AIPW.&quot;,
+            sample={
+                &quot;max_param_diff&quot;: model_result[&quot;outcome_model&quot;][
+                    &quot;manual_statsmodels_max_param_diff&quot;
+                ],
+                &quot;max_prediction_diff&quot;: model_result[&quot;outcome_model&quot;][
+                    &quot;manual_statsmodels_max_prediction_diff&quot;
+                ],
+            },
+        ),
+        make_check(
+            &quot;outcome_lpm_predictions_inside_probability_bounds&quot;,
+            not prediction_outside_bounds,
+            &quot;Linear probability outcome predictions stay inside probability bounds.&quot;,
+            severity=&quot;warning&quot;,
+            sample=prediction_outside_bounds or None,
+        ),
+    ]
+
+
+def estimate_ipw_aipw(
+    data_dir: str | Path,
+    target_trial: dict[str, Any],
+    estimand: dict[str, Any],
+    adjustment_gate: dict[str, Any],
+    estimator_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    tables = load_source_tables(data_dir)
+    checks = validate_table_grains(tables)
+    if any(check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in checks):
+        return invalid_report(checks)
+
+    cohort, cohort_checks = build_analysis_cohort(tables, target_trial)
+    checks.extend(cohort_checks)
+    if any(check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in checks):
+        return invalid_report(checks)
+
+    spec_checks, policy_context = validate_estimator_spec(
+        estimator_spec,
+        target_trial,
+        estimand,
+        adjustment_gate,
+    )
+    checks.extend(spec_checks)
+    if any(check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in checks):
+        return invalid_report(checks)
+
+    primary = estimate_with_model_pair(
+        cohort,
+        propensity_model=estimator_spec[&quot;propensity_model&quot;],
+        outcome_model=estimator_spec[&quot;outcome_model&quot;],
+        diagnostics=estimator_spec[&quot;diagnostics&quot;],
+        include_rows=True,
+    )
+    checks.extend(diagnostic_checks(primary, estimator_spec[&quot;diagnostics&quot;]))
+
+    stress_tests = []
+    for stress_spec in estimator_spec.get(&quot;stress_tests&quot;, []):
+        propensity_model = (
+            estimator_spec[&quot;propensity_model&quot;]
+            if stress_spec[&quot;propensity_model&quot;] == &quot;primary&quot;
+            else stress_spec[&quot;propensity_model&quot;]
+        )
+        outcome_model = (
+            estimator_spec[&quot;outcome_model&quot;]
+            if stress_spec[&quot;outcome_model&quot;] == &quot;primary&quot;
+            else stress_spec[&quot;outcome_model&quot;]
+        )
+        stress_result = estimate_with_model_pair(
+            cohort,
+            propensity_model=propensity_model,
+            outcome_model=outcome_model,
+            diagnostics=estimator_spec[&quot;diagnostics&quot;],
+            include_rows=False,
+        )
+        stress_tests.append(
+            {
+                &quot;stress_test_id&quot;: stress_spec[&quot;stress_test_id&quot;],
+                &quot;label&quot;: stress_spec[&quot;label&quot;],
+                &quot;interpretation&quot;: stress_spec[&quot;interpretation&quot;],
+                &quot;propensity_model_id&quot;: stress_result[&quot;propensity_model&quot;][&quot;model_id&quot;],
+                &quot;outcome_model_id&quot;: stress_result[&quot;outcome_model&quot;][&quot;model_id&quot;],
+                &quot;estimates&quot;: stress_result[&quot;estimates&quot;],
+                &quot;overlap&quot;: stress_result[&quot;overlap&quot;],
+                &quot;weights&quot;: stress_result[&quot;weights&quot;],
+            }
+        )
+
+    blocking = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    estimates = primary[&quot;estimates&quot;]
+
+    return {
+        &quot;valid&quot;: not blocking,
+        &quot;summary&quot;: {
+            &quot;spec_id&quot;: estimator_spec[&quot;ipw_aipw_spec_id&quot;],
+            &quot;primary_estimator_id&quot;: estimator_spec[&quot;primary_estimator_id&quot;],
+            &quot;cohort_n&quot;: int(len(cohort)),
+            &quot;treated_n&quot;: int(cohort[&quot;treatment&quot;].sum()),
+            &quot;comparator_n&quot;: int((1 - cohort[&quot;treatment&quot;]).sum()),
+            &quot;treated_risk&quot;: float(cohort.loc[cohort[&quot;treatment&quot;] == 1, &quot;outcome&quot;].mean()),
+            &quot;comparator_risk&quot;: float(cohort.loc[cohort[&quot;treatment&quot;] == 0, &quot;outcome&quot;].mean()),
+            &quot;naive_risk_difference&quot;: estimates[&quot;naive_risk_difference&quot;],
+            &quot;ipw_hajek_ate&quot;: estimates[&quot;ipw_hajek_ate&quot;],
+            &quot;ipw_ht_ate&quot;: estimates[&quot;ipw_ht_ate&quot;],
+            &quot;aipw_ate&quot;: estimates[&quot;aipw_ate&quot;],
+            &quot;outcome_regression_ate&quot;: estimates[&quot;outcome_regression_ate&quot;],
+            &quot;min_propensity&quot;: primary[&quot;overlap&quot;][&quot;min_propensity&quot;],
+            &quot;max_propensity&quot;: primary[&quot;overlap&quot;][&quot;max_propensity&quot;],
+            &quot;max_stabilized_weight&quot;: primary[&quot;weights&quot;][&quot;max_stabilized_weight&quot;],
+            &quot;max_unstabilized_weight&quot;: primary[&quot;weights&quot;][&quot;max_unstabilized_weight&quot;],
+            &quot;stabilized_effective_sample_size&quot;: primary[&quot;weights&quot;][
+                &quot;stabilized_effective_sample_size&quot;
+            ],
+            &quot;allowed_effect_claim&quot;: estimator_spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;],
+            &quot;blocking_checks&quot;: blocking,
+            &quot;warning_checks&quot;: warnings,
+        },
+        &quot;primary_estimator&quot;: primary,
+        &quot;stress_tests&quot;: stress_tests,
+        &quot;policy_context&quot;: policy_context,
+        &quot;claim_policy&quot;: estimator_spec[&quot;claim_policy&quot;],
+        &quot;checks&quot;: checks,
+    }
+
+
+def default_paths() -&gt; dict[str, Path]:
+    lesson_root = Path(__file__).resolve().parents[1]
+    phase_root = lesson_root.parent
+    return {
+        &quot;data_dir&quot;: phase_root / &quot;data&quot; / &quot;tiny&quot;,
+        &quot;target_trial&quot;: phase_root
+        / &quot;01-causal-question-and-estimand&quot;
+        / &quot;outputs&quot;
+        / &quot;target_trial_spec.json&quot;,
+        &quot;estimand&quot;: phase_root / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;estimand.json&quot;,
+        &quot;adjustment_gate&quot;: phase_root
+        / &quot;04-colliders&quot;
+        / &quot;outputs&quot;
+        / &quot;bad_control_selection_audit.json&quot;,
+        &quot;spec&quot;: lesson_root / &quot;outputs&quot; / &quot;ipw_aipw_spec.json&quot;,
+        &quot;output&quot;: lesson_root / &quot;outputs&quot; / &quot;ipw_aipw_report.json&quot;,
+    }
+
+
+def build_arg_parser() -&gt; argparse.ArgumentParser:
+    paths = default_paths()
+    parser = argparse.ArgumentParser(
+        description=&quot;Estimate stabilized IPW and AIPW with overlap, weight and ESS diagnostics.&quot;,
+    )
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, default=paths[&quot;data_dir&quot;])
+    parser.add_argument(&quot;--target-trial&quot;, type=Path, default=paths[&quot;target_trial&quot;])
+    parser.add_argument(&quot;--estimand&quot;, type=Path, default=paths[&quot;estimand&quot;])
+    parser.add_argument(&quot;--adjustment-gate&quot;, type=Path, default=paths[&quot;adjustment_gate&quot;])
+    parser.add_argument(&quot;--spec&quot;, type=Path, default=paths[&quot;spec&quot;])
+    parser.add_argument(&quot;--output&quot;, type=Path, default=paths[&quot;output&quot;])
+    parser.add_argument(
+        &quot;--fail-on-invalid&quot;,
+        action=&quot;store_true&quot;,
+        help=&quot;Exit with code 1 when blocking checks fail.&quot;,
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+    report = estimate_ipw_aipw(
+        args.data_dir,
+        read_json(args.target_trial),
+        read_json(args.estimand),
+        read_json(args.adjustment_gate),
+        read_json(args.spec),
+    )
+    write_json(args.output, report)
+    print(json.dumps(to_jsonable(report[&quot;summary&quot;]), ensure_ascii=False, indent=2))
+    if args.fail_on_invalid and not report[&quot;valid&quot;]:
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_estimator.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/ipw_aipw_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;spec_id&quot;: &quot;assisted_onboarding_ipw_aipw_v1&quot;,
+    &quot;primary_estimator_id&quot;: &quot;ridge_dr_baseline_risk_v1&quot;,
+    &quot;cohort_n&quot;: 10,
+    &quot;treated_n&quot;: 6,
+    &quot;comparator_n&quot;: 4,
+    &quot;treated_risk&quot;: 0.6666666666666666,
+    &quot;comparator_risk&quot;: 0.75,
+    &quot;naive_risk_difference&quot;: -0.08333333333333337,
+    &quot;ipw_hajek_ate&quot;: -0.08519236630007954,
+    &quot;ipw_ht_ate&quot;: 0.07893418528076585,
+    &quot;aipw_ate&quot;: -0.3868752937879506,
+    &quot;outcome_regression_ate&quot;: -0.399781001916233,
+    &quot;min_propensity&quot;: 0.15263962362729902,
+    &quot;max_propensity&quot;: 0.9944739510580042,
+    &quot;max_stabilized_weight&quot;: 0.9091922784948523,
+    &quot;max_unstabilized_weight&quot;: 1.5638398200583674,
+    &quot;stabilized_effective_sample_size&quot;: 9.555331641172497,
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;blocking_checks&quot;: [],
+    &quot;warning_checks&quot;: [
+      &quot;propensity_overlap_has_tail_units&quot;,
+      &quot;propensity_overlap_has_no_severe_tail_units&quot;,
+      &quot;trimming_changes_target_population_materially&quot;,
+      &quot;outcome_lpm_predictions_inside_probability_bounds&quot;
+    ]
+  },
+  &quot;primary_estimator&quot;: {
+    &quot;propensity_model&quot;: {
+      &quot;model_id&quot;: &quot;ridge_propensity_baseline_risk_v1&quot;,
+      &quot;terms&quot;: [
+        &quot;intercept&quot;,
+        &quot;baseline_risk_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;alpha&quot;: 0.5,
+      &quot;params&quot;: {
+        &quot;intercept&quot;: 0.8798470362328006,
+        &quot;baseline_risk_score&quot;: 2.0478003724814644,
+        &quot;specialist_capacity&quot;: 0.046486477509817145
+      },
+      &quot;standardization&quot;: [
+        {
+          &quot;term&quot;: &quot;baseline_risk_score&quot;,
+          &quot;mean&quot;: 1.0100000000000002,
+          &quot;std&quot;: 1.4083323471396942
+        },
+        {
+          &quot;term&quot;: &quot;specialist_capacity&quot;,
+          &quot;mean&quot;: 1.6,
+          &quot;std&quot;: 0.48989794855663565
+        }
+      ],
+      &quot;converged&quot;: true,
+      &quot;iterations&quot;: 7,
+      &quot;max_abs_penalized_gradient&quot;: 1.3183898417423734e-16
+    },
+    &quot;outcome_model&quot;: {
+      &quot;model_id&quot;: &quot;lpm_outcome_baseline_risk_v1&quot;,
+      &quot;terms&quot;: [
+        &quot;intercept&quot;,
+        &quot;treatment&quot;,
+        &quot;baseline_risk_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;params&quot;: {
+        &quot;intercept&quot;: 0.35655625513276734,
+        &quot;treatment&quot;: -0.399781001916233,
+        &quot;baseline_risk_score&quot;: 0.11716397481521995,
+        &quot;specialist_capacity&quot;: 0.2906104571584998
+      },
+      &quot;manual_statsmodels_max_param_diff&quot;: 3.3306690738754696e-16,
+      &quot;manual_statsmodels_max_prediction_diff&quot;: 8.881784197001252e-16
+    },
+    &quot;estimates&quot;: {
+      &quot;ipw_ht_mu1&quot;: 0.4653910433934135,
+      &quot;ipw_ht_mu0&quot;: 0.3864568581126476,
+      &quot;ipw_ht_ate&quot;: 0.07893418528076585,
+      &quot;ipw_hajek_mu1&quot;: 0.6267232258066174,
+      &quot;ipw_hajek_mu0&quot;: 0.711915592106697,
+      &quot;ipw_hajek_ate&quot;: -0.08519236630007954,
+      &quot;aipw_ate&quot;: -0.3868752937879506,
+      &quot;outcome_regression_ate&quot;: -0.399781001916233,
+      &quot;naive_risk_difference&quot;: -0.08333333333333337
+    },
+    &quot;overlap&quot;: {
+      &quot;min_propensity&quot;: 0.15263962362729902,
+      &quot;max_propensity&quot;: 0.9944739510580042,
+      &quot;outside_warning_bounds_n&quot;: 3,
+      &quot;outside_severe_bounds_n&quot;: 1,
+      &quot;outside_warning_bounds&quot;: [
+        {
+          &quot;user_id&quot;: &quot;U001&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9944739510580042
+        },
+        {
+          &quot;user_id&quot;: &quot;U002&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9461523120563325
+        },
+        {
+          &quot;user_id&quot;: &quot;U010&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.929263590235026
+        }
+      ],
+      &quot;outside_severe_bounds&quot;: [
+        {
+          &quot;user_id&quot;: &quot;U001&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9944739510580042
+        }
+      ]
+    },
+    &quot;weights&quot;: {
+      &quot;max_stabilized_weight&quot;: 0.9091922784948523,
+      &quot;max_unstabilized_weight&quot;: 1.5638398200583674,
+      &quot;stabilized_effective_sample_size&quot;: 9.555331641172497,
+      &quot;unstabilized_effective_sample_size&quot;: 9.77165271178895,
+      &quot;treated_unstabilized_effective_sample_size&quot;: 5.833947041739177,
+      &quot;control_unstabilized_effective_sample_size&quot;: 3.9515787093124097
+    },
+    &quot;trimming_sensitivity&quot;: [
+      {
+        &quot;threshold&quot;: 0.02,
+        &quot;retained_n&quot;: 9,
+        &quot;removed_n&quot;: 1,
+        &quot;retained_treated_n&quot;: 5,
+        &quot;retained_control_n&quot;: 4,
+        &quot;removed_user_ids&quot;: [
+          &quot;U001&quot;
+        ],
+        &quot;estimable&quot;: true,
+        &quot;ipw_hajek_ate&quot;: -0.14365619458096424,
+        &quot;aipw_ate&quot;: -0.38535262850874136
+      },
+      {
+        &quot;threshold&quot;: 0.05,
+        &quot;retained_n&quot;: 9,
+        &quot;removed_n&quot;: 1,
+        &quot;retained_treated_n&quot;: 5,
+        &quot;retained_control_n&quot;: 4,
+        &quot;removed_user_ids&quot;: [
+          &quot;U001&quot;
+        ],
+        &quot;estimable&quot;: true,
+        &quot;ipw_hajek_ate&quot;: -0.14365619458096424,
+        &quot;aipw_ate&quot;: -0.38535262850874136
+      },
+      {
+        &quot;threshold&quot;: 0.1,
+        &quot;retained_n&quot;: 7,
+        &quot;removed_n&quot;: 3,
+        &quot;retained_treated_n&quot;: 3,
+        &quot;retained_control_n&quot;: 4,
+        &quot;removed_user_ids&quot;: [
+          &quot;U001&quot;,
+          &quot;U002&quot;,
+          &quot;U010&quot;
+        ],
+        &quot;estimable&quot;: true,
+        &quot;ipw_hajek_ate&quot;: -0.3584627408035936,
+        &quot;aipw_ate&quot;: -0.44171403808087384
+      },
+      {
+        &quot;threshold&quot;: 0.2,
+        &quot;retained_n&quot;: 6,
+        &quot;removed_n&quot;: 4,
+        &quot;retained_treated_n&quot;: 3,
+        &quot;retained_control_n&quot;: 3,
+        &quot;removed_user_ids&quot;: [
+          &quot;U001&quot;,
+          &quot;U002&quot;,
+          &quot;U005&quot;,
+          &quot;U010&quot;
+        ],
+        &quot;estimable&quot;: true,
+        &quot;ipw_hajek_ate&quot;: -0.2784352524656903,
+        &quot;aipw_ate&quot;: -0.4180284019860759
+      },
+      {
+        &quot;threshold&quot;: 0.25,
+        &quot;retained_n&quot;: 4,
+        &quot;removed_n&quot;: 6,
+        &quot;retained_treated_n&quot;: 2,
+        &quot;retained_control_n&quot;: 2,
+        &quot;removed_user_ids&quot;: [
+          &quot;U001&quot;,
+          &quot;U002&quot;,
+          &quot;U004&quot;,
+          &quot;U005&quot;,
+          &quot;U007&quot;,
+          &quot;U010&quot;
+        ],
+        &quot;estimable&quot;: true,
+        &quot;ipw_hajek_ate&quot;: 0.024047854140695768,
+        &quot;aipw_ate&quot;: -0.16968603579829433
+      }
+    ],
+    &quot;outcome_prediction_range&quot;: {
+      &quot;m1_min&quot;: 0.18880372296742415,
+      &quot;m1_max&quot;: 1.0007938680536528,
+      &quot;m0_min&quot;: 0.5885847248836571,
+      &quot;m0_max&quot;: 1.4005748699698857
+    },
+    &quot;unit_scores&quot;: [
+      {
+        &quot;user_id&quot;: &quot;U001&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.9944739510580042,
+        &quot;raw_propensity_score&quot;: 0.9944739510580042,
+        &quot;stabilized_ate_weight&quot;: 0.6033340535080582,
+        &quot;unstabilized_ate_weight&quot;: 1.0055567558467637,
+        &quot;m1&quot;: 1.0007938680536528,
+        &quot;m0&quot;: 1.4005748699698857
+      },
+      {
+        &quot;user_id&quot;: &quot;U002&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.9461523120563325,
+        &quot;raw_propensity_score&quot;: 0.9461523120563325,
+        &quot;stabilized_ate_weight&quot;: 0.6341473696724179,
+        &quot;unstabilized_ate_weight&quot;: 1.0569122827873632,
+        &quot;m1&quot;: 0.8133315083493009,
+        &quot;m0&quot;: 1.213112510265534
+      },
+      {
+        &quot;user_id&quot;: &quot;U003&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 0,
+        &quot;propensity_score&quot;: 0.6648879136338067,
+        &quot;raw_propensity_score&quot;: 0.6648879136338067,
+        &quot;stabilized_ate_weight&quot;: 0.902407740758626,
+        &quot;unstabilized_ate_weight&quot;: 1.5040129012643768,
+        &quot;m1&quot;: 0.637585546126471,
+        &quot;m0&quot;: 1.037366548042704
+      },
+      {
+        &quot;user_id&quot;: &quot;U004&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 0,
+        &quot;propensity_score&quot;: 0.7887310656503109,
+        &quot;raw_propensity_score&quot;: 0.7887310656503109,
+        &quot;stabilized_ate_weight&quot;: 0.7607155672324106,
+        &quot;unstabilized_ate_weight&quot;: 1.2678592787206844,
+        &quot;m1&quot;: 0.4055570763755811,
+        &quot;m0&quot;: 0.805338078291814
+      },
+      {
+        &quot;user_id&quot;: &quot;U005&quot;,
+        &quot;treatment&quot;: 0,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.15263962362729902,
+        &quot;raw_propensity_score&quot;: 0.15263962362729902,
+        &quot;stabilized_ate_weight&quot;: 0.47205417099190033,
+        &quot;unstabilized_ate_weight&quot;: 1.1801354274797509,
+        &quot;m1&quot;: 0.444264987681358,
+        &quot;m0&quot;: 0.844045989597591
+      },
+      {
+        &quot;user_id&quot;: &quot;U006&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.6599264140180411,
+        &quot;raw_propensity_score&quot;: 0.6599264140180411,
+        &quot;stabilized_ate_weight&quot;: 0.9091922784948523,
+        &quot;unstabilized_ate_weight&quot;: 1.515320464158087,
+        &quot;m1&quot;: 0.35283328770873207,
+        &quot;m0&quot;: 0.752614289624965
+      },
+      {
+        &quot;user_id&quot;: &quot;U007&quot;,
+        &quot;treatment&quot;: 0,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.20218101519577117,
+        &quot;raw_propensity_score&quot;: 0.20218101519577117,
+        &quot;stabilized_ate_weight&quot;: 0.5013668609279249,
+        &quot;unstabilized_ate_weight&quot;: 1.253417152319812,
+        &quot;m1&quot;: 0.18880372296742415,
+        &quot;m0&quot;: 0.5885847248836571
+      },
+      {
+        &quot;user_id&quot;: &quot;U010&quot;,
+        &quot;treatment&quot;: 1,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.929263590235026,
+        &quot;raw_propensity_score&quot;: 0.929263590235026,
+        &quot;stabilized_ate_weight&quot;: 0.645672558685152,
+        &quot;unstabilized_ate_weight&quot;: 1.0761209311419202,
+        &quot;m1&quot;: 0.7898987133862567,
+        &quot;m0&quot;: 1.1896797153024896
+      },
+      {
+        &quot;user_id&quot;: &quot;U011&quot;,
+        &quot;treatment&quot;: 0,
+        &quot;outcome&quot;: 0,
+        &quot;propensity_score&quot;: 0.36054832011971855,
+        &quot;raw_propensity_score&quot;: 0.36054832011971855,
+        &quot;stabilized_ate_weight&quot;: 0.625535928023347,
+        &quot;unstabilized_ate_weight&quot;: 1.5638398200583674,
+        &quot;m1&quot;: 0.25324390911579514,
+        &quot;m0&quot;: 0.6530249110320281
+      },
+      {
+        &quot;user_id&quot;: &quot;U012&quot;,
+        &quot;treatment&quot;: 0,
+        &quot;outcome&quot;: 1,
+        &quot;propensity_score&quot;: 0.3011957944056897,
+        &quot;raw_propensity_score&quot;: 0.3011957944056897,
+        &quot;stabilized_ate_weight&quot;: 0.5724064005307653,
+        &quot;unstabilized_ate_weight&quot;: 1.4310160013269133,
+        &quot;m1&quot;: 0.5145633725704899,
+        &quot;m0&quot;: 0.914344374486723
+      }
+    ]
+  },
+  &quot;stress_tests&quot;: [
+    {
+      &quot;stress_test_id&quot;: &quot;misspecified_treatment_friction_capacity&quot;,
+      &quot;label&quot;: &quot;Treatment model with obvious assignment drivers only&quot;,
+      &quot;interpretation&quot;: &quot;Diagnostic only: friction and capacity approximate assignment pressure but omit measured baseline confounder sources from 13/03.&quot;,
+      &quot;propensity_model_id&quot;: &quot;ridge_propensity_friction_capacity_only&quot;,
+      &quot;outcome_model_id&quot;: &quot;lpm_outcome_baseline_risk_v1&quot;,
+      &quot;estimates&quot;: {
+        &quot;ipw_ht_mu1&quot;: 0.6008451455240249,
+        &quot;ipw_ht_mu0&quot;: 0.4233593538362316,
+        &quot;ipw_ht_ate&quot;: 0.17748579168779333,
+        &quot;ipw_hajek_mu1&quot;: 0.689844701390107,
+        &quot;ipw_hajek_mu0&quot;: 0.6159878259248848,
+        &quot;ipw_hajek_ate&quot;: 0.07385687546522224,
+        &quot;aipw_ate&quot;: -0.24107575155241906,
+        &quot;outcome_regression_ate&quot;: -0.399781001916233,
+        &quot;naive_risk_difference&quot;: -0.08333333333333337
+      },
+      &quot;overlap&quot;: {
+        &quot;min_propensity&quot;: 0.13651434735835036,
+        &quot;max_propensity&quot;: 0.9595710575188268,
+        &quot;outside_warning_bounds_n&quot;: 1,
+        &quot;outside_severe_bounds_n&quot;: 0,
+        &quot;outside_warning_bounds&quot;: [
+          {
+            &quot;user_id&quot;: &quot;U001&quot;,
+            &quot;treatment&quot;: 1,
+            &quot;propensity_score&quot;: 0.9595710575188268
+          }
+        ],
+        &quot;outside_severe_bounds&quot;: []
+      },
+      &quot;weights&quot;: {
+        &quot;max_stabilized_weight&quot;: 1.597231461774458,
+        &quot;max_unstabilized_weight&quot;: 2.6620524362907636,
+        &quot;stabilized_effective_sample_size&quot;: 8.696856118205696,
+        &quot;unstabilized_effective_sample_size&quot;: 8.801038200522296,
+        &quot;treated_unstabilized_effective_sample_size&quot;: 5.234079247599139,
+        &quot;control_unstabilized_effective_sample_size&quot;: 3.6068446470481117
+      }
+    },
+    {
+      &quot;stress_test_id&quot;: &quot;misspecified_outcome_friction_capacity&quot;,
+      &quot;label&quot;: &quot;Outcome model without compact baseline risk score&quot;,
+      &quot;interpretation&quot;: &quot;Diagnostic only: a misspecified outcome model makes AIPW move toward the wrong regression adjustment despite the primary propensity score.&quot;,
+      &quot;propensity_model_id&quot;: &quot;ridge_propensity_baseline_risk_v1&quot;,
+      &quot;outcome_model_id&quot;: &quot;lpm_outcome_friction_capacity_only&quot;,
+      &quot;estimates&quot;: {
+        &quot;ipw_ht_mu1&quot;: 0.4653910433934135,
+        &quot;ipw_ht_mu0&quot;: 0.3864568581126476,
+        &quot;ipw_ht_ate&quot;: 0.07893418528076585,
+        &quot;ipw_hajek_mu1&quot;: 0.6267232258066174,
+        &quot;ipw_hajek_mu0&quot;: 0.711915592106697,
+        &quot;ipw_hajek_ate&quot;: -0.08519236630007954,
+        &quot;aipw_ate&quot;: 0.06730396752272716,
+        &quot;outcome_regression_ate&quot;: 0.08178163351671623,
+        &quot;naive_risk_difference&quot;: -0.08333333333333337
+      },
+      &quot;overlap&quot;: {
+        &quot;min_propensity&quot;: 0.15263962362729902,
+        &quot;max_propensity&quot;: 0.9944739510580042,
+        &quot;outside_warning_bounds_n&quot;: 3,
+        &quot;outside_severe_bounds_n&quot;: 1,
+        &quot;outside_warning_bounds&quot;: [
+          {
+            &quot;user_id&quot;: &quot;U001&quot;,
+            &quot;treatment&quot;: 1,
+            &quot;propensity_score&quot;: 0.9944739510580042
+          },
+          {
+            &quot;user_id&quot;: &quot;U002&quot;,
+            &quot;treatment&quot;: 1,
+            &quot;propensity_score&quot;: 0.9461523120563325
+          },
+          {
+            &quot;user_id&quot;: &quot;U010&quot;,
+            &quot;treatment&quot;: 1,
+            &quot;propensity_score&quot;: 0.929263590235026
+          }
+        ],
+        &quot;outside_severe_bounds&quot;: [
+          {
+            &quot;user_id&quot;: &quot;U001&quot;,
+            &quot;treatment&quot;: 1,
+            &quot;propensity_score&quot;: 0.9944739510580042
+          }
+        ]
+      },
+      &quot;weights&quot;: {
+        &quot;max_stabilized_weight&quot;: 0.9091922784948523,
+        &quot;max_unstabilized_weight&quot;: 1.5638398200583674,
+        &quot;stabilized_effective_sample_size&quot;: 9.555331641172497,
+        &quot;unstabilized_effective_sample_size&quot;: 9.77165271178895,
+        &quot;treated_unstabilized_effective_sample_size&quot;: 5.833947041739177,
+        &quot;control_unstabilized_effective_sample_size&quot;: 3.9515787093124097
+      }
+    }
+  ],
+  &quot;policy_context&quot;: {
+    &quot;required_sources&quot;: [
+      &quot;acquisition_channel&quot;,
+      &quot;app_crashes_before_time_zero&quot;,
+      &quot;device_tier&quot;,
+      &quot;friction_score&quot;,
+      &quot;language&quot;,
+      &quot;network_quality&quot;,
+      &quot;onboarding_steps_before_time_zero&quot;,
+      &quot;platform&quot;,
+      &quot;region_id&quot;,
+      &quot;sessions_before_time_zero&quot;,
+      &quot;specialist_capacity&quot;
+    ],
+    &quot;bad_control_variables&quot;: [
+      &quot;activation_14d&quot;,
+      &quot;offered_assistance&quot;,
+      &quot;onboarding_completed_48h&quot;,
+      &quot;opened_support_chat_after_offer&quot;,
+      &quot;paid_subscription_30d&quot;,
+      &quot;telemetry_complete_30d&quot;
+    ],
+    &quot;candidate_estimator_audits&quot;: [
+      {
+        &quot;estimator_id&quot;: &quot;ridge_dr_baseline_risk_v1&quot;,
+        &quot;declared_status&quot;: &quot;estimable_with_warnings&quot;,
+        &quot;calculated_status&quot;: &quot;estimable_with_warnings&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;missing_propensity_sources&quot;: [],
+        &quot;missing_outcome_sources&quot;: []
+      },
+      {
+        &quot;estimator_id&quot;: &quot;propensity_friction_capacity_only&quot;,
+        &quot;declared_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;missing_propensity_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;missing_outcome_sources&quot;: []
+      },
+      {
+        &quot;estimator_id&quot;: &quot;outcome_friction_capacity_only&quot;,
+        &quot;declared_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;missing_propensity_sources&quot;: [],
+        &quot;missing_outcome_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ]
+      },
+      {
+        &quot;estimator_id&quot;: &quot;mediator_augmented_outcome_model&quot;,
+        &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;bad_control_variables&quot;: [
+          &quot;onboarding_completed_48h&quot;
+        ],
+        &quot;missing_propensity_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;missing_outcome_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ]
+      },
+      {
+        &quot;estimator_id&quot;: &quot;telemetry_complete_case_weighting&quot;,
+        &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;bad_control_variables&quot;: [
+          &quot;telemetry_complete_30d&quot;
+        ],
+        &quot;missing_propensity_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;missing_outcome_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ]
+      }
+    ]
+  },
+  &quot;claim_policy&quot;: {
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+    &quot;allowed_estimation_claim&quot;: &quot;Transparent IPW/AIPW estimates under the stated observed-baseline models, overlap diagnostics and trimming sensitivity.&quot;,
+    &quot;blocked_causal_wording&quot;: [
+      &quot;AIPW proved the causal effect&quot;,
+      &quot;propensity weighting removed all bias&quot;,
+      &quot;doubly robust means assumptions no longer matter&quot;
+    ]
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;source_tables_preserve_declared_grain&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Source tables preserve user/program grain before joining the IPW/AIPW cohort.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;target_population_criteria_are_supported&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Target-population criteria are applied from target_trial_spec.json.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;analysis_cohort_has_expected_treated_and_comparator_units&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Analysis cohort contains both treatment strategies.&quot;,
+      &quot;sample&quot;: {
+        &quot;n&quot;: 10,
+        &quot;treated&quot;: 6,
+        &quot;comparator&quot;: 4
+      }
+    },
+    {
+      &quot;id&quot;: &quot;treatment_timing_respects_grace_period&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Observed treatment starts after time zero and within the declared grace period.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;primary_outcome_followup_is_complete&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Every analysis unit has enough follow-up for activation_14d.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ipw_aipw_spec_required_fields&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;IPW/AIPW spec contains required fields.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ipw_aipw_spec_aligns_with_target_trial_and_estimand&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Estimator spec aligns with target trial and ATE estimand.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;adjustment_gate_allows_primary_observed_baseline_action&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Primary estimator reuses the allowed observed-baseline adjustment action from 13/04.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;primary_models_use_only_allowed_baseline_sources&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Primary propensity and outcome models do not use mediators, colliders, selection variables or outcome leakage.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;primary_models_cover_required_adjustment_sources&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Primary propensity and outcome models cover the observed-baseline adjustment basis.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;trimming_thresholds_are_inside_probability_range&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Trimming schedule uses symmetric thresholds inside [0, 0.5).&quot;
+    },
+    {
+      &quot;id&quot;: &quot;candidate_estimator_statuses_match_policy&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Candidate estimator statuses match bad-control and source-coverage policy.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Estimator may report model-based estimates but cannot claim a proven causal effect while unmeasured confounding remains.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ridge_propensity_solver_converged&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Manual ridge logistic propensity solver converged.&quot;,
+      &quot;sample&quot;: {
+        &quot;iterations&quot;: 7,
+        &quot;max_abs_penalized_gradient&quot;: 1.3183898417423734e-16
+      }
+    },
+    {
+      &quot;id&quot;: &quot;propensity_scores_within_open_unit_interval&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Propensity scores are finite and strictly inside (0, 1).&quot;,
+      &quot;sample&quot;: {
+        &quot;min_propensity&quot;: 0.15263962362729902,
+        &quot;max_propensity&quot;: 0.9944739510580042
+      }
+    },
+    {
+      &quot;id&quot;: &quot;propensity_overlap_has_tail_units&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;No units fall outside configured overlap warning bounds.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;user_id&quot;: &quot;U001&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9944739510580042
+        },
+        {
+          &quot;user_id&quot;: &quot;U002&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9461523120563325
+        },
+        {
+          &quot;user_id&quot;: &quot;U010&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.929263590235026
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;propensity_overlap_has_no_severe_tail_units&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;No units fall outside configured severe overlap bounds.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;user_id&quot;: &quot;U001&quot;,
+          &quot;treatment&quot;: 1,
+          &quot;propensity_score&quot;: 0.9944739510580042
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;stabilized_weights_within_configured_limit&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Stabilized ATE weights stay under the configured warning threshold.&quot;,
+      &quot;sample&quot;: {
+        &quot;max_stabilized_weight&quot;: 0.9091922784948523,
+        &quot;threshold&quot;: 2.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;unstabilized_weights_within_configured_limit&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Unstabilized ATE weights stay under the configured warning threshold.&quot;,
+      &quot;sample&quot;: {
+        &quot;max_unstabilized_weight&quot;: 1.5638398200583674,
+        &quot;threshold&quot;: 3.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;effective_sample_size_above_minimum&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Stabilized weights keep enough effective sample size for the tiny teaching cohort.&quot;,
+      &quot;sample&quot;: {
+        &quot;effective_sample_size&quot;: 9.555331641172497,
+        &quot;minimum&quot;: 6.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;trimming_sensitivity_keeps_both_arms&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Every configured trimming threshold retains at least one treated and one comparator unit.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;trimming_changes_target_population_materially&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Configured trimming thresholds do not remove a material fraction of the target population.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;threshold&quot;: 0.2,
+          &quot;retained_n&quot;: 6,
+          &quot;removed_n&quot;: 4,
+          &quot;retained_treated_n&quot;: 3,
+          &quot;retained_control_n&quot;: 3,
+          &quot;removed_user_ids&quot;: [
+            &quot;U001&quot;,
+            &quot;U002&quot;,
+            &quot;U005&quot;,
+            &quot;U010&quot;
+          ],
+          &quot;estimable&quot;: true,
+          &quot;ipw_hajek_ate&quot;: -0.2784352524656903,
+          &quot;aipw_ate&quot;: -0.4180284019860759
+        },
+        {
+          &quot;threshold&quot;: 0.25,
+          &quot;retained_n&quot;: 4,
+          &quot;removed_n&quot;: 6,
+          &quot;retained_treated_n&quot;: 2,
+          &quot;retained_control_n&quot;: 2,
+          &quot;removed_user_ids&quot;: [
+            &quot;U001&quot;,
+            &quot;U002&quot;,
+            &quot;U004&quot;,
+            &quot;U005&quot;,
+            &quot;U007&quot;,
+            &quot;U010&quot;
+          ],
+          &quot;estimable&quot;: true,
+          &quot;ipw_hajek_ate&quot;: 0.024047854140695768,
+          &quot;aipw_ate&quot;: -0.16968603579829433
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;manual_outcome_ols_matches_statsmodels&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Manual matrix OLS and statsmodels.OLS agree for the outcome regression used by AIPW.&quot;,
+      &quot;sample&quot;: {
+        &quot;max_param_diff&quot;: 3.3306690738754696e-16,
+        &quot;max_prediction_diff&quot;: 8.881784197001252e-16
+      }
+    },
+    {
+      &quot;id&quot;: &quot;outcome_lpm_predictions_inside_probability_bounds&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Linear probability outcome predictions stay inside probability bounds.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;field&quot;: &quot;m1_max&quot;,
+          &quot;value&quot;: 1.0007938680536528
+        },
+        {
+          &quot;field&quot;: &quot;m0_max&quot;,
+          &quot;value&quot;: 1.4005748699698857
+        }
+      ]
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/ipw_aipw_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;ipw_aipw_spec_id&quot;: &quot;assisted_onboarding_ipw_aipw_v1&quot;,
+  &quot;question_id&quot;: &quot;assisted_onboarding_activation_ate_v1&quot;,
+  &quot;estimand_id&quot;: &quot;ate_activation_14d_eligible_users&quot;,
+  &quot;trial_id&quot;: &quot;target_trial_assisted_onboarding_v1&quot;,
+  &quot;graph_id&quot;: &quot;assisted_onboarding_activation_dag_v1&quot;,
+  &quot;adjustment_gate_id&quot;: &quot;assisted_onboarding_bad_control_actions_v1&quot;,
+  &quot;adjustment_action_id&quot;: &quot;recommended_pre_treatment_set&quot;,
+  &quot;primary_estimator_id&quot;: &quot;ridge_dr_baseline_risk_v1&quot;,
+  &quot;treatment&quot;: &quot;assisted_within_24h&quot;,
+  &quot;outcome&quot;: &quot;activation_14d&quot;,
+  &quot;effect_measure&quot;: &quot;risk_difference&quot;,
+  &quot;population&quot;: &quot;eligible_high_friction_users&quot;,
+  &quot;propensity_model&quot;: {
+    &quot;model_id&quot;: &quot;ridge_propensity_baseline_risk_v1&quot;,
+    &quot;model_type&quot;: &quot;l2_logistic_regression&quot;,
+    &quot;implementation&quot;: &quot;manual_newton_solver&quot;,
+    &quot;alpha&quot;: 0.5,
+    &quot;standardize_numeric_terms&quot;: true,
+    &quot;clip_epsilon&quot;: 0.001,
+    &quot;terms&quot;: [&quot;intercept&quot;, &quot;baseline_risk_score&quot;, &quot;specialist_capacity&quot;],
+    &quot;direct_numeric_terms&quot;: [&quot;specialist_capacity&quot;],
+    &quot;derived_features&quot;: [
+      {
+        &quot;name&quot;: &quot;baseline_risk_score&quot;,
+        &quot;description&quot;: &quot;Compact teaching basis built only from allowed observed baseline covariates. It is not a learned propensity score and does not remove unmeasured confounding.&quot;,
+        &quot;source_variables&quot;: [
+          &quot;platform&quot;,
+          &quot;device_tier&quot;,
+          &quot;acquisition_channel&quot;,
+          &quot;region_id&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;sessions_before_time_zero&quot;,
+          &quot;friction_score&quot;
+        ],
+        &quot;components&quot;: [
+          {&quot;type&quot;: &quot;scaled_numeric&quot;, &quot;field&quot;: &quot;friction_score&quot;, &quot;center&quot;: 60, &quot;scale&quot;: 10, &quot;weight&quot;: 1.0},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;app_crashes_before_time_zero&quot;, &quot;weight&quot;: 0.3},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;onboarding_steps_before_time_zero&quot;, &quot;weight&quot;: -0.2},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;sessions_before_time_zero&quot;, &quot;weight&quot;: -0.1},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;network_quality&quot;, &quot;values&quot;: {&quot;good&quot;: 0.0, &quot;fair&quot;: 0.2, &quot;poor&quot;: 0.4}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;platform&quot;, &quot;values&quot;: {&quot;android&quot;: 0.2, &quot;ios&quot;: 0.0, &quot;web&quot;: -0.1}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;device_tier&quot;, &quot;values&quot;: {&quot;low&quot;: 0.2, &quot;mid&quot;: 0.0, &quot;high&quot;: -0.1}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;acquisition_channel&quot;, &quot;values&quot;: {&quot;paid_social&quot;: 0.2, &quot;paid_search&quot;: 0.1, &quot;organic&quot;: 0.0, &quot;referral&quot;: -0.05}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;region_id&quot;, &quot;values&quot;: {&quot;north&quot;: 0.05, &quot;south&quot;: 0.0}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;language&quot;, &quot;values&quot;: {&quot;ru&quot;: 0.0, &quot;en&quot;: 0.05}}
+        ]
+      }
+    ]
+  },
+  &quot;outcome_model&quot;: {
+    &quot;model_id&quot;: &quot;lpm_outcome_baseline_risk_v1&quot;,
+    &quot;model_type&quot;: &quot;linear_probability_ols&quot;,
+    &quot;library_comparison&quot;: &quot;statsmodels.OLS&quot;,
+    &quot;terms&quot;: [&quot;intercept&quot;, &quot;treatment&quot;, &quot;baseline_risk_score&quot;, &quot;specialist_capacity&quot;],
+    &quot;treatment_term&quot;: &quot;treatment&quot;,
+    &quot;direct_numeric_terms&quot;: [&quot;specialist_capacity&quot;],
+    &quot;derived_features&quot;: [
+      {
+        &quot;name&quot;: &quot;baseline_risk_score&quot;,
+        &quot;description&quot;: &quot;Same compact observed-baseline score as the g-formula lesson, reused to compare outcome regression, IPW and AIPW on the same basis.&quot;,
+        &quot;source_variables&quot;: [
+          &quot;platform&quot;,
+          &quot;device_tier&quot;,
+          &quot;acquisition_channel&quot;,
+          &quot;region_id&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;sessions_before_time_zero&quot;,
+          &quot;friction_score&quot;
+        ],
+        &quot;components&quot;: [
+          {&quot;type&quot;: &quot;scaled_numeric&quot;, &quot;field&quot;: &quot;friction_score&quot;, &quot;center&quot;: 60, &quot;scale&quot;: 10, &quot;weight&quot;: 1.0},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;app_crashes_before_time_zero&quot;, &quot;weight&quot;: 0.3},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;onboarding_steps_before_time_zero&quot;, &quot;weight&quot;: -0.2},
+          {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;sessions_before_time_zero&quot;, &quot;weight&quot;: -0.1},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;network_quality&quot;, &quot;values&quot;: {&quot;good&quot;: 0.0, &quot;fair&quot;: 0.2, &quot;poor&quot;: 0.4}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;platform&quot;, &quot;values&quot;: {&quot;android&quot;: 0.2, &quot;ios&quot;: 0.0, &quot;web&quot;: -0.1}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;device_tier&quot;, &quot;values&quot;: {&quot;low&quot;: 0.2, &quot;mid&quot;: 0.0, &quot;high&quot;: -0.1}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;acquisition_channel&quot;, &quot;values&quot;: {&quot;paid_social&quot;: 0.2, &quot;paid_search&quot;: 0.1, &quot;organic&quot;: 0.0, &quot;referral&quot;: -0.05}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;region_id&quot;, &quot;values&quot;: {&quot;north&quot;: 0.05, &quot;south&quot;: 0.0}},
+          {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;language&quot;, &quot;values&quot;: {&quot;ru&quot;: 0.0, &quot;en&quot;: 0.05}}
+        ]
+      }
+    ]
+  },
+  &quot;diagnostics&quot;: {
+    &quot;overlap_warning_bounds&quot;: [0.1, 0.9],
+    &quot;overlap_severe_bounds&quot;: [0.02, 0.98],
+    &quot;max_stabilized_weight_warning&quot;: 2.0,
+    &quot;max_unstabilized_weight_warning&quot;: 3.0,
+    &quot;min_effective_sample_size&quot;: 6.0,
+    &quot;trim_thresholds&quot;: [0.02, 0.05, 0.1, 0.2, 0.25],
+    &quot;material_retention_loss_fraction&quot;: 0.3,
+    &quot;probability_bounds&quot;: [0.0, 1.0],
+    &quot;warn_if_outcome_prediction_outside_probability_bounds&quot;: true
+  },
+  &quot;stress_tests&quot;: [
+    {
+      &quot;stress_test_id&quot;: &quot;misspecified_treatment_friction_capacity&quot;,
+      &quot;label&quot;: &quot;Treatment model with obvious assignment drivers only&quot;,
+      &quot;propensity_model&quot;: {
+        &quot;model_id&quot;: &quot;ridge_propensity_friction_capacity_only&quot;,
+        &quot;model_type&quot;: &quot;l2_logistic_regression&quot;,
+        &quot;alpha&quot;: 0.5,
+        &quot;standardize_numeric_terms&quot;: true,
+        &quot;clip_epsilon&quot;: 0.001,
+        &quot;terms&quot;: [&quot;intercept&quot;, &quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+        &quot;direct_numeric_terms&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+        &quot;derived_features&quot;: []
+      },
+      &quot;outcome_model&quot;: &quot;primary&quot;,
+      &quot;interpretation&quot;: &quot;Diagnostic only: friction and capacity approximate assignment pressure but omit measured baseline confounder sources from 13/03.&quot;
+    },
+    {
+      &quot;stress_test_id&quot;: &quot;misspecified_outcome_friction_capacity&quot;,
+      &quot;label&quot;: &quot;Outcome model without compact baseline risk score&quot;,
+      &quot;propensity_model&quot;: &quot;primary&quot;,
+      &quot;outcome_model&quot;: {
+        &quot;model_id&quot;: &quot;lpm_outcome_friction_capacity_only&quot;,
+        &quot;model_type&quot;: &quot;linear_probability_ols&quot;,
+        &quot;terms&quot;: [&quot;intercept&quot;, &quot;treatment&quot;, &quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+        &quot;treatment_term&quot;: &quot;treatment&quot;,
+        &quot;direct_numeric_terms&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+        &quot;derived_features&quot;: []
+      },
+      &quot;interpretation&quot;: &quot;Diagnostic only: a misspecified outcome model makes AIPW move toward the wrong regression adjustment despite the primary propensity score.&quot;
+    }
+  ],
+  &quot;candidate_estimators&quot;: [
+    {
+      &quot;estimator_id&quot;: &quot;ridge_dr_baseline_risk_v1&quot;,
+      &quot;label&quot;: &quot;Primary ridge propensity + baseline-risk outcome model&quot;,
+      &quot;propensity_source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;outcome_source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;filter_variables&quot;: [],
+      &quot;declared_status&quot;: &quot;estimable_with_warnings&quot;,
+      &quot;interpretation&quot;: &quot;Allowed as a transparent observed-baseline estimator. Warnings remain because tiny data have weak overlap and unmeasured confounding is still open.&quot;
+    },
+    {
+      &quot;estimator_id&quot;: &quot;propensity_friction_capacity_only&quot;,
+      &quot;label&quot;: &quot;Propensity score with only assignment pressure variables&quot;,
+      &quot;propensity_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;outcome_source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;filter_variables&quot;: [],
+      &quot;declared_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+      &quot;interpretation&quot;: &quot;Good diagnostic stress test, but not a valid primary estimator for the observed-baseline adjustment gate.&quot;
+    },
+    {
+      &quot;estimator_id&quot;: &quot;outcome_friction_capacity_only&quot;,
+      &quot;label&quot;: &quot;Outcome model without baseline-risk score&quot;,
+      &quot;propensity_source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;outcome_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;filter_variables&quot;: [],
+      &quot;declared_status&quot;: &quot;invalid_omits_required_adjustment_sources&quot;,
+      &quot;interpretation&quot;: &quot;Omitting the compact baseline risk basis leaves measured backdoor paths open.&quot;
+    },
+    {
+      &quot;estimator_id&quot;: &quot;mediator_augmented_outcome_model&quot;,
+      &quot;label&quot;: &quot;Outcome model with onboarding completion mediator&quot;,
+      &quot;propensity_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;outcome_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;, &quot;onboarding_completed_48h&quot;],
+      &quot;filter_variables&quot;: [],
+      &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+      &quot;interpretation&quot;: &quot;AIPW does not make a mediator safe for a total-effect outcome model.&quot;
+    },
+    {
+      &quot;estimator_id&quot;: &quot;telemetry_complete_case_weighting&quot;,
+      &quot;label&quot;: &quot;Complete-case IPW after telemetry filter&quot;,
+      &quot;propensity_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;outcome_source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;filter_variables&quot;: [&quot;telemetry_complete_30d&quot;],
+      &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+      &quot;interpretation&quot;: &quot;Filtering on post-treatment telemetry completeness changes the population before weighting.&quot;
+    }
+  ],
+  &quot;claim_policy&quot;: {
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+    &quot;allowed_estimation_claim&quot;: &quot;Transparent IPW/AIPW estimates under the stated observed-baseline models, overlap diagnostics and trimming sensitivity.&quot;,
+    &quot;blocked_causal_wording&quot;: [
+      &quot;AIPW proved the causal effect&quot;,
+      &quot;propensity weighting removed all bias&quot;,
+      &quot;doubly robust means assumptions no longer matter&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/07-weighting-and-doubly-robust/outputs/ipw_aipw_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/07-weighting-and-doubly-robust" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/causal-analysis/matching/"><span>← Предыдущий урок</span><strong>Matching и баланс ковариат</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/causal-analysis/difference-in-differences/"><span>Следующий урок →</span><strong>Difference-in-Differences</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

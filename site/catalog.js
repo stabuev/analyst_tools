@@ -53,9 +53,9 @@
       return;
     }
     body.innerHTML = filtered.map(function (lesson) {
-      var link = lesson.docs_url || lesson.url;
+      var link = lesson.site_url;
       var title = link
-        ? '<a href="' + link + '" target="_blank" rel="noopener">' +
+        ? '<a href="' + link + '">' +
           ui.escapeHtml(lesson.title) + "</a>"
         : ui.escapeHtml(lesson.title);
       return (
@@ -87,6 +87,11 @@
     document.getElementById("catalogSummary").textContent =
       data.stats.lessons + " уроков · " + data.stats.phases + " фаз";
     fillSelects();
+    var requestedPhase = new URLSearchParams(window.location.search).get("phase");
+    if (requestedPhase !== null) {
+      state.phase = requestedPhase;
+      document.getElementById("phaseFilter").value = requestedPhase;
+    }
     bind("catalogSearch", "query", function (value) {
       return value.trim().toLowerCase();
     });

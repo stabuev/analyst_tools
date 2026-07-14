@@ -1,0 +1,2871 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 13/05 мы получили regression-adjusted g-computation estimate. Это был первый прозрачный estimator, но он опирался на outcome model и extrapolation warnings.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/matching/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Matching и баланс ковариат">
+  <meta property="og:description" content="В 13/05 мы получили regression-adjusted g-computation estimate. Это был первый прозрачный estimator, но он опирался на outcome model и extrapolation warnings.">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/matching/">
+  <meta name="twitter:card" content="summary">
+  <title>Matching и баланс ковариат — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Matching и баланс ковариат", "description": "В 13/05 мы получили regression-adjusted g-computation estimate. Это был первый прозрачный estimator, но он опирался на outcome model и extrapolation warnings.", "url": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/matching/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 13: Причинный анализ", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=13"}, {"@type": "ListItem", "position": 3, "name": "Matching и баланс ковариат", "item": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/matching/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 13</p><h2>Причинный анализ</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-question-and-estimand/"><span>01</span>Причинный вопрос и estimand</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-dags/"><span>02</span>Причинные DAG и идентификация</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/confounders/"><span>03</span>Confounders и backdoor adjustment</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/colliders/"><span>04</span>Colliders, mediators и selection bias</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/regression-adjustment/"><span>05</span>Regression adjustment и g-formula</a><a class="lesson-sidebar-link is-active" href="../../../lessons/causal-analysis/matching/"><span>06</span>Matching и баланс ковариат</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/weighting-and-doubly-robust/"><span>07</span>Propensity weighting и doubly robust оценка</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/difference-in-differences/"><span>08</span>Difference-in-Differences</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/quasi-experiments/"><span>09</span>RDD и instrumental variables: дизайн до оценки</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/sensitivity/"><span>10</span>Sensitivity analysis и falsification checks</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-workflow/"><span>11</span>Causal workflow и границы автоматизации</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 13 · Причинный анализ</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 139 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/13-causal-analysis/06-matching" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает common support в matching?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Зону covariate space, где есть сравнимые treated и comparator units.</button><button type="button" class="quiz-option" data-choice="1">Список всех пользователей, у которых outcome не пропущен.</button><button type="button" class="quiz-option" data-choice="2">Гарантию, что unmeasured confounding отсутствует.</button><button type="button" class="quiz-option" data-choice="3">Случайное назначение treatment внутри matched pairs.</button></div><p class="quiz-feedback" hidden>Common support описывает, где наблюдаемые treated и comparators действительно перекрываются по признакам, используемым для сравнения.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем в nearest-neighbor matching нужен caliper?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы не заставлять treated user матчиться к слишком далекому control.</button><button type="button" class="quiz-option" data-choice="1">Чтобы увеличить sample size любой ценой.</button><button type="button" class="quiz-option" data-choice="2">Чтобы выбрать outcome с максимальной разницей.</button><button type="button" class="quiz-option" data-choice="3">Чтобы автоматически исправить collider bias.</button></div><p class="quiz-feedback" hidden>Caliper задает максимальную допустимую distance и делает lack of support видимым через unmatched units.</p></article></section>
+        <article class="lesson-article"><h1 id="matching-и-баланс-ковариат">Matching и баланс ковариат</h1>
+<blockquote>
+<p>Matching не делает observational study экспериментом; он показывает, кого вообще
+можно честно сравнивать.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Decision, Product<br />
+<strong>Пререквизиты:</strong> 13/05 — Regression adjustment и g-formula<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> строит matching по pre-treatment covariates, задает caliper и replacement
+policy, проверяет common support, standardized mean differences и изменение target
+population после отбора.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать full target-population ATE от matched ATT в common-support subset.</li>
+<li>Строить nearest-neighbor matching по pre-treatment distance.</li>
+<li>Объяснять, зачем нужны caliper, replacement и tie-breaker.</li>
+<li>Считать standardized mean differences до и после matching.</li>
+<li>Выпускать love plot data как машинный balance artifact.</li>
+<li>Блокировать matching по mediator, collider, selection variable и outcome leakage.</li>
+<li>Интерпретировать unmatched treated users как evidence about positivity, а не как
+«технический мусор».</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>13/05</code> мы получили regression-adjusted g-computation estimate. Это был первый
+прозрачный estimator, но он опирался на outcome model и extrapolation warnings.</p>
+<p>Теперь бизнес задает естественный вопрос:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">А можно просто сравнить похожих пользователей?
+</code></pre></div><p>Можно — но слово «похожих» должно быть операциональным:</p>
+<ul>
+<li>похожих по каким pre-treatment признакам;</li>
+<li>насколько близко — то есть какой distance и caliper;</li>
+<li>можно ли использовать одного control несколько раз;</li>
+<li>что делать с treated users, для которых нет похожего control;</li>
+<li>стала ли matched population той же самой population, что исходный estimand.</li>
+</ul>
+<p>Главная ошибка: запустить matching, получить красивое число и сказать «теперь bias
+исчез». Matching проверяет observed balance. Он не доказывает exchangeability и не
+удаляет <code>latent_motivation</code>, который уже отмечен в <code>13/03</code> и <code>13/04</code>.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="matching-меняет-вопрос-если-часть-treated-не-матчится">Matching меняет вопрос, если часть treated не матчится</h3>
+<p>Исходный estimand из <code>13/01</code> — ATE по eligible high-friction population:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">E[Y(assisted) - Y(no_assistance) | eligible_high_friction_users]
+</code></pre></div><p>Nearest-neighbor matching чаще отвечает на более узкий вопрос:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ATT among treated users with acceptable control neighbors
+</code></pre></div><p>Если high-risk treated users выпали из common support, matched estimate уже не
+представляет весь target population. Это не провал урока, а важный результат: данные не
+поддерживают сравнение в этой зоне.</p>
+<h3 id="distance-должен-использовать-только-pre-treatment-information">Distance должен использовать только pre-treatment information</h3>
+<p>В этом уроке primary matching design использует standardized Euclidean distance по двум
+pre-treatment features:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">friction_score
+specialist_capacity
+</code></pre></div><p>Обе переменные доступны до treatment и участвуют в assignment mechanism. Для balance
+audit дополнительно проверяется compact <code>baseline_risk_score</code> из <code>13/05</code> и
+<code>activation_14d_pre</code>.</p>
+<p>Запрещено использовать:</p>
+<ul>
+<li><code>onboarding_completed_48h</code> — mediator total effect;</li>
+<li><code>opened_support_chat_after_offer</code> — possible collider;</li>
+<li><code>telemetry_complete_30d</code> — selection variable;</li>
+<li><code>activation_14d</code> или <code>paid_subscription_30d</code> — outcome/downstream leakage.</li>
+</ul>
+<h3 id="caliper-защищает-от-forced-bad-matches">Caliper защищает от forced bad matches</h3>
+<p>Nearest neighbor без caliper всегда найдет «лучшего» control. Но лучший из плохих
+соседей может быть всё равно плохим.</p>
+<p>В tiny data используется:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;distance_metric&quot;: &quot;standardized_euclidean&quot;,
+  &quot;distance_features&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+  &quot;caliper&quot;: 1.5,
+  &quot;replacement&quot;: true,
+  &quot;ratio&quot;: 1
+}
+</code></pre></div><p>Если nearest distance больше <code>1.5</code>, treated user остается unmatched. Это честнее, чем
+насильно притянуть distant control и спрятать positivity violation.</p>
+<h3 id="replacement-снижает-bias-но-меняет-effective-control-diversity">Replacement снижает bias, но меняет effective control diversity</h3>
+<p>С replacement один control может матчиться к нескольким treated. Это полезно при малом
+числе comparators, но effective number of controls уменьшается.</p>
+<p>В tiny report <code>U005</code> используется дважды. Поэтому artifact явно пишет:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;reused_controls&quot;: {&quot;U005&quot;: 2}
+</code></pre></div><p>Это не ошибка само по себе, но это часть интерпретации uncertainty и generalization.</p>
+<h3 id="balance-проверяется-после-matching-а-не-предполагается">Balance проверяется после matching, а не предполагается</h3>
+<p>Для каждого audited feature считается standardized mean difference:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">SMD = (mean_treated - mean_control) / pooled_standard_deviation
+</code></pre></div><p>До matching:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">friction_score SMD = 1.8496
+baseline_risk_score SMD = 2.6332
+</code></pre></div><p>После primary matching:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">friction_score SMD = 1.2437
+baseline_risk_score SMD = 3.5691
+</code></pre></div><p>То есть friction balance улучшился, capacity стал идеально сбалансированным, но
+baseline risk и pre-activation balance остались плохими или стали хуже. Хороший artifact
+не прячет это за одним ATT.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакты урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/matching_spec.json
+outputs/matching_pipeline.py
+outputs/matching_report.json
+</code></pre></div><h3 id="шаг-1-соберите-target-population-cohort">Шаг 1: соберите target-population cohort</h3>
+<p>Pipeline читает те же таблицы causal phase:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">../data/tiny/users.csv
+../data/tiny/pre_treatment_behavior.csv
+../data/tiny/onboarding_assistance.csv
+../data/tiny/outcomes.csv
+</code></pre></div><p>Затем применяет criteria из <code>target_trial_spec.json</code>:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[
+  {&quot;field&quot;: &quot;is_test_user&quot;, &quot;operator&quot;: &quot;==&quot;, &quot;value&quot;: false},
+  {&quot;field&quot;: &quot;eligible_for_program&quot;, &quot;operator&quot;: &quot;==&quot;, &quot;value&quot;: true},
+  {&quot;field&quot;: &quot;friction_score&quot;, &quot;operator&quot;: &quot;&gt;=&quot;, &quot;value&quot;: 50}
+]
+</code></pre></div><p>В target cohort получается:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cohort_n = 10
+treated_n = 6
+comparator_n = 4
+naive_risk_difference = -0.08333333333333337
+</code></pre></div><h3 id="шаг-2-стандартизируйте-distance-features">Шаг 2: стандартизируйте distance features</h3>
+<p>Для <code>friction_score</code> и <code>specialist_capacity</code> pipeline считает mean и population
+standard deviation по всей target population:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">z = (x - mean) / std
+</code></pre></div><p>Manual distance между treated user <code>i</code> и control user <code>j</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sqrt(sum((z_i - z_j)^2))
+</code></pre></div><p>Затем artifact сверяет ручной matrix со <code>scipy.spatial.distance.cdist</code>. Это не делает
+matching «библиотечным черным ящиком»: SciPy здесь только независимый контроль
+арифметики.</p>
+<h3 id="шаг-3-выберите-nearest-neighbor-внутри-caliper">Шаг 3: выберите nearest neighbor внутри caliper</h3>
+<p>Primary matching pairs:</p>
+<table>
+<thead>
+<tr>
+<th>Treated</th>
+<th>Control</th>
+<th style="text-align:right">Distance</th>
+<th style="text-align:right">Pair effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U003</td>
+<td>U005</td>
+<td style="text-align:right">1.091349</td>
+<td style="text-align:right">-1</td>
+</tr>
+<tr>
+<td>U004</td>
+<td>U011</td>
+<td style="text-align:right">0.218270</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>U006</td>
+<td>U007</td>
+<td style="text-align:right">0.327405</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>U010</td>
+<td>U005</td>
+<td style="text-align:right">1.309619</td>
+<td style="text-align:right">0</td>
+</tr>
+</tbody>
+</table>
+<p>Unmatched treated users:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">U001
+U002
+</code></pre></div><p>Их nearest controls дальше caliper. Это common-support warning, а не повод silently
+удалить строчки без объяснения.</p>
+<h3 id="шаг-4-посчитайте-matched-att">Шаг 4: посчитайте matched ATT</h3>
+<p>Для каждой пары:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">pair_effect = treated_outcome - matched_control_outcome
+</code></pre></div><p>В tiny data:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">matched_treated_risk = 0.5
+matched_control_risk = 0.75
+matched_att = -0.25
+</code></pre></div><p>Сравните с предыдущими числами:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">naive risk difference = -0.08333333333333337
+g-computation ATE = -0.39978100191623295
+matched ATT subset = -0.25
+</code></pre></div><p>Эти числа не обязаны совпадать: у них разные estimator assumptions и, в случае
+matching, другая retained population.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запуск из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/06-matching/outputs/matching_pipeline.py \
+  --data-dir phases/13-causal-analysis/data/tiny \
+  --target-trial phases/13-causal-analysis/01-causal-question-and-estimand/outputs/target_trial_spec.json \
+  --estimand phases/13-causal-analysis/01-causal-question-and-estimand/outputs/estimand.json \
+  --adjustment-gate phases/13-causal-analysis/04-colliders/outputs/bad_control_selection_audit.json \
+  --matching-spec phases/13-causal-analysis/06-matching/outputs/matching_spec.json \
+  --output phases/13-causal-analysis/06-matching/outputs/matching_report.json
+</code></pre></div><p>Короткий пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python phases/13-causal-analysis/06-matching/code/main.py
+</code></pre></div><p>Он печатает:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;matching_valid&quot;: true,
+  &quot;cohort_n&quot;: 10,
+  &quot;matched_treated_n&quot;: 4,
+  &quot;unmatched_treated_n&quot;: 2,
+  &quot;matched_att&quot;: -0.25,
+  &quot;max_abs_smd_after&quot;: 3.569124,
+  &quot;effect_claim_allowed&quot;: false
+}
+</code></pre></div><p><code>matching_valid=true</code> означает: artifact корректно выполнил заявленный pipeline и не
+нашел blocking errors. Это не означает «causal effect proven».</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="bad-control-в-distance">Bad control в distance</h3>
+<p>Если добавить в <code>distance_features</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">onboarding_completed_48h
+</code></pre></div><p>report становится invalid: это mediator для total-effect question.</p>
+<h3 id="complete-case-filter">Complete-case filter</h3>
+<p>Если добавить filter:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">telemetry_complete_30d
+</code></pre></div><p>report становится invalid: это post-treatment selection variable. Даже если сейчас все
+tiny rows complete, сама policy опасна и должна быть заблокирована до расчета.</p>
+<h3 id="matching-без-caliper">Matching без caliper</h3>
+<p>Candidate:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">forced_no_caliper_all_treated_match
+</code></pre></div><p>отклоняется как <code>invalid_common_support_policy</code>, потому что он заставляет матчиться даже
+high-risk treated users без похожих controls.</p>
+<h3 id="full-att-без-replacement">Full ATT без replacement</h3>
+<p>В tiny data:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">treated = 6
+controls = 4
+</code></pre></div><p>Ratio-1 matching без replacement и без unmatched treated не может покрыть всех treated.
+Artifact фиксирует это как <code>invalid_insufficient_controls_for_full_att</code>.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Урок содержит behavioral tests:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest phases/13-causal-analysis/06-matching/tests/test_main.py
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>exact tiny numbers для matched ATT, matched risks и unmatched users;</li>
+<li>ручную distance matrix против <code>scipy.spatial.distance.cdist</code>;</li>
+<li>nearest-neighbor pairs, caliper и replacement reuse;</li>
+<li>common-support warning для <code>U001</code> и <code>U002</code>;</li>
+<li>balance table и love plot data;</li>
+<li>изменение retained population;</li>
+<li>bad-control и complete-case policies;</li>
+<li>declared/calculated candidate statuses;</li>
+<li>duplicate source grain до join;</li>
+<li>treatment timing outside grace period;</li>
+<li>nonzero CLI exit code при invalid claim policy.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">matching-balance-auditor
+</code></pre></div><p>Файлы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/matching_spec.json
+outputs/matching_pipeline.py
+outputs/matching_report.json
+outputs/artifact.json
+</code></pre></div><p>Artifact можно передать в следующие уроки как:</p>
+<ul>
+<li>matched-pair table для сравнения с IPW/AIPW;</li>
+<li>common-support audit для positivity diagnostics;</li>
+<li>balance table и love plot data для stakeholder-friendly визуализации;</li>
+<li>policy gate, который не дает случайно использовать mediator, selection variable или
+outcome leakage.</li>
+</ul>
+<p>Важно: report сохраняет <code>allowed_effect_claim=false</code>. Matching estimate — это
+ограниченный estimate для matched subset при observed-balance diagnostics, а не финальное
+доказательство causal effect.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Уменьшите caliper до <code>1.0</code>. Сколько treated users останется и как изменится matched
+ATT?</li>
+<li>Отключите replacement. Какие controls используются и почему full ATT уже невозможно
+честно сохранить?</li>
+<li>Добавьте <code>baseline_risk_score</code> в distance features. Улучшится ли balance по
+<code>activation_14d_pre</code>?</li>
+<li>Постройте simple love plot из <code>love_plot_data</code>: какие features всё ещё выше
+threshold <code>0.25</code>?</li>
+<li>Объясните заказчику, почему unmatched high-risk treated users важнее, чем само число
+<code>-0.25</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Matching</td>
+<td>«Делает observational data похожими на A/B-тест»</td>
+<td>Строит сравнимые пары/наборы по observed covariates при stated design</td>
+</tr>
+<tr>
+<td>Common support</td>
+<td>«Необязательная диагностическая формальность»</td>
+<td>Зона covariate space, где есть и treated, и comparator units</td>
+</tr>
+<tr>
+<td>Caliper</td>
+<td>«Косметический параметр качества»</td>
+<td>Максимально допустимая distance; защищает от forced bad matches</td>
+</tr>
+<tr>
+<td>Replacement</td>
+<td>«Ошибка, потому что control повторяется»</td>
+<td>Политика reuse controls; снижает distance, но меняет effective control diversity</td>
+</tr>
+<tr>
+<td>SMD</td>
+<td>«p-value для balance»</td>
+<td>Масштабированная разница средних, не зависящая от sample-size test logic</td>
+</tr>
+<tr>
+<td>Love plot</td>
+<td>«Красивая картинка»</td>
+<td>Диагностическая таблица/граф SMD до и после adjustment</td>
+</tr>
+<tr>
+<td>Matched ATT</td>
+<td>«То же самое, что ATE»</td>
+<td>Effect estimate для фактически treated units, которые попали в matched support</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://miguelhernan.org/whatifbook" target="_blank" rel="noopener">Hernán and Robins: Causal Inference: What If</a> — главы про exchangeability, positivity и почему сравнение должно опираться на design assumptions.</li>
+<li><a href="https://doi.org/10.1214/09-STS313" target="_blank" rel="noopener">Stuart: Matching Methods for Causal Inference</a> — обзор matching design, balance diagnostics и ограничений метода.</li>
+<li><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html" target="_blank" rel="noopener">SciPy <code>cdist</code></a> — официальный API для независимой проверки distance matrix.</li>
+<li><a href="https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/estimating_causal_effects/index.html" target="_blank" rel="noopener">DoWhy: Estimating Causal Effects</a> — где matching находится в общем workflow <code>model -&gt; identify -&gt; estimate -&gt; refute</code>.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему matched estimate после caliper нельзя автоматически назвать full-population ATE?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что unmatched treated users меняют retained population, и estimate относится к matched common-support subset.</button><button type="button" class="quiz-option" data-choice="1">Потому что matching всегда запрещен для binary outcomes.</button><button type="button" class="quiz-option" data-choice="2">Потому что SciPy distance matrix не является causal library.</button><button type="button" class="quiz-option" data-choice="3">Потому что replacement всегда делает estimate равным нулю.</button></div><p class="quiz-feedback" hidden>Если часть units исключена из-за lack of support, aggregation population меняется; это уже не исходный ATE по всей target population.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что показывает standardized mean difference в balance table?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Разницу средних treated и control в единицах pooled standard deviation.</button><button type="button" class="quiz-option" data-choice="1">Вероятность того, что treatment был randomized.</button><button type="button" class="quiz-option" data-choice="2">p-value для доказательства равенства всех ковариат.</button><button type="button" class="quiz-option" data-choice="3">Размер unmeasured confounding.</button></div><p class="quiz-feedback" hidden>SMD — это масштабированная разница средних; она полезна для observed balance, но не доказывает unmeasured exchangeability.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему нельзя матчить по `onboarding_completed_48h` для total-effect question?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Это mediator после treatment, и matching по нему меняет оцениваемый total effect.</button><button type="button" class="quiz-option" data-choice="1">Это слишком редкая baseline covariate.</button><button type="button" class="quiz-option" data-choice="2">Она плохо стандартизируется в Euclidean distance.</button><button type="button" class="quiz-option" data-choice="3">Она отсутствует в outcome table.</button></div><p class="quiz-feedback" hidden>`onboarding_completed_48h` лежит на causal path после treatment; conditioning on it блокирует часть total effect.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Почему report может быть `valid=true`, но `allowed_effect_claim=false`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Pipeline корректно выполнил matching, но upstream identification still has unmeasured confounding.</button><button type="button" class="quiz-option" data-choice="1">Matched ATT всегда должен быть положительным.</button><button type="button" class="quiz-option" data-choice="2">Warnings автоматически делают JSON невалидным.</button><button type="button" class="quiz-option" data-choice="3">Любой matching artifact обязан запрещать чтение matched pairs.</button></div><p class="quiz-feedback" hidden>Validity artifact означает отсутствие blocking implementation/policy errors. Causal wording отдельно ограничен identification assumptions.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DATA_DIR = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+TARGET_TRIAL = PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;target_trial_spec.json&quot;
+ESTIMAND = PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;estimand.json&quot;
+ADJUSTMENT_GATE = PHASE_ROOT / &quot;04-colliders&quot; / &quot;outputs&quot; / &quot;bad_control_selection_audit.json&quot;
+MATCHING_SPEC = ROOT / &quot;outputs&quot; / &quot;matching_spec.json&quot;
+REPORT = ROOT / &quot;outputs&quot; / &quot;matching_report.json&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;matching_pipeline.py&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+MODULE_SPEC = importlib.util.spec_from_file_location(&quot;matching_pipeline&quot;, ARTIFACT)
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+MATCHING = importlib.util.module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(MATCHING)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def candidate(report: dict, design_id: str) -&gt; dict:
+    return next(
+        item
+        for item in report[&quot;policy_context&quot;][&quot;candidate_matching_design_audits&quot;]
+        if item[&quot;design_id&quot;] == design_id
+    )
+
+
+def candidate_spec(spec: dict, design_id: str) -&gt; dict:
+    return next(
+        item for item in spec[&quot;candidate_matching_designs&quot;] if item[&quot;design_id&quot;] == design_id
+    )
+
+
+def distance(report: dict, treated_id: str, control_id: str) -&gt; dict:
+    return next(
+        item
+        for item in report[&quot;distance&quot;][&quot;matrix&quot;]
+        if item[&quot;treated_user_id&quot;] == treated_id and item[&quot;control_user_id&quot;] == control_id
+    )
+
+
+def balance_row(report: dict, feature: str) -&gt; dict:
+    return next(item for item in report[&quot;balance&quot;][&quot;balance_table&quot;] if item[&quot;feature&quot;] == feature)
+
+
+class MatchingPipelineTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.target_trial = read_json(TARGET_TRIAL)
+        self.estimand = read_json(ESTIMAND)
+        self.adjustment_gate = read_json(ADJUSTMENT_GATE)
+        self.matching_spec = read_json(MATCHING_SPEC)
+
+    def estimate(
+        self,
+        *,
+        data_dir: Path | None = None,
+        target_trial: dict | None = None,
+        estimand: dict | None = None,
+        adjustment_gate: dict | None = None,
+        matching_spec: dict | None = None,
+    ) -&gt; dict:
+        return MATCHING.estimate_matching(
+            DATA_DIR if data_dir is None else data_dir,
+            self.target_trial if target_trial is None else target_trial,
+            self.estimand if estimand is None else estimand,
+            self.adjustment_gate if adjustment_gate is None else adjustment_gate,
+            self.matching_spec if matching_spec is None else matching_spec,
+        )
+
+    def test_valid_report_matches_expected_tiny_matching_numbers(self) -&gt; None:
+        report = self.estimate()
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;cohort_n&quot;], 10)
+        self.assertEqual(report[&quot;summary&quot;][&quot;treated_n&quot;], 6)
+        self.assertEqual(report[&quot;summary&quot;][&quot;comparator_n&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;matched_treated_n&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;unmatched_treated_n&quot;], 2)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;matched_treated_fraction&quot;], 2 / 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;unique_controls_used_n&quot;], 3)
+        self.assertEqual(report[&quot;summary&quot;][&quot;reused_controls&quot;], {&quot;U005&quot;: 2})
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;naive_risk_difference&quot;], -1 / 12)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;matched_treated_risk&quot;], 0.5)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;matched_control_risk&quot;], 0.75)
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;matched_att&quot;], -0.25)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_checks&quot;], [])
+
+    def test_code_example_prints_transferable_summary(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, CODE],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;matching_valid&quot;])
+        self.assertEqual(payload[&quot;cohort_n&quot;], 10)
+        self.assertEqual(payload[&quot;matched_treated_n&quot;], 4)
+        self.assertEqual(payload[&quot;unmatched_treated_n&quot;], 2)
+        self.assertEqual(payload[&quot;matched_att&quot;], -0.25)
+        self.assertEqual(payload[&quot;naive_risk_difference&quot;], -0.083333)
+        self.assertFalse(payload[&quot;effect_claim_allowed&quot;])
+        self.assertIn(&quot;treated_units_without_common_support_match&quot;, payload[&quot;warning_checks&quot;])
+
+    def test_manual_distance_matrix_matches_scipy_cdist(self) -&gt; None:
+        report = self.estimate()
+        scipy_check = check(report, &quot;manual_distance_matrix_matches_scipy_cdist&quot;)
+        self.assertTrue(scipy_check[&quot;valid&quot;])
+        self.assertLess(report[&quot;distance&quot;][&quot;max_manual_scipy_diff&quot;], 1e-12)
+        d = distance(report, &quot;U003&quot;, &quot;U005&quot;)
+        self.assertAlmostEqual(d[&quot;distance&quot;], 1.0913493271991717)
+        self.assertAlmostEqual(d[&quot;distance&quot;], d[&quot;scipy_distance&quot;])
+
+    def test_nearest_neighbor_pairs_and_replacement_are_visible(self) -&gt; None:
+        report = self.estimate()
+        pairs = [
+            (pair[&quot;treated_user_id&quot;], pair[&quot;control_user_id&quot;], round(pair[&quot;distance&quot;], 6))
+            for pair in report[&quot;matching&quot;][&quot;matched_pairs&quot;]
+        ]
+        self.assertEqual(
+            pairs,
+            [
+                (&quot;U003&quot;, &quot;U005&quot;, 1.091349),
+                (&quot;U004&quot;, &quot;U011&quot;, 0.21827),
+                (&quot;U006&quot;, &quot;U007&quot;, 0.327405),
+                (&quot;U010&quot;, &quot;U005&quot;, 1.309619),
+            ],
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;reused_controls&quot;], {&quot;U005&quot;: 2})
+        self.assertAlmostEqual(report[&quot;summary&quot;][&quot;max_matched_distance&quot;], 1.309619192639006)
+
+    def test_common_support_warning_lists_unmatched_treated_units(self) -&gt; None:
+        report = self.estimate()
+        support = check(report, &quot;treated_units_without_common_support_match&quot;)
+        self.assertFalse(support[&quot;valid&quot;])
+        self.assertEqual(support[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertEqual([item[&quot;treated_user_id&quot;] for item in support[&quot;sample&quot;]], [&quot;U001&quot;, &quot;U002&quot;])
+        self.assertAlmostEqual(support[&quot;sample&quot;][1][&quot;nearest_distance&quot;], 1.6370239907987574)
+        self.assertIn(support[&quot;id&quot;], report[&quot;summary&quot;][&quot;warning_checks&quot;])
+
+    def test_balance_table_and_love_plot_show_improvement_and_remaining_imbalance(self) -&gt; None:
+        report = self.estimate()
+        friction = balance_row(report, &quot;friction_score&quot;)
+        capacity = balance_row(report, &quot;specialist_capacity&quot;)
+        baseline = balance_row(report, &quot;baseline_risk_score&quot;)
+        self.assertLess(friction[&quot;abs_smd_after&quot;], friction[&quot;abs_smd_before&quot;])
+        self.assertEqual(capacity[&quot;abs_smd_after&quot;], 0.0)
+        self.assertGreater(baseline[&quot;abs_smd_after&quot;], baseline[&quot;abs_smd_before&quot;])
+        self.assertEqual(baseline[&quot;status_after&quot;], &quot;imbalanced&quot;)
+        self.assertIn(&quot;baseline_risk_score&quot;, report[&quot;summary&quot;][&quot;features_worse_after_matching&quot;])
+        self.assertEqual(
+            set(report[&quot;summary&quot;][&quot;features_above_threshold_after&quot;]),
+            {&quot;friction_score&quot;, &quot;baseline_risk_score&quot;, &quot;activation_14d_pre&quot;},
+        )
+        love_plot_features = {row[&quot;feature&quot;] for row in report[&quot;balance&quot;][&quot;love_plot_data&quot;]}
+        self.assertIn(&quot;friction_score&quot;, love_plot_features)
+        self.assertIn(&quot;baseline_risk_score&quot;, love_plot_features)
+
+    def test_matching_estimate_changes_population_not_full_ate(self) -&gt; None:
+        report = self.estimate()
+        self.assertEqual(report[&quot;summary&quot;][&quot;matched_unique_units_n&quot;], 7)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;matched_unit_ids&quot;],
+            [&quot;U003&quot;, &quot;U004&quot;, &quot;U005&quot;, &quot;U006&quot;, &quot;U007&quot;, &quot;U010&quot;, &quot;U011&quot;],
+        )
+        self.assertEqual(
+            report[&quot;matching&quot;][&quot;unmatched_treated&quot;][0][&quot;reason&quot;],
+            &quot;nearest_distance_above_caliper&quot;,
+        )
+        self.assertEqual(
+            report[&quot;matching&quot;][&quot;unmatched_treated&quot;][0][&quot;nearest_control_user_id&quot;],
+            &quot;U005&quot;,
+        )
+
+    def test_primary_design_uses_allowed_sources_and_candidate_statuses_match(self) -&gt; None:
+        report = self.estimate()
+        self.assertTrue(check(report, &quot;matching_uses_only_allowed_baseline_sources&quot;)[&quot;valid&quot;])
+        self.assertTrue(
+            check(report, &quot;matching_source_basis_covers_allowed_adjustment_sources&quot;)[&quot;valid&quot;]
+        )
+        self.assertTrue(check(report, &quot;candidate_matching_design_statuses_match_policy&quot;)[&quot;valid&quot;])
+        primary = candidate(report, &quot;nearest_neighbor_friction_capacity_att_v1&quot;)
+        self.assertEqual(primary[&quot;calculated_status&quot;], &quot;estimable_with_warnings&quot;)
+        self.assertEqual(primary[&quot;bad_control_variables&quot;], [])
+        self.assertEqual(primary[&quot;omitted_allowed_sources&quot;], [])
+
+    def test_forced_no_caliper_and_no_replacement_candidates_are_rejected(self) -&gt; None:
+        report = self.estimate()
+        forced = candidate(report, &quot;forced_no_caliper_all_treated_match&quot;)
+        no_replacement = candidate(report, &quot;no_replacement_full_att_match&quot;)
+        self.assertEqual(forced[&quot;calculated_status&quot;], &quot;invalid_common_support_policy&quot;)
+        self.assertEqual(
+            no_replacement[&quot;calculated_status&quot;],
+            &quot;invalid_insufficient_controls_for_full_att&quot;,
+        )
+
+    def test_bad_control_matching_sources_and_filters_are_rejected(self) -&gt; None:
+        report = self.estimate()
+        mediator = candidate(report, &quot;mediator_outcome_matching&quot;)
+        complete_case = candidate(report, &quot;telemetry_complete_case_matching&quot;)
+        self.assertEqual(mediator[&quot;calculated_status&quot;], &quot;invalid_bad_control&quot;)
+        self.assertEqual(mediator[&quot;bad_control_variables&quot;], [&quot;onboarding_completed_48h&quot;])
+        self.assertEqual(complete_case[&quot;calculated_status&quot;], &quot;invalid_bad_control&quot;)
+        self.assertEqual(complete_case[&quot;bad_control_variables&quot;], [&quot;telemetry_complete_30d&quot;])
+
+    def test_candidate_declared_status_must_match_policy(self) -&gt; None:
+        spec = copy.deepcopy(self.matching_spec)
+        candidate_spec(spec, &quot;forced_no_caliper_all_treated_match&quot;)[&quot;declared_status&quot;] = (
+            &quot;estimable_with_warnings&quot;
+        )
+        report = self.estimate(matching_spec=spec)
+        status = check(report, &quot;candidate_matching_design_statuses_match_policy&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(status[&quot;valid&quot;])
+        self.assertEqual(status[&quot;sample&quot;][0][&quot;design_id&quot;], &quot;forced_no_caliper_all_treated_match&quot;)
+
+    def test_effect_claim_cannot_be_enabled_with_unmeasured_backdoor_path(self) -&gt; None:
+        spec = copy.deepcopy(self.matching_spec)
+        spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;] = True
+        report = self.estimate(matching_spec=spec)
+        claim = check(report, &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(claim[&quot;valid&quot;])
+        self.assertEqual(claim[&quot;sample&quot;][0][&quot;field&quot;], &quot;allowed_effect_claim&quot;)
+
+    def test_matching_design_source_bad_control_is_blocked(self) -&gt; None:
+        spec = copy.deepcopy(self.matching_spec)
+        spec[&quot;matching_design&quot;][&quot;source_variables&quot;].append(&quot;onboarding_completed_48h&quot;)
+        spec[&quot;matching_design&quot;][&quot;distance_features&quot;].append(&quot;onboarding_completed_48h&quot;)
+        report = self.estimate(matching_spec=spec)
+        source_check = check(report, &quot;matching_uses_only_allowed_baseline_sources&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(source_check[&quot;valid&quot;])
+        self.assertIn(&quot;onboarding_completed_48h&quot;, source_check[&quot;sample&quot;][&quot;bad_control_variables&quot;])
+
+    def test_duplicate_source_grain_blocks_cohort_build(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            users = pd.read_csv(tmp / &quot;users.csv&quot;)
+            users = pd.concat([users, users.iloc[[0]]], ignore_index=True)
+            users.to_csv(tmp / &quot;users.csv&quot;, index=False)
+            report = self.estimate(data_dir=tmp)
+            grain = check(report, &quot;source_tables_preserve_declared_grain&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(grain[&quot;valid&quot;])
+            self.assertEqual(grain[&quot;sample&quot;][0][&quot;table&quot;], &quot;users&quot;)
+
+    def test_treatment_timing_outside_grace_period_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            shutil.copytree(DATA_DIR, tmp, dirs_exist_ok=True)
+            assistance = pd.read_csv(tmp / &quot;onboarding_assistance.csv&quot;)
+            assistance.loc[assistance[&quot;user_id&quot;] == &quot;U006&quot;, &quot;started_at&quot;] = (
+                &quot;2026-07-05T21:30:00+03:00&quot;
+            )
+            assistance.to_csv(tmp / &quot;onboarding_assistance.csv&quot;, index=False)
+            report = self.estimate(data_dir=tmp)
+            timing = check(report, &quot;treatment_timing_respects_grace_period&quot;)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(timing[&quot;valid&quot;])
+            self.assertEqual(timing[&quot;sample&quot;][0][&quot;user_id&quot;], &quot;U006&quot;)
+
+    def test_cli_returns_nonzero_for_invalid_claim_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            spec = copy.deepcopy(self.matching_spec)
+            spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;] = True
+            spec_path = tmp / &quot;matching_spec.json&quot;
+            output_path = tmp / &quot;matching_report.json&quot;
+            write_json(spec_path, spec)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--data-dir&quot;,
+                    DATA_DIR,
+                    &quot;--target-trial&quot;,
+                    TARGET_TRIAL,
+                    &quot;--estimand&quot;,
+                    ESTIMAND,
+                    &quot;--adjustment-gate&quot;,
+                    ADJUSTMENT_GATE,
+                    &quot;--matching-spec&quot;,
+                    spec_path,
+                    &quot;--output&quot;,
+                    output_path,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1)
+            report = read_json(output_path)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertIn(
+                &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+                report[&quot;summary&quot;][&quot;blocking_checks&quot;],
+            )
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;matching_pipeline.py&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;matching_pipeline&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    matching = load_artifact()
+    report = matching.estimate_matching(
+        PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;,
+        matching.read_json(
+            PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;target_trial_spec.json&quot;
+        ),
+        matching.read_json(
+            PHASE_ROOT / &quot;01-causal-question-and-estimand&quot; / &quot;outputs&quot; / &quot;estimand.json&quot;
+        ),
+        matching.read_json(
+            PHASE_ROOT / &quot;04-colliders&quot; / &quot;outputs&quot; / &quot;bad_control_selection_audit.json&quot;
+        ),
+        matching.read_json(ROOT / &quot;outputs&quot; / &quot;matching_spec.json&quot;),
+    )
+    summary = report[&quot;summary&quot;]
+    payload = {
+        &quot;matching_valid&quot;: report[&quot;valid&quot;],
+        &quot;cohort_n&quot;: summary[&quot;cohort_n&quot;],
+        &quot;treated_n&quot;: summary[&quot;treated_n&quot;],
+        &quot;comparator_n&quot;: summary[&quot;comparator_n&quot;],
+        &quot;matched_treated_n&quot;: summary[&quot;matched_treated_n&quot;],
+        &quot;unmatched_treated_n&quot;: summary[&quot;unmatched_treated_n&quot;],
+        &quot;matched_att&quot;: round(summary[&quot;matched_att&quot;], 6),
+        &quot;naive_risk_difference&quot;: round(summary[&quot;naive_risk_difference&quot;], 6),
+        &quot;max_abs_smd_after&quot;: round(summary[&quot;max_abs_smd_after&quot;], 6),
+        &quot;warning_checks&quot;: summary[&quot;warning_checks&quot;],
+        &quot;effect_claim_allowed&quot;: report[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;],
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;matching-balance-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/matching_pipeline.py&quot;,
+  &quot;description&quot;: &quot;Собирает target-population cohort, строит nearest-neighbor ATT matching с standardized Euclidean distance, caliper и replacement policy, выпускает matched pairs, common-support audit, balance table, love plot data и claim policy.&quot;,
+  &quot;usage&quot;: &quot;python outputs/matching_pipeline.py --data-dir ../data/tiny --target-trial ../01-causal-question-and-estimand/outputs/target_trial_spec.json --estimand ../01-causal-question-and-estimand/outputs/estimand.json --adjustment-gate ../04-colliders/outputs/bad_control_selection_audit.json --matching-spec outputs/matching_spec.json --output outputs/matching_report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/matching_pipeline.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+from scipy.spatial.distance import cdist
+
+
+def read_json(path: str | Path) -&gt; dict[str, Any]:
+    with Path(path).open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: str | Path, payload: dict[str, Any]) -&gt; None:
+    Path(path).write_text(
+        json.dumps(to_jsonable(payload), ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def to_jsonable(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {key: to_jsonable(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [to_jsonable(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if pd.isna(value):
+        return None
+    return value
+
+
+def make_check(
+    check_id: str,
+    valid: bool,
+    message: str,
+    *,
+    severity: str = &quot;error&quot;,
+    sample: Any | None = None,
+) -&gt; dict[str, Any]:
+    payload: dict[str, Any] = {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: valid,
+        &quot;severity&quot;: severity,
+        &quot;message&quot;: message,
+    }
+    if sample is not None:
+        payload[&quot;sample&quot;] = sample
+    return payload
+
+
+def invalid_report(checks: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    blocking = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    return {
+        &quot;valid&quot;: not blocking,
+        &quot;summary&quot;: {
+            &quot;blocking_checks&quot;: blocking,
+            &quot;warning_checks&quot;: warnings,
+        },
+        &quot;checks&quot;: checks,
+    }
+
+
+def as_bool(series: pd.Series) -&gt; pd.Series:
+    if series.dtype == bool:
+        return series
+    return series.astype(str).str.lower().isin({&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;})
+
+
+def load_source_tables(data_dir: str | Path) -&gt; dict[str, pd.DataFrame]:
+    root = Path(data_dir)
+    return {
+        &quot;users&quot;: pd.read_csv(root / &quot;users.csv&quot;),
+        &quot;pre_treatment_behavior&quot;: pd.read_csv(root / &quot;pre_treatment_behavior.csv&quot;),
+        &quot;onboarding_assistance&quot;: pd.read_csv(root / &quot;onboarding_assistance.csv&quot;),
+        &quot;outcomes&quot;: pd.read_csv(root / &quot;outcomes.csv&quot;),
+    }
+
+
+def validate_table_grains(tables: dict[str, pd.DataFrame]) -&gt; list[dict[str, Any]]:
+    key_specs = {
+        &quot;users&quot;: [&quot;user_id&quot;],
+        &quot;pre_treatment_behavior&quot;: [&quot;user_id&quot;],
+        &quot;onboarding_assistance&quot;: [&quot;program_id&quot;, &quot;user_id&quot;],
+        &quot;outcomes&quot;: [&quot;user_id&quot;],
+    }
+    errors = []
+    for table_name, keys in key_specs.items():
+        table = tables[table_name]
+        missing = [key for key in keys if key not in table.columns]
+        if missing:
+            errors.append({&quot;table&quot;: table_name, &quot;missing_keys&quot;: missing})
+            continue
+        duplicates = table[table.duplicated(keys, keep=False)][keys].to_dict(&quot;records&quot;)
+        if duplicates:
+            errors.append({&quot;table&quot;: table_name, &quot;duplicate_keys&quot;: duplicates[:10]})
+    return [
+        make_check(
+            &quot;source_tables_preserve_declared_grain&quot;,
+            not errors,
+            &quot;Source tables preserve user/program grain before joining the matching cohort.&quot;,
+            sample=errors or None,
+        )
+    ]
+
+
+def build_analysis_cohort(
+    tables: dict[str, pd.DataFrame],
+    target_trial: dict[str, Any],
+) -&gt; tuple[pd.DataFrame, list[dict[str, Any]]]:
+    users = tables[&quot;users&quot;].copy()
+    pre = tables[&quot;pre_treatment_behavior&quot;].copy()
+    assistance = tables[&quot;onboarding_assistance&quot;].copy()
+    outcomes = tables[&quot;outcomes&quot;].copy()
+
+    for frame, columns in [
+        (users, [&quot;is_test_user&quot;, &quot;eligible_for_program&quot;]),
+        (pre, [&quot;activation_14d_pre&quot;]),
+        (assistance, [&quot;received_assistance&quot;, &quot;offered_assistance&quot;]),
+        (outcomes, [&quot;activation_14d&quot;, &quot;telemetry_complete_30d&quot;]),
+    ]:
+        for column in columns:
+            if column in frame:
+                frame[column] = as_bool(frame[column])
+
+    assistance_subset = assistance[
+        [
+            &quot;user_id&quot;,
+            &quot;program_id&quot;,
+            &quot;received_assistance&quot;,
+            &quot;offered_assistance&quot;,
+            &quot;started_at&quot;,
+            &quot;offered_at&quot;,
+            &quot;assignment_reason&quot;,
+        ]
+    ].copy()
+
+    cohort = (
+        users.merge(pre, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+        .merge(assistance_subset, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+        .merge(outcomes, on=&quot;user_id&quot;, how=&quot;inner&quot;, validate=&quot;one_to_one&quot;)
+    )
+
+    mask = pd.Series(True, index=cohort.index)
+    criteria_errors = []
+    for criterion in target_trial.get(&quot;target_population&quot;, {}).get(&quot;criteria&quot;, []):
+        field = criterion.get(&quot;field&quot;)
+        operator = criterion.get(&quot;operator&quot;)
+        value = criterion.get(&quot;value&quot;)
+        if field not in cohort:
+            criteria_errors.append({&quot;field&quot;: field, &quot;reason&quot;: &quot;missing from joined cohort&quot;})
+            continue
+        column = cohort[field]
+        if column.dtype == bool:
+            value = bool(value)
+        if operator == &quot;==&quot;:
+            mask &amp;= column == value
+        elif operator == &quot;&gt;=&quot;:
+            mask &amp;= pd.to_numeric(column) &gt;= float(value)
+        else:
+            criteria_errors.append({&quot;field&quot;: field, &quot;operator&quot;: operator})
+
+    cohort = cohort[mask].copy()
+    cohort[&quot;time_zero_ts&quot;] = pd.to_datetime(cohort[&quot;time_zero&quot;], utc=True)
+    cohort[&quot;started_at_ts&quot;] = pd.to_datetime(cohort[&quot;started_at&quot;], utc=True, errors=&quot;coerce&quot;)
+    grace_hours = target_trial.get(&quot;treatment&quot;, {}).get(&quot;grace_period_hours&quot;, 24)
+    start_delay_hours = (cohort[&quot;started_at_ts&quot;] - cohort[&quot;time_zero_ts&quot;]).dt.total_seconds() / 3600
+    cohort[&quot;assisted_within_24h&quot;] = (
+        cohort[&quot;received_assistance&quot;]
+        &amp; cohort[&quot;started_at_ts&quot;].notna()
+        &amp; (start_delay_hours &gt;= 0)
+        &amp; (start_delay_hours &lt;= grace_hours)
+    )
+    cohort[&quot;treatment&quot;] = cohort[&quot;assisted_within_24h&quot;].astype(int)
+    cohort[&quot;outcome&quot;] = cohort[&quot;activation_14d&quot;].astype(int)
+    cohort[&quot;followup_end_ts&quot;] = pd.to_datetime(cohort[&quot;followup_end_at&quot;], utc=True)
+    cohort[&quot;followup_days&quot;] = (
+        cohort[&quot;followup_end_ts&quot;] - cohort[&quot;time_zero_ts&quot;]
+    ).dt.total_seconds() / 86400
+
+    timing_errors = []
+    treated = cohort[cohort[&quot;received_assistance&quot;]]
+    for _, row in treated.iterrows():
+        if pd.isna(row[&quot;started_at_ts&quot;]):
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;missing started_at&quot;})
+        elif row[&quot;started_at_ts&quot;] &lt; row[&quot;time_zero_ts&quot;]:
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;starts before time zero&quot;})
+        elif row[&quot;treatment&quot;] != 1:
+            timing_errors.append({&quot;user_id&quot;: row[&quot;user_id&quot;], &quot;reason&quot;: &quot;outside grace period&quot;})
+
+    followup_errors = cohort[cohort[&quot;followup_days&quot;] &lt; 14][[&quot;user_id&quot;, &quot;followup_days&quot;]].to_dict(
+        &quot;records&quot;
+    )
+
+    checks = [
+        make_check(
+            &quot;target_population_criteria_are_supported&quot;,
+            not criteria_errors,
+            &quot;Target-population criteria are applied from target_trial_spec.json.&quot;,
+            sample=criteria_errors or None,
+        ),
+        make_check(
+            &quot;analysis_cohort_has_expected_treated_and_comparator_units&quot;,
+            len(cohort) &gt; 0
+            and int(cohort[&quot;treatment&quot;].sum()) &gt; 0
+            and int((1 - cohort[&quot;treatment&quot;]).sum()) &gt; 0,
+            &quot;Analysis cohort contains both treatment strategies.&quot;,
+            sample={
+                &quot;n&quot;: len(cohort),
+                &quot;treated&quot;: int(cohort[&quot;treatment&quot;].sum()),
+                &quot;comparator&quot;: int((1 - cohort[&quot;treatment&quot;]).sum()),
+            },
+        ),
+        make_check(
+            &quot;treatment_timing_respects_grace_period&quot;,
+            not timing_errors,
+            &quot;Observed treatment starts after time zero and within the declared grace period.&quot;,
+            sample=timing_errors or None,
+        ),
+        make_check(
+            &quot;primary_outcome_followup_is_complete&quot;,
+            not followup_errors,
+            &quot;Every analysis unit has enough follow-up for activation_14d.&quot;,
+            sample=followup_errors or None,
+        ),
+    ]
+    return cohort.reset_index(drop=True), checks
+
+
+def component_values(frame: pd.DataFrame, component: dict[str, Any]) -&gt; pd.Series:
+    kind = component[&quot;type&quot;]
+    field = component[&quot;field&quot;]
+    if field not in frame:
+        raise KeyError(f&quot;Missing source field for derived feature: {field}&quot;)
+    if kind == &quot;scaled_numeric&quot;:
+        return (
+            (pd.to_numeric(frame[field]) - float(component[&quot;center&quot;]))
+            / float(component[&quot;scale&quot;])
+            * float(component[&quot;weight&quot;])
+        )
+    if kind == &quot;numeric&quot;:
+        return pd.to_numeric(frame[field]) * float(component[&quot;weight&quot;])
+    if kind == &quot;categorical_map&quot;:
+        mapping = component[&quot;values&quot;]
+        values = frame[field].map(mapping)
+        if values.isna().any():
+            unknown = sorted(frame.loc[values.isna(), field].astype(str).unique())
+            raise ValueError(f&quot;Unknown categories for {field}: {unknown}&quot;)
+        return values.astype(float)
+    raise ValueError(f&quot;Unsupported derived feature component type: {kind}&quot;)
+
+
+def add_derived_features(cohort: pd.DataFrame, matching_spec: dict[str, Any]) -&gt; pd.DataFrame:
+    frame = cohort.copy()
+    for feature in matching_spec.get(&quot;derived_features&quot;, []):
+        total = pd.Series(0.0, index=frame.index)
+        for component in feature.get(&quot;components&quot;, []):
+            total = total + component_values(frame, component)
+        frame[feature[&quot;name&quot;]] = total.astype(float)
+    return frame
+
+
+def allowed_action_from_gate(
+    adjustment_gate: dict[str, Any], action_id: str
+) -&gt; dict[str, Any] | None:
+    return next(
+        (
+            action
+            for action in adjustment_gate.get(&quot;candidate_action_audits&quot;, [])
+            if action.get(&quot;action_id&quot;) == action_id
+        ),
+        None,
+    )
+
+
+def matching_source_variables(matching_spec: dict[str, Any]) -&gt; set[str]:
+    design = matching_spec[&quot;matching_design&quot;]
+    sources = set(design.get(&quot;source_variables&quot;, []))
+    sources.update(design.get(&quot;distance_features&quot;, []))
+    for feature in matching_spec.get(&quot;derived_features&quot;, []):
+        sources.update(feature.get(&quot;source_variables&quot;, []))
+    return sources
+
+
+def validate_matching_spec(
+    target_trial: dict[str, Any],
+    estimand: dict[str, Any],
+    adjustment_gate: dict[str, Any],
+    matching_spec: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    action = allowed_action_from_gate(
+        adjustment_gate, matching_spec.get(&quot;adjustment_action_id&quot;, &quot;&quot;)
+    )
+    allowed_sources = set(action.get(&quot;variables&quot;, [])) if action else set()
+    bad_controls = set(adjustment_gate.get(&quot;summary&quot;, {}).get(&quot;bad_control_variables&quot;, []))
+    design = matching_spec.get(&quot;matching_design&quot;, {})
+    design_sources = matching_source_variables(matching_spec)
+    distance_features = set(design.get(&quot;distance_features&quot;, []))
+
+    alignment_errors = []
+    for field, expected in [
+        (&quot;trial_id&quot;, target_trial.get(&quot;trial_id&quot;)),
+        (&quot;question_id&quot;, estimand.get(&quot;question_id&quot;)),
+        (&quot;estimand_id&quot;, estimand.get(&quot;estimand_id&quot;)),
+        (&quot;population&quot;, target_trial.get(&quot;target_population&quot;, {}).get(&quot;population_id&quot;)),
+    ]:
+        if matching_spec.get(field) != expected:
+            alignment_errors.append(
+                {&quot;field&quot;: field, &quot;expected&quot;: expected, &quot;actual&quot;: matching_spec.get(field)}
+            )
+
+    checks.extend(
+        [
+            make_check(
+                &quot;matching_spec_aligns_with_target_trial_and_estimand&quot;,
+                not alignment_errors,
+                &quot;Matching spec points to the same trial, question, estimand and target population.&quot;,
+                sample=alignment_errors or None,
+            ),
+            make_check(
+                &quot;adjustment_gate_allows_matching_handoff&quot;,
+                bool(action and action.get(&quot;allowed_for_estimation&quot;)),
+                &quot;The selected bad-control gate action is allowed for downstream estimators.&quot;,
+                sample=None
+                if action
+                else [{&quot;action_id&quot;: matching_spec.get(&quot;adjustment_action_id&quot;)}],
+            ),
+        ]
+    )
+
+    disallowed_sources = sorted(design_sources - allowed_sources - {&quot;activation_14d_pre&quot;})
+    bad_source_variables = sorted(
+        (design_sources | set(design.get(&quot;filter_variables&quot;, []))) &amp; bad_controls
+    )
+    omitted_allowed_sources = sorted(allowed_sources - set(design.get(&quot;source_variables&quot;, [])))
+    checks.extend(
+        [
+            make_check(
+                &quot;matching_uses_only_allowed_baseline_sources&quot;,
+                not disallowed_sources and not bad_source_variables,
+                &quot;Matching features, derived features and filters do not use bad controls.&quot;,
+                sample={
+                    &quot;disallowed_sources&quot;: disallowed_sources,
+                    &quot;bad_control_variables&quot;: bad_source_variables,
+                }
+                if disallowed_sources or bad_source_variables
+                else None,
+            ),
+            make_check(
+                &quot;matching_source_basis_covers_allowed_adjustment_sources&quot;,
+                not omitted_allowed_sources,
+                (
+                    &quot;The matching design documents coverage of the allowed &quot;
+                    &quot;observed-baseline adjustment sources.&quot;
+                ),
+                sample=omitted_allowed_sources or None,
+            ),
+            make_check(
+                &quot;distance_features_are_declared_sources&quot;,
+                distance_features.issubset(set(design.get(&quot;source_variables&quot;, []))),
+                &quot;Every distance feature is part of the declared matching source basis.&quot;,
+                sample=sorted(distance_features - set(design.get(&quot;source_variables&quot;, []))) or None,
+            ),
+        ]
+    )
+
+    candidate_audits = audit_candidate_designs(
+        matching_spec,
+        required_sources=allowed_sources,
+        bad_controls=bad_controls,
+        treated_n=None,
+        comparator_n=None,
+    )
+    mismatches = [
+        {
+            &quot;design_id&quot;: audit[&quot;design_id&quot;],
+            &quot;declared_status&quot;: audit[&quot;declared_status&quot;],
+            &quot;calculated_status&quot;: audit[&quot;calculated_status&quot;],
+        }
+        for audit in candidate_audits
+        if audit[&quot;declared_status&quot;] != audit[&quot;calculated_status&quot;]
+    ]
+    checks.append(
+        make_check(
+            &quot;candidate_matching_design_statuses_match_policy&quot;,
+            not mismatches,
+            &quot;Candidate matching designs declare the same status as the policy audit calculates.&quot;,
+            sample=mismatches or None,
+        )
+    )
+
+    claim_policy = matching_spec.get(&quot;claim_policy&quot;, {})
+    remaining_unmeasured = (
+        adjustment_gate.get(&quot;summary&quot;, {}).get(&quot;primary_open_unmeasured_backdoor_paths&quot;, 0) &gt; 0
+    )
+    claim_errors = []
+    if remaining_unmeasured and claim_policy.get(&quot;allowed_effect_claim&quot;):
+        claim_errors.append(
+            {
+                &quot;field&quot;: &quot;allowed_effect_claim&quot;,
+                &quot;reason&quot;: &quot;remaining unmeasured backdoor path from adjustment gate&quot;,
+            }
+        )
+    if claim_policy.get(&quot;identification_status&quot;) != &quot;not_identified_due_to_unmeasured_confounding&quot;:
+        claim_errors.append(
+            {
+                &quot;field&quot;: &quot;identification_status&quot;,
+                &quot;actual&quot;: claim_policy.get(&quot;identification_status&quot;),
+            }
+        )
+    checks.append(
+        make_check(
+            &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+            not claim_errors,
+            &quot;Matching report cannot upgrade the evidence beyond the upstream identification gate.&quot;,
+            sample=claim_errors or None,
+        )
+    )
+
+    context = {
+        &quot;allowed_sources&quot;: sorted(allowed_sources),
+        &quot;bad_control_variables&quot;: sorted(bad_controls),
+        &quot;candidate_matching_design_audits&quot;: candidate_audits,
+        &quot;selected_adjustment_action&quot;: action,
+    }
+    return checks, context
+
+
+def audit_candidate_designs(
+    matching_spec: dict[str, Any],
+    *,
+    required_sources: set[str],
+    bad_controls: set[str],
+    treated_n: int | None,
+    comparator_n: int | None,
+) -&gt; list[dict[str, Any]]:
+    audits = []
+    max_no_caliper_distance = matching_spec.get(&quot;common_support&quot;, {}).get(
+        &quot;max_allowed_nearest_distance_without_caliper&quot;, 1.5
+    )
+    for candidate in matching_spec.get(&quot;candidate_matching_designs&quot;, []):
+        sources = set(candidate.get(&quot;source_variables&quot;, []))
+        filters = set(candidate.get(&quot;filter_variables&quot;, []))
+        bad_control_variables = sorted((sources | filters) &amp; bad_controls)
+        omitted_allowed_sources = sorted(required_sources - sources)
+        if bad_control_variables:
+            status = &quot;invalid_bad_control&quot;
+        elif candidate.get(&quot;caliper&quot;) is None and not candidate.get(
+            &quot;allow_unmatched_treated&quot;,
+            True,
+        ):
+            status = &quot;invalid_common_support_policy&quot;
+        elif (
+            treated_n is not None
+            and comparator_n is not None
+            and not candidate.get(&quot;replacement&quot;, True)
+            and not candidate.get(&quot;allow_unmatched_treated&quot;, True)
+            and treated_n &gt; comparator_n
+        ):
+            status = &quot;invalid_insufficient_controls_for_full_att&quot;
+        elif candidate.get(&quot;caliper&quot;) is None and max_no_caliper_distance is not None:
+            status = &quot;invalid_common_support_policy&quot;
+        else:
+            status = &quot;estimable_with_warnings&quot;
+        audits.append(
+            {
+                &quot;design_id&quot;: candidate.get(&quot;design_id&quot;),
+                &quot;declared_status&quot;: candidate.get(&quot;declared_status&quot;),
+                &quot;calculated_status&quot;: status,
+                &quot;bad_control_variables&quot;: bad_control_variables,
+                &quot;omitted_allowed_sources&quot;: omitted_allowed_sources,
+                &quot;caliper&quot;: candidate.get(&quot;caliper&quot;),
+                &quot;replacement&quot;: candidate.get(&quot;replacement&quot;),
+                &quot;allow_unmatched_treated&quot;: candidate.get(&quot;allow_unmatched_treated&quot;),
+            }
+        )
+    return audits
+
+
+def standardized_feature_matrix(
+    frame: pd.DataFrame, features: list[str]
+) -&gt; tuple[pd.DataFrame, dict[str, dict[str, float]], list[dict[str, Any]]]:
+    errors = []
+    numeric = pd.DataFrame(index=frame.index)
+    scalers: dict[str, dict[str, float]] = {}
+    for feature in features:
+        if feature not in frame:
+            errors.append({&quot;feature&quot;: feature, &quot;reason&quot;: &quot;missing&quot;})
+            continue
+        values = pd.to_numeric(frame[feature], errors=&quot;coerce&quot;)
+        if values.isna().any():
+            errors.append({&quot;feature&quot;: feature, &quot;reason&quot;: &quot;non_numeric_or_missing&quot;})
+            continue
+        mean = float(values.mean())
+        std = float(values.std(ddof=0))
+        if std == 0.0:
+            errors.append({&quot;feature&quot;: feature, &quot;reason&quot;: &quot;zero_variance&quot;})
+            continue
+        numeric[feature] = (values - mean) / std
+        scalers[feature] = {&quot;mean&quot;: mean, &quot;std&quot;: std}
+    return numeric, scalers, errors
+
+
+def build_distance_matrix(
+    cohort: pd.DataFrame, matching_spec: dict[str, Any]
+) -&gt; tuple[pd.DataFrame, dict[str, dict[str, float]], dict[str, Any]]:
+    features = matching_spec[&quot;matching_design&quot;][&quot;distance_features&quot;]
+    standardized, scalers, errors = standardized_feature_matrix(cohort, features)
+    if errors:
+        return pd.DataFrame(), scalers, {&quot;errors&quot;: errors, &quot;manual_matches_scipy&quot;: False}
+
+    treated = cohort[cohort[&quot;treatment&quot;] == 1].sort_values(&quot;user_id&quot;).copy()
+    controls = cohort[cohort[&quot;treatment&quot;] == 0].sort_values(&quot;user_id&quot;).copy()
+    treated_matrix = standardized.loc[treated.index, features].to_numpy(dtype=float)
+    control_matrix = standardized.loc[controls.index, features].to_numpy(dtype=float)
+    manual = np.sqrt(((treated_matrix[:, None, :] - control_matrix[None, :, :]) ** 2).sum(axis=2))
+    scipy_distances = cdist(treated_matrix, control_matrix, metric=&quot;euclidean&quot;)
+    rows = []
+    for i, (_, treated_row) in enumerate(treated.iterrows()):
+        for j, (_, control_row) in enumerate(controls.iterrows()):
+            rows.append(
+                {
+                    &quot;treated_user_id&quot;: treated_row[&quot;user_id&quot;],
+                    &quot;control_user_id&quot;: control_row[&quot;user_id&quot;],
+                    &quot;distance&quot;: float(manual[i, j]),
+                    &quot;scipy_distance&quot;: float(scipy_distances[i, j]),
+                }
+            )
+    diagnostics = {
+        &quot;errors&quot;: [],
+        &quot;manual_matches_scipy&quot;: bool(np.allclose(manual, scipy_distances, atol=1e-12)),
+        &quot;max_manual_scipy_diff&quot;: float(np.max(np.abs(manual - scipy_distances)))
+        if manual.size
+        else 0.0,
+    }
+    return pd.DataFrame(rows), scalers, diagnostics
+
+
+def match_nearest_neighbors(
+    cohort: pd.DataFrame,
+    distance_matrix: pd.DataFrame,
+    matching_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    design = matching_spec[&quot;matching_design&quot;]
+    caliper = design.get(&quot;caliper&quot;)
+    replacement = bool(design.get(&quot;replacement&quot;, True))
+    allow_unmatched = bool(design.get(&quot;allow_unmatched_treated&quot;, True))
+    used_controls: set[str] = set()
+    matched_pairs = []
+    unmatched = []
+    cohort_by_user = cohort.set_index(&quot;user_id&quot;, drop=False)
+
+    treated_ids = sorted(cohort.loc[cohort[&quot;treatment&quot;] == 1, &quot;user_id&quot;].tolist())
+    for treated_id in treated_ids:
+        candidates = distance_matrix[distance_matrix[&quot;treated_user_id&quot;] == treated_id].copy()
+        if not replacement:
+            candidates = candidates[~candidates[&quot;control_user_id&quot;].isin(used_controls)]
+        candidates = candidates.sort_values([&quot;distance&quot;, &quot;control_user_id&quot;])
+        if candidates.empty:
+            unmatched.append({&quot;treated_user_id&quot;: treated_id, &quot;reason&quot;: &quot;no_available_control&quot;})
+            continue
+        best = candidates.iloc[0]
+        distance = float(best[&quot;distance&quot;])
+        if caliper is not None and distance &gt; float(caliper):
+            unmatched.append(
+                {
+                    &quot;treated_user_id&quot;: treated_id,
+                    &quot;nearest_control_user_id&quot;: best[&quot;control_user_id&quot;],
+                    &quot;nearest_distance&quot;: distance,
+                    &quot;caliper&quot;: float(caliper),
+                    &quot;reason&quot;: &quot;nearest_distance_above_caliper&quot;,
+                }
+            )
+            if not allow_unmatched:
+                continue
+            continue
+        control_id = str(best[&quot;control_user_id&quot;])
+        used_controls.add(control_id)
+        treated_row = cohort_by_user.loc[treated_id]
+        control_row = cohort_by_user.loc[control_id]
+        matched_pairs.append(
+            {
+                &quot;treated_user_id&quot;: treated_id,
+                &quot;control_user_id&quot;: control_id,
+                &quot;distance&quot;: distance,
+                &quot;treated_outcome&quot;: int(treated_row[&quot;outcome&quot;]),
+                &quot;control_outcome&quot;: int(control_row[&quot;outcome&quot;]),
+                &quot;pair_effect&quot;: int(treated_row[&quot;outcome&quot;]) - int(control_row[&quot;outcome&quot;]),
+                &quot;treated_friction_score&quot;: float(treated_row[&quot;friction_score&quot;]),
+                &quot;control_friction_score&quot;: float(control_row[&quot;friction_score&quot;]),
+                &quot;treated_specialist_capacity&quot;: float(treated_row[&quot;specialist_capacity&quot;]),
+                &quot;control_specialist_capacity&quot;: float(control_row[&quot;specialist_capacity&quot;]),
+            }
+        )
+
+    reused = (
+        pd.Series([pair[&quot;control_user_id&quot;] for pair in matched_pairs]).value_counts().to_dict()
+        if matched_pairs
+        else {}
+    )
+    reused_controls = {
+        control_id: int(count) for control_id, count in reused.items() if int(count) &gt; 1
+    }
+    pair_effects = [pair[&quot;pair_effect&quot;] for pair in matched_pairs]
+    treated_outcomes = [pair[&quot;treated_outcome&quot;] for pair in matched_pairs]
+    control_outcomes = [pair[&quot;control_outcome&quot;] for pair in matched_pairs]
+    treated_total = len(treated_ids)
+    unique_control_ids = sorted({pair[&quot;control_user_id&quot;] for pair in matched_pairs})
+    matched_user_ids = sorted(
+        {pair[&quot;treated_user_id&quot;] for pair in matched_pairs} | set(unique_control_ids)
+    )
+    return {
+        &quot;matched_pairs&quot;: matched_pairs,
+        &quot;unmatched_treated&quot;: unmatched,
+        &quot;summary&quot;: {
+            &quot;matched_treated_n&quot;: len(matched_pairs),
+            &quot;unmatched_treated_n&quot;: len(unmatched),
+            &quot;matched_treated_fraction&quot;: len(matched_pairs) / treated_total
+            if treated_total
+            else 0.0,
+            &quot;unique_controls_used_n&quot;: len(unique_control_ids),
+            &quot;unique_controls_used&quot;: unique_control_ids,
+            &quot;reused_controls&quot;: reused_controls,
+            &quot;matched_unit_ids&quot;: matched_user_ids,
+            &quot;matched_unique_units_n&quot;: len(matched_user_ids),
+            &quot;matched_treated_risk&quot;: float(np.mean(treated_outcomes)) if treated_outcomes else None,
+            &quot;matched_control_risk&quot;: float(np.mean(control_outcomes)) if control_outcomes else None,
+            &quot;matched_att&quot;: float(np.mean(pair_effects)) if pair_effects else None,
+            &quot;max_matched_distance&quot;: float(max(pair[&quot;distance&quot;] for pair in matched_pairs))
+            if matched_pairs
+            else None,
+            &quot;min_unmatched_nearest_distance&quot;: float(
+                min(item.get(&quot;nearest_distance&quot;, np.inf) for item in unmatched)
+            )
+            if unmatched
+            else None,
+        },
+    }
+
+
+def smd(left: pd.Series, right: pd.Series) -&gt; float:
+    x = pd.to_numeric(left, errors=&quot;coerce&quot;).astype(float).to_numpy()
+    y = pd.to_numeric(right, errors=&quot;coerce&quot;).astype(float).to_numpy()
+    if len(x) &lt; 2 or len(y) &lt; 2:
+        return 0.0 if np.isclose(np.mean(x), np.mean(y)) else float(&quot;inf&quot;)
+    pooled = np.sqrt((np.var(x, ddof=1) + np.var(y, ddof=1)) / 2)
+    if np.isclose(pooled, 0.0):
+        return 0.0 if np.isclose(np.mean(x), np.mean(y)) else float(&quot;inf&quot;)
+    return float((np.mean(x) - np.mean(y)) / pooled)
+
+
+def balance_table(
+    cohort: pd.DataFrame,
+    matching: dict[str, Any],
+    matching_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    treated_full = cohort[cohort[&quot;treatment&quot;] == 1]
+    control_full = cohort[cohort[&quot;treatment&quot;] == 0]
+    cohort_by_user = cohort.set_index(&quot;user_id&quot;, drop=False)
+    matched_treated = pd.DataFrame(
+        [cohort_by_user.loc[pair[&quot;treated_user_id&quot;]] for pair in matching[&quot;matched_pairs&quot;]]
+    )
+    matched_controls = pd.DataFrame(
+        [cohort_by_user.loc[pair[&quot;control_user_id&quot;]] for pair in matching[&quot;matched_pairs&quot;]]
+    )
+    rows = []
+    for feature_spec in matching_spec[&quot;balance_diagnostics&quot;][&quot;features&quot;]:
+        feature = feature_spec[&quot;name&quot;]
+        threshold = float(feature_spec[&quot;threshold_abs_smd&quot;])
+        before = smd(treated_full[feature], control_full[feature])
+        after = smd(matched_treated[feature], matched_controls[feature])
+        rows.append(
+            {
+                &quot;feature&quot;: feature,
+                &quot;type&quot;: feature_spec[&quot;type&quot;],
+                &quot;treated_mean_before&quot;: float(pd.to_numeric(treated_full[feature]).mean()),
+                &quot;control_mean_before&quot;: float(pd.to_numeric(control_full[feature]).mean()),
+                &quot;treated_mean_after&quot;: float(pd.to_numeric(matched_treated[feature]).mean()),
+                &quot;control_mean_after&quot;: float(pd.to_numeric(matched_controls[feature]).mean()),
+                &quot;smd_before&quot;: before,
+                &quot;smd_after&quot;: after,
+                &quot;abs_smd_before&quot;: abs(before),
+                &quot;abs_smd_after&quot;: abs(after),
+                &quot;threshold_abs_smd&quot;: threshold,
+                &quot;status_after&quot;: &quot;ok&quot; if abs(after) &lt;= threshold else &quot;imbalanced&quot;,
+                &quot;worse_after_matching&quot;: abs(after) &gt; abs(before) + 1e-12,
+            }
+        )
+    features_above = [row[&quot;feature&quot;] for row in rows if row[&quot;status_after&quot;] != &quot;ok&quot;]
+    features_worse = [row[&quot;feature&quot;] for row in rows if row[&quot;worse_after_matching&quot;]]
+    return {
+        &quot;balance_table&quot;: rows,
+        &quot;love_plot_data&quot;: [
+            {
+                &quot;feature&quot;: row[&quot;feature&quot;],
+                &quot;smd_before&quot;: row[&quot;smd_before&quot;],
+                &quot;smd_after&quot;: row[&quot;smd_after&quot;],
+                &quot;abs_smd_before&quot;: row[&quot;abs_smd_before&quot;],
+                &quot;abs_smd_after&quot;: row[&quot;abs_smd_after&quot;],
+                &quot;status_after&quot;: row[&quot;status_after&quot;],
+            }
+            for row in rows
+        ],
+        &quot;summary&quot;: {
+            &quot;max_abs_smd_before&quot;: max(row[&quot;abs_smd_before&quot;] for row in rows),
+            &quot;max_abs_smd_after&quot;: max(row[&quot;abs_smd_after&quot;] for row in rows),
+            &quot;features_above_threshold_after&quot;: features_above,
+            &quot;features_worse_after_matching&quot;: features_worse,
+        },
+    }
+
+
+def build_matching_checks(
+    cohort: pd.DataFrame,
+    distance_diagnostics: dict[str, Any],
+    matching: dict[str, Any],
+    balance: dict[str, Any],
+    matching_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    common_support = matching_spec[&quot;common_support&quot;]
+    summary = matching[&quot;summary&quot;]
+    matched_fraction = summary[&quot;matched_treated_fraction&quot;]
+    unmatched = matching[&quot;unmatched_treated&quot;]
+    reused_controls = summary[&quot;reused_controls&quot;]
+    unique_control_fraction = (
+        summary[&quot;unique_controls_used_n&quot;] / summary[&quot;matched_treated_n&quot;]
+        if summary[&quot;matched_treated_n&quot;]
+        else 0.0
+    )
+    checks = [
+        make_check(
+            &quot;distance_features_are_numeric_and_scaled&quot;,
+            not distance_diagnostics.get(&quot;errors&quot;),
+            &quot;Distance features are numeric and have non-zero variance for standardization.&quot;,
+            sample=distance_diagnostics.get(&quot;errors&quot;) or None,
+        ),
+        make_check(
+            &quot;manual_distance_matrix_matches_scipy_cdist&quot;,
+            bool(distance_diagnostics.get(&quot;manual_matches_scipy&quot;)),
+            &quot;Manual standardized Euclidean distances match scipy.spatial.distance.cdist.&quot;,
+            sample={&quot;max_diff&quot;: distance_diagnostics.get(&quot;max_manual_scipy_diff&quot;)},
+        ),
+        make_check(
+            &quot;matched_treated_fraction_meets_minimum&quot;,
+            matched_fraction &gt;= float(common_support[&quot;minimum_matched_treated_fraction&quot;]),
+            &quot;Enough treated users remain in the matched common-support subset.&quot;,
+            sample={
+                &quot;matched_treated_fraction&quot;: matched_fraction,
+                &quot;minimum&quot;: common_support[&quot;minimum_matched_treated_fraction&quot;],
+            },
+        ),
+        make_check(
+            &quot;treated_units_without_common_support_match&quot;,
+            len(unmatched) &lt;= 0,
+            &quot;Some treated units have no control neighbor within the declared caliper.&quot;,
+            severity=&quot;warning&quot;,
+            sample=unmatched or None,
+        ),
+        make_check(
+            &quot;matched_controls_are_not_over_reused&quot;,
+            unique_control_fraction
+            &gt;= float(common_support[&quot;warn_if_unique_control_fraction_below&quot;]),
+            &quot;Control reuse is visible because replacement changes effective control diversity.&quot;,
+            severity=&quot;warning&quot;,
+            sample={
+                &quot;unique_control_fraction&quot;: unique_control_fraction,
+                &quot;reused_controls&quot;: reused_controls,
+            }
+            if reused_controls
+            else None,
+        ),
+        make_check(
+            &quot;post_match_balance_within_threshold&quot;,
+            not balance[&quot;summary&quot;][&quot;features_above_threshold_after&quot;],
+            &quot;Post-match standardized mean differences are within declared thresholds.&quot;,
+            severity=&quot;warning&quot;,
+            sample=balance[&quot;summary&quot;][&quot;features_above_threshold_after&quot;] or None,
+        ),
+        make_check(
+            &quot;matching_does_not_worsen_balance&quot;,
+            not balance[&quot;summary&quot;][&quot;features_worse_after_matching&quot;],
+            &quot;Matching does not worsen balance on audited pre-treatment features.&quot;,
+            severity=&quot;warning&quot;,
+            sample=balance[&quot;summary&quot;][&quot;features_worse_after_matching&quot;] or None,
+        ),
+    ]
+    if matching_spec[&quot;matching_design&quot;].get(&quot;caliper&quot;) is not None:
+        checks.append(
+            make_check(
+                &quot;matched_pairs_respect_declared_caliper&quot;,
+                all(
+                    pair[&quot;distance&quot;] &lt;= float(matching_spec[&quot;matching_design&quot;][&quot;caliper&quot;])
+                    for pair in matching[&quot;matched_pairs&quot;]
+                ),
+                &quot;Every matched pair is inside the declared caliper.&quot;,
+            )
+        )
+    return checks
+
+
+def refresh_candidate_audits_with_counts(
+    policy_context: dict[str, Any],
+    matching_spec: dict[str, Any],
+    treated_n: int,
+    comparator_n: int,
+) -&gt; None:
+    policy_context[&quot;candidate_matching_design_audits&quot;] = audit_candidate_designs(
+        matching_spec,
+        required_sources=set(policy_context[&quot;allowed_sources&quot;]),
+        bad_controls=set(policy_context[&quot;bad_control_variables&quot;]),
+        treated_n=treated_n,
+        comparator_n=comparator_n,
+    )
+
+
+def estimate_matching(
+    data_dir: str | Path,
+    target_trial: dict[str, Any],
+    estimand: dict[str, Any],
+    adjustment_gate: dict[str, Any],
+    matching_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    tables = load_source_tables(data_dir)
+    grain_checks = validate_table_grains(tables)
+    checks.extend(grain_checks)
+    if any(not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot; for check in grain_checks):
+        return invalid_report(checks)
+
+    cohort, cohort_checks = build_analysis_cohort(tables, target_trial)
+    checks.extend(cohort_checks)
+    cohort = add_derived_features(cohort, matching_spec)
+
+    spec_checks, policy_context = validate_matching_spec(
+        target_trial,
+        estimand,
+        adjustment_gate,
+        matching_spec,
+    )
+    checks.extend(spec_checks)
+
+    treated_n = int(cohort[&quot;treatment&quot;].sum())
+    comparator_n = int((1 - cohort[&quot;treatment&quot;]).sum())
+    refresh_candidate_audits_with_counts(policy_context, matching_spec, treated_n, comparator_n)
+    candidate_mismatches = [
+        {
+            &quot;design_id&quot;: audit[&quot;design_id&quot;],
+            &quot;declared_status&quot;: audit[&quot;declared_status&quot;],
+            &quot;calculated_status&quot;: audit[&quot;calculated_status&quot;],
+        }
+        for audit in policy_context[&quot;candidate_matching_design_audits&quot;]
+        if audit[&quot;declared_status&quot;] != audit[&quot;calculated_status&quot;]
+    ]
+    for check in checks:
+        if check[&quot;id&quot;] == &quot;candidate_matching_design_statuses_match_policy&quot;:
+            check[&quot;valid&quot;] = not candidate_mismatches
+            if candidate_mismatches:
+                check[&quot;sample&quot;] = candidate_mismatches
+            else:
+                check.pop(&quot;sample&quot;, None)
+
+    distance_matrix, scalers, distance_diagnostics = build_distance_matrix(cohort, matching_spec)
+    if distance_diagnostics.get(&quot;errors&quot;):
+        checks.append(
+            make_check(
+                &quot;distance_features_are_numeric_and_scaled&quot;,
+                False,
+                &quot;Distance features are numeric and have non-zero variance for standardization.&quot;,
+                sample=distance_diagnostics[&quot;errors&quot;],
+            )
+        )
+        return invalid_report(checks)
+
+    matching = match_nearest_neighbors(cohort, distance_matrix, matching_spec)
+    balance = balance_table(cohort, matching, matching_spec)
+    checks.extend(
+        build_matching_checks(
+            cohort,
+            distance_diagnostics,
+            matching,
+            balance,
+            matching_spec,
+        )
+    )
+
+    naive_treated_risk = float(cohort.loc[cohort[&quot;treatment&quot;] == 1, &quot;outcome&quot;].mean())
+    naive_control_risk = float(cohort.loc[cohort[&quot;treatment&quot;] == 0, &quot;outcome&quot;].mean())
+    summary = {
+        &quot;cohort_n&quot;: int(len(cohort)),
+        &quot;treated_n&quot;: treated_n,
+        &quot;comparator_n&quot;: comparator_n,
+        &quot;naive_treated_risk&quot;: naive_treated_risk,
+        &quot;naive_comparator_risk&quot;: naive_control_risk,
+        &quot;naive_risk_difference&quot;: naive_treated_risk - naive_control_risk,
+        **matching[&quot;summary&quot;],
+        &quot;max_abs_smd_before&quot;: balance[&quot;summary&quot;][&quot;max_abs_smd_before&quot;],
+        &quot;max_abs_smd_after&quot;: balance[&quot;summary&quot;][&quot;max_abs_smd_after&quot;],
+        &quot;features_above_threshold_after&quot;: balance[&quot;summary&quot;][&quot;features_above_threshold_after&quot;],
+        &quot;features_worse_after_matching&quot;: balance[&quot;summary&quot;][&quot;features_worse_after_matching&quot;],
+    }
+    blocking = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    summary[&quot;blocking_checks&quot;] = blocking
+    summary[&quot;warning_checks&quot;] = warnings
+    report = {
+        &quot;valid&quot;: not blocking,
+        &quot;summary&quot;: summary,
+        &quot;cohort&quot;: {
+            &quot;user_ids&quot;: cohort[&quot;user_id&quot;].tolist(),
+            &quot;treated_user_ids&quot;: cohort.loc[cohort[&quot;treatment&quot;] == 1, &quot;user_id&quot;].tolist(),
+            &quot;comparator_user_ids&quot;: cohort.loc[cohort[&quot;treatment&quot;] == 0, &quot;user_id&quot;].tolist(),
+        },
+        &quot;distance&quot;: {
+            &quot;features&quot;: matching_spec[&quot;matching_design&quot;][&quot;distance_features&quot;],
+            &quot;scalers&quot;: scalers,
+            &quot;matrix&quot;: distance_matrix.to_dict(&quot;records&quot;),
+            &quot;manual_matches_scipy&quot;: distance_diagnostics[&quot;manual_matches_scipy&quot;],
+            &quot;max_manual_scipy_diff&quot;: distance_diagnostics[&quot;max_manual_scipy_diff&quot;],
+        },
+        &quot;matching&quot;: matching,
+        &quot;balance&quot;: balance,
+        &quot;policy_context&quot;: policy_context,
+        &quot;claim_policy&quot;: matching_spec.get(&quot;claim_policy&quot;, {}),
+        &quot;checks&quot;: checks,
+    }
+    return report
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Build matching balance and common-support audit.&quot;)
+    parser.add_argument(&quot;--data-dir&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--target-trial&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--estimand&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--adjustment-gate&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--matching-spec&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--output&quot;, required=True, type=Path)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    report = estimate_matching(
+        args.data_dir,
+        read_json(args.target_trial),
+        read_json(args.estimand),
+        read_json(args.adjustment_gate),
+        read_json(args.matching_spec),
+    )
+    write_json(args.output, report)
+    return 0 if report[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/outputs/matching_pipeline.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/matching_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;cohort_n&quot;: 10,
+    &quot;treated_n&quot;: 6,
+    &quot;comparator_n&quot;: 4,
+    &quot;naive_treated_risk&quot;: 0.6666666666666666,
+    &quot;naive_comparator_risk&quot;: 0.75,
+    &quot;naive_risk_difference&quot;: -0.08333333333333337,
+    &quot;matched_treated_n&quot;: 4,
+    &quot;unmatched_treated_n&quot;: 2,
+    &quot;matched_treated_fraction&quot;: 0.6666666666666666,
+    &quot;unique_controls_used_n&quot;: 3,
+    &quot;unique_controls_used&quot;: [
+      &quot;U005&quot;,
+      &quot;U007&quot;,
+      &quot;U011&quot;
+    ],
+    &quot;reused_controls&quot;: {
+      &quot;U005&quot;: 2
+    },
+    &quot;matched_unit_ids&quot;: [
+      &quot;U003&quot;,
+      &quot;U004&quot;,
+      &quot;U005&quot;,
+      &quot;U006&quot;,
+      &quot;U007&quot;,
+      &quot;U010&quot;,
+      &quot;U011&quot;
+    ],
+    &quot;matched_unique_units_n&quot;: 7,
+    &quot;matched_treated_risk&quot;: 0.5,
+    &quot;matched_control_risk&quot;: 0.75,
+    &quot;matched_att&quot;: -0.25,
+    &quot;max_matched_distance&quot;: 1.309619192639006,
+    &quot;min_unmatched_nearest_distance&quot;: 1.6370239907987574,
+    &quot;max_abs_smd_before&quot;: 2.633161668540465,
+    &quot;max_abs_smd_after&quot;: 3.5691239006690005,
+    &quot;features_above_threshold_after&quot;: [
+      &quot;friction_score&quot;,
+      &quot;baseline_risk_score&quot;,
+      &quot;activation_14d_pre&quot;
+    ],
+    &quot;features_worse_after_matching&quot;: [
+      &quot;baseline_risk_score&quot;,
+      &quot;activation_14d_pre&quot;
+    ],
+    &quot;blocking_checks&quot;: [],
+    &quot;warning_checks&quot;: [
+      &quot;treated_units_without_common_support_match&quot;,
+      &quot;post_match_balance_within_threshold&quot;,
+      &quot;matching_does_not_worsen_balance&quot;
+    ]
+  },
+  &quot;cohort&quot;: {
+    &quot;user_ids&quot;: [
+      &quot;U001&quot;,
+      &quot;U002&quot;,
+      &quot;U003&quot;,
+      &quot;U004&quot;,
+      &quot;U005&quot;,
+      &quot;U006&quot;,
+      &quot;U007&quot;,
+      &quot;U010&quot;,
+      &quot;U011&quot;,
+      &quot;U012&quot;
+    ],
+    &quot;treated_user_ids&quot;: [
+      &quot;U001&quot;,
+      &quot;U002&quot;,
+      &quot;U003&quot;,
+      &quot;U004&quot;,
+      &quot;U006&quot;,
+      &quot;U010&quot;
+    ],
+    &quot;comparator_user_ids&quot;: [
+      &quot;U005&quot;,
+      &quot;U007&quot;,
+      &quot;U011&quot;,
+      &quot;U012&quot;
+    ]
+  },
+  &quot;distance&quot;: {
+    &quot;features&quot;: [
+      &quot;friction_score&quot;,
+      &quot;specialist_capacity&quot;
+    ],
+    &quot;scalers&quot;: {
+      &quot;friction_score&quot;: {
+        &quot;mean&quot;: 65.8,
+        &quot;std&quot;: 9.162968951164247
+      },
+      &quot;specialist_capacity&quot;: {
+        &quot;mean&quot;: 1.6,
+        &quot;std&quot;: 0.48989794855663565
+      }
+    },
+    &quot;matrix&quot;: [
+      {
+        &quot;treated_user_id&quot;: &quot;U001&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 2.2918335871182602,
+        &quot;scipy_distance&quot;: 2.2918335871182602
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U001&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 3.5846021699997483,
+        &quot;scipy_distance&quot;: 3.5846021699997483
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U001&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 2.832957312342644,
+        &quot;scipy_distance&quot;: 2.832957312342644
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U001&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 3.2740479815975148,
+        &quot;scipy_distance&quot;: 3.2740479815975148
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U002&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 1.6370239907987574,
+        &quot;scipy_distance&quot;: 1.6370239907987574
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U002&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 3.069066284346107,
+        &quot;scipy_distance&quot;: 3.069066284346107
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U002&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 2.4252358846914475,
+        &quot;scipy_distance&quot;: 2.4252358846914475
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U002&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 2.619238385278012,
+        &quot;scipy_distance&quot;: 2.619238385278012
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U003&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 1.0913493271991717,
+        &quot;scipy_distance&quot;: 1.0913493271991717
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U003&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 2.68621251073897,
+        &quot;scipy_distance&quot;: 2.68621251073897
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U003&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 2.179513227790996,
+        &quot;scipy_distance&quot;: 2.179513227790996
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U003&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 2.073563721678426,
+        &quot;scipy_distance&quot;: 2.073563721678426
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U004&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 2.1129191904001408,
+        &quot;scipy_distance&quot;: 2.1129191904001408
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U004&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 1.2004842599190888,
+        &quot;scipy_distance&quot;: 1.2004842599190888
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U004&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 0.21826986543983432,
+        &quot;scipy_distance&quot;: 0.21826986543983432
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U004&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 2.5497277581074633,
+        &quot;scipy_distance&quot;: 2.5497277581074633
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U006&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 2.06733175095936,
+        &quot;scipy_distance&quot;: 2.06733175095936
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U006&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 0.32740479815975154,
+        &quot;scipy_distance&quot;: 0.32740479815975154
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U006&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 0.654809596319503,
+        &quot;scipy_distance&quot;: 0.654809596319503
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U006&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 2.143698270302697,
+        &quot;scipy_distance&quot;: 2.143698270302697
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U010&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 1.309619192639006,
+        &quot;scipy_distance&quot;: 1.309619192639006
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U010&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 2.8329573123426446,
+        &quot;scipy_distance&quot;: 2.8329573123426446
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U010&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 2.265261967938568,
+        &quot;scipy_distance&quot;: 2.265261967938568
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U010&quot;,
+        &quot;control_user_id&quot;: &quot;U012&quot;,
+        &quot;distance&quot;: 2.2918335871182602,
+        &quot;scipy_distance&quot;: 2.2918335871182602
+      }
+    ],
+    &quot;manual_matches_scipy&quot;: true,
+    &quot;max_manual_scipy_diff&quot;: 0.0
+  },
+  &quot;matching&quot;: {
+    &quot;matched_pairs&quot;: [
+      {
+        &quot;treated_user_id&quot;: &quot;U003&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 1.0913493271991717,
+        &quot;treated_outcome&quot;: 0,
+        &quot;control_outcome&quot;: 1,
+        &quot;pair_effect&quot;: -1,
+        &quot;treated_friction_score&quot;: 71.0,
+        &quot;control_friction_score&quot;: 61.0,
+        &quot;treated_specialist_capacity&quot;: 2.0,
+        &quot;control_specialist_capacity&quot;: 2.0
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U004&quot;,
+        &quot;control_user_id&quot;: &quot;U011&quot;,
+        &quot;distance&quot;: 0.21826986543983432,
+        &quot;treated_outcome&quot;: 0,
+        &quot;control_outcome&quot;: 0,
+        &quot;pair_effect&quot;: 0,
+        &quot;treated_friction_score&quot;: 66.0,
+        &quot;control_friction_score&quot;: 64.0,
+        &quot;treated_specialist_capacity&quot;: 1.0,
+        &quot;control_specialist_capacity&quot;: 1.0
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U006&quot;,
+        &quot;control_user_id&quot;: &quot;U007&quot;,
+        &quot;distance&quot;: 0.32740479815975154,
+        &quot;treated_outcome&quot;: 1,
+        &quot;control_outcome&quot;: 1,
+        &quot;pair_effect&quot;: 0,
+        &quot;treated_friction_score&quot;: 58.0,
+        &quot;control_friction_score&quot;: 55.0,
+        &quot;treated_specialist_capacity&quot;: 1.0,
+        &quot;control_specialist_capacity&quot;: 1.0
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U010&quot;,
+        &quot;control_user_id&quot;: &quot;U005&quot;,
+        &quot;distance&quot;: 1.309619192639006,
+        &quot;treated_outcome&quot;: 1,
+        &quot;control_outcome&quot;: 1,
+        &quot;pair_effect&quot;: 0,
+        &quot;treated_friction_score&quot;: 73.0,
+        &quot;control_friction_score&quot;: 61.0,
+        &quot;treated_specialist_capacity&quot;: 2.0,
+        &quot;control_specialist_capacity&quot;: 2.0
+      }
+    ],
+    &quot;unmatched_treated&quot;: [
+      {
+        &quot;treated_user_id&quot;: &quot;U001&quot;,
+        &quot;nearest_control_user_id&quot;: &quot;U005&quot;,
+        &quot;nearest_distance&quot;: 2.2918335871182602,
+        &quot;caliper&quot;: 1.5,
+        &quot;reason&quot;: &quot;nearest_distance_above_caliper&quot;
+      },
+      {
+        &quot;treated_user_id&quot;: &quot;U002&quot;,
+        &quot;nearest_control_user_id&quot;: &quot;U005&quot;,
+        &quot;nearest_distance&quot;: 1.6370239907987574,
+        &quot;caliper&quot;: 1.5,
+        &quot;reason&quot;: &quot;nearest_distance_above_caliper&quot;
+      }
+    ],
+    &quot;summary&quot;: {
+      &quot;matched_treated_n&quot;: 4,
+      &quot;unmatched_treated_n&quot;: 2,
+      &quot;matched_treated_fraction&quot;: 0.6666666666666666,
+      &quot;unique_controls_used_n&quot;: 3,
+      &quot;unique_controls_used&quot;: [
+        &quot;U005&quot;,
+        &quot;U007&quot;,
+        &quot;U011&quot;
+      ],
+      &quot;reused_controls&quot;: {
+        &quot;U005&quot;: 2
+      },
+      &quot;matched_unit_ids&quot;: [
+        &quot;U003&quot;,
+        &quot;U004&quot;,
+        &quot;U005&quot;,
+        &quot;U006&quot;,
+        &quot;U007&quot;,
+        &quot;U010&quot;,
+        &quot;U011&quot;
+      ],
+      &quot;matched_unique_units_n&quot;: 7,
+      &quot;matched_treated_risk&quot;: 0.5,
+      &quot;matched_control_risk&quot;: 0.75,
+      &quot;matched_att&quot;: -0.25,
+      &quot;max_matched_distance&quot;: 1.309619192639006,
+      &quot;min_unmatched_nearest_distance&quot;: 1.6370239907987574
+    }
+  },
+  &quot;balance&quot;: {
+    &quot;balance_table&quot;: [
+      {
+        &quot;feature&quot;: &quot;friction_score&quot;,
+        &quot;type&quot;: &quot;continuous&quot;,
+        &quot;treated_mean_before&quot;: 71.0,
+        &quot;control_mean_before&quot;: 58.0,
+        &quot;treated_mean_after&quot;: 67.0,
+        &quot;control_mean_after&quot;: 60.25,
+        &quot;smd_before&quot;: 1.8496087779795347,
+        &quot;smd_after&quot;: 1.2436543314687756,
+        &quot;abs_smd_before&quot;: 1.8496087779795347,
+        &quot;abs_smd_after&quot;: 1.2436543314687756,
+        &quot;threshold_abs_smd&quot;: 0.25,
+        &quot;status_after&quot;: &quot;imbalanced&quot;,
+        &quot;worse_after_matching&quot;: false
+      },
+      {
+        &quot;feature&quot;: &quot;specialist_capacity&quot;,
+        &quot;type&quot;: &quot;continuous&quot;,
+        &quot;treated_mean_before&quot;: 1.6666666666666667,
+        &quot;control_mean_before&quot;: 1.5,
+        &quot;treated_mean_after&quot;: 1.5,
+        &quot;control_mean_after&quot;: 1.5,
+        &quot;smd_before&quot;: 0.30429030972509236,
+        &quot;smd_after&quot;: 0.0,
+        &quot;abs_smd_before&quot;: 0.30429030972509236,
+        &quot;abs_smd_after&quot;: 0.0,
+        &quot;threshold_abs_smd&quot;: 0.25,
+        &quot;status_after&quot;: &quot;ok&quot;,
+        &quot;worse_after_matching&quot;: false
+      },
+      {
+        &quot;feature&quot;: &quot;baseline_risk_score&quot;,
+        &quot;type&quot;: &quot;continuous&quot;,
+        &quot;treated_mean_before&quot;: 1.925,
+        &quot;control_mean_before&quot;: -0.36250000000000004,
+        &quot;treated_mean_after&quot;: 1.3125,
+        &quot;control_mean_after&quot;: -0.5125000000000001,
+        &quot;smd_before&quot;: 2.633161668540465,
+        &quot;smd_after&quot;: 3.5691239006690005,
+        &quot;abs_smd_before&quot;: 2.633161668540465,
+        &quot;abs_smd_after&quot;: 3.5691239006690005,
+        &quot;threshold_abs_smd&quot;: 0.25,
+        &quot;status_after&quot;: &quot;imbalanced&quot;,
+        &quot;worse_after_matching&quot;: true
+      },
+      {
+        &quot;feature&quot;: &quot;activation_14d_pre&quot;,
+        &quot;type&quot;: &quot;binary&quot;,
+        &quot;treated_mean_before&quot;: 0.16666666666666666,
+        &quot;control_mean_before&quot;: 0.75,
+        &quot;treated_mean_after&quot;: 0.25,
+        &quot;control_mean_after&quot;: 1.0,
+        &quot;smd_before&quot;: -1.2780193008453875,
+        &quot;smd_after&quot;: -2.1213203435596424,
+        &quot;abs_smd_before&quot;: 1.2780193008453875,
+        &quot;abs_smd_after&quot;: 2.1213203435596424,
+        &quot;threshold_abs_smd&quot;: 0.25,
+        &quot;status_after&quot;: &quot;imbalanced&quot;,
+        &quot;worse_after_matching&quot;: true
+      }
+    ],
+    &quot;love_plot_data&quot;: [
+      {
+        &quot;feature&quot;: &quot;friction_score&quot;,
+        &quot;smd_before&quot;: 1.8496087779795347,
+        &quot;smd_after&quot;: 1.2436543314687756,
+        &quot;abs_smd_before&quot;: 1.8496087779795347,
+        &quot;abs_smd_after&quot;: 1.2436543314687756,
+        &quot;status_after&quot;: &quot;imbalanced&quot;
+      },
+      {
+        &quot;feature&quot;: &quot;specialist_capacity&quot;,
+        &quot;smd_before&quot;: 0.30429030972509236,
+        &quot;smd_after&quot;: 0.0,
+        &quot;abs_smd_before&quot;: 0.30429030972509236,
+        &quot;abs_smd_after&quot;: 0.0,
+        &quot;status_after&quot;: &quot;ok&quot;
+      },
+      {
+        &quot;feature&quot;: &quot;baseline_risk_score&quot;,
+        &quot;smd_before&quot;: 2.633161668540465,
+        &quot;smd_after&quot;: 3.5691239006690005,
+        &quot;abs_smd_before&quot;: 2.633161668540465,
+        &quot;abs_smd_after&quot;: 3.5691239006690005,
+        &quot;status_after&quot;: &quot;imbalanced&quot;
+      },
+      {
+        &quot;feature&quot;: &quot;activation_14d_pre&quot;,
+        &quot;smd_before&quot;: -1.2780193008453875,
+        &quot;smd_after&quot;: -2.1213203435596424,
+        &quot;abs_smd_before&quot;: 1.2780193008453875,
+        &quot;abs_smd_after&quot;: 2.1213203435596424,
+        &quot;status_after&quot;: &quot;imbalanced&quot;
+      }
+    ],
+    &quot;summary&quot;: {
+      &quot;max_abs_smd_before&quot;: 2.633161668540465,
+      &quot;max_abs_smd_after&quot;: 3.5691239006690005,
+      &quot;features_above_threshold_after&quot;: [
+        &quot;friction_score&quot;,
+        &quot;baseline_risk_score&quot;,
+        &quot;activation_14d_pre&quot;
+      ],
+      &quot;features_worse_after_matching&quot;: [
+        &quot;baseline_risk_score&quot;,
+        &quot;activation_14d_pre&quot;
+      ]
+    }
+  },
+  &quot;policy_context&quot;: {
+    &quot;allowed_sources&quot;: [
+      &quot;acquisition_channel&quot;,
+      &quot;app_crashes_before_time_zero&quot;,
+      &quot;device_tier&quot;,
+      &quot;friction_score&quot;,
+      &quot;language&quot;,
+      &quot;network_quality&quot;,
+      &quot;onboarding_steps_before_time_zero&quot;,
+      &quot;platform&quot;,
+      &quot;region_id&quot;,
+      &quot;sessions_before_time_zero&quot;,
+      &quot;specialist_capacity&quot;
+    ],
+    &quot;bad_control_variables&quot;: [
+      &quot;activation_14d&quot;,
+      &quot;offered_assistance&quot;,
+      &quot;onboarding_completed_48h&quot;,
+      &quot;opened_support_chat_after_offer&quot;,
+      &quot;paid_subscription_30d&quot;,
+      &quot;telemetry_complete_30d&quot;
+    ],
+    &quot;candidate_matching_design_audits&quot;: [
+      {
+        &quot;design_id&quot;: &quot;nearest_neighbor_friction_capacity_att_v1&quot;,
+        &quot;declared_status&quot;: &quot;estimable_with_warnings&quot;,
+        &quot;calculated_status&quot;: &quot;estimable_with_warnings&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;omitted_allowed_sources&quot;: [],
+        &quot;caliper&quot;: 1.5,
+        &quot;replacement&quot;: true,
+        &quot;allow_unmatched_treated&quot;: true
+      },
+      {
+        &quot;design_id&quot;: &quot;forced_no_caliper_all_treated_match&quot;,
+        &quot;declared_status&quot;: &quot;invalid_common_support_policy&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_common_support_policy&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;omitted_allowed_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;caliper&quot;: null,
+        &quot;replacement&quot;: true,
+        &quot;allow_unmatched_treated&quot;: false
+      },
+      {
+        &quot;design_id&quot;: &quot;no_replacement_full_att_match&quot;,
+        &quot;declared_status&quot;: &quot;invalid_insufficient_controls_for_full_att&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_insufficient_controls_for_full_att&quot;,
+        &quot;bad_control_variables&quot;: [],
+        &quot;omitted_allowed_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;caliper&quot;: 1.5,
+        &quot;replacement&quot;: false,
+        &quot;allow_unmatched_treated&quot;: false
+      },
+      {
+        &quot;design_id&quot;: &quot;mediator_outcome_matching&quot;,
+        &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;bad_control_variables&quot;: [
+          &quot;onboarding_completed_48h&quot;
+        ],
+        &quot;omitted_allowed_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;caliper&quot;: 1.5,
+        &quot;replacement&quot;: true,
+        &quot;allow_unmatched_treated&quot;: true
+      },
+      {
+        &quot;design_id&quot;: &quot;telemetry_complete_case_matching&quot;,
+        &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;calculated_status&quot;: &quot;invalid_bad_control&quot;,
+        &quot;bad_control_variables&quot;: [
+          &quot;telemetry_complete_30d&quot;
+        ],
+        &quot;omitted_allowed_sources&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;app_crashes_before_time_zero&quot;,
+          &quot;device_tier&quot;,
+          &quot;language&quot;,
+          &quot;network_quality&quot;,
+          &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;platform&quot;,
+          &quot;region_id&quot;,
+          &quot;sessions_before_time_zero&quot;
+        ],
+        &quot;caliper&quot;: 1.5,
+        &quot;replacement&quot;: true,
+        &quot;allow_unmatched_treated&quot;: true
+      }
+    ],
+    &quot;selected_adjustment_action&quot;: {
+      &quot;action_id&quot;: &quot;recommended_pre_treatment_set&quot;,
+      &quot;action_type&quot;: &quot;adjustment_set&quot;,
+      &quot;declared_status&quot;: &quot;allowed_pre_treatment_adjustment_with_unmeasured_limitation&quot;,
+      &quot;calculated_status&quot;: &quot;allowed_pre_treatment_adjustment_with_unmeasured_limitation&quot;,
+      &quot;allowed_for_estimation&quot;: true,
+      &quot;is_primary_recommendation&quot;: true,
+      &quot;variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;filter_variables&quot;: [],
+      &quot;conditioning_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;variable_classifications&quot;: [
+        {
+          &quot;variable&quot;: &quot;platform&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;device_tier&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;acquisition_channel&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;region_id&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;language&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;network_quality&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;app_crashes_before_time_zero&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;onboarding_steps_before_time_zero&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;sessions_before_time_zero&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;friction_score&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        },
+        {
+          &quot;variable&quot;: &quot;specialist_capacity&quot;,
+          &quot;known&quot;: true,
+          &quot;role&quot;: &quot;confounder&quot;,
+          &quot;timing&quot;: &quot;baseline&quot;,
+          &quot;observed&quot;: true,
+          &quot;is_descendant_of_treatment&quot;: false,
+          &quot;on_directed_total_effect_path&quot;: false,
+          &quot;core_status&quot;: &quot;allowed_pre_treatment_adjustment&quot;,
+          &quot;bad_control_reasons&quot;: [],
+          &quot;mechanism_path_examples&quot;: []
+        }
+      ],
+      &quot;bad_control_variables&quot;: [],
+      &quot;active_total_paths_after_conditioning&quot;: 3,
+      &quot;active_backdoor_paths_after_conditioning&quot;: 1,
+      &quot;open_measured_backdoor_paths&quot;: 0,
+      &quot;open_unmeasured_backdoor_paths&quot;: 1,
+      &quot;newly_opened_paths&quot;: 0,
+      &quot;closed_total_paths&quot;: 47,
+      &quot;blocked_directed_total_effect_paths&quot;: 0,
+      &quot;newly_opened_path_examples&quot;: [],
+      &quot;blocked_directed_total_effect_path_examples&quot;: [],
+      &quot;remaining_backdoor_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;
+          }
+        }
+      ],
+      &quot;changes_population&quot;: false,
+      &quot;population_change&quot;: null
+    }
+  },
+  &quot;claim_policy&quot;: {
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+    &quot;allowed_estimation_claim&quot;: &quot;Transparent matching estimate for the matched common-support subset under the stated distance, caliper and replacement policy.&quot;,
+    &quot;blocked_causal_wording&quot;: [
+      &quot;matching proved causality&quot;,
+      &quot;matched ATT is the full ATE&quot;,
+      &quot;balance diagnostics remove unmeasured confounding&quot;
+    ]
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;source_tables_preserve_declared_grain&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Source tables preserve user/program grain before joining the matching cohort.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;target_population_criteria_are_supported&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Target-population criteria are applied from target_trial_spec.json.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;analysis_cohort_has_expected_treated_and_comparator_units&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Analysis cohort contains both treatment strategies.&quot;,
+      &quot;sample&quot;: {
+        &quot;n&quot;: 10,
+        &quot;treated&quot;: 6,
+        &quot;comparator&quot;: 4
+      }
+    },
+    {
+      &quot;id&quot;: &quot;treatment_timing_respects_grace_period&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Observed treatment starts after time zero and within the declared grace period.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;primary_outcome_followup_is_complete&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Every analysis unit has enough follow-up for activation_14d.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;matching_spec_aligns_with_target_trial_and_estimand&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Matching spec points to the same trial, question, estimand and target population.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;adjustment_gate_allows_matching_handoff&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;The selected bad-control gate action is allowed for downstream estimators.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;matching_uses_only_allowed_baseline_sources&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Matching features, derived features and filters do not use bad controls.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;matching_source_basis_covers_allowed_adjustment_sources&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;The matching design documents coverage of the allowed observed-baseline adjustment sources.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;distance_features_are_declared_sources&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Every distance feature is part of the declared matching source basis.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;candidate_matching_design_statuses_match_policy&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Candidate matching designs declare the same status as the policy audit calculates.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;claim_policy_respects_unmeasured_confounding_limitation&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Matching report cannot upgrade the evidence beyond the upstream identification gate.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;distance_features_are_numeric_and_scaled&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Distance features are numeric and have non-zero variance for standardization.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;manual_distance_matrix_matches_scipy_cdist&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Manual standardized Euclidean distances match scipy.spatial.distance.cdist.&quot;,
+      &quot;sample&quot;: {
+        &quot;max_diff&quot;: 0.0
+      }
+    },
+    {
+      &quot;id&quot;: &quot;matched_treated_fraction_meets_minimum&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Enough treated users remain in the matched common-support subset.&quot;,
+      &quot;sample&quot;: {
+        &quot;matched_treated_fraction&quot;: 0.6666666666666666,
+        &quot;minimum&quot;: 0.5
+      }
+    },
+    {
+      &quot;id&quot;: &quot;treated_units_without_common_support_match&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Some treated units have no control neighbor within the declared caliper.&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;treated_user_id&quot;: &quot;U001&quot;,
+          &quot;nearest_control_user_id&quot;: &quot;U005&quot;,
+          &quot;nearest_distance&quot;: 2.2918335871182602,
+          &quot;caliper&quot;: 1.5,
+          &quot;reason&quot;: &quot;nearest_distance_above_caliper&quot;
+        },
+        {
+          &quot;treated_user_id&quot;: &quot;U002&quot;,
+          &quot;nearest_control_user_id&quot;: &quot;U005&quot;,
+          &quot;nearest_distance&quot;: 1.6370239907987574,
+          &quot;caliper&quot;: 1.5,
+          &quot;reason&quot;: &quot;nearest_distance_above_caliper&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;matched_controls_are_not_over_reused&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Control reuse is visible because replacement changes effective control diversity.&quot;,
+      &quot;sample&quot;: {
+        &quot;unique_control_fraction&quot;: 0.75,
+        &quot;reused_controls&quot;: {
+          &quot;U005&quot;: 2
+        }
+      }
+    },
+    {
+      &quot;id&quot;: &quot;post_match_balance_within_threshold&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Post-match standardized mean differences are within declared thresholds.&quot;,
+      &quot;sample&quot;: [
+        &quot;friction_score&quot;,
+        &quot;baseline_risk_score&quot;,
+        &quot;activation_14d_pre&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;matching_does_not_worsen_balance&quot;,
+      &quot;valid&quot;: false,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;message&quot;: &quot;Matching does not worsen balance on audited pre-treatment features.&quot;,
+      &quot;sample&quot;: [
+        &quot;baseline_risk_score&quot;,
+        &quot;activation_14d_pre&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;matched_pairs_respect_declared_caliper&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Every matched pair is inside the declared caliper.&quot;
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/outputs/matching_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/matching_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;matching_spec_id&quot;: &quot;assisted_onboarding_matching_v1&quot;,
+  &quot;question_id&quot;: &quot;assisted_onboarding_activation_ate_v1&quot;,
+  &quot;estimand_id&quot;: &quot;ate_activation_14d_eligible_users&quot;,
+  &quot;trial_id&quot;: &quot;target_trial_assisted_onboarding_v1&quot;,
+  &quot;graph_id&quot;: &quot;assisted_onboarding_activation_dag_v1&quot;,
+  &quot;adjustment_gate_id&quot;: &quot;assisted_onboarding_bad_control_actions_v1&quot;,
+  &quot;adjustment_action_id&quot;: &quot;recommended_pre_treatment_set&quot;,
+  &quot;previous_estimator_id&quot;: &quot;lpm_g_computation_baseline_risk_v1&quot;,
+  &quot;treatment&quot;: &quot;assisted_within_24h&quot;,
+  &quot;outcome&quot;: &quot;activation_14d&quot;,
+  &quot;effect_measure&quot;: &quot;risk_difference&quot;,
+  &quot;population&quot;: &quot;eligible_high_friction_users&quot;,
+  &quot;matching_design&quot;: {
+    &quot;design_id&quot;: &quot;nearest_neighbor_friction_capacity_att_v1&quot;,
+    &quot;estimand_after_matching&quot;: &quot;ATT_in_matched_common_support_subset&quot;,
+    &quot;algorithm&quot;: &quot;nearest_neighbor&quot;,
+    &quot;distance_metric&quot;: &quot;standardized_euclidean&quot;,
+    &quot;distance_features&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+    &quot;replacement&quot;: true,
+    &quot;ratio&quot;: 1,
+    &quot;caliper&quot;: 1.5,
+    &quot;allow_unmatched_treated&quot;: true,
+    &quot;tie_breaker&quot;: [&quot;distance&quot;, &quot;control_user_id&quot;],
+    &quot;matched_effect_measure&quot;: &quot;treated_outcome_minus_matched_control_outcome&quot;,
+    &quot;source_variables&quot;: [
+      &quot;platform&quot;,
+      &quot;device_tier&quot;,
+      &quot;acquisition_channel&quot;,
+      &quot;region_id&quot;,
+      &quot;language&quot;,
+      &quot;network_quality&quot;,
+      &quot;app_crashes_before_time_zero&quot;,
+      &quot;onboarding_steps_before_time_zero&quot;,
+      &quot;sessions_before_time_zero&quot;,
+      &quot;friction_score&quot;,
+      &quot;specialist_capacity&quot;
+    ],
+    &quot;filter_variables&quot;: []
+  },
+  &quot;derived_features&quot;: [
+    {
+      &quot;name&quot;: &quot;baseline_risk_score&quot;,
+      &quot;description&quot;: &quot;Compact teaching balance feature reused from 13/05. It is built only from allowed observed baseline covariates and is not used as the primary distance score in this lesson.&quot;,
+      &quot;source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;
+      ],
+      &quot;components&quot;: [
+        {&quot;type&quot;: &quot;scaled_numeric&quot;, &quot;field&quot;: &quot;friction_score&quot;, &quot;center&quot;: 60, &quot;scale&quot;: 10, &quot;weight&quot;: 1.0},
+        {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;app_crashes_before_time_zero&quot;, &quot;weight&quot;: 0.3},
+        {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;onboarding_steps_before_time_zero&quot;, &quot;weight&quot;: -0.2},
+        {&quot;type&quot;: &quot;numeric&quot;, &quot;field&quot;: &quot;sessions_before_time_zero&quot;, &quot;weight&quot;: -0.1},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;network_quality&quot;, &quot;values&quot;: {&quot;good&quot;: 0.0, &quot;fair&quot;: 0.2, &quot;poor&quot;: 0.4}},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;platform&quot;, &quot;values&quot;: {&quot;android&quot;: 0.2, &quot;ios&quot;: 0.0, &quot;web&quot;: -0.1}},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;device_tier&quot;, &quot;values&quot;: {&quot;low&quot;: 0.2, &quot;mid&quot;: 0.0, &quot;high&quot;: -0.1}},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;acquisition_channel&quot;, &quot;values&quot;: {&quot;paid_social&quot;: 0.2, &quot;paid_search&quot;: 0.1, &quot;organic&quot;: 0.0, &quot;referral&quot;: -0.05}},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;region_id&quot;, &quot;values&quot;: {&quot;north&quot;: 0.05, &quot;south&quot;: 0.0}},
+        {&quot;type&quot;: &quot;categorical_map&quot;, &quot;field&quot;: &quot;language&quot;, &quot;values&quot;: {&quot;ru&quot;: 0.0, &quot;en&quot;: 0.05}}
+      ]
+    }
+  ],
+  &quot;balance_diagnostics&quot;: {
+    &quot;features&quot;: [
+      {&quot;name&quot;: &quot;friction_score&quot;, &quot;type&quot;: &quot;continuous&quot;, &quot;threshold_abs_smd&quot;: 0.25},
+      {&quot;name&quot;: &quot;specialist_capacity&quot;, &quot;type&quot;: &quot;continuous&quot;, &quot;threshold_abs_smd&quot;: 0.25},
+      {&quot;name&quot;: &quot;baseline_risk_score&quot;, &quot;type&quot;: &quot;continuous&quot;, &quot;threshold_abs_smd&quot;: 0.25},
+      {&quot;name&quot;: &quot;activation_14d_pre&quot;, &quot;type&quot;: &quot;binary&quot;, &quot;threshold_abs_smd&quot;: 0.25}
+    ],
+    &quot;love_plot_fields&quot;: [&quot;feature&quot;, &quot;smd_before&quot;, &quot;smd_after&quot;, &quot;abs_smd_before&quot;, &quot;abs_smd_after&quot;, &quot;status_after&quot;],
+    &quot;warn_if_any_abs_smd_after_above_threshold&quot;: true,
+    &quot;warn_if_abs_smd_gets_worse&quot;: true
+  },
+  &quot;common_support&quot;: {
+    &quot;minimum_matched_treated_fraction&quot;: 0.5,
+    &quot;warn_if_unmatched_treated_fraction_above&quot;: 0.0,
+    &quot;warn_if_unique_control_fraction_below&quot;: 0.75,
+    &quot;max_allowed_nearest_distance_without_caliper&quot;: 1.5,
+    &quot;report_unmatched_treated&quot;: true,
+    &quot;report_reused_controls&quot;: true
+  },
+  &quot;candidate_matching_designs&quot;: [
+    {
+      &quot;design_id&quot;: &quot;nearest_neighbor_friction_capacity_att_v1&quot;,
+      &quot;label&quot;: &quot;Primary nearest-neighbor ATT match with caliper and replacement&quot;,
+      &quot;source_variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;filter_variables&quot;: [],
+      &quot;caliper&quot;: 1.5,
+      &quot;replacement&quot;: true,
+      &quot;allow_unmatched_treated&quot;: true,
+      &quot;declared_status&quot;: &quot;estimable_with_warnings&quot;,
+      &quot;interpretation&quot;: &quot;Transparent ATT matching estimate for the matched common-support subset. It is not a full-population ATE and still has unmeasured-confounding limitations.&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;forced_no_caliper_all_treated_match&quot;,
+      &quot;label&quot;: &quot;Nearest neighbor without caliper, forcing every treated user to match&quot;,
+      &quot;source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;filter_variables&quot;: [],
+      &quot;caliper&quot;: null,
+      &quot;replacement&quot;: true,
+      &quot;allow_unmatched_treated&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_common_support_policy&quot;,
+      &quot;interpretation&quot;: &quot;This hides lack of overlap by forcing high-risk treated users to distant controls.&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;no_replacement_full_att_match&quot;,
+      &quot;label&quot;: &quot;Full ATT match without replacement despite fewer controls than treated users&quot;,
+      &quot;source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;filter_variables&quot;: [],
+      &quot;caliper&quot;: 1.5,
+      &quot;replacement&quot;: false,
+      &quot;allow_unmatched_treated&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_insufficient_controls_for_full_att&quot;,
+      &quot;interpretation&quot;: &quot;With 6 treated and 4 comparators in tiny data, ratio-1 full ATT matching without replacement cannot cover all treated units.&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;mediator_outcome_matching&quot;,
+      &quot;label&quot;: &quot;Matching on onboarding completion mediator&quot;,
+      &quot;source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;, &quot;onboarding_completed_48h&quot;],
+      &quot;filter_variables&quot;: [],
+      &quot;caliper&quot;: 1.5,
+      &quot;replacement&quot;: true,
+      &quot;allow_unmatched_treated&quot;: true,
+      &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+      &quot;interpretation&quot;: &quot;Matching on a post-treatment mediator changes the total-effect question.&quot;
+    },
+    {
+      &quot;design_id&quot;: &quot;telemetry_complete_case_matching&quot;,
+      &quot;label&quot;: &quot;Matching after telemetry complete-case filter&quot;,
+      &quot;source_variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;filter_variables&quot;: [&quot;telemetry_complete_30d&quot;],
+      &quot;caliper&quot;: 1.5,
+      &quot;replacement&quot;: true,
+      &quot;allow_unmatched_treated&quot;: true,
+      &quot;declared_status&quot;: &quot;invalid_bad_control&quot;,
+      &quot;interpretation&quot;: &quot;Filtering on post-treatment telemetry completeness changes the target population.&quot;
+    }
+  ],
+  &quot;claim_policy&quot;: {
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+    &quot;allowed_estimation_claim&quot;: &quot;Transparent matching estimate for the matched common-support subset under the stated distance, caliper and replacement policy.&quot;,
+    &quot;blocked_causal_wording&quot;: [
+      &quot;matching proved causality&quot;,
+      &quot;matched ATT is the full ATE&quot;,
+      &quot;balance diagnostics remove unmeasured confounding&quot;
+    ]
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/06-matching/outputs/matching_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/06-matching" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/causal-analysis/regression-adjustment/"><span>← Предыдущий урок</span><strong>Regression adjustment и g-formula</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/causal-analysis/weighting-and-doubly-robust/"><span>Следующий урок →</span><strong>Propensity weighting и doubly robust оценка</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

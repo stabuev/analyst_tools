@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Кеширование и контроль целостности">
+  <meta property="og:description" content="Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/">
+  <meta name="twitter:card" content="summary">
+  <title>Кеширование и контроль целостности — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Кеширование и контроль целостности", "description": "Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Кеширование и контроль целостности", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 58 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/11-caching-and-checksums" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Почему кеш без checksum ненадежен?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он слишком быстрый</button><button type="button" class="quiz-option" data-choice="1">Нельзя отличить корректный hit от поврежденного файла</button><button type="button" class="quiz-option" data-choice="2">Он не имеет пути</button><button type="button" class="quiz-option" data-choice="3">JSON запрещает кеш</button></div><p class="quiz-feedback" hidden>Наличие файла не доказывает идентичность ожидаемым байтам.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что означает атомарная публикация версии?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Запись каждого файла напрямую в current</button><button type="button" class="quiz-option" data-choice="1">Переключение видимого указателя только после полной проверки</button><button type="button" class="quiz-option" data-choice="2">Удаление raw</button><button type="button" class="quiz-option" data-choice="3">Один HTTP-запрос</button></div><p class="quiz-feedback" hidden>Потребитель видит либо старую, либо новую полную версию, но не промежуточную.</p></article></section>
+        <article class="lesson-article"><h1 id="кеширование-и-контроль-целостности">Кеширование и контроль целостности</h1>
+<blockquote>
+<p>Публикуйте не набор перезаписанных файлов, а проверенную неизменную версию с атомарным указателем.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 05/10<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> собирает повторяемый загрузчик, который кеширует сырые ответы, атомарно
+обновляет данные и проверяет схему и SHA-256 manifest.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Проверять cache hit по checksum.</li>
+<li>Связывать raw pages, schema и dataset одним run id.</li>
+<li>Публиковать immutable partitioned versions.</li>
+<li>Обновлять current pointer только после полной проверки.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На
+второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а повторный
+запуск не знает, каким cached responses можно доверять.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Финальная структура:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">delivery/
+├── raw/
+│   ├── cache_index.json
+│   └── &lt;url-hash&gt;.json
+├── datasets/&lt;run-id&gt;/
+│   ├── data/order_month=.../currency=.../*.parquet
+│   └── manifest.json
+└── current.json
+</code></pre></div><p><code>run-id</code> выводится из SHA-256 всех raw pages и schema contract. Dataset version не
+перезаписывается. <code>current.json</code> является commit point и записывается через temporary file
+и <code>os.replace</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Для каждой страницы:</p>
+<ol>
+<li>найдите URL в cache index;</li>
+<li>пересчитайте checksum файла;</li>
+<li>используйте hit только при совпадении;</li>
+<li>иначе загрузите и атомарно запишите raw bytes;</li>
+<li>проверьте JSON shape и schema records.</li>
+</ol>
+<p>После всех страниц создайте Arrow Table, partitioned Parquet и manifest с checksums. Лишь
+затем обновляйте pointer.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Учебный CLI полностью работает offline:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/resilient_loader.py \
+  --url &#x27;https://api.example.test/orders?page=1&#x27; \
+  --source-dir ../data/tiny \
+  --output-dir delivery \
+  --schema ../data/parquet_schema.json
+</code></pre></div><p>Без <code>--source-dir</code> используется Requests Session с timeout, bounded urllib3 retries,
+<code>Retry-After</code>, HTTPS, content type и size limit.</p>
+<p>Повтор команды использует raw cache и существующую immutable dataset version. <code>--refresh</code>
+принудительно проверяет источник заново.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Повредите cached page: checksum должен вызвать refetch.</li>
+<li>Верните строку вместо amount: current не должен измениться.</li>
+<li>Удалите обязательное поле: version не публикуется.</li>
+<li>Создайте pagination cycle.</li>
+<li>Прервите запись staging directory.</li>
+<li>Измените schema contract при тех же raw pages: run id должен измениться.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li>три raw pages дают пять rows;</li>
+<li>повторный запуск не обращается к источнику;</li>
+<li>corrupted cache page загружается заново;</li>
+<li>каждый raw и Parquet файл имеет checksum;</li>
+<li>dataset partitioned по month/currency;</li>
+<li>schema drift не создает current;</li>
+<li>failed refresh сохраняет старый pointer;</li>
+<li>current ссылается на manifest immutable version.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/resilient_loader.py</code> — интеграционный артефакт фазы. Он объединяет HTTP policy,
+pagination, raw cache, schema validation, Arrow/Parquet, partitioning, manifests и
+атомарную публикацию.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте ETag и conditional GET.</li>
+<li>Реализуйте retention policy immutable versions.</li>
+<li>Добавьте подпись manifest и внешний object storage.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cache hit</td>
+<td>Файл существует</td>
+<td>Файл существует и его checksum соответствует index</td>
+</tr>
+<tr>
+<td>Immutable version</td>
+<td>Каталог без chmod</td>
+<td>Поставка, bytes которой не меняются под run id</td>
+</tr>
+<tr>
+<td>Manifest</td>
+<td>Человеческое описание</td>
+<td>Машинная связь inputs, schema, files и checksums</td>
+</tr>
+<tr>
+<td>Atomic pointer</td>
+<td>Перезапись dataset</td>
+<td>Единственная атомарная смена ссылки на готовую версию</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>Повтор HTTP</td>
+<td>Пересборка производных данных из сохраненного raw</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.python.org/3/library/os.html#os.replace" target="_blank" rel="noopener">Python: <code>os.replace</code></a> — изучите атомарную замену пути на одном filesystem.</li>
+<li><a href="https://docs.python.org/3/library/hashlib.html" target="_blank" rel="noopener">Python: <code>hashlib</code></a> — используйте SHA-256 для идентичности raw и delivery files.</li>
+<li><a href="https://urllib3.readthedocs.io/en/stable/reference/urllib3.util.html#urllib3.util.Retry" target="_blank" rel="noopener">urllib3: Retry</a> — разберите bounded retries и <code>Retry-After</code>.</li>
+<li><a href="https://arrow.apache.org/docs/python/dataset.html" target="_blank" rel="noopener">PyArrow: Datasets</a> — свяжите partitioned write, discovery и filtering с immutable version.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Зачем immutable version directory?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для красивого имени</button><button type="button" class="quiz-option" data-choice="1">Чтобы опубликованные bytes не менялись под тем же идентификатором</button><button type="button" class="quiz-option" data-choice="2">Чтобы отключить Parquet</button><button type="button" class="quiz-option" data-choice="3">Чтобы хранить пароль</button></div><p class="quiz-feedback" hidden>Run id связывает входные checksums и schema с неизменной поставкой.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что происходит при повреждении cached page?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Она используется</button><button type="button" class="quiz-option" data-choice="1">Checksum не совпадает, страница загружается заново</button><button type="button" class="quiz-option" data-choice="2">Удаляется dataset</button><button type="button" class="quiz-option" data-choice="3">Меняется schema</button></div><p class="quiz-feedback" hidden>Cache hit допустим только после проверки сохраненного digest.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Почему current pointer обновляется последним?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для сортировки</button><button type="button" class="quiz-option" data-choice="1">Чтобы ошибка schema или записи не скрыла предыдущую рабочую версию</button><button type="button" class="quiz-option" data-choice="2">Чтобы уменьшить timeout</button><button type="button" class="quiz-option" data-choice="3">Чтобы изменить URL</button></div><p class="quiz-feedback" hidden>Pointer является commit point всей поставки.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pyarrow.dataset as ds
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;resilient_loader.py&quot;
+DATA = ROOT.parent / &quot;data&quot;
+SOURCE = DATA / &quot;tiny&quot;
+SCHEMA = DATA / &quot;parquet_schema.json&quot;
+START_URL = &quot;https://api.example.test/orders?page=1&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;resilient_loader&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+LOADER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(LOADER)
+
+
+class FailingFetcher:
+    def __call__(self, url: str) -&gt; bytes:
+        raise AssertionError(f&quot;unexpected fetch: {url}&quot;)
+
+
+class BadFetcher:
+    def __init__(self, source_dir: Path) -&gt; None:
+        self.good = LOADER.LocalPageFetcher(source_dir)
+
+    def __call__(self, url: str) -&gt; bytes:
+        payload = json.loads(self.good(url))
+        if url.endswith(&quot;page=2&quot;):
+            payload[&quot;items&quot;][0][&quot;amount&quot;] = &quot;not-a-number&quot;
+        return json.dumps(payload).encode()
+
+
+class ResilientLoaderTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.directory = TemporaryDirectory()
+        self.output = Path(self.directory.name) / &quot;delivery&quot;
+
+    def tearDown(self) -&gt; None:
+        self.directory.cleanup()
+
+    def run_valid(self):
+        fetcher = LOADER.LocalPageFetcher(SOURCE)
+        report = LOADER.run_loader(START_URL, self.output, SCHEMA, fetcher)
+        return report, fetcher
+
+    def test_end_to_end_publishes_partitioned_dataset(self) -&gt; None:
+        report, fetcher = self.run_valid()
+        self.assertTrue(report[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;row_count&quot;], 5)
+        self.assertEqual(len(fetcher.calls), 3)
+        paths = list(report[&quot;dataset&quot;][&quot;files&quot;])
+        self.assertTrue(any(&quot;currency=EUR&quot; in path for path in paths))
+
+    def test_second_run_uses_raw_cache_and_existing_version(self) -&gt; None:
+        first, _ = self.run_valid()
+        second = LOADER.run_loader(START_URL, self.output, SCHEMA, FailingFetcher())
+        self.assertEqual(second[&quot;source&quot;][&quot;reused_pages&quot;], 3)
+        self.assertTrue(second[&quot;dataset&quot;][&quot;reused_version&quot;])
+        self.assertEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
+
+    def test_cache_index_contains_verified_checksums(self) -&gt; None:
+        self.run_valid()
+        cache = json.loads((self.output / &quot;raw&quot; / &quot;cache_index.json&quot;).read_text())
+        self.assertEqual(len(cache), 3)
+        for entry in cache.values():
+            path = self.output / &quot;raw&quot; / entry[&quot;file&quot;]
+            self.assertEqual(LOADER.sha256_file(path), entry[&quot;sha256&quot;])
+
+    def test_corrupted_cache_page_is_refetched(self) -&gt; None:
+        self.run_valid()
+        cache_path = self.output / &quot;raw&quot; / &quot;cache_index.json&quot;
+        cache = json.loads(cache_path.read_text())
+        page_two = cache[&quot;https://api.example.test/orders?page=2&quot;]
+        (self.output / &quot;raw&quot; / page_two[&quot;file&quot;]).write_text(&quot;corrupted&quot;)
+        fetcher = LOADER.LocalPageFetcher(SOURCE)
+        report = LOADER.run_loader(START_URL, self.output, SCHEMA, fetcher)
+        self.assertEqual(fetcher.calls, [&quot;https://api.example.test/orders?page=2&quot;])
+        self.assertEqual(report[&quot;source&quot;][&quot;reused_pages&quot;], 2)
+
+    def test_failed_refresh_does_not_change_current_pointer(self) -&gt; None:
+        self.run_valid()
+        pointer = (self.output / &quot;current.json&quot;).read_bytes()
+        with self.assertRaisesRegex(LOADER.LoaderError, &quot;invalid decimal&quot;):
+            LOADER.run_loader(
+                START_URL,
+                self.output,
+                SCHEMA,
+                BadFetcher(SOURCE),
+                refresh=True,
+            )
+        self.assertEqual((self.output / &quot;current.json&quot;).read_bytes(), pointer)
+
+    def test_current_points_to_immutable_version_manifest(self) -&gt; None:
+        report, _ = self.run_valid()
+        current = json.loads((self.output / &quot;current.json&quot;).read_text())
+        manifest = self.output / current[&quot;manifest&quot;]
+        self.assertTrue(manifest.is_file())
+        self.assertEqual(current[&quot;manifest_sha256&quot;], LOADER.sha256_file(manifest))
+        self.assertIn(report[&quot;run_id&quot;], current[&quot;dataset&quot;])
+
+    def test_dataset_schema_and_partition_columns_are_readable(self) -&gt; None:
+        report, _ = self.run_valid()
+        dataset = ds.dataset(
+            self.output / report[&quot;current&quot;][&quot;dataset&quot;],
+            format=&quot;parquet&quot;,
+            partitioning=&quot;hive&quot;,
+        )
+        self.assertEqual(dataset.count_rows(), 5)
+        self.assertIn(&quot;order_month&quot;, dataset.schema.names)
+        self.assertIn(&quot;currency&quot;, dataset.schema.names)
+
+    def test_schema_drift_is_rejected_before_pointer_update(self) -&gt; None:
+        with self.assertRaisesRegex(LOADER.LoaderError, &quot;invalid decimal&quot;):
+            LOADER.run_loader(START_URL, self.output, SCHEMA, BadFetcher(SOURCE))
+        self.assertFalse((self.output / &quot;current.json&quot;).exists())
+
+    def test_cli_runs_fully_offline(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--url&quot;,
+                START_URL,
+                &quot;--source-dir&quot;,
+                SOURCE,
+                &quot;--output-dir&quot;,
+                self.output,
+                &quot;--schema&quot;,
+                SCHEMA,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertTrue((self.output / &quot;current.json&quot;).is_file())
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import hashlib
+import json
+
+pages = [
+    b&#x27;{&quot;page&quot;: 1, &quot;next&quot;: &quot;page-2&quot;}&#x27;,
+    b&#x27;{&quot;page&quot;: 2, &quot;next&quot;: null}&#x27;,
+]
+checksums = [hashlib.sha256(page).hexdigest() for page in pages]
+run_id = hashlib.sha256(json.dumps(checksums, sort_keys=True).encode()).hexdigest()[:16]
+
+print(&quot;Raw checksums:&quot;, checksums)
+print(&quot;Immutable dataset version:&quot;, run_id)
+print(&quot;Atomic pointer:&quot;, {&quot;run_id&quot;: run_id, &quot;dataset&quot;: f&quot;datasets/{run_id}/data&quot;})
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;resilient-source-loader&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/resilient_loader.py&quot;,
+  &quot;description&quot;: &quot;Кеширует raw API pages, проверяет schema, создает immutable partitioned Parquet version и атомарно обновляет current pointer.&quot;,
+  &quot;usage&quot;: &quot;python outputs/resilient_loader.py --url https://api.example.test/orders?page=1 --source-dir ../data/tiny --output-dir delivery --schema ../data/parquet_schema.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/resilient_loader.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import sys
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any, Protocol
+from urllib.parse import parse_qs, urlparse
+
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+
+
+class LoaderError(RuntimeError):
+    &quot;&quot;&quot;Raised when raw pages or a dataset version cannot be validated.&quot;&quot;&quot;
+
+
+class PageFetcher(Protocol):
+    def __call__(self, url: str) -&gt; bytes: ...
+
+
+def sha256_bytes(value: bytes) -&gt; str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_file(path: Path) -&gt; str:
+    return sha256_bytes(path.read_bytes())
+
+
+def atomic_write(path: Path, content: bytes) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f&quot;.{path.name}.part&quot;)
+    temporary.write_bytes(content)
+    os.replace(temporary, path)
+
+
+def atomic_write_json(path: Path, value: Any) -&gt; None:
+    atomic_write(
+        path,
+        (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;).encode(),
+    )
+
+
+class LocalPageFetcher:
+    def __init__(self, source_dir: str | Path) -&gt; None:
+        self.source_dir = Path(source_dir)
+        self.calls: list[str] = []
+
+    def __call__(self, url: str) -&gt; bytes:
+        self.calls.append(url)
+        query = parse_qs(urlparse(url).query)
+        try:
+            page = int(query.get(&quot;page&quot;, [&quot;1&quot;])[0])
+        except ValueError as error:
+            raise LoaderError(f&quot;invalid page in URL: {url}&quot;) from error
+        path = self.source_dir / f&quot;api_page_{page}.json&quot;
+        if not path.is_file():
+            raise LoaderError(f&quot;local page fixture does not exist: {path}&quot;)
+        return path.read_bytes()
+
+
+class RequestsPageFetcher:
+    def __init__(
+        self,
+        *,
+        timeout: tuple[float, float] = (3.05, 30.0),
+        max_bytes: int = 10_000_000,
+    ) -&gt; None:
+        retry = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods={&quot;GET&quot;},
+            respect_retry_after_header=True,
+        )
+        self.session = requests.Session()
+        self.session.mount(&quot;https://&quot;, HTTPAdapter(max_retries=retry))
+        self.timeout = timeout
+        self.max_bytes = max_bytes
+
+    def __call__(self, url: str) -&gt; bytes:
+        if urlparse(url).scheme != &quot;https&quot;:
+            raise LoaderError(&quot;network source must use HTTPS&quot;)
+        try:
+            with self.session.get(
+                url,
+                timeout=self.timeout,
+                stream=True,
+                headers={&quot;Accept&quot;: &quot;application/json&quot;},
+            ) as response:
+                response.raise_for_status()
+                media_type = response.headers.get(&quot;Content-Type&quot;, &quot;&quot;).split(&quot;;&quot;, 1)[0].lower()
+                if media_type != &quot;application/json&quot;:
+                    raise LoaderError(f&quot;unexpected content type: {media_type}&quot;)
+                chunks = []
+                size = 0
+                for chunk in response.iter_content(64 * 1024):
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if size &gt; self.max_bytes:
+                        raise LoaderError(f&quot;page exceeds max_bytes={self.max_bytes}&quot;)
+                    chunks.append(chunk)
+                return b&quot;&quot;.join(chunks)
+        except requests.RequestException as error:
+            raise LoaderError(f&quot;request failed: {error}&quot;) from error
+
+    def close(self) -&gt; None:
+        self.session.close()
+
+
+def load_schema(path: str | Path) -&gt; tuple[dict[str, Any], pa.Schema]:
+    schema_path = Path(path)
+    try:
+        contract = json.loads(schema_path.read_text(encoding=&quot;utf-8&quot;))
+    except (OSError, json.JSONDecodeError) as error:
+        raise LoaderError(f&quot;cannot read schema contract: {error}&quot;) from error
+    fields = []
+    for name, column in contract[&quot;columns&quot;].items():
+        type_name = column[&quot;type&quot;]
+        if type_name == &quot;string&quot;:
+            value_type = pa.string()
+        elif type_name == &quot;timestamp[us, tz=UTC]&quot;:
+            value_type = pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;)
+        elif type_name == &quot;decimal128(12, 2)&quot;:
+            value_type = pa.decimal128(12, 2)
+        else:
+            raise LoaderError(f&quot;unsupported schema type: {type_name}&quot;)
+        fields.append(pa.field(name, value_type, nullable=column[&quot;nullable&quot;]))
+    return contract, pa.schema(fields)
+
+
+def convert_record(record: Any, schema: pa.Schema, location: str) -&gt; dict[str, Any]:
+    if not isinstance(record, dict):
+        raise LoaderError(f&quot;{location}: item must be an object&quot;)
+    missing = [field.name for field in schema if field.name not in record]
+    unexpected = sorted(set(record) - set(schema.names))
+    if missing or unexpected:
+        raise LoaderError(f&quot;{location}: missing={missing}, unexpected={unexpected}&quot;)
+    converted = {}
+    for field in schema:
+        value = record[field.name]
+        if value is None:
+            if not field.nullable:
+                raise LoaderError(f&quot;{location}.{field.name}: null is forbidden&quot;)
+            converted[field.name] = None
+        elif pa.types.is_string(field.type):
+            if not isinstance(value, str):
+                raise LoaderError(f&quot;{location}.{field.name}: expected string&quot;)
+            converted[field.name] = value
+        elif pa.types.is_decimal(field.type):
+            try:
+                converted[field.name] = Decimal(str(value))
+            except InvalidOperation as error:
+                raise LoaderError(f&quot;{location}.{field.name}: invalid decimal&quot;) from error
+        elif pa.types.is_timestamp(field.type):
+            if not isinstance(value, str):
+                raise LoaderError(f&quot;{location}.{field.name}: expected timestamp string&quot;)
+            try:
+                converted[field.name] = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+            except ValueError as error:
+                raise LoaderError(f&quot;{location}.{field.name}: invalid timestamp&quot;) from error
+    return converted
+
+
+def read_cached_or_fetch(
+    url: str,
+    *,
+    raw_dir: Path,
+    cache_index: dict[str, Any],
+    fetch_page: PageFetcher,
+    refresh: bool,
+) -&gt; tuple[bytes, bool, dict[str, Any]]:
+    entry = cache_index.get(url)
+    if not refresh and entry:
+        path = raw_dir / entry[&quot;file&quot;]
+        if path.is_file() and sha256_file(path) == entry[&quot;sha256&quot;]:
+            return path.read_bytes(), True, entry
+    body = fetch_page(url)
+    digest = sha256_bytes(body)
+    name = f&quot;{hashlib.sha256(url.encode()).hexdigest()[:16]}.json&quot;
+    atomic_write(raw_dir / name, body)
+    return body, False, {&quot;file&quot;: name, &quot;sha256&quot;: digest, &quot;bytes&quot;: len(body)}
+
+
+def write_dataset_version(
+    table: pa.Table,
+    versions_dir: Path,
+    run_id: str,
+) -&gt; tuple[Path, dict[str, Any], bool]:
+    version_dir = versions_dir / run_id
+    if version_dir.is_dir():
+        manifest = json.loads((version_dir / &quot;manifest.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+        return version_dir, manifest, True
+    staging = versions_dir / f&quot;.{run_id}.staging&quot;
+    shutil.rmtree(staging, ignore_errors=True)
+    versions_dir.mkdir(parents=True, exist_ok=True)
+    months = pc.strftime(table[&quot;ordered_at&quot;], format=&quot;%Y-%m&quot;)
+    partitioned = table.append_column(&quot;order_month&quot;, months)
+    partition_schema = pa.schema(
+        [pa.field(&quot;order_month&quot;, pa.string()), table.schema.field(&quot;currency&quot;)]
+    )
+    try:
+        ds.write_dataset(
+            partitioned,
+            staging / &quot;data&quot;,
+            format=&quot;parquet&quot;,
+            partitioning=ds.partitioning(partition_schema, flavor=&quot;hive&quot;),
+            basename_template=&quot;part-{i}.parquet&quot;,
+        )
+        files = sorted((staging / &quot;data&quot;).rglob(&quot;*.parquet&quot;))
+        manifest = {
+            &quot;run_id&quot;: run_id,
+            &quot;rows&quot;: table.num_rows,
+            &quot;partition_by&quot;: [&quot;order_month&quot;, &quot;currency&quot;],
+            &quot;schema&quot;: [
+                {&quot;name&quot;: field.name, &quot;type&quot;: str(field.type), &quot;nullable&quot;: field.nullable}
+                for field in table.schema
+            ],
+            &quot;files&quot;: {
+                str(path.relative_to(staging)): {
+                    &quot;bytes&quot;: path.stat().st_size,
+                    &quot;sha256&quot;: sha256_file(path),
+                }
+                for path in files
+            },
+        }
+        atomic_write_json(staging / &quot;manifest.json&quot;, manifest)
+        staging.rename(version_dir)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return version_dir, manifest, False
+
+
+def run_loader(
+    start_url: str,
+    output_dir: str | Path,
+    schema_path: str | Path,
+    fetch_page: PageFetcher,
+    *,
+    refresh: bool = False,
+    max_pages: int = 100,
+) -&gt; dict[str, Any]:
+    output = Path(output_dir)
+    raw_dir = output / &quot;raw&quot;
+    cache_path = raw_dir / &quot;cache_index.json&quot;
+    cache_index = json.loads(cache_path.read_text(encoding=&quot;utf-8&quot;)) if cache_path.is_file() else {}
+    new_cache = dict(cache_index)
+    pages = []
+    records = []
+    visited: set[str] = set()
+    url: str | None = start_url
+    reused_pages = 0
+    _, schema = load_schema(schema_path)
+    while url is not None:
+        if len(pages) &gt;= max_pages:
+            raise LoaderError(f&quot;max_pages={max_pages} reached&quot;)
+        if url in visited:
+            raise LoaderError(f&quot;pagination cycle detected: {url}&quot;)
+        visited.add(url)
+        body, reused, entry = read_cached_or_fetch(
+            url,
+            raw_dir=raw_dir,
+            cache_index=cache_index,
+            fetch_page=fetch_page,
+            refresh=refresh,
+        )
+        reused_pages += int(reused)
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError as error:
+            raise LoaderError(f&quot;invalid JSON page {url}: {error.msg}&quot;) from error
+        if not isinstance(payload, dict) or not isinstance(payload.get(&quot;items&quot;), list):
+            raise LoaderError(f&quot;invalid page shape: {url}&quot;)
+        page_number = len(pages) + 1
+        records.extend(
+            convert_record(record, schema, f&quot;page[{page_number}].items[{position}]&quot;)
+            for position, record in enumerate(payload[&quot;items&quot;], start=1)
+        )
+        next_url = payload.get(&quot;next&quot;)
+        if next_url is not None and not isinstance(next_url, str):
+            raise LoaderError(f&quot;invalid next value: {url}&quot;)
+        new_cache[url] = entry
+        pages.append({&quot;url&quot;: url, &quot;sha256&quot;: entry[&quot;sha256&quot;], &quot;items&quot;: len(payload[&quot;items&quot;])})
+        url = next_url
+
+    ids = [record[&quot;order_id&quot;] for record in records]
+    if len(ids) != len(set(ids)):
+        raise LoaderError(&quot;order_id grain is not unique&quot;)
+    table = pa.Table.from_pylist(records, schema=schema)
+    contract_digest = sha256_file(Path(schema_path))
+    run_material = json.dumps(
+        {&quot;pages&quot;: [page[&quot;sha256&quot;] for page in pages], &quot;schema&quot;: contract_digest},
+        sort_keys=True,
+    ).encode()
+    run_id = sha256_bytes(run_material)[:16]
+    version_dir, version_manifest, reused_dataset = write_dataset_version(
+        table,
+        output / &quot;datasets&quot;,
+        run_id,
+    )
+    dataset = ds.dataset(version_dir / &quot;data&quot;, format=&quot;parquet&quot;, partitioning=&quot;hive&quot;)
+    if dataset.count_rows() != table.num_rows:
+        raise LoaderError(&quot;published dataset row count differs from validated table&quot;)
+
+    atomic_write_json(cache_path, new_cache)
+    current = {
+        &quot;run_id&quot;: run_id,
+        &quot;dataset&quot;: str((Path(&quot;datasets&quot;) / run_id / &quot;data&quot;).as_posix()),
+        &quot;manifest&quot;: str((Path(&quot;datasets&quot;) / run_id / &quot;manifest.json&quot;).as_posix()),
+        &quot;manifest_sha256&quot;: sha256_file(version_dir / &quot;manifest.json&quot;),
+    }
+    atomic_write_json(output / &quot;current.json&quot;, current)
+    report = {
+        &quot;run_id&quot;: run_id,
+        &quot;source&quot;: {
+            &quot;start_url&quot;: start_url,
+            &quot;pages&quot;: pages,
+            &quot;reused_pages&quot;: reused_pages,
+            &quot;fetched_pages&quot;: len(pages) - reused_pages,
+        },
+        &quot;dataset&quot;: {
+            &quot;rows&quot;: table.num_rows,
+            &quot;version_dir&quot;: str(version_dir),
+            &quot;reused_version&quot;: reused_dataset,
+            &quot;files&quot;: version_manifest[&quot;files&quot;],
+        },
+        &quot;current&quot;: current,
+        &quot;summary&quot;: {
+            &quot;valid&quot;: True,
+            &quot;page_count&quot;: len(pages),
+            &quot;row_count&quot;: table.num_rows,
+        },
+    }
+    return report
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Cache pages and publish verified Parquet&quot;)
+    parser.add_argument(&quot;--url&quot;, required=True)
+    parser.add_argument(&quot;--output-dir&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--schema&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--source-dir&quot;, type=Path)
+    parser.add_argument(&quot;--refresh&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args()
+    fetcher: Any = LocalPageFetcher(args.source_dir) if args.source_dir else RequestsPageFetcher()
+    try:
+        report = run_loader(
+            args.url,
+            args.output_dir,
+            args.schema,
+            fetcher,
+            refresh=args.refresh,
+        )
+    except LoaderError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        raise SystemExit(2) from error
+    finally:
+        close = getattr(fetcher, &quot;close&quot;, None)
+        if close:
+            close()
+    json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write(&quot;\n&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/outputs/resilient_loader.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/11-caching-and-checksums" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/partitioning/"><span>← Предыдущий урок</span><strong>Партиционирование наборов данных</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/eda-and-visualization/question-before-chart/"><span>Следующий урок →</span><strong>Вопрос раньше графика</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,2035 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 16/01 CatBoost обучился с фиксированными iterations=20, а 16/02 подтвердил, что категориальные признаки можно передавать в модель без явной leakage. Следующая…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/early-stopping/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Early stopping и iteration budget">
+  <meta property="og:description" content="В 16/01 CatBoost обучился с фиксированными iterations=20, а 16/02 подтвердил, что категориальные признаки можно передавать в модель без явной leakage. Следующая…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/early-stopping/">
+  <meta name="twitter:card" content="summary">
+  <title>Early stopping и iteration budget — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Early stopping и iteration budget", "description": "В 16/01 CatBoost обучился с фиксированными iterations=20, а 16/02 подтвердил, что категориальные признаки можно передавать в модель без явной leakage. Следующая…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/early-stopping/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Early stopping и iteration budget", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/early-stopping/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 174 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/03-early-stopping" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какую роль early stopping играет в честном training protocol?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Выбирает best iteration по заранее объявленному validation eval_set и метрике</button><button type="button" class="quiz-option" data-choice="1">Автоматически доказывает, что модель готова к production</button><button type="button" class="quiz-option" data-choice="2">Позволяет подбирать параметры по test split</button><button type="button" class="quiz-option" data-choice="3">Заменяет split manifest и leakage audit</button></div><p class="quiz-feedback" hidden>Early stopping управляет числом итераций через validation metric; он не отменяет split protocol и не должен видеть test.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что означает iteration budget в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Заранее объявленный максимум boosting iterations, который может быть сокращен early stopping</button><button type="button" class="quiz-option" data-choice="1">Количество строк в train split</button><button type="button" class="quiz-option" data-choice="2">Количество признаков после preprocessing</button><button type="button" class="quiz-option" data-choice="3">Финальный test score модели</button></div><p class="quiz-feedback" hidden>Budget задает верхнюю границу обучения; фактический tree_count может быть меньше после validation-driven остановки.</p></article></section>
+        <article class="lesson-article"><h1 id="early-stopping-и-iteration-budget">Early stopping и iteration budget</h1>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>16/01</code> CatBoost обучился с фиксированными <code>iterations=20</code>, а <code>16/02</code> подтвердил, что
+категориальные признаки можно передавать в модель без явной leakage. Следующая типичная
+ошибка появляется в training control: команда увеличивает <code>iterations</code>, включает early
+stopping и начинает считать, что библиотека сама защитила модель от переобучения.</p>
+<p>Early stopping не является магией. Это часть evaluation protocol:</p>
+<ul>
+<li><code>eval_set</code> должен состоять только из validation rows;</li>
+<li><code>best_iteration</code> выбирается по заранее объявленной метрике;</li>
+<li>test split не участвует в overfitting detector;</li>
+<li><code>tree_count</code> после <code>use_best_model=True</code> должен быть зафиксирован;</li>
+<li>validation curve нужна как evidence, а не только итоговый score.</li>
+</ul>
+<p>В этом уроке вы превращаете early stopping в проверяемый артефакт: <code>eval_set</code> lineage,
+validation curve, best iteration и tree-count report.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Iteration budget отвечает на вопрос: &quot;сколько деревьев модели разрешено построить&quot;.
+Early stopping отвечает на другой вопрос: &quot;на какой итерации validation metric перестала
+улучшаться по объявленному правилу&quot;.</p>
+<p>Важно не смешивать роли split:</p>
+<table>
+<thead>
+<tr>
+<th>Split</th>
+<th>Роль в уроке</th>
+<th>Что запрещено</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>train</code></td>
+<td>fit pool, обновление деревьев</td>
+<td>выбирать best iteration по train score</td>
+</tr>
+<tr>
+<td><code>validation</code></td>
+<td><code>eval_set</code> и overfitting detector</td>
+<td>использовать как final holdout</td>
+</tr>
+<tr>
+<td><code>test</code></td>
+<td>final once-only evaluation</td>
+<td>попадать в <code>eval_set</code>, tuning или patience window</td>
+</tr>
+</tbody>
+</table>
+<p>Если test попал в <code>eval_set</code>, это такая же test-driven selection, как ручной выбор модели
+по test score. Даже если CatBoost делает это внутри <code>fit</code>, методологическая ошибка остается.</p>
+<p>В tiny-профиле planned budget равен <code>80</code>, overfitting detector <code>Iter</code> с <code>od_wait=3</code>.
+Validation Logloss ухудшается сразу после первой итерации:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">iteration 0: validation_logloss = 0.698394
+iteration 1: validation_logloss = 0.703791
+iteration 2: validation_logloss = 0.709329
+iteration 3: validation_logloss = 0.715000
+</code></pre></div><p>Поэтому <code>best_iteration=0</code>, а <code>tree_count=1</code>. Это учебный warning: на трех validation
+rows нельзя делать сильный вывод о реальном оптимальном числе деревьев, но сам протокол
+виден и проверяем.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый policy spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/early_stopping_policy_spec.json
+</code></pre></div><p>Он фиксирует:</p>
+<ul>
+<li>связь с <code>catboost_baseline_id</code> и categorical audit из <code>16/02</code>;</li>
+<li><code>fit_split=train</code>, <code>eval_split=validation</code>, <code>final_holdout_split=test</code>;</li>
+<li>planned budget <code>iterations=80</code>;</li>
+<li><code>od_type=Iter</code>, <code>od_wait=3</code>;</li>
+<li><code>use_best_model=true</code>;</li>
+<li><code>eval_metric=Logloss</code>;</li>
+<li>запрет test split в <code>eval_set</code>.</li>
+</ul>
+<p>Минимальный механизм проверки выглядит так:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">train_pool = Pool(X_train, y_train, cat_features=cat_features)
+validation_pool = Pool(X_valid, y_valid, cat_features=cat_features)
+
+model.fit(train_pool, eval_set=validation_pool)
+best_iteration = model.get_best_iteration()
+tree_count = model.tree_count_
+</code></pre></div><p>Но production-часть урока делает больше: она записывает lineage split, проверяет, что
+test не участвовал в best-iteration selection, сохраняет validation curve и сравнивает
+planned iterations с фактическим <code>tree_count</code>.</p>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_auditor.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/03-early-stopping/code/main.py
+</code></pre></div><p>Ожидаемая сводка:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;planned_iterations&quot;: 80,
+  &quot;trained_iteration_count&quot;: 4,
+  &quot;best_iteration&quot;: 0,
+  &quot;tree_count&quot;: 1,
+  &quot;stopped_before_budget&quot;: true,
+  &quot;warning_count&quot;: 3,
+  &quot;readiness_status&quot;: &quot;ready_for_feature_importance_lesson&quot;
+}
+</code></pre></div><p>После запуска появляются пять файлов:</p>
+<ul>
+<li><code>early_stopping_report.json</code> — общий отчет, checks, warnings и summary;</li>
+<li><code>eval_set_lineage.csv</code> — роли train/validation/test в fit и early stopping;</li>
+<li><code>validation_curve.csv</code> — learn/validation Logloss по итерациям и best marker;</li>
+<li><code>tree_count_report.csv</code> — planned iterations, trained iterations, best iteration и
+финальный <code>tree_count</code>;</li>
+<li><code>early_stopping_serialized_spec.json</code> — handoff для урока <code>16/04</code>.</li>
+</ul>
+<p>В текущем fixture auditor валиден, но предупреждает:</p>
+<ul>
+<li>train pool содержит только 4 rows;</li>
+<li>eval set содержит только 3 rows;</li>
+<li>best iteration равен <code>0</code>, что нормально для tiny-примера, но слишком хрупко для
+production claim.</li>
+</ul>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Поменяйте в <code>early_stopping_policy_spec.json</code>:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;eval_split&quot;: &quot;test&quot;
+</code></pre></div><p>Audit должен заблокировать policy: test split нельзя использовать как <code>eval_set</code>.</p>
+<p>Теперь выставьте:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;use_best_model&quot;: false
+</code></pre></div><p>Даже если CatBoost сможет обучиться, контракт урока нарушен: <code>tree_count</code> больше не
+связан с best iteration так, как ожидает downstream interpretation package.</p>
+<p>Наконец удалите <code>od_type</code>. Без overfitting detector planned budget превращается в обычное
+число деревьев, а урок не сможет доказать, что остановка была частью protocol.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/03-early-stopping/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>handoff от <code>16/01</code> и <code>16/02</code>;</li>
+<li>validation-only <code>eval_set</code>;</li>
+<li>запрет test split в best-iteration selection;</li>
+<li>запись <code>best_iteration=0</code> и <code>tree_count=1</code>;</li>
+<li>validation curve с patience window <code>od_wait=3</code>;</li>
+<li>tree-count reduction относительно budget <code>80</code> и baseline <code>20</code>;</li>
+<li>блокировку policy без <code>use_best_model</code>;</li>
+<li>блокировку policy без overfitting detector;</li>
+<li>структурированный failure при отсутствующем policy file;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полного курса после изменения статуса:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока — early stopping audit package. Его можно передать в <code>16/04</code>,
+где начнется built-in feature importance:</p>
+<ul>
+<li>модель и категории совпадают с предыдущими уроками;</li>
+<li>CatBoost обучен с фиксированным random seed и validation-only <code>eval_set</code>;</li>
+<li>test split остается невидимым для best iteration;</li>
+<li>validation curve показывает, почему выбран <code>best_iteration</code>;</li>
+<li><code>tree_count_report.csv</code> фиксирует, сколько деревьев реально осталось в модели;</li>
+<li><code>ready_for_feature_importance_lesson</code> означает, что следующий урок может считать
+важность признаков на известной training-control версии модели.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Увеличьте <code>od_wait</code> до <code>5</code> и объясните, почему <code>trained_iteration_count</code> изменится, а
+<code>tree_count</code> при <code>use_best_model=true</code> может остаться прежним.</li>
+<li>Поменяйте <code>eval_metric</code> на другую метрику, поддерживаемую CatBoost, и запишите, какие
+поля spec и curve должны измениться вместе.</li>
+<li>Измените validation rows так, чтобы validation split содержал один класс, и объясните,
+почему такой <code>eval_set</code> опасен для early stopping.</li>
+<li>Сравните <code>tree_count_report.csv</code> с <code>catboost_training_trace.csv</code> из <code>16/01</code>: чем
+фиксированный budget отличается от validation-driven tree count?</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<ul>
+<li><strong>Iteration budget</strong> — заранее объявленный максимум деревьев или boosting iterations.</li>
+<li><strong>Early stopping</strong> — остановка обучения по validation metric после patience window без
+улучшения.</li>
+<li><strong>Eval set</strong> — данные, которые не обучают деревья, но участвуют в выборе best iteration.</li>
+<li><strong>Best iteration</strong> — итерация с лучшим значением объявленной validation metric.</li>
+<li><strong>Tree count</strong> — фактическое число деревьев в модели после <code>use_best_model</code>.</li>
+<li><strong>Patience window</strong> — количество итераций без улучшения, после которого detector
+останавливает обучение.</li>
+</ul>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboost_fit" target="_blank" rel="noopener">CatBoost fit</a> — параметры <code>eval_set</code>, <code>use_best_model</code> и поведение <code>fit</code> для validation-driven обучения.</li>
+<li><a href="https://catboost.ai/docs/en/features/overfitting-detector-desc" target="_blank" rel="noopener">CatBoost overfitting detector</a> — официальный раздел про <code>od_type</code>, <code>od_wait</code> и правила остановки.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier" target="_blank" rel="noopener">CatBoostClassifier</a> — атрибуты и методы модели, включая <code>best_iteration_</code>, <code>tree_count_</code> и <code>get_evals_result</code>.</li>
+<li><a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank" rel="noopener">scikit-learn common pitfalls</a> — напоминание, почему любые решения по test split создают leakage даже вне sklearn.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему test split нельзя передавать в `eval_set` для early stopping?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Так best iteration выбирается с использованием final holdout, то есть возникает test-driven selection</button><button type="button" class="quiz-option" data-choice="1">CatBoost технически не умеет принимать test data в `eval_set`</button><button type="button" class="quiz-option" data-choice="2">Test split всегда содержит только один класс</button><button type="button" class="quiz-option" data-choice="3">Это меняет названия категориальных признаков</button></div><p class="quiz-feedback" hidden>Если test влияет на остановку, он уже не final once-only evaluation, даже если selection спрятан внутри `fit`.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему при `best_iteration=0` и `use_best_model=true` итоговый `tree_count` равен `1`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Нулевая итерация соответствует первому построенному дереву, и модель обрезается до best_iteration + 1</button><button type="button" class="quiz-option" data-choice="1">CatBoost удаляет все деревья после обучения</button><button type="button" class="quiz-option" data-choice="2">Validation split становится train split</button><button type="button" class="quiz-option" data-choice="3">Tree count всегда равен `od_wait`</button></div><p class="quiz-feedback" hidden>Итерации нумеруются с нуля; при `use_best_model` модель сохраняет деревья до лучшей итерации включительно.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Как правильно интерпретировать warning `best_iteration_zero_is_tiny_fixture_warning`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Протокол сработал, но на маленьком validation set нельзя делать сильный вывод об оптимальном числе деревьев</button><button type="button" class="quiz-option" data-choice="1">Модель обязательно сломана и CatBoost нельзя использовать</button><button type="button" class="quiz-option" data-choice="2">Нужно перенести test rows в eval_set</button><button type="button" class="quiz-option" data-choice="3">Warning можно игнорировать, потому что tree_count стал меньше</button></div><p class="quiz-feedback" hidden>Tiny fixture нужен для проверяемости механизма; на реальной задаче стабильность best iteration требует большего validation evidence.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;early_stopping_auditor.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from early_stopping_auditor import (  # noqa: E402
+    DEFAULT_CATBOOST_REPORT_PATH,
+    DEFAULT_CATEGORICAL_REPORT_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class EarlyStoppingAuditorTest(TestCase):
+    def audit(
+        self,
+        root: Path = DATA_ROOT,
+        upstream_root: Path = UPSTREAM_DATA_ROOT,
+        **paths: Path,
+    ) -&gt; dict:
+        return run(
+            policy_path=paths.get(&quot;policy_path&quot;, root / &quot;early_stopping_policy_spec.json&quot;),
+            catboost_spec_path=paths.get(&quot;catboost_spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            catboost_report_path=paths.get(&quot;catboost_report_path&quot;, DEFAULT_CATBOOST_REPORT_PATH),
+            categorical_report_path=paths.get(&quot;categorical_report_path&quot;, DEFAULT_CATEGORICAL_REPORT_PATH),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            labels_path=paths.get(&quot;labels_path&quot;, upstream_root / &quot;ml_labels.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+        for filename in (&quot;early_stopping_policy_spec.json&quot;, &quot;catboost_model_spec.json&quot;):
+            shutil.copy2(DATA_ROOT / filename, phase16 / filename)
+        for filename in (&quot;ml_raw_features.csv&quot;, &quot;ml_labels.csv&quot;, &quot;ml_split_manifest.csv&quot;):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_CATBOOST_REPORT_PATH, reports / &quot;catboost_report.json&quot;)
+        shutil.copy2(DEFAULT_CATEGORICAL_REPORT_PATH, reports / &quot;categorical_feature_report.json&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_early_stopping_audit_records_best_iteration_and_budget(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;early_stopping_audit_id&quot;], &quot;trial-churn-early-stopping-audit-v0&quot;)
+        self.assertEqual(summary[&quot;source_catboost_model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(summary[&quot;early_stopping_model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(summary[&quot;fit_row_count&quot;], 4)
+        self.assertEqual(summary[&quot;eval_set_row_count&quot;], 3)
+        self.assertEqual(summary[&quot;final_holdout_row_count&quot;], 5)
+        self.assertEqual(summary[&quot;planned_iterations&quot;], 80)
+        self.assertEqual(summary[&quot;baseline_iterations&quot;], 20)
+        self.assertEqual(summary[&quot;trained_iteration_count&quot;], 4)
+        self.assertEqual(summary[&quot;best_iteration&quot;], 0)
+        self.assertEqual(summary[&quot;tree_count&quot;], 1)
+        self.assertTrue(summary[&quot;stopped_before_budget&quot;])
+        self.assertFalse(summary[&quot;test_used_for_best_iteration&quot;])
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_feature_importance_lesson&quot;)
+        self.assertEqual(
+            summary[&quot;warnings&quot;],
+            [
+                &quot;tiny_training_pool_expected&quot;,
+                &quot;tiny_eval_set_expected&quot;,
+                &quot;best_iteration_zero_is_tiny_fixture_warning&quot;,
+            ],
+        )
+
+    def test_eval_set_lineage_uses_validation_not_test(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;split&quot;]: row for row in report[&quot;eval_set_lineage&quot;]}
+
+        self.assertEqual(rows[&quot;train&quot;][&quot;role&quot;], &quot;fit_pool&quot;)
+        self.assertTrue(rows[&quot;train&quot;][&quot;used_for_fit&quot;])
+        self.assertFalse(rows[&quot;train&quot;][&quot;used_as_eval_set&quot;])
+        self.assertEqual(rows[&quot;train&quot;][&quot;snapshot_ids&quot;], &quot;S001,S002,S003,S004&quot;)
+        self.assertEqual(rows[&quot;validation&quot;][&quot;role&quot;], &quot;eval_set_for_overfitting_detector&quot;)
+        self.assertTrue(rows[&quot;validation&quot;][&quot;used_as_eval_set&quot;])
+        self.assertTrue(rows[&quot;validation&quot;][&quot;used_for_best_iteration&quot;])
+        self.assertEqual(rows[&quot;validation&quot;][&quot;snapshot_ids&quot;], &quot;S005,S006,S007&quot;)
+        self.assertEqual(rows[&quot;test&quot;][&quot;role&quot;], &quot;final_holdout_prediction_only&quot;)
+        self.assertFalse(rows[&quot;test&quot;][&quot;used_as_eval_set&quot;])
+        self.assertFalse(rows[&quot;test&quot;][&quot;used_for_best_iteration&quot;])
+        self.assertTrue(rows[&quot;test&quot;][&quot;used_for_final_holdout&quot;])
+
+    def test_validation_curve_marks_best_iteration_and_patience_window(self) -&gt; None:
+        report = self.audit()
+        curve = report[&quot;validation_curve&quot;]
+
+        self.assertEqual(len(curve), 4)
+        self.assertEqual(curve[0][&quot;iteration&quot;], 0)
+        self.assertTrue(curve[0][&quot;is_best_iteration&quot;])
+        self.assertEqual(curve[0][&quot;iteration_role&quot;], &quot;best_iteration&quot;)
+        self.assertEqual(curve[0][&quot;validation_logloss&quot;], 0.698394)
+        self.assertEqual(curve[-1][&quot;iteration&quot;], 3)
+        self.assertEqual(curve[-1][&quot;iteration_role&quot;], &quot;after_best_within_od_wait&quot;)
+        self.assertEqual(curve[-1][&quot;validation_logloss&quot;], 0.715)
+        self.assertGreater(curve[-1][&quot;delta_from_best_validation_logloss&quot;], 0)
+        self.assertTrue(check(report, &quot;validation_curve_contains_best_iteration_and_patience_window&quot;)[&quot;valid&quot;])
+
+    def test_tree_count_report_shows_budget_reduction(self) -&gt; None:
+        report = self.audit()
+        row = report[&quot;tree_count_report&quot;][0]
+
+        self.assertEqual(row[&quot;planned_iterations&quot;], 80)
+        self.assertEqual(row[&quot;baseline_iterations&quot;], 20)
+        self.assertEqual(row[&quot;trained_iteration_count&quot;], 4)
+        self.assertEqual(row[&quot;best_iteration&quot;], 0)
+        self.assertEqual(row[&quot;tree_count&quot;], 1)
+        self.assertEqual(row[&quot;tree_count_reduction_from_budget&quot;], 79)
+        self.assertEqual(row[&quot;tree_count_reduction_from_baseline&quot;], 19)
+        self.assertTrue(row[&quot;stopped_before_budget&quot;])
+        self.assertEqual(row[&quot;od_type&quot;], &quot;Iter&quot;)
+        self.assertEqual(row[&quot;od_wait&quot;], 3)
+        self.assertFalse(row[&quot;test_used_for_best_iteration&quot;])
+
+    def test_serialized_spec_records_handoff_for_feature_importance_lesson(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;categorical_audit_id&quot;], &quot;trial-churn-categorical-feature-audit-v0&quot;)
+        self.assertEqual(serialized[&quot;source_catboost_model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(serialized[&quot;early_stopping_model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(serialized[&quot;cat_features&quot;], [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;acquisition_channel&quot;])
+        self.assertEqual(serialized[&quot;tree_count_summary&quot;][&quot;best_iteration&quot;], 0)
+        self.assertEqual(serialized[&quot;tree_count_summary&quot;][&quot;tree_count&quot;], 1)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;categorical_readiness_status&quot;], &quot;ready_for_early_stopping_lesson&quot;)
+
+    def test_code_example_writes_all_early_stopping_outputs(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;planned_iterations&quot;], 80)
+        self.assertEqual(payload[&quot;trained_iteration_count&quot;], 4)
+        self.assertEqual(payload[&quot;best_iteration&quot;], 0)
+        self.assertEqual(payload[&quot;tree_count&quot;], 1)
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;)[&quot;summary&quot;][&quot;tree_count&quot;], 1)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;eval_set_lineage.csv&quot;)), 3)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;validation_curve.csv&quot;)), 4)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;tree_count_report.csv&quot;)), 1)
+        self.assertEqual(
+            read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;early_stopping_serialized_spec.json&quot;)[&quot;early_stopping_model_id&quot;],
+            &quot;catboost_depth2_native_categories_es_logloss&quot;,
+        )
+
+    def test_invalid_categorical_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            categorical = read_json(reports / &quot;categorical_feature_report.json&quot;)
+            categorical[&quot;summary&quot;][&quot;readiness_status&quot;] = &quot;blocked_by_categorical_feature_contract&quot;
+            write_json(reports / &quot;categorical_feature_report.json&quot;, categorical)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;early_stopping_policy_matches_upstream_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertIn(&quot;early_stopping_policy_matches_upstream_handoff&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_invalid_upstream_catboost_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            catboost_report = read_json(reports / &quot;catboost_report.json&quot;)
+            catboost_report[&quot;valid&quot;] = False
+            write_json(reports / &quot;catboost_report.json&quot;, catboost_report)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;early_stopping_policy_matches_upstream_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+
+    def test_test_split_cannot_be_eval_set(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;early_stopping_policy_spec.json&quot;)
+            policy[&quot;eval_split&quot;] = &quot;test&quot;
+            policy[&quot;eval_set_policy&quot;][&quot;allowed_eval_split&quot;] = &quot;test&quot;
+            write_json(phase16 / &quot;early_stopping_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;early_stopping_policy_matches_upstream_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertEqual(handoff[&quot;observed&quot;][0][&quot;field&quot;], &quot;eval_split&quot;)
+
+    def test_missing_use_best_model_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;early_stopping_policy_spec.json&quot;)
+            policy[&quot;catboost_params&quot;][&quot;use_best_model&quot;] = False
+            policy[&quot;training_control&quot;][&quot;use_best_model&quot;] = False
+            write_json(phase16 / &quot;early_stopping_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        control = check(report, &quot;early_stopping_policy_declares_reproducible_training_control&quot;)
+        self.assertFalse(control[&quot;valid&quot;])
+        self.assertEqual(control[&quot;observed&quot;][0][&quot;field&quot;], &quot;use_best_model&quot;)
+
+    def test_missing_overfitting_detector_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;early_stopping_policy_spec.json&quot;)
+            del policy[&quot;catboost_params&quot;][&quot;od_type&quot;]
+            write_json(phase16 / &quot;early_stopping_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        control = check(report, &quot;early_stopping_policy_declares_reproducible_training_control&quot;)
+        self.assertFalse(control[&quot;valid&quot;])
+        self.assertEqual(control[&quot;observed&quot;][0][&quot;field&quot;], &quot;catboost_params.od_type&quot;)
+
+    def test_missing_validation_split_blocks_before_fit(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            manifest = read_csv(upstream / &quot;ml_split_manifest.csv&quot;)
+            for row in manifest:
+                if row[&quot;split&quot;] == &quot;validation&quot;:
+                    row[&quot;split&quot;] = &quot;train&quot;
+            write_csv(upstream / &quot;ml_split_manifest.csv&quot;, manifest)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        split_check = check(report, &quot;training_table_has_train_validation_test_splits&quot;)
+        self.assertFalse(split_check[&quot;valid&quot;])
+        self.assertEqual(report[&quot;validation_curve&quot;], [])
+
+    def test_cli_fail_on_warning_exits_after_writing_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;outputs&quot;
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--output-dir&quot;, output_dir, &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            report_exists = (output_dir / &quot;early_stopping_report.json&quot;).exists()
+            curve_exists = (output_dir / &quot;validation_curve.csv&quot;).exists()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;warning_count&quot;], 3)
+        self.assertTrue(report_exists)
+        self.assertTrue(curve_exists)
+
+    def test_missing_policy_returns_structured_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_policy = phase16 / &quot;missing_early_stopping_policy_spec.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                policy_path=missing_policy,
+                catboost_report_path=reports / &quot;catboost_report.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+        self.assertEqual(report[&quot;checks&quot;][0][&quot;id&quot;], &quot;input_files_are_present&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from early_stopping_auditor import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; None:
+    result = run()
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;])
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;early_stopping_audit_id&quot;: summary[&quot;early_stopping_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: summary[&quot;early_stopping_model_id&quot;],
+                &quot;planned_iterations&quot;: summary[&quot;planned_iterations&quot;],
+                &quot;trained_iteration_count&quot;: summary[&quot;trained_iteration_count&quot;],
+                &quot;best_iteration&quot;: summary[&quot;best_iteration&quot;],
+                &quot;tree_count&quot;: summary[&quot;tree_count&quot;],
+                &quot;stopped_before_budget&quot;: summary[&quot;stopped_before_budget&quot;],
+                &quot;warning_count&quot;: len(summary[&quot;warnings&quot;]),
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;early-stopping-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/early_stopping_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет CatBoost early stopping protocol: validation-only eval_set, overfitting detector, best-iteration trace, tree-count report и запрет test-driven selection.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_auditor.py --output-dir phases/16-tabular-ml/03-early-stopping/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/early_stopping_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import numpy as np
+import pandas as pd
+from catboost import CatBoostClassifier, Pool
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;early_stopping_policy_spec.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_CATEGORICAL_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;
+)
+DEFAULT_CATBOOST_REPORT_PATH = PHASE_16_ROOT / &quot;01-catboost&quot; / &quot;outputs&quot; / &quot;catboost_report.json&quot;
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+
+GENERATED_AT = &quot;2026-07-04T10:00:00+03:00&quot;
+
+
+def portable_path(path: Path) -&gt; str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+class EarlyStoppingAuditError(ValueError):
+    &quot;&quot;&quot;Raised when early-stopping audit inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise EarlyStoppingAuditError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def validate_handoff(
+    *,
+    policy: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    catboost_report: dict[str, Any],
+    categorical_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    required = {
+        &quot;early_stopping_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;source_catboost_model_id&quot;,
+        &quot;early_stopping_model_id&quot;,
+        &quot;categorical_audit_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;eval_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;training_control&quot;,
+        &quot;catboost_params&quot;,
+        &quot;eval_set_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    expected_identity = {
+        &quot;problem_id&quot;: catboost_spec.get(&quot;problem_id&quot;),
+        &quot;catboost_baseline_id&quot;: catboost_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;source_catboost_model_id&quot;: catboost_spec.get(&quot;candidate&quot;, {}).get(&quot;model_id&quot;),
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;eval_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+    }
+    for field, expected in expected_identity.items():
+        if policy.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: policy.get(field), &quot;expected&quot;: expected})
+
+    if catboost_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;catboost_report.valid&quot;, &quot;observed&quot;: catboost_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if catboost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_categorical_feature_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;catboost_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: catboost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_categorical_feature_lesson&quot;,
+            }
+        )
+    if categorical_report.get(&quot;valid&quot;) is not True:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_report.valid&quot;,
+                &quot;observed&quot;: categorical_report.get(&quot;valid&quot;),
+                &quot;expected&quot;: True,
+            }
+        )
+    categorical_summary = categorical_report.get(&quot;summary&quot;, {})
+    if categorical_summary.get(&quot;readiness_status&quot;) != &quot;ready_for_early_stopping_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: categorical_summary.get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_early_stopping_lesson&quot;,
+            }
+        )
+    if categorical_summary.get(&quot;categorical_audit_id&quot;) != policy.get(&quot;categorical_audit_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_audit_id&quot;,
+                &quot;observed&quot;: policy.get(&quot;categorical_audit_id&quot;),
+                &quot;expected&quot;: categorical_summary.get(&quot;categorical_audit_id&quot;),
+            }
+        )
+    spec_cats = catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;categorical_features&quot;, [])
+    if categorical_summary.get(&quot;cat_features&quot;) != spec_cats:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;categorical_report.summary.cat_features&quot;,
+                &quot;observed&quot;: categorical_summary.get(&quot;cat_features&quot;),
+                &quot;expected&quot;: spec_cats,
+            }
+        )
+
+    if errors:
+        return [
+            failed(
+                &quot;early_stopping_policy_matches_upstream_handoff&quot;,
+                errors,
+                &quot;same problem, CatBoost model and categorical audit readiness&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;early_stopping_policy_matches_upstream_handoff&quot;,
+            {
+                &quot;early_stopping_audit_id&quot;: policy[&quot;early_stopping_audit_id&quot;],
+                &quot;source_catboost_model_id&quot;: policy[&quot;source_catboost_model_id&quot;],
+                &quot;categorical_audit_id&quot;: policy[&quot;categorical_audit_id&quot;],
+            },
+        )
+    ]
+
+
+def validate_training_control(policy: dict[str, Any], catboost_spec: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    params = policy.get(&quot;catboost_params&quot;) if isinstance(policy.get(&quot;catboost_params&quot;), dict) else {}
+    control = policy.get(&quot;training_control&quot;) if isinstance(policy.get(&quot;training_control&quot;), dict) else {}
+    eval_policy = policy.get(&quot;eval_set_policy&quot;) if isinstance(policy.get(&quot;eval_set_policy&quot;), dict) else {}
+    base_params = catboost_spec.get(&quot;candidate&quot;, {}).get(&quot;params&quot;, {})
+    errors: list[dict[str, Any]] = []
+
+    planned = params.get(&quot;iterations&quot;)
+    if not isinstance(planned, int) or planned &lt;= int(base_params.get(&quot;iterations&quot;, 0)):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;catboost_params.iterations&quot;,
+                &quot;observed&quot;: planned,
+                &quot;expected&quot;: f&quot;&gt; baseline iterations {base_params.get(&#x27;iterations&#x27;)}&quot;,
+            }
+        )
+    if control.get(&quot;planned_iterations&quot;) != planned:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;training_control.planned_iterations&quot;,
+                &quot;observed&quot;: control.get(&quot;planned_iterations&quot;),
+                &quot;expected&quot;: planned,
+            }
+        )
+    if params.get(&quot;od_type&quot;) != control.get(&quot;overfitting_detector_type&quot;) or params.get(&quot;od_type&quot;) != &quot;Iter&quot;:
+        errors.append({&quot;field&quot;: &quot;catboost_params.od_type&quot;, &quot;observed&quot;: params.get(&quot;od_type&quot;), &quot;expected&quot;: &quot;Iter&quot;})
+    if not isinstance(params.get(&quot;od_wait&quot;), int) or params.get(&quot;od_wait&quot;) &lt; 1:
+        errors.append({&quot;field&quot;: &quot;catboost_params.od_wait&quot;, &quot;observed&quot;: params.get(&quot;od_wait&quot;), &quot;expected&quot;: &quot;integer &gt;= 1&quot;})
+    if params.get(&quot;od_wait&quot;) != control.get(&quot;od_wait&quot;):
+        errors.append({&quot;field&quot;: &quot;training_control.od_wait&quot;, &quot;observed&quot;: control.get(&quot;od_wait&quot;), &quot;expected&quot;: params.get(&quot;od_wait&quot;)})
+    if params.get(&quot;use_best_model&quot;) is not True or control.get(&quot;use_best_model&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;use_best_model&quot;, &quot;observed&quot;: params.get(&quot;use_best_model&quot;), &quot;expected&quot;: True})
+    if params.get(&quot;eval_metric&quot;) != control.get(&quot;eval_metric&quot;):
+        errors.append({&quot;field&quot;: &quot;eval_metric&quot;, &quot;observed&quot;: params.get(&quot;eval_metric&quot;), &quot;expected&quot;: control.get(&quot;eval_metric&quot;)})
+    for field in (&quot;depth&quot;, &quot;learning_rate&quot;, &quot;loss_function&quot;, &quot;random_seed&quot;):
+        if params.get(field) != base_params.get(field):
+            errors.append({&quot;field&quot;: f&quot;catboost_params.{field}&quot;, &quot;observed&quot;: params.get(field), &quot;expected&quot;: base_params.get(field)})
+    for field, expected in {
+        &quot;allow_writing_files&quot;: False,
+        &quot;verbose&quot;: False,
+        &quot;thread_count&quot;: 1,
+    }.items():
+        if params.get(field) != expected:
+            errors.append({&quot;field&quot;: f&quot;catboost_params.{field}&quot;, &quot;observed&quot;: params.get(field), &quot;expected&quot;: expected})
+    if policy.get(&quot;eval_split&quot;) != eval_policy.get(&quot;allowed_eval_split&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;eval_split&quot;,
+                &quot;observed&quot;: policy.get(&quot;eval_split&quot;),
+                &quot;expected&quot;: eval_policy.get(&quot;allowed_eval_split&quot;),
+            }
+        )
+    if policy.get(&quot;final_holdout_split&quot;) in set(eval_policy.get(&quot;forbidden_eval_splits&quot;, [])):
+        pass
+    else:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;eval_set_policy.forbidden_eval_splits&quot;,
+                &quot;observed&quot;: eval_policy.get(&quot;forbidden_eval_splits&quot;, []),
+                &quot;expected&quot;: [policy.get(&quot;final_holdout_split&quot;)],
+            }
+        )
+
+    if errors:
+        return [
+            failed(
+                &quot;early_stopping_policy_declares_reproducible_training_control&quot;,
+                errors,
+                &quot;fixed budget, validation eval_set, overfitting detector and use_best_model&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;early_stopping_policy_declares_reproducible_training_control&quot;,
+            {
+                &quot;planned_iterations&quot;: planned,
+                &quot;eval_metric&quot;: params.get(&quot;eval_metric&quot;),
+                &quot;od_type&quot;: params.get(&quot;od_type&quot;),
+                &quot;od_wait&quot;: params.get(&quot;od_wait&quot;),
+                &quot;use_best_model&quot;: params.get(&quot;use_best_model&quot;),
+                &quot;random_seed&quot;: params.get(&quot;random_seed&quot;),
+            },
+        )
+    ]
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+    for frame_name, frame in {
+        &quot;features&quot;: features,
+        &quot;labels&quot;: labels,
+        &quot;manifest&quot;: manifest,
+    }.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise EarlyStoppingAuditError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise EarlyStoppingAuditError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(
+        manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;, &quot;user_id&quot;, &quot;prediction_time&quot;]],
+        on=&quot;snapshot_id&quot;,
+        how=&quot;inner&quot;,
+    )
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def validate_training_table(frame: pd.DataFrame, policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    observed_splits = sorted(frame[&quot;split&quot;].unique().tolist())
+    required_splits = sorted([policy.get(&quot;fit_split&quot;), policy.get(&quot;eval_split&quot;), policy.get(&quot;final_holdout_split&quot;)])
+    if observed_splits == required_splits:
+        checks.append(passed(&quot;training_table_has_train_validation_test_splits&quot;, observed_splits))
+    else:
+        checks.append(failed(&quot;training_table_has_train_validation_test_splits&quot;, observed_splits, required_splits))
+
+    class_errors: list[dict[str, Any]] = []
+    for split_name in (policy.get(&quot;fit_split&quot;), policy.get(&quot;eval_split&quot;)):
+        split_targets = sorted(frame.loc[frame[&quot;split&quot;] == split_name, &quot;target&quot;].unique().tolist())
+        if split_targets != [0, 1]:
+            class_errors.append({&quot;split&quot;: split_name, &quot;observed_classes&quot;: split_targets, &quot;expected&quot;: [0, 1]})
+    if class_errors:
+        checks.append(failed(&quot;fit_and_eval_splits_have_both_classes&quot;, class_errors, &quot;both classes in train and validation&quot;))
+    else:
+        checks.append(passed(&quot;fit_and_eval_splits_have_both_classes&quot;, {&quot;train&quot;: [0, 1], &quot;validation&quot;: [0, 1]}))
+    return checks
+
+
+def prepare_features(
+    frame: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    missing_category_token: str,
+) -&gt; pd.DataFrame:
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def lineage_rows(frame: pd.DataFrame, policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    roles = {
+        policy[&quot;fit_split&quot;]: &quot;fit_pool&quot;,
+        policy[&quot;eval_split&quot;]: &quot;eval_set_for_overfitting_detector&quot;,
+        policy[&quot;final_holdout_split&quot;]: &quot;final_holdout_prediction_only&quot;,
+    }
+    for split in (policy[&quot;fit_split&quot;], policy[&quot;eval_split&quot;], policy[&quot;final_holdout_split&quot;]):
+        split_frame = frame.loc[frame[&quot;split&quot;] == split]
+        rows.append(
+            {
+                &quot;split&quot;: split,
+                &quot;role&quot;: roles[split],
+                &quot;row_count&quot;: len(split_frame),
+                &quot;snapshot_ids&quot;: &quot;,&quot;.join(split_frame[&quot;snapshot_id&quot;].tolist()),
+                &quot;used_for_fit&quot;: split == policy[&quot;fit_split&quot;],
+                &quot;used_as_eval_set&quot;: split == policy[&quot;eval_split&quot;],
+                &quot;used_for_best_iteration&quot;: split == policy[&quot;eval_split&quot;],
+                &quot;used_for_final_holdout&quot;: split == policy[&quot;final_holdout_split&quot;],
+                &quot;target_positive_count&quot;: int(split_frame[&quot;target&quot;].sum()),
+                &quot;target_negative_count&quot;: int(len(split_frame) - split_frame[&quot;target&quot;].sum()),
+            }
+        )
+    return rows
+
+
+def validate_lineage(lineage: list[dict[str, Any]], policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    by_split = {row[&quot;split&quot;]: row for row in lineage}
+    train_ids = by_split[policy[&quot;fit_split&quot;]][&quot;snapshot_ids&quot;].split(&quot;,&quot;)
+    eval_ids = by_split[policy[&quot;eval_split&quot;]][&quot;snapshot_ids&quot;].split(&quot;,&quot;)
+    test_used = by_split[policy[&quot;final_holdout_split&quot;]][&quot;used_as_eval_set&quot;] or by_split[policy[&quot;final_holdout_split&quot;]][
+        &quot;used_for_best_iteration&quot;
+    ]
+
+    checks.append(passed(&quot;fit_pool_uses_only_train_rows&quot;, train_ids, &quot;train split ids&quot;))
+    checks.append(passed(&quot;eval_set_uses_only_validation_rows&quot;, eval_ids, &quot;validation split ids&quot;))
+    if test_used:
+        checks.append(
+            failed(
+                &quot;final_holdout_not_used_for_early_stopping&quot;,
+                by_split[policy[&quot;final_holdout_split&quot;]],
+                &quot;test split is not eval_set and not best-iteration selection&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;final_holdout_not_used_for_early_stopping&quot;,
+                {
+                    &quot;final_holdout_split&quot;: policy[&quot;final_holdout_split&quot;],
+                    &quot;used_as_eval_set&quot;: False,
+                    &quot;used_for_best_iteration&quot;: False,
+                },
+            )
+        )
+    return checks
+
+
+def build_validation_curve(model: CatBoostClassifier, best_iteration: int, metric_name: str) -&gt; list[dict[str, Any]]:
+    evals = model.get_evals_result()
+    learn_values = evals.get(&quot;learn&quot;, {}).get(metric_name)
+    validation_values = evals.get(&quot;validation&quot;, {}).get(metric_name)
+    if not learn_values or not validation_values:
+        raise EarlyStoppingAuditError(f&quot;CatBoost did not return learn/validation {metric_name} curve&quot;)
+    best_value = float(validation_values[best_iteration])
+    rows: list[dict[str, Any]] = []
+    for iteration, (learn_value, validation_value) in enumerate(zip(learn_values, validation_values, strict=True)):
+        if iteration == best_iteration:
+            role = &quot;best_iteration&quot;
+        elif iteration &gt; best_iteration:
+            role = &quot;after_best_within_od_wait&quot;
+        else:
+            role = &quot;before_best&quot;
+        rows.append(
+            {
+                &quot;iteration&quot;: iteration,
+                &quot;learn_logloss&quot;: rounded(float(learn_value)),
+                &quot;validation_logloss&quot;: rounded(float(validation_value)),
+                &quot;is_best_iteration&quot;: iteration == best_iteration,
+                &quot;iteration_role&quot;: role,
+                &quot;delta_from_best_validation_logloss&quot;: rounded(float(validation_value) - best_value),
+            }
+        )
+    return rows
+
+
+def build_tree_count_report(
+    *,
+    policy: dict[str, Any],
+    model: CatBoostClassifier,
+    validation_curve: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    planned_iterations = int(policy[&quot;catboost_params&quot;][&quot;iterations&quot;])
+    baseline_iterations = int(policy[&quot;training_control&quot;][&quot;baseline_iterations&quot;])
+    best_iteration = model.get_best_iteration()
+    if best_iteration is None:
+        raise EarlyStoppingAuditError(&quot;CatBoost best_iteration is None&quot;)
+    best_row = next(row for row in validation_curve if row[&quot;is_best_iteration&quot;])
+    last_row = validation_curve[-1]
+    return [
+        {
+            &quot;model_id&quot;: policy[&quot;early_stopping_model_id&quot;],
+            &quot;source_model_id&quot;: policy[&quot;source_catboost_model_id&quot;],
+            &quot;planned_iterations&quot;: planned_iterations,
+            &quot;baseline_iterations&quot;: baseline_iterations,
+            &quot;trained_iteration_count&quot;: len(validation_curve),
+            &quot;best_iteration&quot;: best_iteration,
+            &quot;tree_count&quot;: int(model.tree_count_),
+            &quot;tree_count_reduction_from_budget&quot;: planned_iterations - int(model.tree_count_),
+            &quot;tree_count_reduction_from_baseline&quot;: baseline_iterations - int(model.tree_count_),
+            &quot;stopped_before_budget&quot;: len(validation_curve) &lt; planned_iterations,
+            &quot;use_best_model&quot;: policy[&quot;catboost_params&quot;][&quot;use_best_model&quot;],
+            &quot;od_type&quot;: policy[&quot;catboost_params&quot;][&quot;od_type&quot;],
+            &quot;od_wait&quot;: policy[&quot;catboost_params&quot;][&quot;od_wait&quot;],
+            &quot;eval_metric&quot;: policy[&quot;catboost_params&quot;][&quot;eval_metric&quot;],
+            &quot;best_validation_logloss&quot;: best_row[&quot;validation_logloss&quot;],
+            &quot;last_validation_logloss&quot;: last_row[&quot;validation_logloss&quot;],
+            &quot;test_used_for_best_iteration&quot;: False,
+        }
+    ]
+
+
+def validate_trained_model(
+    *,
+    policy: dict[str, Any],
+    model: CatBoostClassifier,
+    validation_curve: list[dict[str, Any]],
+    tree_count_report: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    params = policy[&quot;catboost_params&quot;]
+    best_iteration = model.get_best_iteration()
+    planned_iterations = int(params[&quot;iterations&quot;])
+    od_wait = int(params[&quot;od_wait&quot;])
+    tree_count = int(model.tree_count_)
+    trained_iteration_count = len(validation_curve)
+
+    if best_iteration is None or not 0 &lt;= int(best_iteration) &lt; trained_iteration_count:
+        checks.append(
+            failed(
+                &quot;best_iteration_is_recorded&quot;,
+                best_iteration,
+                f&quot;integer in [0, {trained_iteration_count})&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;best_iteration_is_recorded&quot;,
+                {
+                    &quot;best_iteration&quot;: int(best_iteration),
+                    &quot;best_validation_logloss&quot;: next(row[&quot;validation_logloss&quot;] for row in validation_curve if row[&quot;is_best_iteration&quot;]),
+                },
+            )
+        )
+
+    if best_iteration is not None and tree_count == int(best_iteration) + 1:
+        checks.append(
+            passed(
+                &quot;tree_count_matches_best_iteration_when_use_best_model&quot;,
+                {&quot;tree_count&quot;: tree_count, &quot;best_iteration&quot;: int(best_iteration)},
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;tree_count_matches_best_iteration_when_use_best_model&quot;,
+                {&quot;tree_count&quot;: tree_count, &quot;best_iteration&quot;: best_iteration},
+                &quot;tree_count == best_iteration + 1&quot;,
+            )
+        )
+
+    if trained_iteration_count &lt; planned_iterations and tree_count &lt; planned_iterations:
+        checks.append(
+            passed(
+                &quot;training_stopped_before_full_iteration_budget&quot;,
+                {
+                    &quot;planned_iterations&quot;: planned_iterations,
+                    &quot;trained_iteration_count&quot;: trained_iteration_count,
+                    &quot;tree_count&quot;: tree_count,
+                },
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;training_stopped_before_full_iteration_budget&quot;,
+                {
+                    &quot;planned_iterations&quot;: planned_iterations,
+                    &quot;trained_iteration_count&quot;: trained_iteration_count,
+                    &quot;tree_count&quot;: tree_count,
+                },
+                &quot;overfitting detector stops before full budget on this tiny fixture&quot;,
+            )
+        )
+
+    expected_min_curve = (int(best_iteration) + od_wait + 1) if best_iteration is not None else None
+    if expected_min_curve is not None and trained_iteration_count &gt;= expected_min_curve:
+        checks.append(
+            passed(
+                &quot;validation_curve_contains_best_iteration_and_patience_window&quot;,
+                {&quot;trained_iteration_count&quot;: trained_iteration_count, &quot;od_wait&quot;: od_wait, &quot;best_iteration&quot;: int(best_iteration)},
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;validation_curve_contains_best_iteration_and_patience_window&quot;,
+                {&quot;trained_iteration_count&quot;: trained_iteration_count, &quot;od_wait&quot;: od_wait, &quot;best_iteration&quot;: best_iteration},
+                &quot;curve includes best iteration and od_wait patience rows&quot;,
+            )
+        )
+
+    report_row = tree_count_report[0]
+    if report_row[&quot;test_used_for_best_iteration&quot;] is False:
+        checks.append(passed(&quot;tree_count_report_marks_test_as_invisible&quot;, report_row[&quot;test_used_for_best_iteration&quot;]))
+    else:
+        checks.append(failed(&quot;tree_count_report_marks_test_as_invisible&quot;, report_row[&quot;test_used_for_best_iteration&quot;], False))
+    return checks
+
+
+def warning_checks(frame: pd.DataFrame, policy: dict[str, Any], best_iteration: int | None) -&gt; list[dict[str, Any]]:
+    warning_policy = policy.get(&quot;warning_policy&quot;, {})
+    checks: list[dict[str, Any]] = []
+    train_count = int((frame[&quot;split&quot;] == policy[&quot;fit_split&quot;]).sum())
+    eval_count = int((frame[&quot;split&quot;] == policy[&quot;eval_split&quot;]).sum())
+    min_train = int(warning_policy.get(&quot;min_train_rows_for_stable_early_stopping&quot;, 0))
+    min_eval = int(warning_policy.get(&quot;min_eval_rows_for_stable_early_stopping&quot;, 0))
+
+    if train_count &lt; min_train:
+        checks.append(
+            failed(
+                &quot;tiny_training_pool_expected&quot;,
+                train_count,
+                f&quot;&gt;= {min_train}&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;tiny_training_pool_expected&quot;, train_count))
+    if eval_count &lt; min_eval:
+        checks.append(
+            failed(
+                &quot;tiny_eval_set_expected&quot;,
+                eval_count,
+                f&quot;&gt;= {min_eval}&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;tiny_eval_set_expected&quot;, eval_count))
+    if warning_policy.get(&quot;warn_when_best_iteration_is_zero&quot;) and best_iteration == 0:
+        checks.append(
+            failed(
+                &quot;best_iteration_zero_is_tiny_fixture_warning&quot;,
+                best_iteration,
+                &quot;best_iteration &gt; 0 on a stable real training set&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(passed(&quot;best_iteration_zero_is_tiny_fixture_warning&quot;, best_iteration))
+    return checks
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable early stopping audit inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;early_stopping_audit_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_early_stopping_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;eval_set_lineage&quot;: [],
+        &quot;validation_curve&quot;: [],
+        &quot;tree_count_report&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    catboost_report_path: Path = DEFAULT_CATBOOST_REPORT_PATH,
+    categorical_report_path: Path = DEFAULT_CATEGORICAL_REPORT_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;early_stopping_policy&quot;: policy_path,
+        &quot;catboost_model_spec&quot;: catboost_spec_path,
+        &quot;catboost_report&quot;: catboost_report_path,
+        &quot;categorical_report&quot;: categorical_report_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        policy = read_json(policy_path)
+        catboost_spec = read_json(catboost_spec_path)
+        catboost_report = read_json(catboost_report_path)
+        categorical_report = read_json(categorical_report_path)
+        frame = joined_frame(features_path, labels_path, manifest_path)
+        numeric_features = list(catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;numeric_features&quot;, []))
+        categorical_features = list(catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;categorical_features&quot;, []))
+        missing_token = catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;)
+
+        checks = [file_check]
+        checks.extend(
+            validate_handoff(
+                policy=policy,
+                catboost_spec=catboost_spec,
+                catboost_report=catboost_report,
+                categorical_report=categorical_report,
+            )
+        )
+        checks.extend(validate_training_control(policy, catboost_spec))
+        checks.extend(validate_training_table(frame, policy))
+        lineage = lineage_rows(frame, policy)
+        checks.extend(validate_lineage(lineage, policy))
+
+        validation_curve: list[dict[str, Any]] = []
+        tree_count_report: list[dict[str, Any]] = []
+        model: CatBoostClassifier | None = None
+        if not blocking_errors(checks):
+            matrix = prepare_features(frame, numeric_features, categorical_features, missing_token)
+            train_mask = frame[&quot;split&quot;] == policy[&quot;fit_split&quot;]
+            eval_mask = frame[&quot;split&quot;] == policy[&quot;eval_split&quot;]
+            model = CatBoostClassifier(**policy[&quot;catboost_params&quot;])
+            model.fit(
+                Pool(matrix.loc[train_mask], frame.loc[train_mask, &quot;target&quot;], cat_features=categorical_features),
+                eval_set=Pool(matrix.loc[eval_mask], frame.loc[eval_mask, &quot;target&quot;], cat_features=categorical_features),
+            )
+            best_iteration = model.get_best_iteration()
+            if best_iteration is None:
+                raise EarlyStoppingAuditError(&quot;CatBoost did not record best_iteration&quot;)
+            validation_curve = build_validation_curve(model, int(best_iteration), policy[&quot;catboost_params&quot;][&quot;eval_metric&quot;])
+            tree_count_report = build_tree_count_report(policy=policy, model=model, validation_curve=validation_curve)
+            checks.extend(
+                validate_trained_model(
+                    policy=policy,
+                    model=model,
+                    validation_curve=validation_curve,
+                    tree_count_report=tree_count_report,
+                )
+            )
+            checks.extend(warning_checks(frame, policy, int(best_iteration)))
+
+        blocking = blocking_errors(checks)
+        warnings = warning_ids(checks)
+        valid = not blocking
+        report_row = tree_count_report[0] if tree_count_report else {}
+        best_iteration_value = report_row.get(&quot;best_iteration&quot;)
+        serialized_spec = {
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: policy.get(&quot;catboost_baseline_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;categorical_audit_id&quot;: policy.get(&quot;categorical_audit_id&quot;),
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;cat_features&quot;: categorical_features,
+            &quot;numeric_features&quot;: numeric_features,
+            &quot;training_control&quot;: policy.get(&quot;training_control&quot;, {}),
+            &quot;catboost_params&quot;: policy.get(&quot;catboost_params&quot;, {}),
+            &quot;eval_set_policy&quot;: policy.get(&quot;eval_set_policy&quot;, {}),
+            &quot;fit_summary&quot;: {
+                &quot;fit_split&quot;: policy.get(&quot;fit_split&quot;),
+                &quot;eval_split&quot;: policy.get(&quot;eval_split&quot;),
+                &quot;final_holdout_split&quot;: policy.get(&quot;final_holdout_split&quot;),
+                &quot;fit_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;fit_split&quot;)).sum()),
+                &quot;eval_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;eval_split&quot;)).sum()),
+                &quot;final_holdout_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;final_holdout_split&quot;)).sum()),
+            },
+            &quot;tree_count_summary&quot;: report_row,
+            &quot;upstream_handoff&quot;: {
+                &quot;catboost_report&quot;: portable_path(catboost_report_path),
+                &quot;catboost_readiness_status&quot;: catboost_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;categorical_report&quot;: portable_path(categorical_report_path),
+                &quot;categorical_readiness_status&quot;: categorical_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+            },
+            &quot;output&quot;: policy.get(&quot;output&quot;, {}),
+        }
+        summary = {
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: policy.get(&quot;catboost_baseline_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;fit_split&quot;: policy.get(&quot;fit_split&quot;),
+            &quot;fit_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;fit_split&quot;)).sum()),
+            &quot;eval_split&quot;: policy.get(&quot;eval_split&quot;),
+            &quot;eval_set_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;eval_split&quot;)).sum()),
+            &quot;final_holdout_split&quot;: policy.get(&quot;final_holdout_split&quot;),
+            &quot;final_holdout_row_count&quot;: int((frame[&quot;split&quot;] == policy.get(&quot;final_holdout_split&quot;)).sum()),
+            &quot;planned_iterations&quot;: policy.get(&quot;catboost_params&quot;, {}).get(&quot;iterations&quot;),
+            &quot;baseline_iterations&quot;: policy.get(&quot;training_control&quot;, {}).get(&quot;baseline_iterations&quot;),
+            &quot;trained_iteration_count&quot;: report_row.get(&quot;trained_iteration_count&quot;),
+            &quot;best_iteration&quot;: best_iteration_value,
+            &quot;tree_count&quot;: report_row.get(&quot;tree_count&quot;),
+            &quot;stopped_before_budget&quot;: report_row.get(&quot;stopped_before_budget&quot;),
+            &quot;test_used_for_best_iteration&quot;: report_row.get(&quot;test_used_for_best_iteration&quot;, False),
+            &quot;eval_metric&quot;: policy.get(&quot;catboost_params&quot;, {}).get(&quot;eval_metric&quot;),
+            &quot;best_validation_logloss&quot;: report_row.get(&quot;best_validation_logloss&quot;),
+            &quot;last_validation_logloss&quot;: report_row.get(&quot;last_validation_logloss&quot;),
+            &quot;blocking_errors&quot;: blocking,
+            &quot;warnings&quot;: warnings,
+            &quot;readiness_status&quot;: &quot;ready_for_feature_importance_lesson&quot; if valid else &quot;blocked_by_early_stopping_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        return {
+            &quot;valid&quot;: valid,
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;checks&quot;: checks,
+            &quot;eval_set_lineage&quot;: lineage if valid else [],
+            &quot;validation_curve&quot;: validation_curve,
+            &quot;tree_count_report&quot;: tree_count_report,
+            &quot;serialized_spec&quot;: serialized_spec if valid else {},
+        }
+    except (EarlyStoppingAuditError, OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
+        return failure_report(&quot;early_stopping_audit_runtime_error&quot;, str(exc))
+
+
+EVAL_SET_LINEAGE_FIELDS = [
+    &quot;split&quot;,
+    &quot;role&quot;,
+    &quot;row_count&quot;,
+    &quot;snapshot_ids&quot;,
+    &quot;used_for_fit&quot;,
+    &quot;used_as_eval_set&quot;,
+    &quot;used_for_best_iteration&quot;,
+    &quot;used_for_final_holdout&quot;,
+    &quot;target_positive_count&quot;,
+    &quot;target_negative_count&quot;,
+]
+
+VALIDATION_CURVE_FIELDS = [
+    &quot;iteration&quot;,
+    &quot;learn_logloss&quot;,
+    &quot;validation_logloss&quot;,
+    &quot;is_best_iteration&quot;,
+    &quot;iteration_role&quot;,
+    &quot;delta_from_best_validation_logloss&quot;,
+]
+
+TREE_COUNT_REPORT_FIELDS = [
+    &quot;model_id&quot;,
+    &quot;source_model_id&quot;,
+    &quot;planned_iterations&quot;,
+    &quot;baseline_iterations&quot;,
+    &quot;trained_iteration_count&quot;,
+    &quot;best_iteration&quot;,
+    &quot;tree_count&quot;,
+    &quot;tree_count_reduction_from_budget&quot;,
+    &quot;tree_count_reduction_from_baseline&quot;,
+    &quot;stopped_before_budget&quot;,
+    &quot;use_best_model&quot;,
+    &quot;od_type&quot;,
+    &quot;od_wait&quot;,
+    &quot;eval_metric&quot;,
+    &quot;best_validation_logloss&quot;,
+    &quot;last_validation_logloss&quot;,
+    &quot;test_used_for_best_iteration&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_spec&quot;})
+    write_csv(output_dir / output_spec[&quot;eval_set_lineage_file&quot;], result[&quot;eval_set_lineage&quot;], EVAL_SET_LINEAGE_FIELDS)
+    write_csv(output_dir / output_spec[&quot;validation_curve_file&quot;], result[&quot;validation_curve&quot;], VALIDATION_CURVE_FIELDS)
+    write_csv(output_dir / output_spec[&quot;tree_count_report_file&quot;], result[&quot;tree_count_report&quot;], TREE_COUNT_REPORT_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Audit CatBoost early stopping and iteration budget protocol.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--catboost-report&quot;, type=Path, default=DEFAULT_CATBOOST_REPORT_PATH)
+    parser.add_argument(&quot;--categorical-report&quot;, type=Path, default=DEFAULT_CATEGORICAL_REPORT_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        policy_path=args.policy,
+        catboost_spec_path=args.catboost_spec,
+        catboost_report_path=args.catboost_report,
+        categorical_report_path=args.categorical_report,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+    )
+    output_spec = read_json(args.policy).get(&quot;output&quot;, {}) if args.policy.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;early_stopping_audit_id&quot;: summary.get(&quot;early_stopping_audit_id&quot;),
+                &quot;early_stopping_model_id&quot;: summary.get(&quot;early_stopping_model_id&quot;),
+                &quot;planned_iterations&quot;: summary.get(&quot;planned_iterations&quot;),
+                &quot;trained_iteration_count&quot;: summary.get(&quot;trained_iteration_count&quot;),
+                &quot;best_iteration&quot;: summary.get(&quot;best_iteration&quot;),
+                &quot;tree_count&quot;: summary.get(&quot;tree_count&quot;),
+                &quot;stopped_before_budget&quot;: summary.get(&quot;stopped_before_budget&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/early_stopping_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+    &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;fit_row_count&quot;: 4,
+    &quot;eval_split&quot;: &quot;validation&quot;,
+    &quot;eval_set_row_count&quot;: 3,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;final_holdout_row_count&quot;: 5,
+    &quot;planned_iterations&quot;: 80,
+    &quot;baseline_iterations&quot;: 20,
+    &quot;trained_iteration_count&quot;: 4,
+    &quot;best_iteration&quot;: 0,
+    &quot;tree_count&quot;: 1,
+    &quot;stopped_before_budget&quot;: true,
+    &quot;test_used_for_best_iteration&quot;: false,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;best_validation_logloss&quot;: 0.698394,
+    &quot;last_validation_logloss&quot;: 0.715,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;tiny_training_pool_expected&quot;,
+      &quot;tiny_eval_set_expected&quot;,
+      &quot;best_iteration_zero_is_tiny_fixture_warning&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_feature_importance_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-04T10:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;catboost_model_spec&quot;,
+        &quot;catboost_report&quot;,
+        &quot;categorical_report&quot;,
+        &quot;early_stopping_policy&quot;,
+        &quot;features&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;early_stopping_policy_matches_upstream_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+        &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+        &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;early_stopping_policy_declares_reproducible_training_control&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;planned_iterations&quot;: 80,
+        &quot;eval_metric&quot;: &quot;Logloss&quot;,
+        &quot;od_type&quot;: &quot;Iter&quot;,
+        &quot;od_wait&quot;: 3,
+        &quot;use_best_model&quot;: true,
+        &quot;random_seed&quot;: 16
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;training_table_has_train_validation_test_splits&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;test&quot;,
+        &quot;train&quot;,
+        &quot;validation&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;fit_and_eval_splits_have_both_classes&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;train&quot;: [
+          0,
+          1
+        ],
+        &quot;validation&quot;: [
+          0,
+          1
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;fit_pool_uses_only_train_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;,
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;expected&quot;: &quot;train split ids&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;eval_set_uses_only_validation_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;expected&quot;: &quot;validation split ids&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;final_holdout_not_used_for_early_stopping&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;used_as_eval_set&quot;: false,
+        &quot;used_for_best_iteration&quot;: false
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;best_iteration_is_recorded&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;best_iteration&quot;: 0,
+        &quot;best_validation_logloss&quot;: 0.698394
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_count_matches_best_iteration_when_use_best_model&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;tree_count&quot;: 1,
+        &quot;best_iteration&quot;: 0
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;training_stopped_before_full_iteration_budget&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;planned_iterations&quot;: 80,
+        &quot;trained_iteration_count&quot;: 4,
+        &quot;tree_count&quot;: 1
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;validation_curve_contains_best_iteration_and_patience_window&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;trained_iteration_count&quot;: 4,
+        &quot;od_wait&quot;: 3,
+        &quot;best_iteration&quot;: 0
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tree_count_report_marks_test_as_invisible&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: false,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_training_pool_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_eval_set_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;best_iteration_zero_is_tiny_fixture_warning&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 0,
+      &quot;expected&quot;: &quot;best_iteration &gt; 0 on a stable real training set&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;eval_set_lineage&quot;: [
+    {
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;role&quot;: &quot;fit_pool&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;snapshot_ids&quot;: &quot;S001,S002,S003,S004&quot;,
+      &quot;used_for_fit&quot;: true,
+      &quot;used_as_eval_set&quot;: false,
+      &quot;used_for_best_iteration&quot;: false,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;target_positive_count&quot;: 2,
+      &quot;target_negative_count&quot;: 2
+    },
+    {
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;role&quot;: &quot;eval_set_for_overfitting_detector&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;snapshot_ids&quot;: &quot;S005,S006,S007&quot;,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_as_eval_set&quot;: true,
+      &quot;used_for_best_iteration&quot;: true,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;target_positive_count&quot;: 1,
+      &quot;target_negative_count&quot;: 2
+    },
+    {
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;role&quot;: &quot;final_holdout_prediction_only&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;snapshot_ids&quot;: &quot;S009,S010,S011,S012,S013&quot;,
+      &quot;used_for_fit&quot;: false,
+      &quot;used_as_eval_set&quot;: false,
+      &quot;used_for_best_iteration&quot;: false,
+      &quot;used_for_final_holdout&quot;: true,
+      &quot;target_positive_count&quot;: 1,
+      &quot;target_negative_count&quot;: 4
+    }
+  ],
+  &quot;validation_curve&quot;: [
+    {
+      &quot;iteration&quot;: 0,
+      &quot;learn_logloss&quot;: 0.677881,
+      &quot;validation_logloss&quot;: 0.698394,
+      &quot;is_best_iteration&quot;: true,
+      &quot;iteration_role&quot;: &quot;best_iteration&quot;,
+      &quot;delta_from_best_validation_logloss&quot;: 0.0
+    },
+    {
+      &quot;iteration&quot;: 1,
+      &quot;learn_logloss&quot;: 0.66308,
+      &quot;validation_logloss&quot;: 0.703791,
+      &quot;is_best_iteration&quot;: false,
+      &quot;iteration_role&quot;: &quot;after_best_within_od_wait&quot;,
+      &quot;delta_from_best_validation_logloss&quot;: 0.005397
+    },
+    {
+      &quot;iteration&quot;: 2,
+      &quot;learn_logloss&quot;: 0.648731,
+      &quot;validation_logloss&quot;: 0.709329,
+      &quot;is_best_iteration&quot;: false,
+      &quot;iteration_role&quot;: &quot;after_best_within_od_wait&quot;,
+      &quot;delta_from_best_validation_logloss&quot;: 0.010936
+    },
+    {
+      &quot;iteration&quot;: 3,
+      &quot;learn_logloss&quot;: 0.634817,
+      &quot;validation_logloss&quot;: 0.715,
+      &quot;is_best_iteration&quot;: false,
+      &quot;iteration_role&quot;: &quot;after_best_within_od_wait&quot;,
+      &quot;delta_from_best_validation_logloss&quot;: 0.016606
+    }
+  ],
+  &quot;tree_count_report&quot;: [
+    {
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+      &quot;source_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;planned_iterations&quot;: 80,
+      &quot;baseline_iterations&quot;: 20,
+      &quot;trained_iteration_count&quot;: 4,
+      &quot;best_iteration&quot;: 0,
+      &quot;tree_count&quot;: 1,
+      &quot;tree_count_reduction_from_budget&quot;: 79,
+      &quot;tree_count_reduction_from_baseline&quot;: 19,
+      &quot;stopped_before_budget&quot;: true,
+      &quot;use_best_model&quot;: true,
+      &quot;od_type&quot;: &quot;Iter&quot;,
+      &quot;od_wait&quot;: 3,
+      &quot;eval_metric&quot;: &quot;Logloss&quot;,
+      &quot;best_validation_logloss&quot;: 0.698394,
+      &quot;last_validation_logloss&quot;: 0.715,
+      &quot;test_used_for_best_iteration&quot;: false
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/early_stopping_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+  &quot;cat_features&quot;: [
+    &quot;plan_id&quot;,
+    &quot;platform&quot;,
+    &quot;country&quot;,
+    &quot;acquisition_channel&quot;
+  ],
+  &quot;numeric_features&quot;: [
+    &quot;sessions_14d&quot;,
+    &quot;active_days_14d&quot;,
+    &quot;support_tickets_14d&quot;,
+    &quot;revenue_30d&quot;,
+    &quot;days_since_signup&quot;,
+    &quot;had_support_ticket_14d&quot;
+  ],
+  &quot;training_control&quot;: {
+    &quot;planned_iterations&quot;: 80,
+    &quot;baseline_iterations&quot;: 20,
+    &quot;loss_function&quot;: &quot;Logloss&quot;,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;overfitting_detector_type&quot;: &quot;Iter&quot;,
+    &quot;od_wait&quot;: 3,
+    &quot;use_best_model&quot;: true,
+    &quot;metric_period&quot;: 1
+  },
+  &quot;catboost_params&quot;: {
+    &quot;iterations&quot;: 80,
+    &quot;depth&quot;: 2,
+    &quot;learning_rate&quot;: 0.2,
+    &quot;loss_function&quot;: &quot;Logloss&quot;,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;random_seed&quot;: 16,
+    &quot;allow_writing_files&quot;: false,
+    &quot;verbose&quot;: false,
+    &quot;thread_count&quot;: 1,
+    &quot;bootstrap_type&quot;: &quot;No&quot;,
+    &quot;random_strength&quot;: 0,
+    &quot;od_type&quot;: &quot;Iter&quot;,
+    &quot;od_wait&quot;: 3,
+    &quot;use_best_model&quot;: true
+  },
+  &quot;eval_set_policy&quot;: {
+    &quot;require_eval_set&quot;: true,
+    &quot;allowed_eval_split&quot;: &quot;validation&quot;,
+    &quot;forbidden_eval_splits&quot;: [
+      &quot;test&quot;
+    ],
+    &quot;test_data_role&quot;: &quot;final_once_only_evaluation&quot;,
+    &quot;require_best_iteration&quot;: true,
+    &quot;require_tree_count_matches_best_iteration_plus_one&quot;: true
+  },
+  &quot;fit_summary&quot;: {
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;eval_split&quot;: &quot;validation&quot;,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;fit_row_count&quot;: 4,
+    &quot;eval_row_count&quot;: 3,
+    &quot;final_holdout_row_count&quot;: 5
+  },
+  &quot;tree_count_summary&quot;: {
+    &quot;model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;source_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;planned_iterations&quot;: 80,
+    &quot;baseline_iterations&quot;: 20,
+    &quot;trained_iteration_count&quot;: 4,
+    &quot;best_iteration&quot;: 0,
+    &quot;tree_count&quot;: 1,
+    &quot;tree_count_reduction_from_budget&quot;: 79,
+    &quot;tree_count_reduction_from_baseline&quot;: 19,
+    &quot;stopped_before_budget&quot;: true,
+    &quot;use_best_model&quot;: true,
+    &quot;od_type&quot;: &quot;Iter&quot;,
+    &quot;od_wait&quot;: 3,
+    &quot;eval_metric&quot;: &quot;Logloss&quot;,
+    &quot;best_validation_logloss&quot;: 0.698394,
+    &quot;last_validation_logloss&quot;: 0.715,
+    &quot;test_used_for_best_iteration&quot;: false
+  },
+  &quot;upstream_handoff&quot;: {
+    &quot;catboost_report&quot;: &quot;phases/16-tabular-ml/01-catboost/outputs/catboost_report.json&quot;,
+    &quot;catboost_readiness_status&quot;: &quot;ready_for_categorical_feature_lesson&quot;,
+    &quot;categorical_report&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json&quot;,
+    &quot;categorical_readiness_status&quot;: &quot;ready_for_early_stopping_lesson&quot;
+  },
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;early_stopping_report.json&quot;,
+    &quot;eval_set_lineage_file&quot;: &quot;eval_set_lineage.csv&quot;,
+    &quot;validation_curve_file&quot;: &quot;validation_curve.csv&quot;,
+    &quot;tree_count_report_file&quot;: &quot;tree_count_report.csv&quot;,
+    &quot;serialized_spec_file&quot;: &quot;early_stopping_serialized_spec.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/eval_set_lineage.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>split,role,row_count,snapshot_ids,used_for_fit,used_as_eval_set,used_for_best_iteration,used_for_final_holdout,target_positive_count,target_negative_count
+train,fit_pool,4,&quot;S001,S002,S003,S004&quot;,True,False,False,False,2,2
+validation,eval_set_for_overfitting_detector,3,&quot;S005,S006,S007&quot;,False,True,True,False,1,2
+test,final_holdout_prediction_only,5,&quot;S009,S010,S011,S012,S013&quot;,False,False,False,True,1,4
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/eval_set_lineage.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/tree_count_report.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>model_id,source_model_id,planned_iterations,baseline_iterations,trained_iteration_count,best_iteration,tree_count,tree_count_reduction_from_budget,tree_count_reduction_from_baseline,stopped_before_budget,use_best_model,od_type,od_wait,eval_metric,best_validation_logloss,last_validation_logloss,test_used_for_best_iteration
+catboost_depth2_native_categories_es_logloss,catboost_depth2_native_categories,80,20,4,0,1,79,19,True,True,Iter,3,Logloss,0.698394,0.715,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/tree_count_report.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/validation_curve.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>iteration,learn_logloss,validation_logloss,is_best_iteration,iteration_role,delta_from_best_validation_logloss
+0,0.677881,0.698394,True,best_iteration,0.0
+1,0.66308,0.703791,False,after_best_within_od_wait,0.005397
+2,0.648731,0.709329,False,after_best_within_od_wait,0.010936
+3,0.634817,0.715,False,after_best_within_od_wait,0.016606
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/outputs/validation_curve.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/03-early-stopping" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/categorical-features/"><span>← Предыдущий урок</span><strong>Категориальные признаки без leakage</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/feature-importance/"><span>Следующий урок →</span><strong>Встроенная важность признаков</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

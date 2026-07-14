@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Команда считает недельную витрину customerrevenuehealthweekly. После уроков про Parquet и Arrow pipeline уже читает только нужные колонки и умеет объяснить memory…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/duckdb-out-of-core/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="DuckDB и данные больше памяти">
+  <meta property="og:description" content="Команда считает недельную витрину customerrevenuehealthweekly. После уроков про Parquet и Arrow pipeline уже читает только нужные колонки и умеет объяснить memory…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/duckdb-out-of-core/">
+  <meta name="twitter:card" content="summary">
+  <title>DuckDB и данные больше памяти — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "DuckDB и данные больше памяти", "description": "Команда считает недельную витрину customerrevenuehealthweekly. После уроков про Parquet и Arrow pipeline уже читает только нужные колонки и умеет объяснить memory…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/duckdb-out-of-core/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "DuckDB и данные больше памяти", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/duckdb-out-of-core/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 128 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/06-duckdb-out-of-core" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает `memory_limit` в DuckDB для larger-than-memory отчета?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Лимит памяти, которой управляет DuckDB buffer manager, но не обязательно весь RSS процесса.</button><button type="button" class="quiz-option" data-choice="1">Гарантию, что Python-процесс никогда не превысит указанное значение.</button><button type="button" class="quiz-option" data-choice="2">Размер итогового Parquet-файла после compression.</button><button type="button" class="quiz-option" data-choice="3">Количество потоков, доступных query optimizer.</button></div><p class="quiz-feedback" hidden>`memory_limit` важен, но не является абсолютным лимитом всего процесса: часть allocations может находиться вне buffer manager.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем в out-of-core запуске явно задавать `temp_directory`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы контролировать, куда DuckDB может писать временные данные при spill.</button><button type="button" class="quiz-option" data-choice="1">Чтобы DuckDB перестал читать Parquet metadata.</button><button type="button" class="quiz-option" data-choice="2">Чтобы автоматически удалить все blocking operators из плана.</button><button type="button" class="quiz-option" data-choice="3">Чтобы заменить проверку результата с pandas-контролем.</button></div><p class="quiz-feedback" hidden>`temp_directory` задает место для временных данных. Оно не доказывает, что spill произошел, но делает запуск управляемым.</p></article></section>
+        <article class="lesson-article"><h1 id="duckdb-и-данные-больше-памяти">DuckDB и данные больше памяти</h1>
+<blockquote>
+<p>Out-of-core execution - это проверяемая конфигурация и план запроса, а не гарантия,
+что любой большой SQL переживет маленький <code>memory_limit</code>.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>12-performance/05-arrow-memory</code>
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> запускает DuckDB workload с заданными memory_limit, temp_directory и
+threads, читает EXPLAIN/EXPLAIN ANALYZE, распознает blocking operators и проверяет
+larger-than-memory ограничения.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Настроить DuckDB через <code>memory_limit</code>, <code>temp_directory</code>, <code>max_temp_directory_size</code> и
+<code>threads</code>.</li>
+<li>Прочитать <code>EXPLAIN</code> как physical plan, а не как декоративный лог.</li>
+<li>Отличить streaming-friendly scan от blocking operators: join, aggregate, window,
+order.</li>
+<li>Использовать <code>EXPLAIN ANALYZE</code> как runtime evidence и не путать его с benchmark.</li>
+<li>Оформить runbook, который честно говорит, был ли spill на диск, и где остаются OOM
+риски.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Команда считает недельную витрину <code>customer_revenue_health_weekly</code>. После уроков про
+Parquet и Arrow pipeline уже читает только нужные колонки и умеет объяснить memory
+layout. Но объем данных растет: локальный pandas-процесс больше не помещается в память,
+а полный перенос в warehouse пока не нужен.</p>
+<p>DuckDB кажется идеальным решением:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Поставим маленький memory_limit, temp_directory - и все большие запросы начнут spill на диск.
+</code></pre></div><p>Это опасное упрощение. DuckDB действительно умеет out-of-core execution и может
+использовать временную директорию, но не каждый оператор одинаково легко spill-ится.
+Сортировка, hash aggregation, window functions и hash join держат промежуточное
+состояние. Несколько таких операторов в одном запросе могут создать пик памяти даже при
+правильной temp directory.</p>
+<p>В этом уроке мы не устраиваем искусственный OOM. Вместо этого собираем воспроизводимый
+runbook: фиксируем настройки, строим запрос с несколькими blocking operators, читаем
+план и профиль, сверяем результат с pandas-контролем и явно пишем, был ли spill
+наблюдаемым фактом.</p>
+<h2 id="концепция">Концепция</h2>
+<p>DuckDB - локальный аналитический SQL engine. Для performance-задачи важны четыре слоя.</p>
+<h3 id="memory-budget">Memory budget</h3>
+<p><code>memory_limit</code> ограничивает память, которой управляет buffer manager DuckDB. Это не
+абсолютный лимит RSS всего Python-процесса: результаты запроса, векторы, некоторые
+aggregate states и память расширений могут жить вне этой границы. Поэтому хороший отчет
+пишет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">memory_limit = задан
+actual process memory = отдельная метрика, если мы ее измеряли
+OOM risk = не исчезает
+</code></pre></div><h3 id="temporary-directory">Temporary directory</h3>
+<p><code>temp_directory</code> говорит DuckDB, куда писать временные данные, если оператор может
+перейти на диск. Для production-подобного запуска нужно также ограничить
+<code>max_temp_directory_size</code>: иначе spill может неожиданно занять весь доступный диск.</p>
+<h3 id="threads">Threads</h3>
+<p><code>threads</code> влияет на параллельное выполнение. Больше потоков не всегда лучше: они могут
+ускорить scan, но увеличить одновременное потребление памяти. В учебном артефакте
+используется <code>threads=1</code>, чтобы отчет был стабильнее и проще читался.</p>
+<h3 id="blocking-operators">Blocking operators</h3>
+<p>Streaming-friendly operator может отдавать строки дальше по мере чтения input. Blocking
+operator должен собрать состояние:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Почему это риск larger-than-memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HASH_JOIN</code></td>
+<td>build-side таблица хранится в памяти или spill-ится по правилам engine</td>
+</tr>
+<tr>
+<td><code>HASH_GROUP_BY</code></td>
+<td>группы и aggregate state живут до завершения input</td>
+</tr>
+<tr>
+<td><code>WINDOW</code></td>
+<td>partition/order state нужен до вычисления окна</td>
+</tr>
+<tr>
+<td><code>ORDER_BY</code></td>
+<td>полный порядок требует координации всех строк результата</td>
+</tr>
+</tbody>
+</table>
+<p>Если план содержит несколько blocking operators, <code>temp_directory</code> помогает, но не
+является доказательством безопасности.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакт урока создает маленький Parquet-workload с тем же смыслом, что и будущий
+большой pipeline. Размер намеренно безопасный для CI и ноутбука студента.</p>
+<h3 id="шаг-1-сгенерируйте-источники">Шаг 1. Сгенерируйте источники</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">orders, users = generate_customer_revenue_workload(
+    rows=12_000,
+    users=800,
+    seed=42,
+)
+</code></pre></div><p><code>orders</code> содержит <code>week_start</code>, <code>platform</code>, <code>paid_orders</code>, <code>net_revenue_cents</code> и широкую
+<code>payload</code>-колонку. <code>users</code> содержит <code>segment</code>, <code>region</code>, <code>plan</code> и канал привлечения.
+Это не production extract, но grain и keys совпадают с задачей:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders grain: один заказ
+users grain: один пользователь
+join key: user_id
+output grain: week_start, segment, platform
+</code></pre></div><h3 id="шаг-2-запишите-parquet">Шаг 2. Запишите Parquet</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">paths = write_workload_files(orders, users, &quot;/tmp/duckdb-out-of-core&quot;)
+</code></pre></div><p>В директории появятся:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">data/orders.parquet
+data/users.parquet
+</code></pre></div><p>Parquet нужен не ради формата как такового. Он дает DuckDB columnar scan и продолжает
+линию предыдущих уроков: сначала уменьшаем лишнее чтение, затем выбираем engine.</p>
+<h3 id="шаг-3-зафиксируйте-настройки-duckdb">Шаг 3. Зафиксируйте настройки DuckDB</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection = duckdb.connect(&quot;:memory:&quot;)
+settings = configure_connection(
+    connection,
+    temp_directory=&quot;/tmp/duckdb-out-of-core/duckdb-temp&quot;,
+    memory_limit=&quot;64MB&quot;,
+    threads=1,
+    max_temp_directory_size=&quot;256MB&quot;,
+)
+</code></pre></div><p>Отчет сохраняет не только запрошенные значения, но и значения, которые вернул DuckDB
+через <code>current_setting</code>. Например, <code>64MB</code> может быть отображено как <code>61.0 MiB</code>: это
+нормализация единиц, а не ошибка.</p>
+<h3 id="шаг-4-постройте-sql-с-blocking-operators">Шаг 4. Постройте SQL с blocking operators</h3>
+<p>Запрос считает недельную выручку по сегменту и платформе, затем ранжирует сегменты
+внутри недели:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH weekly AS (
+  SELECT
+    o.week_start,
+    u.segment,
+    o.platform,
+    CAST(sum(o.net_revenue_cents) AS BIGINT) AS net_revenue_cents,
+    CAST(sum(o.paid_orders) AS BIGINT) AS paid_orders,
+    CAST(count(*) AS BIGINT) AS order_rows
+  FROM read_parquet(&#x27;data/orders.parquet&#x27;) AS o
+  INNER JOIN read_parquet(&#x27;data/users.parquet&#x27;) AS u
+    USING (user_id)
+  WHERE o.week_index BETWEEN 1 AND 6
+  GROUP BY 1, 2, 3
+),
+ranked AS (
+  SELECT
+    *,
+    CAST(rank() OVER (
+      PARTITION BY week_start
+      ORDER BY net_revenue_cents DESC
+    ) AS BIGINT) AS revenue_rank
+  FROM weekly
+)
+SELECT *
+FROM ranked
+WHERE revenue_rank &lt;= 3
+ORDER BY week_start, revenue_rank, segment, platform;
+</code></pre></div><p>В нем есть scan, join, aggregate, window и final ordering. Это хороший учебный случай:
+результат маленький, но план показывает memory-sensitive форму запроса.</p>
+<h3 id="шаг-5-разберите-plan">Шаг 5. Разберите plan</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">plan = explain_query(connection, query)
+operators = detect_plan_operators(plan)
+blocking = classify_blocking_operators(plan)
+</code></pre></div><p>Ожидаемые признаки:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">PARQUET_SCAN = true
+HASH_JOIN = true
+HASH_GROUP_BY = true
+WINDOW = true
+ORDER_BY = true
+</code></pre></div><p>Если <code>EXPLAIN</code> не показывает нужный operator, нельзя делать вывод про его стоимость.
+Сначала измените запрос или вход так, чтобы план действительно соответствовал сценарию.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите демонстрационный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/06-duckdb-out-of-core/code/main.py
+</code></pre></div><p>Запустите CLI-артефакт и сохраните package:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/06-duckdb-out-of-core/outputs/duckdb_out_of_core_report.py \
+  --rows 12000 \
+  --users 800 \
+  --seed 42 \
+  --memory-limit 64MB \
+  --threads 1 \
+  --max-temp-directory-size 256MB \
+  --output-dir /tmp/duckdb-out-of-core-report
+</code></pre></div><p>В директории появятся:</p>
+<ul>
+<li><code>data/orders.parquet</code> и <code>data/users.parquet</code> - воспроизводимые источники;</li>
+<li><code>report.json</code> - machine-readable отчет;</li>
+<li><code>query-plan.txt</code> - результат <code>EXPLAIN</code>;</li>
+<li><code>query-profile.txt</code> - результат <code>EXPLAIN ANALYZE</code>;</li>
+<li><code>runbook.md</code> - человекочитаемая инструкция и ограничения.</li>
+</ul>
+<p>Минимально хороший отчет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">interpretation.spill_ready = true
+profile.has_runtime_evidence = true
+equivalence.matches_control = true
+interpretation.safe_to_ship = true
+</code></pre></div><p><code>spill_observed</code> может быть <code>false</code>. Для маленького учебного input это нормальный
+результат. Важно, что отчет не превращает <code>spill_ready</code> в ложное утверждение &quot;spill
+точно произошел&quot;.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="уберите-temp-directory">Уберите temp_directory</h3>
+<p>Если временная директория не задана явно, отчет перестает быть переносимым. На одной
+машине spill может попасть в удобное место, на другой - в маленький системный раздел.</p>
+<h3 id="поднимите-threads-без-памяти">Поднимите threads без памяти</h3>
+<p>Поставьте <code>--threads 8</code> и оставьте маленький <code>memory_limit</code>. На реальных данных это
+может ускорить scan, но увеличить одновременное memory pressure. Threads должны быть
+частью сценария, а не скрытой настройкой ноутбука.</p>
+<h3 id="добавьте-еще-одну-полную-сортировку">Добавьте еще одну полную сортировку</h3>
+<p><code>ORDER BY</code> после window уже является blocking operator. Если добавить сортировку внутри
+нескольких CTE, план может стать красивым SQL и плохим larger-than-memory кандидатом.</p>
+<h3 id="поверьте-только-успешному-запуску">Поверьте только успешному запуску</h3>
+<p>Если запрос прошел на 12 000 строк, это не доказывает, что он пройдет на 120 миллионах.
+Успешный small run доказывает корректность контракта и форму плана, но не заменяет
+benchmark и load test.</p>
+<h3 id="игнорируйте-контрольный-результат">Игнорируйте контрольный результат</h3>
+<p>Performance-решение без equivalence gate бесполезно. В уроке DuckDB-результат сверяется
+с pandas-контролем по <code>week_start</code>, <code>segment</code>, <code>platform</code>, суммам и rank.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/06-duckdb-out-of-core/tests
+</code></pre></div><p>Проверка артефакта:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/06-duckdb-out-of-core/outputs/duckdb_out_of_core_report.py \
+  --rows 2400 \
+  --users 240 \
+  --output-dir /tmp/duckdb-out-of-core-smoke
+</code></pre></div><p>Контракт отчета:</p>
+<ul>
+<li>настройки DuckDB прочитаны обратно через <code>current_setting</code>;</li>
+<li><code>temp_directory</code> существует;</li>
+<li>план содержит Parquet scan и несколько blocking operators;</li>
+<li><code>EXPLAIN ANALYZE</code> содержит runtime evidence;</li>
+<li>DuckDB-результат совпадает с pandas-контролем;</li>
+<li><code>spill_ready</code> и <code>spill_observed</code> разделены;</li>
+<li>ограничения larger-than-memory явно перечислены в <code>runbook.md</code>.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт урока - CLI <code>duckdb-out-of-core-report</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/06-duckdb-out-of-core/outputs/duckdb_out_of_core_report.py \
+  --rows 12000 \
+  --users 800 \
+  --memory-limit 64MB \
+  --threads 1 \
+  --output-dir /tmp/duckdb-out-of-core-report
+</code></pre></div><p>Его можно использовать вне урока как шаблон для локального larger-than-memory smoke
+test:</p>
+<ol>
+<li>замените генератор данных на реальные Parquet paths;</li>
+<li>оставьте блок настройки DuckDB явным;</li>
+<li>сохраните <code>EXPLAIN</code>, <code>EXPLAIN ANALYZE</code> и temp-directory observation;</li>
+<li>добавьте control/equivalence check для бизнес-результата;</li>
+<li>не пишите &quot;DuckDB умеет данные больше памяти&quot; без списка blocking operators и
+условий, при которых вы это проверили.</li>
+</ol>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Запустите артефакт с <code>--threads 1</code> и <code>--threads 4</code>. Сравните plan и profile text:
+какие части отчета изменились, а какие остались контрактом?</li>
+<li>Измените SQL так, чтобы ранжирование считалось по <code>segment, platform</code> вместе.
+Обновите pandas-контроль и проверьте, что equivalence gate продолжает проходить.</li>
+<li>Добавьте в runbook колонку <code>risk_level</code> для каждого blocking operator: low, medium
+или high. Обоснуйте правило классификации через rows, groups и memory budget.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>memory_limit</code></td>
+<td>Абсолютный лимит памяти всего процесса</td>
+<td>Лимит памяти, управляемой DuckDB buffer manager; часть allocations может быть вне него</td>
+</tr>
+<tr>
+<td><code>temp_directory</code></td>
+<td>Доказательство, что spill случился</td>
+<td>Место, куда DuckDB может писать временные данные; факт spill нужно наблюдать отдельно</td>
+</tr>
+<tr>
+<td>Out-of-core execution</td>
+<td>Любой большой запрос автоматически безопасен</td>
+<td>Engine может переносить часть работы на диск, но operator mix и temp budget остаются критичными</td>
+</tr>
+<tr>
+<td>Blocking operator</td>
+<td>Просто медленный operator</td>
+<td>Operator, который должен удерживать промежуточное состояние до продолжения результата</td>
+</tr>
+<tr>
+<td><code>EXPLAIN ANALYZE</code></td>
+<td>Финальный benchmark</td>
+<td>Выполненный профиль запроса с runtime evidence; для выбора движка нужны еще повторы и методология</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/configuration/pragmas" target="_blank" rel="noopener">DuckDB PRAGMA statements</a> - прочитайте разделы <code>Memory Limit</code> и <code>Threads</code>, чтобы увидеть официальный синтаксис <code>SET memory_limit</code> и <code>SET threads</code>.</li>
+<li><a href="https://duckdb.org/docs/current/configuration/overview" target="_blank" rel="noopener">DuckDB configuration overview</a> - используйте список settings как справочник для <code>temp_directory</code>, <code>max_temp_directory_size</code>, <code>current_setting</code> и <code>duckdb_settings()</code>.</li>
+<li><a href="https://duckdb.org/docs/current/guides/meta/explain_analyze" target="_blank" rel="noopener">DuckDB EXPLAIN ANALYZE</a> - разберите, что профиль выполняет запрос и показывает runtime по операторам.</li>
+<li><a href="https://duckdb.org/docs/current/guides/performance/how_to_tune_workloads" target="_blank" rel="noopener">DuckDB tuning workloads</a> - посмотрите разделы про blocking operators, threads, row groups и workloads, которые требуют больше памяти.</li>
+<li><a href="https://duckdb.org/docs/current/guides/troubleshooting/oom_errors" target="_blank" rel="noopener">DuckDB out-of-memory troubleshooting</a> - прочитайте список причин, почему OOM возможен даже при наличии out-of-core engine.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какой оператор из списка является blocking operator в контексте larger-than-memory риска?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">`ORDER_BY`, потому что полная сортировка требует координации строк.</button><button type="button" class="quiz-option" data-choice="1">`LIMIT 1`, потому что он всегда читает весь диск.</button><button type="button" class="quiz-option" data-choice="2">`SELECT constant`, потому что он создает Parquet scan.</button><button type="button" class="quiz-option" data-choice="3">`current_setting`, потому что он меняет план запроса.</button></div><p class="quiz-feedback" hidden>Полная сортировка является blocking: движок должен удерживать состояние порядка, прежде чем отдать корректный результат.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что дает `EXPLAIN ANALYZE` по сравнению с обычным `EXPLAIN`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он выполняет запрос и добавляет runtime evidence по операторам.</button><button type="button" class="quiz-option" data-choice="1">Он всегда запускает запрос без чтения файлов.</button><button type="button" class="quiz-option" data-choice="2">Он гарантирует, что spill произошел.</button><button type="button" class="quiz-option" data-choice="3">Он автоматически исправляет недостаточный `memory_limit`.</button></div><p class="quiz-feedback" hidden>`EXPLAIN` показывает план, а `EXPLAIN ANALYZE` выполняет запрос и добавляет сведения о фактическом выполнении.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему отчет разделяет `spill_ready` и `spill_observed`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что корректная настройка temp/memory делает spill возможным, но факт spill нужно наблюдать отдельно.</button><button type="button" class="quiz-option" data-choice="1">Потому что эти поля всегда должны иметь противоположные значения.</button><button type="button" class="quiz-option" data-choice="2">Потому что `spill_observed` равен числу потоков.</button><button type="button" class="quiz-option" data-choice="3">Потому что `spill_ready` означает совпадение DuckDB и pandas результатов.</button></div><p class="quiz-feedback" hidden>Настройки могут быть готовы к spill, но маленький учебный workload может не создать временные файлы. Отчет не должен делать ложный claim.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Зачем в performance-уроке сверять DuckDB-результат с pandas-контролем?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы доказать, что оптимизированный pipeline сохранил бизнес-смысл результата.</button><button type="button" class="quiz-option" data-choice="1">Чтобы измерить скорость pandas вместо DuckDB.</button><button type="button" class="quiz-option" data-choice="2">Чтобы отключить Parquet scan.</button><button type="button" class="quiz-option" data-choice="3">Чтобы убрать необходимость читать query plan.</button></div><p class="quiz-feedback" hidden>Performance имеет смысл только для того же результата. Equivalence gate защищает от ускорения неправильного расчета.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import duckdb
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;duckdb_out_of_core_report.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;duckdb_out_of_core_report&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+DUCKDB_REPORT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(DUCKDB_REPORT)
+
+
+class DuckDBOutOfCoreReportTest(unittest.TestCase):
+    def test_workload_generation_is_reproducible_and_has_expected_columns(self) -&gt; None:
+        orders_a, users_a = DUCKDB_REPORT.generate_customer_revenue_workload(rows=512, users=64, seed=42)
+        orders_b, users_b = DUCKDB_REPORT.generate_customer_revenue_workload(rows=512, users=64, seed=42)
+        self.assertTrue(orders_a.equals(orders_b))
+        self.assertTrue(users_a.equals(users_b))
+        self.assertEqual(len(orders_a), 512)
+        self.assertEqual(len(users_a), 64)
+        self.assertIn(&quot;net_revenue_cents&quot;, orders_a.columns)
+        self.assertIn(&quot;segment&quot;, users_a.columns)
+
+    def test_invalid_workload_size_raises_lesson_error(self) -&gt; None:
+        with self.assertRaises(DUCKDB_REPORT.DuckDBOutOfCoreError):
+            DUCKDB_REPORT.generate_customer_revenue_workload(rows=64, users=16, seed=42)
+        with self.assertRaises(DUCKDB_REPORT.DuckDBOutOfCoreError):
+            DUCKDB_REPORT.generate_customer_revenue_workload(rows=256, users=512, seed=42)
+
+    def test_write_workload_files_creates_readable_parquet_sources(self) -&gt; None:
+        orders, users = DUCKDB_REPORT.generate_customer_revenue_workload(rows=512, users=64, seed=42)
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = DUCKDB_REPORT.write_workload_files(orders, users, tmp)
+            self.assertTrue(Path(paths[&quot;orders&quot;]).is_file())
+            self.assertTrue(Path(paths[&quot;users&quot;]).is_file())
+            connection = duckdb.connect(&quot;:memory:&quot;)
+            try:
+                order_count = connection.execute(
+                    f&quot;SELECT count(*) FROM read_parquet(&#x27;{paths[&#x27;orders&#x27;]}&#x27;)&quot;
+                ).fetchone()[0]
+                user_count = connection.execute(
+                    f&quot;SELECT count(*) FROM read_parquet(&#x27;{paths[&#x27;users&#x27;]}&#x27;)&quot;
+                ).fetchone()[0]
+            finally:
+                connection.close()
+            self.assertEqual(order_count, 512)
+            self.assertEqual(user_count, 64)
+
+    def test_configure_connection_sets_memory_temp_and_threads(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            connection = duckdb.connect(&quot;:memory:&quot;)
+            try:
+                settings = DUCKDB_REPORT.configure_connection(
+                    connection,
+                    temp_directory=Path(tmp) / &quot;spill&quot;,
+                    memory_limit=&quot;64MB&quot;,
+                    threads=1,
+                    max_temp_directory_size=&quot;256MB&quot;,
+                )
+            finally:
+                connection.close()
+        self.assertEqual(settings[&quot;threads&quot;], 1)
+        self.assertIn(&quot;MiB&quot;, settings[&quot;memory_limit&quot;])
+        self.assertTrue(settings[&quot;temp_directory&quot;].endswith(&quot;spill&quot;))
+        self.assertIn(&quot;MiB&quot;, settings[&quot;max_temp_directory_size&quot;])
+
+    def test_invalid_threads_raise_lesson_error(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            connection = duckdb.connect(&quot;:memory:&quot;)
+            try:
+                with self.assertRaises(DUCKDB_REPORT.DuckDBOutOfCoreError):
+                    DUCKDB_REPORT.configure_connection(
+                        connection,
+                        temp_directory=tmp,
+                        memory_limit=&quot;64MB&quot;,
+                        threads=0,
+                    )
+            finally:
+                connection.close()
+
+    def test_plan_detection_finds_scans_and_blocking_operators(self) -&gt; None:
+        orders, users = DUCKDB_REPORT.generate_customer_revenue_workload(rows=960, users=120, seed=2026)
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = DUCKDB_REPORT.write_workload_files(orders, users, tmp)
+            connection = duckdb.connect(&quot;:memory:&quot;)
+            try:
+                DUCKDB_REPORT.configure_connection(
+                    connection,
+                    temp_directory=Path(tmp) / &quot;spill&quot;,
+                    memory_limit=&quot;64MB&quot;,
+                    threads=1,
+                )
+                query = DUCKDB_REPORT.build_workload_query(paths)
+                plan = DUCKDB_REPORT.explain_query(connection, query)
+            finally:
+                connection.close()
+        operators = DUCKDB_REPORT.detect_plan_operators(plan)
+        self.assertTrue(operators[&quot;PARQUET_SCAN&quot;])
+        self.assertTrue(operators[&quot;HASH_JOIN&quot;])
+        self.assertTrue(operators[&quot;HASH_GROUP_BY&quot;])
+        self.assertTrue(operators[&quot;WINDOW&quot;])
+        self.assertTrue(operators[&quot;ORDER_BY&quot;])
+        self.assertGreaterEqual(len(DUCKDB_REPORT.classify_blocking_operators(plan)), 3)
+
+    def test_pandas_control_matches_duckdb_result(self) -&gt; None:
+        report = DUCKDB_REPORT.build_duckdb_out_of_core_report(
+            rows=960,
+            users=120,
+            seed=2026,
+            memory_limit=&quot;64MB&quot;,
+            threads=1,
+        )
+        self.assertTrue(report[&quot;equivalence&quot;][&quot;matches_control&quot;])
+        self.assertGreater(report[&quot;equivalence&quot;][&quot;duckdb_rows&quot;], 0)
+        self.assertEqual(report[&quot;equivalence&quot;][&quot;diff_preview&quot;], [])
+
+    def test_profile_contains_runtime_evidence_and_result_contract(self) -&gt; None:
+        report = DUCKDB_REPORT.build_duckdb_out_of_core_report(
+            rows=960,
+            users=120,
+            seed=42,
+            memory_limit=&quot;64MB&quot;,
+            threads=1,
+        )
+        self.assertTrue(report[&quot;profile&quot;][&quot;has_runtime_evidence&quot;])
+        self.assertIn(&quot;Total Time&quot;, report[&quot;profile&quot;][&quot;text&quot;])
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;checks&quot;][&quot;profile_has_runtime_evidence&quot;])
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;checks&quot;][&quot;result_matches_control&quot;])
+
+    def test_report_is_spill_ready_without_requiring_spill_observation(self) -&gt; None:
+        report = DUCKDB_REPORT.build_duckdb_out_of_core_report(
+            rows=960,
+            users=120,
+            seed=7,
+            memory_limit=&quot;64MB&quot;,
+            threads=1,
+        )
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;spill_ready&quot;])
+        self.assertIn(&quot;spill_observed&quot;, report[&quot;interpretation&quot;])
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;])
+        if not report[&quot;interpretation&quot;][&quot;spill_observed&quot;]:
+            self.assertTrue(report[&quot;interpretation&quot;][&quot;does_not_claim_spill&quot;])
+
+    def test_temp_directory_state_records_before_and_after_files(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = DUCKDB_REPORT.build_duckdb_out_of_core_report(
+                rows=960,
+                users=120,
+                seed=42,
+                output_dir=tmp,
+            )
+        self.assertTrue(report[&quot;temp_directory&quot;][&quot;before&quot;][&quot;exists&quot;])
+        self.assertTrue(report[&quot;temp_directory&quot;][&quot;after&quot;][&quot;exists&quot;])
+        self.assertIn(&quot;file_count&quot;, report[&quot;temp_directory&quot;][&quot;after&quot;])
+
+    def test_cli_writes_report_plan_profile_and_runbook(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / &quot;package&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--rows&quot;,
+                    &quot;512&quot;,
+                    &quot;--users&quot;,
+                    &quot;64&quot;,
+                    &quot;--seed&quot;,
+                    &quot;42&quot;,
+                    &quot;--output-dir&quot;,
+                    str(output_dir),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stdout_report = json.loads(result.stdout)
+            file_report = json.loads((output_dir / &quot;report.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+            self.assertEqual(stdout_report[&quot;scenario&quot;][&quot;scenario_id&quot;], file_report[&quot;scenario&quot;][&quot;scenario_id&quot;])
+            self.assertTrue((output_dir / &quot;query-plan.txt&quot;).is_file())
+            self.assertTrue((output_dir / &quot;query-profile.txt&quot;).is_file())
+            self.assertTrue((output_dir / &quot;runbook.md&quot;).is_file())
+            self.assertTrue((output_dir / &quot;data&quot; / &quot;orders.parquet&quot;).is_file())
+
+    def test_runbook_names_settings_operators_and_limitations(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            DUCKDB_REPORT.build_duckdb_out_of_core_report(
+                rows=512,
+                users=64,
+                seed=42,
+                output_dir=tmp,
+            )
+            runbook = (Path(tmp) / &quot;runbook.md&quot;).read_text(encoding=&quot;utf-8&quot;)
+        self.assertIn(&quot;memory_limit&quot;, runbook)
+        self.assertIn(&quot;temp_directory&quot;, runbook)
+        self.assertIn(&quot;threads&quot;, runbook)
+        self.assertIn(&quot;HASH_GROUP_BY&quot;, runbook)
+        self.assertIn(&quot;Actual spill is environment-dependent&quot;, runbook)
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, str(ARTIFACT), &quot;--rows&quot;, &quot;64&quot;],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;duckdb out-of-core error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;duckdb_out_of_core_report.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;duckdb_out_of_core_report&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+DUCKDB_REPORT = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(DUCKDB_REPORT)
+
+
+def main() -&gt; None:
+    with tempfile.TemporaryDirectory() as tmp:
+        report = DUCKDB_REPORT.build_duckdb_out_of_core_report(
+            rows=2_400,
+            users=240,
+            seed=2026,
+            memory_limit=&quot;64MB&quot;,
+            threads=1,
+            output_dir=tmp,
+        )
+    preview = {
+        &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+        &quot;duckdb_version&quot;: report[&quot;scenario&quot;][&quot;duckdb_version&quot;],
+        &quot;memory_limit&quot;: report[&quot;settings&quot;][&quot;memory_limit&quot;],
+        &quot;threads&quot;: report[&quot;settings&quot;][&quot;threads&quot;],
+        &quot;blocking_operators&quot;: [
+            item[&quot;operator&quot;]
+            for item in report[&quot;plan&quot;][&quot;blocking_operators&quot;]
+        ],
+        &quot;profile_has_runtime_evidence&quot;: report[&quot;profile&quot;][&quot;has_runtime_evidence&quot;],
+        &quot;result_matches_control&quot;: report[&quot;equivalence&quot;][&quot;matches_control&quot;],
+        &quot;spill_ready&quot;: report[&quot;interpretation&quot;][&quot;spill_ready&quot;],
+        &quot;spill_observed&quot;: report[&quot;interpretation&quot;][&quot;spill_observed&quot;],
+        &quot;safe_to_ship&quot;: report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;],
+    }
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;duckdb-out-of-core-report&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/duckdb_out_of_core_report.py&quot;,
+  &quot;description&quot;: &quot;Строит DuckDB larger-than-memory runbook: настройки памяти/temp/thread, EXPLAIN, EXPLAIN ANALYZE, blocking operators, spill observation и контроль результата.&quot;,
+  &quot;usage&quot;: &quot;python outputs/duckdb_out_of_core_report.py --rows 12000 --users 800 --memory-limit 64MB --threads 1 --output-dir /tmp/duckdb-out-of-core-report&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/duckdb_out_of_core_report.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import platform
+import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import numpy as np
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+
+class DuckDBOutOfCoreError(ValueError):
+    &quot;&quot;&quot;Raised when the DuckDB out-of-core report cannot be built safely.&quot;&quot;&quot;
+
+
+RESULT_COLUMNS = [
+    &quot;week_start&quot;,
+    &quot;segment&quot;,
+    &quot;platform&quot;,
+    &quot;net_revenue_cents&quot;,
+    &quot;paid_orders&quot;,
+    &quot;order_rows&quot;,
+    &quot;revenue_rank&quot;,
+]
+
+OPERATOR_PATTERNS = {
+    &quot;PARQUET_SCAN&quot;: (&quot;PARQUET_SCAN&quot;, &quot;READ_PARQUET&quot;),
+    &quot;HASH_JOIN&quot;: (&quot;HASH_JOIN&quot;,),
+    &quot;HASH_GROUP_BY&quot;: (&quot;HASH_GROUP_BY&quot;, &quot;PERFECT_HASH_GROUP_BY&quot;),
+    &quot;WINDOW&quot;: (&quot;WINDOW&quot;,),
+    &quot;ORDER_BY&quot;: (&quot;ORDER_BY&quot;,),
+}
+
+BLOCKING_OPERATOR_NOTES = {
+    &quot;HASH_JOIN&quot;: &quot;build-side hash table keeps state before probe rows can finish&quot;,
+    &quot;HASH_GROUP_BY&quot;: &quot;aggregate groups keep state until the input is consumed&quot;,
+    &quot;WINDOW&quot;: &quot;rank over a partition needs partition state and ordering&quot;,
+    &quot;ORDER_BY&quot;: &quot;global ordering is a full-coordination operator&quot;,
+}
+
+
+def generate_customer_revenue_workload(
+    *,
+    rows: int = 12_000,
+    users: int = 800,
+    seed: int = 42,
+) -&gt; tuple[pd.DataFrame, pd.DataFrame]:
+    if rows &lt; 128:
+        raise DuckDBOutOfCoreError(&quot;rows must be at least 128&quot;)
+    if users &lt; 16:
+        raise DuckDBOutOfCoreError(&quot;users must be at least 16&quot;)
+    if users &gt; rows:
+        raise DuckDBOutOfCoreError(&quot;users must be less than or equal to rows&quot;)
+
+    rng = np.random.default_rng(seed)
+    user_index = np.arange(users, dtype=np.int64)
+    segments = np.array([&quot;new&quot;, &quot;returning&quot;, &quot;power&quot;, &quot;at_risk&quot;], dtype=object)
+    regions = np.array([&quot;ru&quot;, &quot;kz&quot;, &quot;am&quot;, &quot;tr&quot;], dtype=object)
+    acquisition = np.array([&quot;organic&quot;, &quot;paid&quot;, &quot;partner&quot;, &quot;crm&quot;], dtype=object)
+    plans = np.array([&quot;trial&quot;, &quot;basic&quot;, &quot;plus&quot;, &quot;pro&quot;], dtype=object)
+
+    users_frame = pd.DataFrame(
+        {
+            &quot;user_id&quot;: [f&quot;U{position:07d}&quot; for position in user_index],
+            &quot;segment&quot;: segments[(user_index * 5) % len(segments)],
+            &quot;region&quot;: regions[(user_index * 7) % len(regions)],
+            &quot;acquisition_channel&quot;: acquisition[(user_index * 11) % len(acquisition)],
+            &quot;plan&quot;: plans[rng.integers(0, len(plans), size=users)],
+            &quot;signup_week&quot;: (user_index % 8).astype(np.int16),
+        }
+    )
+
+    order_index = np.arange(rows, dtype=np.int64)
+    week_index = (order_index % 8).astype(np.int16)
+    base_week = pd.Timestamp(&quot;2026-01-05&quot;)
+    week_start = [
+        (base_week + pd.Timedelta(days=int(position) * 7)).date().isoformat()
+        for position in week_index
+    ]
+    platforms = np.array([&quot;web&quot;, &quot;ios&quot;, &quot;android&quot;], dtype=object)
+    user_ids = users_frame[&quot;user_id&quot;].to_numpy()[rng.integers(0, users, size=rows)]
+    paid_orders = rng.binomial(1, 0.70, size=rows).astype(np.int64)
+    unit_price = rng.integers(399, 45_000, size=rows, dtype=np.int64)
+    quantity = rng.integers(1, 4, size=rows, dtype=np.int64)
+    gross = unit_price * quantity * paid_orders
+    refunds = np.where(
+        rng.random(rows) &lt; 0.06,
+        np.rint(gross * rng.uniform(0.15, 0.75, size=rows)).astype(np.int64),
+        0,
+    )
+    support_tickets = rng.poisson(0.16, size=rows).astype(np.int64)
+
+    orders_frame = pd.DataFrame(
+        {
+            &quot;order_id&quot;: [f&quot;O{position:010d}&quot; for position in order_index],
+            &quot;user_id&quot;: user_ids,
+            &quot;week_index&quot;: week_index,
+            &quot;week_start&quot;: week_start,
+            &quot;platform&quot;: platforms[(order_index * 13) % len(platforms)],
+            &quot;paid_orders&quot;: paid_orders,
+            &quot;gross_revenue_cents&quot;: gross.astype(np.int64),
+            &quot;refund_amount_cents&quot;: refunds.astype(np.int64),
+            &quot;net_revenue_cents&quot;: (gross - refunds).astype(np.int64),
+            &quot;support_ticket_count&quot;: support_tickets,
+            &quot;payload&quot;: [
+                f&quot;trace={int(value)};stage=duckdb-out-of-core;wide=true&quot;
+                for value in rng.integers(100_000, 999_999, size=rows)
+            ],
+        }
+    )
+    orders_frame = orders_frame.sort_values([&quot;week_index&quot;, &quot;order_id&quot;]).reset_index(drop=True)
+    return orders_frame, users_frame
+
+
+def write_workload_files(
+    orders_frame: pd.DataFrame,
+    users_frame: pd.DataFrame,
+    output_dir: str | Path,
+) -&gt; dict[str, str]:
+    data_dir = Path(output_dir) / &quot;data&quot;
+    data_dir.mkdir(parents=True, exist_ok=True)
+    orders_path = data_dir / &quot;orders.parquet&quot;
+    users_path = data_dir / &quot;users.parquet&quot;
+    pq.write_table(
+        pa.Table.from_pandas(orders_frame, preserve_index=False),
+        orders_path,
+        compression=&quot;zstd&quot;,
+        use_dictionary=True,
+        write_statistics=True,
+    )
+    pq.write_table(
+        pa.Table.from_pandas(users_frame, preserve_index=False),
+        users_path,
+        compression=&quot;zstd&quot;,
+        use_dictionary=True,
+        write_statistics=True,
+    )
+    return {&quot;orders&quot;: str(orders_path), &quot;users&quot;: str(users_path)}
+
+
+def _sql_literal(value: str | Path) -&gt; str:
+    return &quot;&#x27;&quot; + str(value).replace(&quot;&#x27;&quot;, &quot;&#x27;&#x27;&quot;) + &quot;&#x27;&quot;
+
+
+def configure_connection(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    temp_directory: str | Path,
+    memory_limit: str = &quot;64MB&quot;,
+    threads: int = 1,
+    max_temp_directory_size: str = &quot;256MB&quot;,
+) -&gt; dict[str, Any]:
+    if threads &lt;= 0:
+        raise DuckDBOutOfCoreError(&quot;threads must be positive&quot;)
+    temp_path = Path(temp_directory)
+    temp_path.mkdir(parents=True, exist_ok=True)
+    try:
+        connection.execute(f&quot;SET memory_limit = {_sql_literal(memory_limit)}&quot;)
+        connection.execute(f&quot;SET temp_directory = {_sql_literal(temp_path)}&quot;)
+        connection.execute(f&quot;SET max_temp_directory_size = {_sql_literal(max_temp_directory_size)}&quot;)
+        connection.execute(f&quot;SET threads = {int(threads)}&quot;)
+    except Exception as error:  # noqa: BLE001 - converted to lesson-level error.
+        raise DuckDBOutOfCoreError(f&quot;cannot configure DuckDB: {error}&quot;) from error
+
+    settings = connection.execute(
+        &quot;&quot;&quot;
+        SELECT
+          current_setting(&#x27;memory_limit&#x27;) AS memory_limit,
+          current_setting(&#x27;temp_directory&#x27;) AS temp_directory,
+          current_setting(&#x27;max_temp_directory_size&#x27;) AS max_temp_directory_size,
+          current_setting(&#x27;threads&#x27;) AS threads
+        &quot;&quot;&quot;
+    ).fetchone()
+    if settings is None:
+        raise DuckDBOutOfCoreError(&quot;DuckDB did not return current settings&quot;)
+    database_size = connection.execute(&quot;PRAGMA database_size&quot;).fetchdf().iloc[0].to_dict()
+    return {
+        &quot;memory_limit_requested&quot;: memory_limit,
+        &quot;memory_limit&quot;: str(settings[0]),
+        &quot;temp_directory&quot;: str(settings[1]),
+        &quot;max_temp_directory_size_requested&quot;: max_temp_directory_size,
+        &quot;max_temp_directory_size&quot;: str(settings[2]),
+        &quot;threads_requested&quot;: int(threads),
+        &quot;threads&quot;: int(settings[3]),
+        &quot;database_size&quot;: {str(key): str(value) for key, value in database_size.items()},
+    }
+
+
+def build_workload_query(paths: dict[str, str], *, min_week_index: int = 1, max_week_index: int = 6) -&gt; str:
+    orders_path = _sql_literal(paths[&quot;orders&quot;])
+    users_path = _sql_literal(paths[&quot;users&quot;])
+    return f&quot;&quot;&quot;
+WITH weekly AS (
+  SELECT
+    o.week_start,
+    u.segment,
+    o.platform,
+    CAST(sum(o.net_revenue_cents) AS BIGINT) AS net_revenue_cents,
+    CAST(sum(o.paid_orders) AS BIGINT) AS paid_orders,
+    CAST(count(*) AS BIGINT) AS order_rows
+  FROM read_parquet({orders_path}) AS o
+  INNER JOIN read_parquet({users_path}) AS u
+    USING (user_id)
+  WHERE o.week_index BETWEEN {int(min_week_index)} AND {int(max_week_index)}
+  GROUP BY 1, 2, 3
+),
+ranked AS (
+  SELECT
+    week_start,
+    segment,
+    platform,
+    net_revenue_cents,
+    paid_orders,
+    order_rows,
+    CAST(rank() OVER (
+      PARTITION BY week_start
+      ORDER BY net_revenue_cents DESC
+    ) AS BIGINT) AS revenue_rank
+  FROM weekly
+)
+SELECT
+  week_start,
+  segment,
+  platform,
+  net_revenue_cents,
+  paid_orders,
+  order_rows,
+  revenue_rank
+FROM ranked
+WHERE revenue_rank &lt;= 3
+ORDER BY week_start, revenue_rank, segment, platform
+&quot;&quot;&quot;.strip()
+
+
+def _plan_text(rows: list[tuple[Any, ...]]) -&gt; str:
+    if not rows:
+        return &quot;&quot;
+    if len(rows[0]) &gt;= 2:
+        return &quot;\n&quot;.join(str(row[1]) for row in rows)
+    return &quot;\n&quot;.join(&quot; &quot;.join(str(value) for value in row) for row in rows)
+
+
+def explain_query(connection: duckdb.DuckDBPyConnection, query: str) -&gt; str:
+    return _plan_text(connection.execute(&quot;EXPLAIN &quot; + query).fetchall())
+
+
+def explain_analyze_query(connection: duckdb.DuckDBPyConnection, query: str) -&gt; str:
+    return _plan_text(connection.execute(&quot;EXPLAIN ANALYZE &quot; + query).fetchall())
+
+
+def detect_plan_operators(plan_text: str) -&gt; dict[str, bool]:
+    upper_plan = plan_text.upper()
+    return {
+        operator: any(pattern in upper_plan for pattern in patterns)
+        for operator, patterns in OPERATOR_PATTERNS.items()
+    }
+
+
+def classify_blocking_operators(plan_text: str) -&gt; list[dict[str, str]]:
+    detected = detect_plan_operators(plan_text)
+    return [
+        {&quot;operator&quot;: operator, &quot;reason&quot;: BLOCKING_OPERATOR_NOTES[operator]}
+        for operator in BLOCKING_OPERATOR_NOTES
+        if detected.get(operator, False)
+    ]
+
+
+def execute_workload(connection: duckdb.DuckDBPyConnection, query: str) -&gt; pd.DataFrame:
+    return connection.execute(query).fetchdf()
+
+
+def pandas_control_result(
+    orders_frame: pd.DataFrame,
+    users_frame: pd.DataFrame,
+    *,
+    min_week_index: int = 1,
+    max_week_index: int = 6,
+) -&gt; pd.DataFrame:
+    filtered = orders_frame[
+        orders_frame[&quot;week_index&quot;].between(min_week_index, max_week_index)
+    ].copy()
+    joined = filtered.merge(users_frame[[&quot;user_id&quot;, &quot;segment&quot;]], on=&quot;user_id&quot;, how=&quot;inner&quot;)
+    weekly = (
+        joined.groupby([&quot;week_start&quot;, &quot;segment&quot;, &quot;platform&quot;], as_index=False)
+        .agg(
+            net_revenue_cents=(&quot;net_revenue_cents&quot;, &quot;sum&quot;),
+            paid_orders=(&quot;paid_orders&quot;, &quot;sum&quot;),
+            order_rows=(&quot;order_id&quot;, &quot;size&quot;),
+        )
+    )
+    weekly[&quot;revenue_rank&quot;] = (
+        weekly.groupby(&quot;week_start&quot;)[&quot;net_revenue_cents&quot;]
+        .rank(method=&quot;min&quot;, ascending=False)
+        .astype(&quot;int64&quot;)
+    )
+    result = weekly[weekly[&quot;revenue_rank&quot;] &lt;= 3].copy()
+    return _normalize_result_frame(result)
+
+
+def _normalize_result_frame(frame: pd.DataFrame) -&gt; pd.DataFrame:
+    normalized = frame[RESULT_COLUMNS].copy()
+    normalized[&quot;week_start&quot;] = normalized[&quot;week_start&quot;].astype(str)
+    normalized[&quot;segment&quot;] = normalized[&quot;segment&quot;].astype(str)
+    normalized[&quot;platform&quot;] = normalized[&quot;platform&quot;].astype(str)
+    for column in [&quot;net_revenue_cents&quot;, &quot;paid_orders&quot;, &quot;order_rows&quot;, &quot;revenue_rank&quot;]:
+        normalized[column] = normalized[column].astype(&quot;int64&quot;)
+    return normalized.sort_values(
+        [&quot;week_start&quot;, &quot;revenue_rank&quot;, &quot;segment&quot;, &quot;platform&quot;],
+        kind=&quot;mergesort&quot;,
+    ).reset_index(drop=True)
+
+
+def compare_with_control(duckdb_result: pd.DataFrame, control_result: pd.DataFrame) -&gt; dict[str, Any]:
+    observed = _normalize_result_frame(duckdb_result)
+    expected = _normalize_result_frame(control_result)
+    matches = observed.equals(expected)
+    diff_preview: list[dict[str, Any]] = []
+    if not matches:
+        merged = observed.merge(
+            expected,
+            on=[&quot;week_start&quot;, &quot;segment&quot;, &quot;platform&quot;, &quot;revenue_rank&quot;],
+            how=&quot;outer&quot;,
+            suffixes=(&quot;_duckdb&quot;, &quot;_control&quot;),
+            indicator=True,
+        )
+        diff_preview = merged.head(10).to_dict(orient=&quot;records&quot;)
+    return {
+        &quot;matches_control&quot;: bool(matches),
+        &quot;duckdb_rows&quot;: int(len(observed)),
+        &quot;control_rows&quot;: int(len(expected)),
+        &quot;result_preview&quot;: observed.head(12).to_dict(orient=&quot;records&quot;),
+        &quot;diff_preview&quot;: diff_preview,
+    }
+
+
+def _temp_directory_state(temp_directory: str | Path) -&gt; dict[str, Any]:
+    temp_path = Path(temp_directory)
+    files = [
+        path
+        for path in sorted(temp_path.rglob(&quot;*&quot;))
+        if path.is_file()
+    ] if temp_path.exists() else []
+    return {
+        &quot;exists&quot;: temp_path.exists(),
+        &quot;file_count&quot;: len(files),
+        &quot;total_bytes&quot;: int(sum(path.stat().st_size for path in files)),
+        &quot;files&quot;: [
+            {&quot;path&quot;: str(path.relative_to(temp_path)), &quot;size_bytes&quot;: int(path.stat().st_size)}
+            for path in files[:20]
+        ],
+    }
+
+
+def _profile_has_runtime_evidence(profile_text: str) -&gt; bool:
+    upper_profile = profile_text.upper()
+    return &quot;TOTAL TIME&quot; in upper_profile and (&quot;ROWS&quot; in upper_profile or &quot;QUERY PROFILING&quot; in upper_profile)
+
+
+def _build_interpretation(
+    *,
+    settings: dict[str, Any],
+    operators: dict[str, bool],
+    blocking_operators: list[dict[str, str]],
+    profile_text: str,
+    comparison: dict[str, Any],
+    temp_before: dict[str, Any],
+    temp_after: dict[str, Any],
+) -&gt; dict[str, Any]:
+    spill_observed = temp_after[&quot;file_count&quot;] &gt; temp_before[&quot;file_count&quot;] or temp_after[&quot;total_bytes&quot;] &gt; temp_before[&quot;total_bytes&quot;]
+    checks = {
+        &quot;memory_limit_set&quot;: bool(settings[&quot;memory_limit&quot;]),
+        &quot;temp_directory_exists&quot;: bool(temp_after[&quot;exists&quot;]),
+        &quot;threads_set&quot;: settings[&quot;threads&quot;] == settings[&quot;threads_requested&quot;],
+        &quot;max_temp_directory_size_set&quot;: bool(settings[&quot;max_temp_directory_size&quot;]),
+        &quot;parquet_scan_present&quot;: operators.get(&quot;PARQUET_SCAN&quot;, False),
+        &quot;blocking_operators_identified&quot;: len(blocking_operators) &gt;= 2,
+        &quot;profile_has_runtime_evidence&quot;: _profile_has_runtime_evidence(profile_text),
+        &quot;result_matches_control&quot;: bool(comparison[&quot;matches_control&quot;]),
+    }
+    notes = [
+        &quot;The workload is spill-ready because memory_limit, temp_directory and temp size are explicit.&quot;,
+        &quot;Actual spill is environment-dependent; this report records spill_observed instead of claiming it.&quot;,
+        &quot;DuckDB memory_limit applies to the buffer manager, not every allocation in the process.&quot;,
+        &quot;Multiple blocking operators can still create out-of-memory risk on larger inputs.&quot;,
+    ]
+    return {
+        &quot;checks&quot;: checks,
+        &quot;spill_observed&quot;: bool(spill_observed),
+        &quot;spill_ready&quot;: bool(
+            checks[&quot;memory_limit_set&quot;]
+            and checks[&quot;temp_directory_exists&quot;]
+            and checks[&quot;max_temp_directory_size_set&quot;]
+            and checks[&quot;blocking_operators_identified&quot;]
+        ),
+        &quot;does_not_claim_spill&quot;: not spill_observed,
+        &quot;safe_to_ship&quot;: all(checks.values()),
+        &quot;notes&quot;: notes,
+    }
+
+
+def write_runbook(report: dict[str, Any], output_dir: str | Path) -&gt; Path:
+    output_path = Path(output_dir) / &quot;runbook.md&quot;
+    blocking = &quot;\n&quot;.join(
+        f&quot;- `{item[&#x27;operator&#x27;]}`: {item[&#x27;reason&#x27;]}&quot;
+        for item in report[&quot;plan&quot;][&quot;blocking_operators&quot;]
+    )
+    checks = &quot;\n&quot;.join(
+        f&quot;- `{name}`: {value}&quot;
+        for name, value in report[&quot;interpretation&quot;][&quot;checks&quot;].items()
+    )
+    limitations = &quot;\n&quot;.join(f&quot;- {note}&quot; for note in report[&quot;interpretation&quot;][&quot;notes&quot;])
+    output_path.write_text(
+        &quot;\n&quot;.join(
+            [
+                &quot;# DuckDB Out-of-Core Runbook&quot;,
+                &quot;&quot;,
+                &quot;## Configuration&quot;,
+                &quot;&quot;,
+                f&quot;- `memory_limit`: {report[&#x27;settings&#x27;][&#x27;memory_limit&#x27;]} (requested {report[&#x27;settings&#x27;][&#x27;memory_limit_requested&#x27;]})&quot;,
+                f&quot;- `temp_directory`: {report[&#x27;settings&#x27;][&#x27;temp_directory&#x27;]}&quot;,
+                f&quot;- `max_temp_directory_size`: {report[&#x27;settings&#x27;][&#x27;max_temp_directory_size&#x27;]}&quot;,
+                f&quot;- `threads`: {report[&#x27;settings&#x27;][&#x27;threads&#x27;]}&quot;,
+                &quot;&quot;,
+                &quot;## Blocking Operators&quot;,
+                &quot;&quot;,
+                blocking,
+                &quot;&quot;,
+                &quot;## Larger-than-memory Checks&quot;,
+                &quot;&quot;,
+                checks,
+                &quot;&quot;,
+                &quot;## Spill Observation&quot;,
+                &quot;&quot;,
+                f&quot;- `spill_ready`: {report[&#x27;interpretation&#x27;][&#x27;spill_ready&#x27;]}&quot;,
+                f&quot;- `spill_observed`: {report[&#x27;interpretation&#x27;][&#x27;spill_observed&#x27;]}&quot;,
+                &quot;&quot;,
+                &quot;## Limitations&quot;,
+                &quot;&quot;,
+                limitations,
+                &quot;&quot;,
+                &quot;## Query&quot;,
+                &quot;&quot;,
+                &quot;```sql&quot;,
+                report[&quot;query&quot;],
+                &quot;```&quot;,
+                &quot;&quot;,
+            ]
+        ),
+        encoding=&quot;utf-8&quot;,
+    )
+    return output_path
+
+
+def _build_report_in_directory(
+    work_dir: Path,
+    *,
+    rows: int,
+    users: int,
+    seed: int,
+    memory_limit: str,
+    threads: int,
+    max_temp_directory_size: str,
+    persistent_output: bool,
+) -&gt; dict[str, Any]:
+    orders_frame, users_frame = generate_customer_revenue_workload(rows=rows, users=users, seed=seed)
+    paths = write_workload_files(orders_frame, users_frame, work_dir)
+    temp_directory = work_dir / &quot;duckdb-temp&quot;
+
+    connection = duckdb.connect(&quot;:memory:&quot;)
+    try:
+        settings = configure_connection(
+            connection,
+            temp_directory=temp_directory,
+            memory_limit=memory_limit,
+            threads=threads,
+            max_temp_directory_size=max_temp_directory_size,
+        )
+        query = build_workload_query(paths)
+        temp_before = _temp_directory_state(temp_directory)
+        plan_text = explain_query(connection, query)
+        profile_text = explain_analyze_query(connection, query)
+        result = execute_workload(connection, query)
+    finally:
+        connection.close()
+
+    control = pandas_control_result(orders_frame, users_frame)
+    comparison = compare_with_control(result, control)
+    temp_after = _temp_directory_state(temp_directory)
+    operators = detect_plan_operators(plan_text)
+    blocking_operators = classify_blocking_operators(plan_text)
+    report = {
+        &quot;scenario&quot;: {
+            &quot;scenario_id&quot;: &quot;duckdb-out-of-core-query-profile&quot;,
+            &quot;pipeline_name&quot;: &quot;customer_revenue_health_weekly_top_segments&quot;,
+            &quot;dataset_profile&quot;: &quot;sample&quot;,
+            &quot;rows&quot;: int(rows),
+            &quot;users&quot;: int(users),
+            &quot;seed&quot;: int(seed),
+            &quot;engine&quot;: &quot;duckdb&quot;,
+            &quot;duckdb_version&quot;: duckdb.__version__,
+            &quot;python_version&quot;: platform.python_version(),
+            &quot;platform&quot;: platform.platform(),
+        },
+        &quot;package&quot;: {
+            &quot;persistent_output&quot;: bool(persistent_output),
+            &quot;output_dir&quot;: str(work_dir) if persistent_output else None,
+            &quot;data_files&quot;: {
+                &quot;orders&quot;: str(Path(paths[&quot;orders&quot;]).relative_to(work_dir)),
+                &quot;users&quot;: str(Path(paths[&quot;users&quot;]).relative_to(work_dir)),
+            },
+        },
+        &quot;settings&quot;: settings,
+        &quot;query&quot;: query,
+        &quot;plan&quot;: {
+            &quot;operators&quot;: operators,
+            &quot;blocking_operators&quot;: blocking_operators,
+            &quot;text&quot;: plan_text,
+        },
+        &quot;profile&quot;: {
+            &quot;has_runtime_evidence&quot;: _profile_has_runtime_evidence(profile_text),
+            &quot;text&quot;: profile_text,
+        },
+        &quot;temp_directory&quot;: {
+            &quot;before&quot;: temp_before,
+            &quot;after&quot;: temp_after,
+        },
+        &quot;equivalence&quot;: comparison,
+    }
+    report[&quot;interpretation&quot;] = _build_interpretation(
+        settings=settings,
+        operators=operators,
+        blocking_operators=blocking_operators,
+        profile_text=profile_text,
+        comparison=comparison,
+        temp_before=temp_before,
+        temp_after=temp_after,
+    )
+
+    if persistent_output:
+        (work_dir / &quot;report.json&quot;).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+            encoding=&quot;utf-8&quot;,
+        )
+        (work_dir / &quot;query-plan.txt&quot;).write_text(plan_text + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+        (work_dir / &quot;query-profile.txt&quot;).write_text(profile_text + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+        runbook = write_runbook(report, work_dir)
+        report[&quot;package&quot;][&quot;files&quot;] = [
+            &quot;report.json&quot;,
+            &quot;query-plan.txt&quot;,
+            &quot;query-profile.txt&quot;,
+            str(runbook.relative_to(work_dir)),
+        ]
+        (work_dir / &quot;report.json&quot;).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+            encoding=&quot;utf-8&quot;,
+        )
+    return report
+
+
+def build_duckdb_out_of_core_report(
+    *,
+    rows: int = 12_000,
+    users: int = 800,
+    seed: int = 42,
+    memory_limit: str = &quot;64MB&quot;,
+    threads: int = 1,
+    max_temp_directory_size: str = &quot;256MB&quot;,
+    output_dir: str | Path | None = None,
+) -&gt; dict[str, Any]:
+    if output_dir is None:
+        with tempfile.TemporaryDirectory() as tmp:
+            return _build_report_in_directory(
+                Path(tmp),
+                rows=rows,
+                users=users,
+                seed=seed,
+                memory_limit=memory_limit,
+                threads=threads,
+                max_temp_directory_size=max_temp_directory_size,
+                persistent_output=False,
+            )
+
+    work_dir = Path(output_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    return _build_report_in_directory(
+        work_dir,
+        rows=rows,
+        users=users,
+        seed=seed,
+        memory_limit=memory_limit,
+        threads=threads,
+        max_temp_directory_size=max_temp_directory_size,
+        persistent_output=True,
+    )
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Build a DuckDB out-of-core runbook and query profile report&quot;)
+    parser.add_argument(&quot;--rows&quot;, type=int, default=12_000)
+    parser.add_argument(&quot;--users&quot;, type=int, default=800)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42)
+    parser.add_argument(&quot;--memory-limit&quot;, default=&quot;64MB&quot;)
+    parser.add_argument(&quot;--threads&quot;, type=int, default=1)
+    parser.add_argument(&quot;--max-temp-directory-size&quot;, default=&quot;256MB&quot;)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=None)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv)
+    try:
+        report = build_duckdb_out_of_core_report(
+            rows=args.rows,
+            users=args.users,
+            seed=args.seed,
+            memory_limit=args.memory_limit,
+            threads=args.threads,
+            max_temp_directory_size=args.max_temp_directory_size,
+            output_dir=args.output_dir,
+        )
+    except DuckDBOutOfCoreError as error:
+        print(f&quot;duckdb out-of-core error: {error}&quot;, file=sys.stderr)
+        return 2
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/06-duckdb-out-of-core/outputs/duckdb_out_of_core_report.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/06-duckdb-out-of-core" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/performance/arrow-memory/"><span>← Предыдущий урок</span><strong>Arrow memory model</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/performance/polars-expressions/"><span>Следующий урок →</span><strong>Polars expressions</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

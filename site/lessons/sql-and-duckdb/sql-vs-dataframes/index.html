@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Один вариант загружает все CSV в pandas и выполняет JOIN в памяти. Другой прячет весь pipeline в огромной SQL-строке внутри Python. Оба могут работать, но плохо…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/sql-vs-dataframes/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="SQL или DataFrame: выбор инструмента">
+  <meta property="og:description" content="Один вариант загружает все CSV в pandas и выполняет JOIN в памяти. Другой прячет весь pipeline в огромной SQL-строке внутри Python. Оба могут работать, но плохо…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/sql-vs-dataframes/">
+  <meta name="twitter:card" content="summary">
+  <title>SQL или DataFrame: выбор инструмента — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "SQL или DataFrame: выбор инструмента", "description": "Один вариант загружает все CSV в pandas и выполняет JOIN в памяти. Другой прячет весь pipeline в огромной SQL-строке внутри Python. Оба могут работать, но плохо…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/sql-vs-dataframes/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "SQL или DataFrame: выбор инструмента", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/sql-vs-dataframes/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 47 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/12-sql-vs-dataframes" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Где естественно выполнять крупный JOIN и GROUP BY по CSV?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">В DuckDB SQL</button><button type="button" class="quiz-option" data-choice="1">В цикле Python</button><button type="button" class="quiz-option" data-choice="2">В JSON</button><button type="button" class="quiz-option" data-choice="3">В argparse</button></div><p class="quiz-feedback" hidden>DuckDB оптимизирует реляционные операции и pushdown.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Для чего Python особенно полезен в таком pipeline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Оркестрация, параметры и manifest</button><button type="button" class="quiz-option" data-choice="1">Замена всех SQL joins</button><button type="button" class="quiz-option" data-choice="2">Хранение grain в globals</button><button type="button" class="quiz-option" data-choice="3">Ручная сортировка миллионов строк</button></div><p class="quiz-feedback" hidden>Python связывает шаги, файлы и проверки вокруг SQL assets.</p></article></section>
+        <article class="lesson-article"><h1 id="sql-или-dataframe-выбор-инструмента">SQL или DataFrame: выбор инструмента</h1>
+<blockquote>
+<p>Выбирайте границу по grain, объему и сопровождению, а не по личной привычке.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/11
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> собирает проверенные SQL marts и обосновывает границу инструментов.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Назначать реляционные преобразования SQL/DuckDB.</li>
+<li>Использовать Python для orchestration и delivery.</li>
+<li>Передавать в pandas только результат нужного grain.</li>
+<li>Поставлять несколько marts с checksums и manifest.</li>
+<li>Проверять grain, связи и аддитивные метрики end-to-end.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Один вариант загружает все CSV в pandas и выполняет JOIN в памяти. Другой прячет весь
+pipeline в огромной SQL-строке внутри Python. Оба могут работать, но плохо сопровождаются:
+неясны границы ответственности, сложно переиспользовать SQL и невозможно доказать, какие
+файлы были поставлены.</p>
+<h2 id="концепция">Концепция</h2>
+<p>В этом проекте граница такая:</p>
+<table>
+<thead>
+<tr>
+<th>Задача</th>
+<th>Инструмент</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cast, normalize, JOIN, GROUP BY</td>
+<td>DuckDB SQL</td>
+</tr>
+<tr>
+<td>Параметры, запуск, export, checksum</td>
+<td>Python</td>
+</tr>
+<tr>
+<td>Небольшой ad hoc анализ готовой mart</td>
+<td>pandas, опционально</td>
+</tr>
+</tbody>
+</table>
+<p>Результаты: <code>order_mart</code> с grain <code>order_id</code> и <code>user_summary</code> с grain <code>user_id</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>До кода зафиксируйте инварианты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">order_mart rows = orders rows = 12
+order_id unique
+paid_revenue = 5005
+amount_item_mismatches = 0
+unknown_user_orders = 1
+</code></pre></div><p>Затем примените SQL pipeline из предыдущих уроков.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p><code>order_mart.sql</code> типизирует заказы, нормализует пользователей, предварительно агрегирует
+позиции и сохраняет unmatched user. <code>user_summary.sql</code> агрегирует уже проверенный grain.</p>
+<p>Python builder:</p>
+<ol>
+<li>передает пути и timezone параметрами;</li>
+<li>выполняет оба SQL assets;</li>
+<li>проверяет контрольные метрики;</li>
+<li>записывает CSV;</li>
+<li>считает SHA-256 источников, SQL и результатов;</li>
+<li>выпускает <code>manifest.json</code>.</li>
+</ol>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Соедините items до агрегации и наблюдайте fanout.</li>
+<li>Замените LEFT JOIN users на INNER JOIN.</li>
+<li>Удалите timezone из business date.</li>
+<li>Измените SQL после поставки и сравните checksum.</li>
+<li>Передайте сырые 500 тысяч событий в pandas без необходимости.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Integration suite подтверждает:</p>
+<ul>
+<li>12 уникальных заказов;</li>
+<li>две позиции и total 1200 для <code>O1001</code>;</li>
+<li>сохраненный <code>U999</code>;</li>
+<li>два заказа с непроверяемой суммой и ноль расхождений;</li>
+<li>8 пользователей с заказами в summary;</li>
+<li>выручку U001 <code>2700</code>;</li>
+<li>checksum каждого delivery file.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/sql_mart_builder.py \
+  --users ../data/tiny/users.csv \
+  --orders ../data/tiny/orders.csv \
+  --items ../data/tiny/order_items.csv \
+  --output-dir delivery
+</code></pre></div><p>Каталог <code>delivery/</code> содержит <code>order_mart.csv</code>, <code>user_summary.csv</code> и <code>manifest.json</code>.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте monthly revenue mart.</li>
+<li>Экспортируйте marts в Parquet и сравните размер и plan.</li>
+<li>Подключите sample-профиль и измерьте момент, когда pandas-transfer становится дорогим.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tool boundary</td>
+<td>Выбор любимой библиотеки</td>
+<td>Явное место смены engine, format и ownership</td>
+</tr>
+<tr>
+<td>Mart</td>
+<td>Любой export</td>
+<td>Таблица с заявленным grain и назначением</td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>Бизнес-расчет в Python</td>
+<td>Управление параметрами, шагами и delivery</td>
+</tr>
+<tr>
+<td>Manifest</td>
+<td>README</td>
+<td>Машинный контракт артефактов, checks и checksums</td>
+</tr>
+<tr>
+<td>Checksum</td>
+<td>Тест логики</td>
+<td>Доказательство идентичности байтов</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/clients/python/overview" target="_blank" rel="noopener">DuckDB: Python Overview</a> — изучите connections, relations и способы получения результата.</li>
+<li><a href="https://duckdb.org/docs/current/data/csv/overview#writing-csv-files" target="_blank" rel="noopener">DuckDB: CSV Export</a> — сравните SQL <code>COPY</code> и Python export.</li>
+<li><a href="https://duckdb.org/docs/current/guides/python/sql_on_pandas" target="_blank" rel="noopener">DuckDB: SQL on Pandas</a> — разберите явные и replacement-scan границы.</li>
+<li><a href="https://duckdb.org/docs/current/guides/performance/overview" target="_blank" rel="noopener">DuckDB: Performance Overview</a> — свяжите выбор engine с объемом, форматами и workload.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему item rows агрегируются до JOIN?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы сохранить grain order_id</button><button type="button" class="quiz-option" data-choice="1">Чтобы удалить товары</button><button type="button" class="quiz-option" data-choice="2">Чтобы сменить timezone</button><button type="button" class="quiz-option" data-choice="3">Чтобы получить pandas</button></div><p class="quiz-feedback" hidden>Одна строка item_totals на заказ предотвращает fanout order metrics.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что доказывает checksum в manifest?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Какие именно байты были поставлены</button><button type="button" class="quiz-option" data-choice="1">Что бизнес-логика верна</button><button type="button" class="quiz-option" data-choice="2">Что файл быстрый</button><button type="button" class="quiz-option" data-choice="3">Что нет NULL</button></div><p class="quiz-feedback" hidden>Checksum обеспечивает идентичность artifact, а смысл подтверждают checks.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Когда стоит передать результат в pandas?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">После сокращения до нужного grain для локального анализа</button><button type="button" class="quiz-option" data-choice="1">До любого фильтра</button><button type="button" class="quiz-option" data-choice="2">Всегда вместо SQL</button><button type="button" class="quiz-option" data-choice="3">Только для checksum</button></div><p class="quiz-feedback" hidden>Граница должна минимизировать объем и сохранять понятный контракт.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;sql_mart_builder.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;sql_mart_builder&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+BUILDER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(BUILDER)
+
+
+class SqlMartBuilderTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.result = BUILDER.build_marts(
+            DATA / &quot;users.csv&quot;,
+            DATA / &quot;orders.csv&quot;,
+            DATA / &quot;order_items.csv&quot;,
+        )
+        self.orders = {row[&quot;order_id&quot;]: row for row in self.result[&quot;order_mart&quot;][&quot;records&quot;]}
+        self.users = {row[&quot;user_id&quot;]: row for row in self.result[&quot;user_summary&quot;][&quot;records&quot;]}
+
+    def test_order_mart_preserves_order_grain(self) -&gt; None:
+        self.assertEqual(self.result[&quot;order_mart&quot;][&quot;grain&quot;], [&quot;order_id&quot;])
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;order_rows&quot;], 12)
+        self.assertTrue(self.result[&quot;checks&quot;][&quot;order_id_unique&quot;])
+
+    def test_items_are_aggregated_before_join(self) -&gt; None:
+        row = self.orders[&quot;O1001&quot;]
+        self.assertEqual(row[&quot;item_rows&quot;], 2)
+        self.assertEqual(row[&quot;item_total&quot;], 1200.0)
+        self.assertEqual(row[&quot;categories&quot;], &quot;add_on|subscription&quot;)
+
+    def test_unknown_user_is_preserved_and_flagged(self) -&gt; None:
+        self.assertFalse(self.orders[&quot;O1010&quot;][&quot;user_found&quot;])
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;unknown_user_orders&quot;], 1)
+
+    def test_amount_reconciliation_is_explicit(self) -&gt; None:
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;amount_item_mismatches&quot;], 0)
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;amount_item_unchecked&quot;], 2)
+
+    def test_paid_revenue_matches_phase_controls(self) -&gt; None:
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;paid_revenue&quot;], 5005.0)
+        self.assertTrue(self.result[&quot;checks&quot;][&quot;valid&quot;])
+
+    def test_user_summary_has_one_row_per_observed_user(self) -&gt; None:
+        self.assertEqual(self.result[&quot;user_summary&quot;][&quot;grain&quot;], [&quot;user_id&quot;])
+        self.assertEqual(self.result[&quot;checks&quot;][&quot;user_summary_rows&quot;], 8)
+        self.assertEqual(self.users[&quot;U001&quot;][&quot;paid_revenue&quot;], 2700.0)
+        self.assertEqual(self.users[&quot;U001&quot;][&quot;paid_order_count&quot;], 2)
+
+    def test_boundary_assigns_relational_work_to_sql(self) -&gt; None:
+        self.assertIn(&quot;joins&quot;, self.result[&quot;boundary&quot;][&quot;sql&quot;])
+        self.assertIn(&quot;manifest&quot;, self.result[&quot;boundary&quot;][&quot;python&quot;])
+
+    def test_export_manifest_matches_artifact_checksum(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            manifest = BUILDER.export_marts(
+                self.result,
+                output,
+                {
+                    &quot;users&quot;: DATA / &quot;users.csv&quot;,
+                    &quot;orders&quot;: DATA / &quot;orders.csv&quot;,
+                    &quot;order_items&quot;: DATA / &quot;order_items.csv&quot;,
+                },
+            )
+            digest = hashlib.sha256((output / &quot;order_mart.csv&quot;).read_bytes()).hexdigest()
+            self.assertEqual(manifest[&quot;artifacts&quot;][&quot;order_mart&quot;][&quot;sha256&quot;], digest)
+            self.assertTrue((output / &quot;user_summary.csv&quot;).is_file())
+            self.assertTrue((output / &quot;manifest.json&quot;).is_file())
+
+    def test_cli_builds_delivery_directory(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / &quot;delivery&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--users&quot;,
+                    DATA / &quot;users.csv&quot;,
+                    &quot;--orders&quot;,
+                    DATA / &quot;orders.csv&quot;,
+                    &quot;--items&quot;,
+                    DATA / &quot;order_items.csv&quot;,
+                    &quot;--output-dir&quot;,
+                    output,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = json.loads(result.stdout)
+            self.assertTrue(manifest[&quot;checks&quot;][&quot;valid&quot;])
+            self.assertEqual(
+                set(path.name for path in output.iterdir()),
+                {
+                    &quot;manifest.json&quot;,
+                    &quot;order_mart.csv&quot;,
+                    &quot;user_summary.csv&quot;,
+                },
+            )
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;sql_mart_builder.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;sql_mart_builder&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    result = load_artifact().build_marts(
+        DATA / &quot;users.csv&quot;,
+        DATA / &quot;orders.csv&quot;,
+        DATA / &quot;order_items.csv&quot;,
+    )
+    compact = {
+        &quot;checks&quot;: result[&quot;checks&quot;],
+        &quot;boundary&quot;: result[&quot;boundary&quot;],
+        &quot;order_sample&quot;: result[&quot;order_mart&quot;][&quot;records&quot;][:2],
+        &quot;user_sample&quot;: result[&quot;user_summary&quot;][&quot;records&quot;][:2],
+    }
+    print(json.dumps(compact, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;sql-mart-builder&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/sql_mart_builder.py&quot;,
+  &quot;description&quot;: &quot;Собирает order и user SQL marts, проверяет grain и выпускает CSV с checksum-manifest.&quot;,
+  &quot;usage&quot;: &quot;python outputs/sql_mart_builder.py --users ../data/tiny/users.csv --orders ../data/tiny/orders.csv --items ../data/tiny/order_items.csv --output-dir delivery&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/order_mart.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>WITH
+users AS (
+    SELECT
+        user_id,
+        upper(trim(country)) AS country,
+        lower(trim(plan)) AS plan
+    FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+),
+orders AS (
+    SELECT
+        order_id,
+        user_id,
+        cast(timezone(?, ordered_at::TIMESTAMPTZ) AS DATE) AS business_date,
+        lower(trim(status)) AS status,
+        upper(trim(currency)) AS currency,
+        amount::DECIMAL(18, 2) AS amount
+    FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+),
+items AS (
+    SELECT
+        order_id,
+        product_id,
+        regexp_replace(lower(trim(category)), &#x27;[ -]+&#x27;, &#x27;_&#x27;, &#x27;g&#x27;) AS category,
+        quantity::INTEGER AS quantity,
+        unit_price::DECIMAL(18, 2) AS unit_price
+    FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+),
+item_totals AS (
+    SELECT
+        order_id,
+        count(*) AS item_rows,
+        sum(quantity * unit_price) AS item_total,
+        string_agg(DISTINCT category, &#x27;|&#x27; ORDER BY category) AS categories
+    FROM items
+    GROUP BY order_id
+)
+SELECT
+    orders.order_id,
+    orders.user_id,
+    orders.business_date,
+    orders.status,
+    orders.currency,
+    orders.amount,
+    item_totals.item_rows,
+    item_totals.item_total,
+    item_totals.categories,
+    users.country,
+    users.plan,
+    users.user_id IS NOT NULL AS user_found,
+    orders.status = &#x27;paid&#x27; AS is_paid,
+    CASE WHEN orders.status = &#x27;paid&#x27; THEN orders.amount ELSE 0 END AS paid_amount,
+    CASE
+        WHEN orders.amount IS NULL OR item_totals.item_total IS NULL THEN NULL
+        ELSE abs(orders.amount - item_totals.item_total) &lt;= 0.0001
+    END AS amount_matches_items
+FROM orders
+LEFT JOIN item_totals USING (order_id)
+LEFT JOIN users USING (user_id)
+ORDER BY orders.order_id;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/outputs/order_mart.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/sql_mart_builder.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+from collections.abc import Sequence
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+ROOT = Path(__file__).resolve().parent
+ORDER_MART_SQL = ROOT / &quot;order_mart.sql&quot;
+USER_SUMMARY_SQL = ROOT / &quot;user_summary.sql&quot;
+
+
+def sha256(path: Path) -&gt; str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _plain(value: Any) -&gt; Any:
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
+
+
+def query_records(
+    connection: duckdb.DuckDBPyConnection,
+    sql: str,
+    params: Sequence[Any] = (),
+) -&gt; tuple[list[str], list[dict[str, Any]]]:
+    relation = connection.execute(sql, list(params))
+    columns = [column[0] for column in relation.description]
+    records = [
+        {column: _plain(value) for column, value in zip(columns, row, strict=True)}
+        for row in relation.fetchall()
+    ]
+    return columns, records
+
+
+def build_marts(
+    users_path: Path,
+    orders_path: Path,
+    items_path: Path,
+    business_timezone: str = &quot;Europe/Moscow&quot;,
+) -&gt; dict[str, Any]:
+    order_sql = ORDER_MART_SQL.read_text(encoding=&quot;utf-8&quot;).strip().removesuffix(&quot;;&quot;)
+    summary_sql = USER_SUMMARY_SQL.read_text(encoding=&quot;utf-8&quot;)
+    connection = duckdb.connect()
+    try:
+        order_columns, order_mart = query_records(
+            connection,
+            order_sql,
+            [str(users_path), business_timezone, str(orders_path), str(items_path)],
+        )
+        wrapped_summary = f&quot;WITH order_mart AS ({order_sql})\n{summary_sql}&quot;
+        summary_columns, user_summary = query_records(
+            connection,
+            wrapped_summary,
+            [str(users_path), business_timezone, str(orders_path), str(items_path)],
+        )
+    finally:
+        connection.close()
+
+    checks = {
+        &quot;order_rows&quot;: len(order_mart),
+        &quot;order_id_unique&quot;: len({row[&quot;order_id&quot;] for row in order_mart}) == len(order_mart),
+        &quot;unknown_user_orders&quot;: sum(not row[&quot;user_found&quot;] for row in order_mart),
+        &quot;amount_item_mismatches&quot;: sum(row[&quot;amount_matches_items&quot;] is False for row in order_mart),
+        &quot;amount_item_unchecked&quot;: sum(row[&quot;amount_matches_items&quot;] is None for row in order_mart),
+        &quot;paid_revenue&quot;: round(sum(row[&quot;paid_amount&quot;] or 0 for row in order_mart), 2),
+        &quot;user_summary_rows&quot;: len(user_summary),
+    }
+    checks[&quot;valid&quot;] = (
+        checks[&quot;order_rows&quot;] == 12
+        and checks[&quot;order_id_unique&quot;]
+        and checks[&quot;amount_item_mismatches&quot;] == 0
+        and checks[&quot;paid_revenue&quot;] == 5005.0
+    )
+    return {
+        &quot;business_timezone&quot;: business_timezone,
+        &quot;order_mart&quot;: {
+            &quot;grain&quot;: [&quot;order_id&quot;],
+            &quot;columns&quot;: order_columns,
+            &quot;records&quot;: order_mart,
+        },
+        &quot;user_summary&quot;: {
+            &quot;grain&quot;: [&quot;user_id&quot;],
+            &quot;columns&quot;: summary_columns,
+            &quot;records&quot;: user_summary,
+        },
+        &quot;checks&quot;: checks,
+        &quot;boundary&quot;: {
+            &quot;sql&quot;: &quot;typing, normalization, joins, aggregation, window-free marts&quot;,
+            &quot;python&quot;: &quot;parameters, orchestration, CSV export, checksums, manifest&quot;,
+            &quot;pandas&quot;: &quot;optional downstream exploration; not required to build marts&quot;,
+        },
+    }
+
+
+def write_csv(path: Path, columns: list[str], records: list[dict[str, Any]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as target:
+        writer = csv.DictWriter(target, fieldnames=columns, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(records)
+
+
+def export_marts(
+    result: dict[str, Any],
+    output_dir: Path,
+    sources: dict[str, Path],
+) -&gt; dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: dict[str, dict[str, Any]] = {}
+    for name in (&quot;order_mart&quot;, &quot;user_summary&quot;):
+        path = output_dir / f&quot;{name}.csv&quot;
+        mart = result[name]
+        write_csv(path, mart[&quot;columns&quot;], mart[&quot;records&quot;])
+        artifacts[name] = {
+            &quot;path&quot;: path.name,
+            &quot;rows&quot;: len(mart[&quot;records&quot;]),
+            &quot;grain&quot;: mart[&quot;grain&quot;],
+            &quot;sha256&quot;: sha256(path),
+        }
+    manifest = {
+        &quot;name&quot;: &quot;sql_marts&quot;,
+        &quot;duckdb_version&quot;: duckdb.__version__,
+        &quot;business_timezone&quot;: result[&quot;business_timezone&quot;],
+        &quot;checks&quot;: result[&quot;checks&quot;],
+        &quot;boundary&quot;: result[&quot;boundary&quot;],
+        &quot;artifacts&quot;: artifacts,
+        &quot;sql&quot;: {
+            ORDER_MART_SQL.name: sha256(ORDER_MART_SQL),
+            USER_SUMMARY_SQL.name: sha256(USER_SUMMARY_SQL),
+        },
+        &quot;sources&quot;: {
+            name: {&quot;path&quot;: str(path), &quot;sha256&quot;: sha256(path)} for name, path in sources.items()
+        },
+    }
+    manifest_path = output_dir / &quot;manifest.json&quot;
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+    return manifest
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Build and export checked SQL marts&quot;)
+    parser.add_argument(&quot;--users&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--items&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--business-timezone&quot;, default=&quot;Europe/Moscow&quot;)
+    args = parser.parse_args()
+    try:
+        sources = {
+            &quot;users&quot;: args.users,
+            &quot;orders&quot;: args.orders,
+            &quot;order_items&quot;: args.items,
+        }
+        result = build_marts(
+            args.users,
+            args.orders,
+            args.items,
+            args.business_timezone,
+        )
+        manifest = export_marts(result, args.output_dir, sources)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(manifest, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/outputs/sql_mart_builder.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/user_summary.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>SELECT
+    user_id,
+    count(*) AS order_count,
+    count(*) FILTER (WHERE is_paid) AS paid_order_count,
+    sum(paid_amount) AS paid_revenue,
+    min(business_date) AS first_order_date,
+    max(business_date) AS last_order_date,
+    bool_and(user_found) AS user_found
+FROM order_mart
+GROUP BY user_id
+ORDER BY user_id;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/outputs/user_summary.sql" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/query-plans/"><span>← Предыдущий урок</span><strong>Планы запросов и стоимость</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/csv/"><span>Следующий урок →</span><strong>CSV и неоднозначность типов</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

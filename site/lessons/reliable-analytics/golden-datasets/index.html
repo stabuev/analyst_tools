@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Snapshot полного CSV падает из-за порядка строк, timestamp запуска или версии writer. Если snapshot обновляют одной командой без чтения diff, он перестает защищать…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/golden-datasets/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Golden datasets и regression tests">
+  <meta property="og:description" content="Snapshot полного CSV падает из-за порядка строк, timestamp запуска или версии writer. Если snapshot обновляют одной командой без чтения diff, он перестает защищать…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/golden-datasets/">
+  <meta name="twitter:card" content="summary">
+  <title>Golden datasets и regression tests — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Golden datasets и regression tests", "description": "Snapshot полного CSV падает из-за порядка строк, timestamp запуска или версии writer. Если snapshot обновляют одной командой без чтения diff, он перестает защищать…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/golden-datasets/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 07: Надежная аналитика", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=7"}, {"@type": "ListItem", "position": 3, "name": "Golden datasets и regression tests", "item": "https://datascience.xyz/courses/analyst-tools/lessons/reliable-analytics/golden-datasets/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 07</p><h2>Надежная аналитика</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/invariants/"><span>01</span>Инварианты аналитического расчета</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/unit-tests/"><span>02</span>Тесты на границах преобразований</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/defect-matrix/"><span>03</span>Минимальные контрпримеры и матрица дефектов</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/property-based-testing/"><span>04</span>Property-based testing с Hypothesis</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/pandera/"><span>05</span>Контракты DataFrame с Pandera</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/pydantic/"><span>06</span>Валидация конфигурации с Pydantic</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/sql-checks/"><span>07</span>Проверки SQL-витрин</a><a class="lesson-sidebar-link is-active" href="../../../lessons/reliable-analytics/golden-datasets/"><span>08</span>Golden datasets и regression tests</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/observability/"><span>09</span>Наблюдаемость и мониторинг качества данных</a><a class="lesson-sidebar-link" href="../../../lessons/reliable-analytics/quality-gates/"><span>10</span>Интеграционный quality gate</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 07 · Надежная аналитика</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 77 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/07-reliable-analytics/08-golden-datasets" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что лучше включить в semantic golden?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Проверяемые counts и бизнес-метрики</button><button type="button" class="quiz-option" data-choice="1">Timestamp запуска</button><button type="button" class="quiz-option" data-choice="2">Порядок строк source</button><button type="button" class="quiz-option" data-choice="3">Версию локальной ОС</button></div><p class="quiz-feedback" hidden>Golden должен фиксировать устойчивую бизнес-семантику.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему нельзя без review автоматически принимать новый snapshot?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Можно закрепить регрессию как новый baseline</button><button type="button" class="quiz-option" data-choice="1">JSON перестанет читаться</button><button type="button" class="quiz-option" data-choice="2">Тесты станут быстрее</button><button type="button" class="quiz-option" data-choice="3">Git удалит файл</button></div><p class="quiz-feedback" hidden>Обновление golden является решением об ожидаемом поведении.</p></article></section>
+        <article class="lesson-article"><h1 id="golden-datasets-и-regression-tests">Golden datasets и regression tests</h1>
+<blockquote>
+<p>Golden baseline фиксирует бизнес-семантику, а не случайное byte-for-byte состояние всего файла.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> core<br />
+<strong>Пререквизиты:</strong> 07/07<br />
+<strong>Время:</strong> ~75 минут</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>выбирать маленький reviewed baseline;</li>
+<li>нормализовать порядок и числовое представление перед сравнением;</li>
+<li>отличать регрессию от согласованного изменения правила.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Snapshot полного CSV падает из-за порядка строк, timestamp запуска или версии writer.
+Если snapshot обновляют одной командой без чтения diff, он перестает защищать бизнес-
+логику.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Golden содержит минимальный вход и ожидаемый semantic output: counts, paid revenue,
+status partition и дневные метрики. Harness строит output заново, нормализует его и
+показывает diff по JSON paths. Обновление golden является review бизнес-изменения.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сравните <code>outputs/orders_golden.json</code> и функцию <code>semantic_snapshot</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/07-reliable-analytics/08-golden-datasets/outputs/golden_regression.py \
+  --data-dir phases/07-reliable-analytics/data/tiny \
+  --golden phases/07-reliable-analytics/08-golden-datasets/outputs/orders_golden.json
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Смотрите не только <code>difference_count</code>, но и пути. Изменение paid policy должно затронуть
+paid count/revenue, но не общий order count. Не включайте в golden поля, которые не
+несут проверяемой семантики.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Сделайте <code>pending</code> заказ платным или измените одну сумму на копейку. Harness должен
+показать узкий semantic diff. Перестановка строк, напротив, не должна менять snapshot.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/07-reliable-analytics/08-golden-datasets/tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Результат: <code>outputs/golden_regression.py</code> и reviewed baseline
+<code>outputs/orders_golden.json</code>.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте в golden refunded amount и объясните бизнес-смысл.</li>
+<li>Исключите новое нестабильное поле <code>generated_at</code>.</li>
+<li>Напишите checklist review для осознанного обновления baseline.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Golden dataset</td>
+<td>Большой production snapshot</td>
+<td>Маленький reviewed пример с ожидаемой семантикой</td>
+</tr>
+<tr>
+<td>Semantic diff</td>
+<td>Текстовый diff файлов</td>
+<td>Различия нормализованных бизнес-полей</td>
+</tr>
+<tr>
+<td>Regression</td>
+<td>Любое изменение output</td>
+<td>Неожиданное нарушение ранее подтвержденного поведения</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.python.org/3/library/json.html" target="_blank" rel="noopener">Python json</a> — стабильная сериализация структурированного baseline.</li>
+<li><a href="https://pandas.pydata.org/docs/reference/testing.html" target="_blank" rel="noopener">pandas testing</a> — семантическое сравнение табличных объектов.</li>
+<li><a href="https://docs.pytest.org/en/stable/how-to/parametrize.html" target="_blank" rel="noopener">pytest parametrization</a> — проверка нескольких reviewed regression cases одним контрактом.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должна сделать перестановка строк orders с semantic snapshot?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Не изменить его</button><button type="button" class="quiz-option" data-choice="1">Изменить paid revenue</button><button type="button" class="quiz-option" data-choice="2">Удалить status counts</button><button type="button" class="quiz-option" data-choice="3">Создать schema drift</button></div><p class="quiz-feedback" hidden>Порядок source строк не относится к семантике агрегата.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что полезнее всего в regression report?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Точные JSON paths expected/actual</button><button type="button" class="quiz-option" data-choice="1">Только общий fail</button><button type="button" class="quiz-option" data-choice="2">Полный binary diff parquet</button><button type="button" class="quiz-option" data-choice="3">Случайный sample</button></div><p class="quiz-feedback" hidden>Semantic paths локализуют изменившееся бизнес-поле.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Когда изменение golden допустимо?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">После review осознанного изменения правила</button><button type="button" class="quiz-option" data-choice="1">После любого падения CI</button><button type="button" class="quiz-option" data-choice="2">Когда diff слишком длинный</button><button type="button" class="quiz-option" data-choice="3">До запуска теста</button></div><p class="quiz-feedback" hidden>Baseline меняется вместе с подтвержденным контрактом.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;golden_regression.py&quot;
+GOLDEN = ROOT / &quot;outputs&quot; / &quot;orders_golden.json&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;golden_regression&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+GOLDEN_TOOL = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(GOLDEN_TOOL)
+
+
+def write_orders(path: Path, rows: list[dict[str, str]], fields: list[str]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fields, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+class GoldenRegressionTest(unittest.TestCase):
+    def test_reviewed_tiny_baseline_matches(self) -&gt; None:
+        report = GOLDEN_TOOL.compare_with_golden(DATA, GOLDEN)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;difference_count&quot;], 0)
+
+    def test_row_order_does_not_change_semantic_snapshot(self) -&gt; None:
+        rows = GOLDEN_TOOL.read_orders(DATA)
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            write_orders(target / &quot;orders.csv&quot;, list(reversed(rows)), list(rows[0]))
+            actual = GOLDEN_TOOL.semantic_snapshot(target)
+        expected = json.loads(GOLDEN.read_text(encoding=&quot;utf-8&quot;))
+        self.assertEqual(actual, expected)
+
+    def test_paid_rule_change_produces_specific_semantic_diff(self) -&gt; None:
+        rows = GOLDEN_TOOL.read_orders(DATA)
+        rows[6][&quot;status&quot;] = &quot;paid&quot;
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            write_orders(target / &quot;orders.csv&quot;, rows, list(rows[0]))
+            report = GOLDEN_TOOL.compare_with_golden(target, GOLDEN)
+        paths = {difference[&quot;path&quot;] for difference in report[&quot;differences&quot;]}
+        self.assertIn(&quot;$.summary.paid_order_count&quot;, paths)
+        self.assertIn(&quot;$.summary.paid_revenue_kopecks&quot;, paths)
+        self.assertNotIn(&quot;$.summary.order_count&quot;, paths)
+
+    def test_diff_reports_missing_and_extra_fields(self) -&gt; None:
+        differences = GOLDEN_TOOL.semantic_diff({&quot;a&quot;: 1}, {&quot;b&quot;: 2})
+        self.assertEqual(
+            differences,
+            [
+                {&quot;path&quot;: &quot;$.a&quot;, &quot;expected&quot;: 1, &quot;actual&quot;: None},
+                {&quot;path&quot;: &quot;$.b&quot;, &quot;expected&quot;: None, &quot;actual&quot;: 2},
+            ],
+        )
+
+    def test_cli_returns_nonzero_on_regression(self) -&gt; None:
+        rows = GOLDEN_TOOL.read_orders(DATA)
+        rows[0][&quot;amount_rub&quot;] = &quot;1200.01&quot;
+        with TemporaryDirectory() as directory:
+            target = Path(directory)
+            write_orders(target / &quot;orders.csv&quot;, rows, list(rows[0]))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--data-dir&quot;,
+                    target,
+                    &quot;--golden&quot;,
+                    GOLDEN,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertGreater(json.loads(result.stdout)[&quot;difference_count&quot;], 0)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from outputs.golden_regression import compare_with_golden
+
+
+def main() -&gt; None:
+    lesson_root = Path(__file__).resolve().parents[1]
+    data_dir = lesson_root.parent / &quot;data&quot; / &quot;tiny&quot;
+    golden = lesson_root / &quot;outputs&quot; / &quot;orders_golden.json&quot;
+    print(json.dumps(compare_with_golden(data_dir, golden), ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;order-golden-regression&quot;,
+  &quot;type&quot;: &quot;test-suite&quot;,
+  &quot;path&quot;: &quot;outputs/golden_regression.py&quot;,
+  &quot;description&quot;: &quot;Строит нормализованный semantic snapshot и сравнивает его с reviewed golden baseline с точным diff по путям.&quot;,
+  &quot;usage&quot;: &quot;python outputs/golden_regression.py --data-dir ../data/tiny --golden outputs/orders_golden.json --output regression-report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/golden_regression.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from collections import Counter, defaultdict
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+GOLDEN_VERSION = &quot;1.0.0&quot;
+
+
+def read_orders(data_dir: str | Path) -&gt; list[dict[str, str]]:
+    with (Path(data_dir) / &quot;orders.csv&quot;).open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def semantic_snapshot(data_dir: str | Path) -&gt; dict[str, Any]:
+    rows = read_orders(data_dir)
+    daily: dict[str, dict[str, int]] = defaultdict(
+        lambda: {&quot;order_count&quot;: 0, &quot;paid_order_count&quot;: 0, &quot;paid_revenue_kopecks&quot;: 0}
+    )
+    statuses: Counter[str] = Counter()
+    paid_total = 0
+    for row in rows:
+        day = row[&quot;ordered_at&quot;][:10]
+        amount_kopecks = int(Decimal(row[&quot;amount_rub&quot;]) * 100)
+        statuses[row[&quot;status&quot;]] += 1
+        daily[day][&quot;order_count&quot;] += 1
+        if row[&quot;status&quot;] == &quot;paid&quot;:
+            daily[day][&quot;paid_order_count&quot;] += 1
+            daily[day][&quot;paid_revenue_kopecks&quot;] += amount_kopecks
+            paid_total += amount_kopecks
+    return {
+        &quot;golden_version&quot;: GOLDEN_VERSION,
+        &quot;summary&quot;: {
+            &quot;order_count&quot;: len(rows),
+            &quot;paid_order_count&quot;: statuses[&quot;paid&quot;],
+            &quot;paid_revenue_kopecks&quot;: paid_total,
+            &quot;status_counts&quot;: dict(sorted(statuses.items())),
+        },
+        &quot;daily_metrics&quot;: [{&quot;ordered_date&quot;: day, **daily[day]} for day in sorted(daily)],
+    }
+
+
+def semantic_diff(expected: Any, actual: Any, path: str = &quot;$&quot;) -&gt; list[dict[str, Any]]:
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        differences: list[dict[str, Any]] = []
+        for key in sorted(set(expected) | set(actual)):
+            child = f&quot;{path}.{key}&quot;
+            if key not in expected:
+                differences.append({&quot;path&quot;: child, &quot;expected&quot;: None, &quot;actual&quot;: actual[key]})
+            elif key not in actual:
+                differences.append({&quot;path&quot;: child, &quot;expected&quot;: expected[key], &quot;actual&quot;: None})
+            else:
+                differences.extend(semantic_diff(expected[key], actual[key], child))
+        return differences
+    if isinstance(expected, list) and isinstance(actual, list):
+        differences = []
+        for index in range(max(len(expected), len(actual))):
+            child = f&quot;{path}[{index}]&quot;
+            if index &gt;= len(expected):
+                differences.append({&quot;path&quot;: child, &quot;expected&quot;: None, &quot;actual&quot;: actual[index]})
+            elif index &gt;= len(actual):
+                differences.append({&quot;path&quot;: child, &quot;expected&quot;: expected[index], &quot;actual&quot;: None})
+            else:
+                differences.extend(semantic_diff(expected[index], actual[index], child))
+        return differences
+    if expected != actual:
+        return [{&quot;path&quot;: path, &quot;expected&quot;: expected, &quot;actual&quot;: actual}]
+    return []
+
+
+def compare_with_golden(data_dir: str | Path, golden_path: str | Path) -&gt; dict[str, Any]:
+    expected = json.loads(Path(golden_path).read_text(encoding=&quot;utf-8&quot;))
+    actual = semantic_snapshot(data_dir)
+    differences = semantic_diff(expected, actual)
+    return {
+        &quot;valid&quot;: not differences,
+        &quot;golden_version&quot;: expected.get(&quot;golden_version&quot;),
+        &quot;difference_count&quot;: len(differences),
+        &quot;differences&quot;: differences,
+        &quot;actual&quot;: actual,
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Compare semantic output with a reviewed golden&quot;)
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--golden&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        report = compare_with_golden(args.data_dir, args.golden)
+    except (OSError, ValueError, KeyError) as error:
+        report = {&quot;valid&quot;: False, &quot;error&quot;: {&quot;class&quot;: &quot;system_failure&quot;, &quot;message&quot;: str(error)}}
+    text = json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding=&quot;utf-8&quot;)
+    print(text, end=&quot;&quot;)
+    raise SystemExit(0 if report[&quot;valid&quot;] else 1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/outputs/golden_regression.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/orders_golden.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;golden_version&quot;: &quot;1.0.0&quot;,
+  &quot;summary&quot;: {
+    &quot;order_count&quot;: 10,
+    &quot;paid_order_count&quot;: 7,
+    &quot;paid_revenue_kopecks&quot;: 915050,
+    &quot;status_counts&quot;: {
+      &quot;cancelled&quot;: 1,
+      &quot;paid&quot;: 7,
+      &quot;pending&quot;: 1,
+      &quot;refunded&quot;: 1
+    }
+  },
+  &quot;daily_metrics&quot;: [
+    {
+      &quot;ordered_date&quot;: &quot;2026-06-08&quot;,
+      &quot;order_count&quot;: 4,
+      &quot;paid_order_count&quot;: 2,
+      &quot;paid_revenue_kopecks&quot;: 200000
+    },
+    {
+      &quot;ordered_date&quot;: &quot;2026-06-09&quot;,
+      &quot;order_count&quot;: 4,
+      &quot;paid_order_count&quot;: 3,
+      &quot;paid_revenue_kopecks&quot;: 545050
+    },
+    {
+      &quot;ordered_date&quot;: &quot;2026-06-10&quot;,
+      &quot;order_count&quot;: 2,
+      &quot;paid_order_count&quot;: 2,
+      &quot;paid_revenue_kopecks&quot;: 170000
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/07-reliable-analytics/08-golden-datasets/outputs/orders_golden.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/07-reliable-analytics/08-golden-datasets" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/reliable-analytics/sql-checks/"><span>← Предыдущий урок</span><strong>Проверки SQL-витрин</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/reliable-analytics/observability/"><span>Следующий урок →</span><strong>Наблюдаемость и мониторинг качества данных</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

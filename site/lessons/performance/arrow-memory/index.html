@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После урока про Parquet pushdown команда видит, что PyArrow, DuckDB и pandas могут обмениваться таблицами. Возникает соблазн сказать:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/arrow-memory/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Arrow memory model">
+  <meta property="og:description" content="После урока про Parquet pushdown команда видит, что PyArrow, DuckDB и pandas могут обмениваться таблицами. Возникает соблазн сказать:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/arrow-memory/">
+  <meta name="twitter:card" content="summary">
+  <title>Arrow memory model — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Arrow memory model", "description": "После урока про Parquet pushdown команда видит, что PyArrow, DuckDB и pandas могут обмениваться таблицами. Возникает соблазн сказать:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/arrow-memory/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "Arrow memory model", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/arrow-memory/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 127 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/05-arrow-memory" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что корректнее всего означает zero-copy в Arrow pipeline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Конкретная операция переиспользует тот же memory buffer без новой копии.</button><button type="button" class="quiz-option" data-choice="1">Любая таблица Arrow никогда не копируется.</button><button type="button" class="quiz-option" data-choice="2">Любая конвертация в pandas всегда бесплатна.</button><button type="button" class="quiz-option" data-choice="3">Все строки автоматически становятся NumPy arrays.</button></div><p class="quiz-feedback" hidden>Zero-copy нужно проверять на конкретной границе обмена: array, тип, nulls, chunks и consumer могут изменить ответ.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какие buffers обычно нужны Arrow string array?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Validity bitmap, offsets и values.</button><button type="button" class="quiz-option" data-choice="1">Только один values buffer фиксированной ширины.</button><button type="button" class="quiz-option" data-choice="2">Отдельный Python object на каждую строку.</button><button type="button" class="quiz-option" data-choice="3">Только dictionary indices без values.</button></div><p class="quiz-feedback" hidden>String values имеют переменную длину: offsets задают границы, values хранят байты, validity bitmap нужен при null.</p></article></section>
+        <article class="lesson-article"><h1 id="arrow-memory-model">Arrow memory model</h1>
+<blockquote>
+<p>Zero-copy в Arrow - это проверяемое свойство конкретной границы обмена, а не
+обещание для любой конвертации.</p>
+</blockquote>
+<p><strong>Тип:</strong> Learn
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>12-performance/04-parquet-pushdown</code>
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> разбирает Arrow buffers, null bitmaps, offsets, chunks и dictionary
+encoding, инспектирует PyArrow Table/Array и отличает zero-copy обмен от скрытого
+копирования.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разложить Arrow Array на physical buffers и понять роль каждого buffer.</li>
+<li>Отличить primitive values buffer от validity bitmap и offsets buffer.</li>
+<li>Увидеть, как dictionary encoding заменяет repeated strings на integer indices.</li>
+<li>Объяснить, почему <code>ChunkedArray</code> не равен одному непрерывному buffer.</li>
+<li>Проверить zero-copy и hidden copy через адреса buffers и <code>zero_copy_only=True</code>.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После урока про Parquet pushdown команда видит, что PyArrow, DuckDB и pandas могут
+обмениваться таблицами. Возникает соблазн сказать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Перейдем на Arrow - и копий больше не будет.
+</code></pre></div><p>Это неверно. Arrow задает columnar memory format, но копия зависит от конкретной
+операции:</p>
+<ul>
+<li>primitive numeric array без null может дать NumPy view на тот же values buffer;</li>
+<li>nullable numeric array требует validity bitmap, с которой NumPy без nullable маски
+не справляется zero-copy;</li>
+<li>string array хранит offsets и values отдельно;</li>
+<li>chunked column состоит из нескольких arrays, а не одного непрерывного куска памяти;</li>
+<li>dictionary chunks могут иметь разные словари и требовать унификации;</li>
+<li>pandas DataFrame boundary имеет собственную block layout.</li>
+</ul>
+<p>Если не проверить эти границы, можно получить красивый &quot;Arrow pipeline&quot; и неожиданный
+memory spike на <code>to_pandas</code>, <code>combine_chunks</code> или dictionary unification.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Arrow Table состоит из columns. В PyArrow колонка таблицы обычно является
+<code>ChunkedArray</code>: списком chunks, где каждый chunk - отдельный <code>Array</code>.</p>
+<p>Каждый <code>Array</code> ссылается на physical buffers. Для разных типов набор buffers разный:</p>
+<table>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Типичные buffers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int64</code> без null</td>
+<td><code>values</code></td>
+</tr>
+<tr>
+<td><code>int64</code> с null</td>
+<td><code>validity_bitmap</code>, <code>values</code></td>
+</tr>
+<tr>
+<td><code>string</code></td>
+<td><code>validity_bitmap</code>, <code>offsets</code>, <code>values</code></td>
+</tr>
+<tr>
+<td><code>dictionary&lt;string&gt;</code></td>
+<td><code>validity_bitmap</code>, <code>indices</code> плюс отдельный dictionary array</td>
+</tr>
+</tbody>
+</table>
+<h3 id="validity-bitmap">Validity bitmap</h3>
+<p>Validity bitmap хранит, какие позиции являются null. Это битовая маска, поэтому размер
+маленький, но семантика большая: без нее нельзя отличить &quot;значение равно 0&quot; от &quot;значения
+нет&quot;.</p>
+<h3 id="offsets">Offsets</h3>
+<p>Строки и binary values имеют переменную длину. Arrow не кладет каждую строку как
+отдельный Python object. Вместо этого values buffer содержит байты, а offsets buffer
+показывает границы каждой строки.</p>
+<h3 id="dictionary-encoding">Dictionary encoding</h3>
+<p>Repeated dimensions вроде <code>platform</code> можно хранить как integer indices плюс dictionary
+values. Это экономит память и ускоряет некоторые операции, но dictionary chunks могут
+иметь разные словари. Перед объединением или передачей в другой engine словари иногда
+нужно унифицировать.</p>
+<h3 id="chunks">Chunks</h3>
+<p>Chunked column появляется после чтения dataset, streaming batches или склейки таблиц.
+Много chunks удобно для обработки по партиям, но это не один continuous buffer. Поэтому
+операция, которая требует contiguous array, часто делает copy.</p>
+<h3 id="zero-copy">Zero-copy</h3>
+<p>Zero-copy означает: consumer использует тот же memory buffer, не создавая новый массив
+значений. Это можно проверить:</p>
+<ul>
+<li>вызвать conversion с <code>zero_copy_only=True</code>;</li>
+<li>сравнить адрес NumPy data pointer с адресом Arrow values buffer;</li>
+<li>посмотреть, сохранились ли buffer addresses после <code>slice</code>, <code>combine_chunks</code> или
+dictionary operation.</li>
+</ul>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакт урока строит маленькую Arrow-таблицу <code>customer_revenue_health_weekly</code>. Она
+специально содержит разные memory layouts:</p>
+<ul>
+<li><code>net_revenue_cents</code> - primitive <code>int64</code> без null;</li>
+<li><code>support_ticket_count</code> - nullable <code>int16</code>;</li>
+<li><code>support_notes</code> - string with offsets;</li>
+<li><code>platform</code> и <code>plan</code> - dictionary-encoded strings;</li>
+<li>все колонки chunked через <code>chunk_size</code>.</li>
+</ul>
+<h3 id="шаг-1-создайте-arrow-table">Шаг 1. Создайте Arrow Table</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">table = build_customer_revenue_arrow_table(rows=48, chunk_size=16, seed=42)
+</code></pre></div><p>Это не pandas DataFrame, а <code>pyarrow.Table</code>. Данные уже лежат в Arrow arrays и chunks.</p>
+<h3 id="шаг-2-инспектируйте-колонку">Шаг 2. Инспектируйте колонку</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">detail = inspect_chunked_array(&quot;support_notes&quot;, table[&quot;support_notes&quot;])
+</code></pre></div><p>Для string column вы увидите buffers:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">validity_bitmap
+offsets
+values
+</code></pre></div><p>Если в chunk есть null, validity bitmap присутствует. Если null нет, buffer может быть
+<code>None</code>: Arrow не тратит память на маску, когда все значения valid.</p>
+<h3 id="шаг-3-найдите-dictionary-layout">Шаг 3. Найдите dictionary layout</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">detail = inspect_chunked_array(&quot;platform&quot;, table[&quot;platform&quot;])
+</code></pre></div><p>Dictionary chunk содержит:</p>
+<ul>
+<li>indices buffer - integer ids в основной колонке;</li>
+<li>dictionary array - реальные значения вроде <code>web</code>, <code>ios</code>, <code>android</code>;</li>
+<li>dictionary buffers - offsets и values для строкового dictionary.</li>
+</ul>
+<p>Это важно для dimensions: экономия памяти приходит не от &quot;сжатия строк&quot;, а от замены
+повторов на индексы.</p>
+<h3 id="шаг-4-проверьте-zero-copy-numpy">Шаг 4. Проверьте zero-copy NumPy</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">audit = build_copy_audit(table)
+</code></pre></div><p>Для первого chunk <code>net_revenue_cents</code> артефакт вызывает:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">array.to_numpy(zero_copy_only=True)
+</code></pre></div><p>и сравнивает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Arrow values buffer address == NumPy data address
+</code></pre></div><p>Если адреса совпали, это настоящий zero-copy view для этой конкретной границы.</p>
+<h3 id="шаг-5-проверьте-места-копирования">Шаг 5. Проверьте места копирования</h3>
+<p>Тот же audit показывает failure modes:</p>
+<ul>
+<li>nullable numeric array не проходит <code>zero_copy_only=True</code>;</li>
+<li><code>ChunkedArray.to_numpy(zero_copy_only=True)</code> запрещен;</li>
+<li>multi-column <code>Table.to_pandas(zero_copy_only=True)</code> не проходит из-за pandas block
+layout;</li>
+<li><code>split_blocks=True</code> все еще не помогает, пока columns остаются chunked;</li>
+<li><code>combine_chunks()</code> делает contiguous single-chunk columns, но сама операция требует
+copy;</li>
+<li><code>unify_dictionaries()</code> может переписать indices/dictionaries.</li>
+</ul>
+<p>Именно поэтому &quot;у нас Arrow&quot; не равно &quot;у нас нет копий&quot;.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите демонстрационный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/05-arrow-memory/code/main.py
+</code></pre></div><p>Запустите CLI-артефакт:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/05-arrow-memory/outputs/arrow_memory_inspector.py \
+  --rows 48 \
+  --chunk-size 16 \
+  --seed 42 \
+  --output /tmp/arrow-memory-report.json
+</code></pre></div><p>В отчете смотрите три блока:</p>
+<ul>
+<li><code>table.columns_detail</code> - schema, chunks, buffers, addresses, sizes;</li>
+<li><code>buffer_findings</code> - короткие проверяемые выводы про layouts;</li>
+<li><code>copy_audit</code> - успешные и неуспешные zero-copy boundaries.</li>
+</ul>
+<p>Хороший минимальный результат:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">copy_audit.zero_copy_numpy.shares_arrow_values_buffer = true
+copy_audit.combine_chunks.requires_copy = true
+interpretation.safe_to_ship = true
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="добавьте-null-в-numeric-zero-copy-candidate">Добавьте null в numeric zero-copy candidate</h3>
+<p>Если <code>net_revenue_cents</code> станет nullable, NumPy zero-copy без nullable representation
+сломается. Это не баг: у NumPy view нет отдельной Arrow validity bitmap.</p>
+<h3 id="увеличьте-число-chunks">Увеличьте число chunks</h3>
+<p>Поставьте <code>chunk_size=4</code>. Таблица станет более фрагментированной, и границы, которым
+нужен contiguous memory, начнут чаще требовать <code>combine_chunks()</code>.</p>
+<h3 id="уберите-dictionary-encoding">Уберите dictionary encoding</h3>
+<p>Сделайте <code>platform</code> обычной string column. Вы увидите offsets/values вместо indices и
+dictionary. Для low-cardinality dimensions это часто дороже.</p>
+<h3 id="поверьте-только-nbytes">Поверьте только <code>nbytes</code></h3>
+<p><code>nbytes</code> полезен, но он не объясняет, где лежат buffers и будут ли они переиспользованы.
+Для copy audit нужны адреса buffers и явные проверки операций.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/05-arrow-memory/tests
+</code></pre></div><p>Проверка артефакта:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/05-arrow-memory/outputs/arrow_memory_inspector.py \
+  --rows 32 \
+  --chunk-size 8 \
+  --output /tmp/arrow-memory-report.json
+</code></pre></div><p>Контракт отчета:</p>
+<ul>
+<li>numeric column без null не имеет validity bitmap;</li>
+<li>nullable numeric column имеет validity bitmap;</li>
+<li>string column имеет offsets и values buffers;</li>
+<li>dictionary column показывает indices и dictionary values;</li>
+<li>slice переиспользует source buffers;</li>
+<li>primitive numeric chunk проходит zero-copy NumPy;</li>
+<li>chunked table boundary явно показывает copy или отказ от zero-copy.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/arrow_memory_inspector.py
+</code></pre></div><p>Используйте его как шаблон перед изменением движка или формата:</p>
+<ol>
+<li>выберите критичные колонки вашего pipeline;</li>
+<li>посмотрите chunks и buffers;</li>
+<li>проверьте null bitmaps, offsets и dictionary encoding;</li>
+<li>отдельно проверьте границы <code>Arrow -&gt; NumPy</code>, <code>Arrow -&gt; pandas</code>, <code>combine_chunks</code>,
+<code>unify_dictionaries</code>;</li>
+<li>оформите вывод как copy audit, а не как общую веру в zero-copy.</li>
+</ol>
+<p>Для handoff приложите:</p>
+<ul>
+<li>schema и типы Arrow columns;</li>
+<li>список buffers для ключевых колонок;</li>
+<li>copy audit с успешными и неуспешными boundaries;</li>
+<li>ограничения, где copy ожидаем и допустим;</li>
+<li>решение, где оставлять Arrow, где идти в pandas, а где менять layout.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте колонку <code>is_trial</code> типа <code>bool</code> и посмотрите, как Arrow хранит boolean values.</li>
+<li>Сравните <code>platform</code> как dictionary и как plain string по <code>total_buffer_size</code>.</li>
+<li>Постройте таблицу с <code>chunk_size=1</code> и объясните, почему это плохо для границ обмена.</li>
+<li>Добавьте <code>timestamp[ns, tz=UTC]</code> и проверьте, сохраняется ли timezone при
+<code>to_pandas</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arrow Array</td>
+<td>&quot;Это просто список Python objects&quot;</td>
+<td>Columnar array, который ссылается на typed buffers и metadata.</td>
+</tr>
+<tr>
+<td>Validity bitmap</td>
+<td>&quot;Null хранится как отдельное значение&quot;</td>
+<td>Битовая маска, которая сообщает, какие позиции valid.</td>
+</tr>
+<tr>
+<td>Offsets buffer</td>
+<td>&quot;Строки лежат отдельными объектами&quot;</td>
+<td>Буфер границ для variable-length values, байты лежат в values buffer.</td>
+</tr>
+<tr>
+<td>Dictionary encoding</td>
+<td>&quot;Это compression без последствий&quot;</td>
+<td>Значения представлены integer indices, а dictionary хранится отдельно и может требовать унификации.</td>
+</tr>
+<tr>
+<td>ChunkedArray</td>
+<td>&quot;Это один array&quot;</td>
+<td>Последовательность Arrow arrays, часто возникающая после dataset/streaming операций.</td>
+</tr>
+<tr>
+<td>Zero-copy</td>
+<td>&quot;Arrow всегда без копий&quot;</td>
+<td>Конкретная операция переиспользует тот же memory buffer без allocation.</td>
+</tr>
+<tr>
+<td><code>combine_chunks</code></td>
+<td>&quot;Просто косметика&quot;</td>
+<td>Операция делает contiguous chunks и обычно копирует buffers.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://arrow.apache.org/docs/python/data.html" target="_blank" rel="noopener">PyArrow Data Types and In-Memory Data Model</a> - прочитайте разделы про Arrays, Tables и Schemas как Python API к Arrow memory model.</li>
+<li><a href="https://arrow.apache.org/docs/format/Columnar.html" target="_blank" rel="noopener">Arrow Columnar Format</a> - изучите layouts для validity bitmap, variable-size binary и dictionary encoding.</li>
+<li><a href="https://arrow.apache.org/docs/python/generated/pyarrow.Array.html" target="_blank" rel="noopener">pyarrow.Array API</a> - посмотрите <code>buffers()</code>, <code>get_total_buffer_size()</code>, <code>slice()</code> и <code>to_numpy(zero_copy_only=True)</code>.</li>
+<li><a href="https://arrow.apache.org/docs/python/generated/pyarrow.ChunkedArray.html" target="_blank" rel="noopener">pyarrow.ChunkedArray API</a> - разберите <code>chunks</code>, <code>combine_chunks()</code> и <code>unify_dictionaries()</code>.</li>
+<li><a href="https://arrow.apache.org/docs/python/pandas.html" target="_blank" rel="noopener">PyArrow Pandas Integration</a> - прочитайте раздел <code>Memory Usage and Zero Copy</code>, чтобы не обещать zero-copy там, где pandas layout требует копию.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему nullable numeric array может не пройти `to_numpy(zero_copy_only=True)`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что nulls хранятся через Arrow validity bitmap, которую обычный NumPy view не представляет.</button><button type="button" class="quiz-option" data-choice="1">Потому что numeric arrays в Arrow всегда строки.</button><button type="button" class="quiz-option" data-choice="2">Потому что values buffer отсутствует у всех nullable колонок.</button><button type="button" class="quiz-option" data-choice="3">Потому что PyArrow запрещает любые numeric conversions.</button></div><p class="quiz-feedback" hidden>У Arrow есть отдельная bitmap nulls; zero-copy NumPy view на values buffer не несет эту nullable semantics.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что хранит dictionary-encoded Arrow column в основной части массива?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Integer indices, которые ссылаются на отдельный dictionary array.</button><button type="button" class="quiz-option" data-choice="1">Полные строки, повторенные в каждой строке.</button><button type="button" class="quiz-option" data-choice="2">Только checksum словаря.</button><button type="button" class="quiz-option" data-choice="3">JSON-объекты с исходными значениями.</button></div><p class="quiz-feedback" hidden>Dictionary encoding заменяет повторяющиеся значения индексами; сами values лежат в отдельном dictionary array.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему `ChunkedArray` часто становится границей, где появляется copy?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потому что это несколько arrays, а некоторые consumers требуют один contiguous buffer.</button><button type="button" class="quiz-option" data-choice="1">Потому что chunks всегда лежат в Python lists без buffers.</button><button type="button" class="quiz-option" data-choice="2">Потому что ChunkedArray не может содержать numeric values.</button><button type="button" class="quiz-option" data-choice="3">Потому что ChunkedArray всегда теряет schema.</button></div><p class="quiz-feedback" hidden>Много chunks удобно для streaming, но операции вроде contiguous NumPy/pandas boundary часто требуют объединения chunks.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Что является хорошим доказательством zero-copy для Arrow -&gt; NumPy primitive chunk?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Успешный `to_numpy(zero_copy_only=True)` и совпадение NumPy data address с Arrow values buffer.</button><button type="button" class="quiz-option" data-choice="1">Фраза в документации, что Arrow быстрый.</button><button type="button" class="quiz-option" data-choice="2">Меньший размер JSON-отчета.</button><button type="button" class="quiz-option" data-choice="3">Наличие pandas DataFrame после конвертации.</button></div><p class="quiz-feedback" hidden>В уроке zero-copy подтверждается и строгим флагом `zero_copy_only=True`, и сравнением адресов buffers.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;arrow_memory_inspector.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;arrow_memory_inspector&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+ARROW_MEMORY = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(ARROW_MEMORY)
+
+
+class ArrowMemoryInspectorTest(unittest.TestCase):
+    def test_table_generation_is_reproducible_and_chunked(self) -&gt; None:
+        first = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        second = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        self.assertTrue(first.equals(second))
+        self.assertEqual(first.num_rows, 32)
+        self.assertEqual(first[&quot;net_revenue_cents&quot;].num_chunks, 4)
+        self.assertIn(&quot;platform&quot;, first.column_names)
+
+    def test_numeric_without_nulls_has_values_buffer_but_no_validity_bitmap(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        detail = ARROW_MEMORY.inspect_chunked_array(&quot;net_revenue_cents&quot;, table[&quot;net_revenue_cents&quot;])
+        first_chunk = detail[&quot;chunks&quot;][0]
+        self.assertFalse(first_chunk[&quot;buffers&quot;][0][&quot;present&quot;])
+        self.assertEqual(first_chunk[&quot;buffers&quot;][1][&quot;role&quot;], &quot;values&quot;)
+        self.assertGreater(first_chunk[&quot;buffers&quot;][1][&quot;size_bytes&quot;], 0)
+
+    def test_nullable_numeric_exposes_validity_bitmap(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        detail = ARROW_MEMORY.inspect_chunked_array(&quot;support_ticket_count&quot;, table[&quot;support_ticket_count&quot;])
+        self.assertGreater(detail[&quot;null_count&quot;], 0)
+        self.assertTrue(detail[&quot;chunks&quot;][0][&quot;buffers&quot;][0][&quot;present&quot;])
+        self.assertEqual(detail[&quot;chunks&quot;][0][&quot;buffers&quot;][0][&quot;role&quot;], &quot;validity_bitmap&quot;)
+
+    def test_string_column_exposes_offsets_and_values_buffers(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        detail = ARROW_MEMORY.inspect_chunked_array(&quot;support_notes&quot;, table[&quot;support_notes&quot;])
+        chunk_with_values = next(chunk for chunk in detail[&quot;chunks&quot;] if chunk[&quot;buffers&quot;][2][&quot;size_bytes&quot;] &gt; 0)
+        self.assertEqual([buffer[&quot;role&quot;] for buffer in chunk_with_values[&quot;buffers&quot;]], [&quot;validity_bitmap&quot;, &quot;offsets&quot;, &quot;values&quot;])
+        self.assertTrue(chunk_with_values[&quot;buffers&quot;][1][&quot;present&quot;])
+        self.assertTrue(chunk_with_values[&quot;buffers&quot;][2][&quot;present&quot;])
+
+    def test_dictionary_column_reports_indices_and_dictionary_values(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        detail = ARROW_MEMORY.inspect_chunked_array(&quot;platform&quot;, table[&quot;platform&quot;])
+        self.assertIn(&quot;dictionary_values_per_chunk&quot;, detail)
+        self.assertIn(&quot;dictionary&quot;, detail[&quot;chunks&quot;][0])
+        self.assertEqual(detail[&quot;chunks&quot;][0][&quot;buffers&quot;][1][&quot;role&quot;], &quot;indices&quot;)
+        self.assertIn(&quot;web&quot;, detail[&quot;chunks&quot;][0][&quot;dictionary&quot;][&quot;values&quot;])
+
+    def test_slice_reuses_source_buffers_with_nonzero_offset(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        audit = ARROW_MEMORY.build_copy_audit(table)
+        self.assertTrue(audit[&quot;slice_buffer_reuse&quot;][&quot;shares_buffers&quot;])
+        self.assertGreater(audit[&quot;slice_buffer_reuse&quot;][&quot;slice_offset&quot;], 0)
+
+    def test_zero_copy_numpy_succeeds_only_for_primitive_no_null_chunk(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        audit = ARROW_MEMORY.build_copy_audit(table)
+        self.assertTrue(audit[&quot;zero_copy_numpy&quot;][&quot;shares_arrow_values_buffer&quot;])
+        self.assertFalse(audit[&quot;nullable_numpy_zero_copy&quot;][&quot;succeeded&quot;])
+        self.assertFalse(audit[&quot;chunked_numpy_zero_copy&quot;][&quot;succeeded&quot;])
+
+    def test_table_to_pandas_needs_split_blocks_for_zero_copy_dataframe_boundary(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        audit = ARROW_MEMORY.build_copy_audit(table)
+        self.assertFalse(audit[&quot;table_to_pandas_zero_copy&quot;][&quot;succeeded&quot;])
+        self.assertFalse(audit[&quot;chunked_table_to_pandas_split_blocks&quot;][&quot;succeeded&quot;])
+        self.assertTrue(audit[&quot;single_chunk_table_to_pandas_split_blocks&quot;][&quot;succeeded&quot;])
+        self.assertEqual(audit[&quot;single_chunk_table_to_pandas_split_blocks&quot;][&quot;shape&quot;], [32, 2])
+
+    def test_combine_chunks_and_dictionary_unify_are_reported_as_rewrites(self) -&gt; None:
+        table = ARROW_MEMORY.build_customer_revenue_arrow_table(rows=32, chunk_size=8, seed=42)
+        audit = ARROW_MEMORY.build_copy_audit(table)
+        self.assertTrue(audit[&quot;combine_chunks&quot;][&quot;requires_copy&quot;])
+        self.assertTrue(audit[&quot;dictionary_unify&quot;][&quot;requires_some_rewrite&quot;])
+
+    def test_report_interpretation_is_safe_when_all_memory_findings_pass(self) -&gt; None:
+        report = ARROW_MEMORY.build_arrow_memory_report(rows=48, chunk_size=16, seed=2026)
+        self.assertTrue(all(report[&quot;buffer_findings&quot;].values()))
+        self.assertTrue(report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;])
+        notes = &quot; &quot;.join(report[&quot;interpretation&quot;][&quot;notes&quot;]).lower()
+        self.assertIn(&quot;zero-copy is a boundary property&quot;, notes)
+
+    def test_cli_writes_json_report(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / &quot;arrow-memory.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--rows&quot;,
+                    &quot;32&quot;,
+                    &quot;--chunk-size&quot;,
+                    &quot;8&quot;,
+                    &quot;--seed&quot;,
+                    &quot;42&quot;,
+                    &quot;--output&quot;,
+                    str(output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stdout_report = json.loads(result.stdout)
+            file_report = json.loads(output.read_text(encoding=&quot;utf-8&quot;))
+            self.assertEqual(stdout_report[&quot;scenario&quot;], file_report[&quot;scenario&quot;])
+            self.assertEqual(file_report[&quot;scenario&quot;][&quot;scenario_id&quot;], &quot;arrow-memory-copy-audit&quot;)
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, str(ARTIFACT), &quot;--rows&quot;, &quot;4&quot;],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;arrow memory error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;arrow_memory_inspector.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;arrow_memory_inspector&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+ARROW_MEMORY = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(ARROW_MEMORY)
+
+
+def main() -&gt; None:
+    report = ARROW_MEMORY.build_arrow_memory_report(rows=48, chunk_size=16, seed=2026)
+    preview = {
+        &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+        &quot;rows&quot;: report[&quot;scenario&quot;][&quot;rows&quot;],
+        &quot;columns&quot;: report[&quot;table&quot;][&quot;columns&quot;],
+        &quot;table_nbytes&quot;: report[&quot;table&quot;][&quot;nbytes&quot;],
+        &quot;zero_copy_numpy&quot;: report[&quot;copy_audit&quot;][&quot;zero_copy_numpy&quot;][&quot;shares_arrow_values_buffer&quot;],
+        &quot;combine_chunks_requires_copy&quot;: report[&quot;copy_audit&quot;][&quot;combine_chunks&quot;][&quot;requires_copy&quot;],
+        &quot;safe_to_ship&quot;: report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;],
+    }
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/arrow_memory_inspector.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import platform
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import pyarrow as pa
+
+
+class ArrowMemoryError(ValueError):
+    &quot;&quot;&quot;Raised when the Arrow memory inspection cannot be built safely.&quot;&quot;&quot;
+
+
+DIMENSION_VALUES = {
+    &quot;platform&quot;: [&quot;web&quot;, &quot;ios&quot;, &quot;android&quot;],
+    &quot;plan&quot;: [&quot;trial&quot;, &quot;basic&quot;, &quot;plus&quot;, &quot;pro&quot;],
+}
+
+
+def _chunk_bounds(length: int, chunk_size: int) -&gt; list[tuple[int, int]]:
+    if length &lt;= 0:
+        raise ArrowMemoryError(&quot;rows must be positive&quot;)
+    if chunk_size &lt;= 0:
+        raise ArrowMemoryError(&quot;chunk_size must be positive&quot;)
+    return [(start, min(start + chunk_size, length)) for start in range(0, length, chunk_size)]
+
+
+def _chunked_array_from_values(
+    values: list[Any] | np.ndarray,
+    *,
+    chunk_size: int,
+    type_: pa.DataType,
+    dictionary_encode: bool = False,
+) -&gt; pa.ChunkedArray:
+    chunks: list[pa.Array] = []
+    sequence = list(values)
+    for start, end in _chunk_bounds(len(sequence), chunk_size):
+        array = pa.array(sequence[start:end], type=type_)
+        chunks.append(array.dictionary_encode() if dictionary_encode else array)
+    return pa.chunked_array(chunks)
+
+
+def build_customer_revenue_arrow_table(
+    *,
+    rows: int = 48,
+    chunk_size: int = 16,
+    seed: int = 42,
+) -&gt; pa.Table:
+    if rows &lt; 8:
+        raise ArrowMemoryError(&quot;rows must be at least 8 to expose chunks, nulls and dictionaries&quot;)
+    rng = np.random.default_rng(seed)
+    index = np.arange(rows, dtype=np.int64)
+    week_index = (index % 8).astype(np.int16)
+    platforms = [DIMENSION_VALUES[&quot;platform&quot;][int(i % 3)] for i in index]
+    plans = [DIMENSION_VALUES[&quot;plan&quot;][int(rng.integers(0, 4))] for _ in range(rows)]
+    paid_orders = rng.binomial(1, 0.72, size=rows).astype(np.int8)
+    gross = rng.integers(399, 30_000, size=rows, dtype=np.int64) * paid_orders
+    refunds = np.where(rng.random(rows) &lt; 0.08, gross // 3, 0).astype(np.int64)
+    net_revenue = (gross - refunds).astype(np.int64)
+    support_tickets: list[int | None] = [
+        None if position % 7 == 0 else int(value)
+        for position, value in enumerate(rng.poisson(0.2, size=rows))
+    ]
+    notes = [
+        None if position % 11 == 0 else f&quot;ticket bucket {int(index[position] % 5)}&quot;
+        for position in range(rows)
+    ]
+
+    columns = {
+        &quot;order_id&quot;: _chunked_array_from_values(
+            [f&quot;O{position // 2:08d}&quot; for position in index],
+            chunk_size=chunk_size,
+            type_=pa.string(),
+        ),
+        &quot;week_index&quot;: _chunked_array_from_values(
+            week_index,
+            chunk_size=chunk_size,
+            type_=pa.int16(),
+        ),
+        &quot;platform&quot;: _chunked_array_from_values(
+            platforms,
+            chunk_size=chunk_size,
+            type_=pa.string(),
+            dictionary_encode=True,
+        ),
+        &quot;plan&quot;: _chunked_array_from_values(
+            plans,
+            chunk_size=chunk_size,
+            type_=pa.string(),
+            dictionary_encode=True,
+        ),
+        &quot;paid_orders&quot;: _chunked_array_from_values(
+            paid_orders,
+            chunk_size=chunk_size,
+            type_=pa.int8(),
+        ),
+        &quot;net_revenue_cents&quot;: _chunked_array_from_values(
+            net_revenue,
+            chunk_size=chunk_size,
+            type_=pa.int64(),
+        ),
+        &quot;support_ticket_count&quot;: _chunked_array_from_values(
+            support_tickets,
+            chunk_size=chunk_size,
+            type_=pa.int16(),
+        ),
+        &quot;support_notes&quot;: _chunked_array_from_values(
+            notes,
+            chunk_size=chunk_size,
+            type_=pa.string(),
+        ),
+    }
+    return pa.table(columns)
+
+
+def _buffer_roles(array: pa.Array) -&gt; list[str]:
+    data_type = array.type
+    if pa.types.is_dictionary(data_type):
+        return [&quot;validity_bitmap&quot;, &quot;indices&quot;]
+    if pa.types.is_string(data_type) or pa.types.is_binary(data_type):
+        return [&quot;validity_bitmap&quot;, &quot;offsets&quot;, &quot;values&quot;]
+    if pa.types.is_large_string(data_type) or pa.types.is_large_binary(data_type):
+        return [&quot;validity_bitmap&quot;, &quot;large_offsets&quot;, &quot;values&quot;]
+    if pa.types.is_primitive(data_type) or pa.types.is_temporal(data_type):
+        return [&quot;validity_bitmap&quot;, &quot;values&quot;]
+    return [f&quot;buffer_{index}&quot; for index, _buffer in enumerate(array.buffers())]
+
+
+def _buffer_summary(buffer: pa.Buffer | None, *, index: int, role: str) -&gt; dict[str, Any]:
+    if buffer is None:
+        return {
+            &quot;index&quot;: index,
+            &quot;role&quot;: role,
+            &quot;present&quot;: False,
+            &quot;size_bytes&quot;: 0,
+            &quot;address&quot;: None,
+            &quot;is_cpu&quot;: None,
+            &quot;is_mutable&quot;: None,
+        }
+    return {
+        &quot;index&quot;: index,
+        &quot;role&quot;: role,
+        &quot;present&quot;: True,
+        &quot;size_bytes&quot;: int(buffer.size),
+        &quot;address&quot;: int(buffer.address),
+        &quot;is_cpu&quot;: bool(buffer.is_cpu),
+        &quot;is_mutable&quot;: bool(buffer.is_mutable),
+    }
+
+
+def inspect_array(name: str, array: pa.Array) -&gt; dict[str, Any]:
+    roles = _buffer_roles(array)
+    buffers = [
+        _buffer_summary(
+            buffer,
+            index=index,
+            role=roles[index] if index &lt; len(roles) else f&quot;buffer_{index}&quot;,
+        )
+        for index, buffer in enumerate(array.buffers())
+    ]
+    result: dict[str, Any] = {
+        &quot;name&quot;: name,
+        &quot;type&quot;: str(array.type),
+        &quot;length&quot;: len(array),
+        &quot;null_count&quot;: int(array.null_count),
+        &quot;offset&quot;: int(array.offset),
+        &quot;nbytes&quot;: int(array.nbytes),
+        &quot;total_buffer_size&quot;: int(array.get_total_buffer_size()),
+        &quot;buffers&quot;: buffers,
+    }
+    if pa.types.is_dictionary(array.type):
+        dictionary = array.dictionary
+        result[&quot;dictionary&quot;] = {
+            &quot;index_type&quot;: str(array.indices.type),
+            &quot;value_type&quot;: str(dictionary.type),
+            &quot;values&quot;: dictionary.to_pylist(),
+            &quot;values_count&quot;: len(dictionary),
+            &quot;buffers&quot;: inspect_array(f&quot;{name}.dictionary&quot;, dictionary)[&quot;buffers&quot;],
+        }
+    return result
+
+
+def inspect_chunked_array(name: str, chunked: pa.ChunkedArray) -&gt; dict[str, Any]:
+    chunks = [inspect_array(f&quot;{name}.chunk[{index}]&quot;, chunk) for index, chunk in enumerate(chunked.chunks)]
+    result: dict[str, Any] = {
+        &quot;name&quot;: name,
+        &quot;type&quot;: str(chunked.type),
+        &quot;length&quot;: len(chunked),
+        &quot;num_chunks&quot;: int(chunked.num_chunks),
+        &quot;null_count&quot;: int(chunked.null_count),
+        &quot;nbytes&quot;: int(chunked.nbytes),
+        &quot;total_buffer_size&quot;: int(chunked.get_total_buffer_size()),
+        &quot;chunks&quot;: chunks,
+    }
+    if pa.types.is_dictionary(chunked.type):
+        result[&quot;dictionary_values_per_chunk&quot;] = [
+            chunk.dictionary.to_pylist()
+            for chunk in chunked.chunks
+        ]
+    return result
+
+
+def inspect_table(table: pa.Table) -&gt; dict[str, Any]:
+    return {
+        &quot;schema&quot;: str(table.schema),
+        &quot;rows&quot;: table.num_rows,
+        &quot;columns&quot;: table.num_columns,
+        &quot;nbytes&quot;: int(table.nbytes),
+        &quot;column_names&quot;: table.column_names,
+        &quot;columns_detail&quot;: [
+            inspect_chunked_array(name, table[name])
+            for name in table.column_names
+        ],
+    }
+
+
+def _array_buffer_addresses(array: pa.Array, *, include_dictionary: bool = True) -&gt; set[int]:
+    addresses = {int(buffer.address) for buffer in array.buffers() if buffer is not None}
+    if include_dictionary and pa.types.is_dictionary(array.type):
+        addresses |= _array_buffer_addresses(array.dictionary, include_dictionary=False)
+    return addresses
+
+
+def _chunked_buffer_addresses(chunked: pa.ChunkedArray, *, include_dictionary: bool = True) -&gt; set[int]:
+    addresses: set[int] = set()
+    for chunk in chunked.chunks:
+        addresses |= _array_buffer_addresses(chunk, include_dictionary=include_dictionary)
+    return addresses
+
+
+def _numpy_address(values: np.ndarray) -&gt; int:
+    return int(values.__array_interface__[&quot;data&quot;][0])
+
+
+def _capture_failure(operation: str, callback: Any) -&gt; dict[str, Any]:
+    try:
+        callback()
+    except Exception as error:  # noqa: BLE001 - report class and message for a learning artifact.
+        return {
+            &quot;operation&quot;: operation,
+            &quot;succeeded&quot;: False,
+            &quot;error_type&quot;: type(error).__name__,
+            &quot;message&quot;: str(error),
+        }
+    return {&quot;operation&quot;: operation, &quot;succeeded&quot;: True, &quot;error_type&quot;: None, &quot;message&quot;: None}
+
+
+def build_copy_audit(table: pa.Table) -&gt; dict[str, Any]:
+    primitive = table[&quot;net_revenue_cents&quot;].chunk(0)
+    primitive_numpy = primitive.to_numpy(zero_copy_only=True)
+    values_buffer = primitive.buffers()[1]
+    if values_buffer is None:
+        raise ArrowMemoryError(&quot;primitive array unexpectedly has no values buffer&quot;)
+    expected_numpy_address = int(values_buffer.address) + int(primitive.offset) * 8
+
+    nullable = table[&quot;support_ticket_count&quot;].chunk(0)
+    string_array = table[&quot;support_notes&quot;].chunk(0)
+    chunked = table[&quot;net_revenue_cents&quot;]
+    combined = chunked.combine_chunks()
+    sliced = primitive.slice(2, min(5, len(primitive) - 2))
+    dictionary_chunked = table[&quot;platform&quot;]
+    unified_dictionary = dictionary_chunked.unify_dictionaries()
+
+    before_combine = _chunked_buffer_addresses(chunked)
+    after_combine = _array_buffer_addresses(combined)
+    before_dictionary = _chunked_buffer_addresses(dictionary_chunked)
+    after_dictionary = _chunked_buffer_addresses(unified_dictionary)
+    primitive_pandas_failure = _capture_failure(
+        &quot;table.to_pandas(zero_copy_only=True)&quot;,
+        lambda: table.select([&quot;week_index&quot;, &quot;net_revenue_cents&quot;]).to_pandas(zero_copy_only=True),
+    )
+    primitive_pandas_split_failure = _capture_failure(
+        &quot;chunked table.to_pandas(zero_copy_only=True, split_blocks=True)&quot;,
+        lambda: table.select([&quot;week_index&quot;, &quot;net_revenue_cents&quot;]).to_pandas(
+            zero_copy_only=True,
+            split_blocks=True,
+        ),
+    )
+    single_chunk_numeric_table = table.select([&quot;week_index&quot;, &quot;net_revenue_cents&quot;]).combine_chunks()
+    primitive_pandas_split = single_chunk_numeric_table.to_pandas(
+        zero_copy_only=True,
+        split_blocks=True,
+    )
+
+    return {
+        &quot;zero_copy_numpy&quot;: {
+            &quot;column&quot;: &quot;net_revenue_cents&quot;,
+            &quot;chunk&quot;: 0,
+            &quot;succeeded&quot;: True,
+            &quot;arrow_values_buffer_address&quot;: int(values_buffer.address),
+            &quot;numpy_data_address&quot;: _numpy_address(primitive_numpy),
+            &quot;expected_numpy_address&quot;: expected_numpy_address,
+            &quot;shares_arrow_values_buffer&quot;: _numpy_address(primitive_numpy) == expected_numpy_address,
+            &quot;dtype&quot;: str(primitive_numpy.dtype),
+            &quot;shape&quot;: list(primitive_numpy.shape),
+        },
+        &quot;nullable_numpy_zero_copy&quot;: _capture_failure(
+            &quot;support_ticket_count.to_numpy(zero_copy_only=True)&quot;,
+            lambda: nullable.to_numpy(zero_copy_only=True),
+        ),
+        &quot;string_numpy_zero_copy&quot;: _capture_failure(
+            &quot;support_notes.to_numpy(zero_copy_only=True)&quot;,
+            lambda: string_array.to_numpy(zero_copy_only=True),
+        ),
+        &quot;chunked_numpy_zero_copy&quot;: _capture_failure(
+            &quot;chunked_array.to_numpy(zero_copy_only=True)&quot;,
+            lambda: chunked.to_numpy(zero_copy_only=True),
+        ),
+        &quot;table_to_pandas_zero_copy&quot;: primitive_pandas_failure,
+        &quot;chunked_table_to_pandas_split_blocks&quot;: primitive_pandas_split_failure,
+        &quot;single_chunk_table_to_pandas_split_blocks&quot;: {
+            &quot;operation&quot;: &quot;table.combine_chunks().to_pandas(zero_copy_only=True, split_blocks=True)&quot;,
+            &quot;succeeded&quot;: True,
+            &quot;precondition&quot;: &quot;combine_chunks creates single-chunk columns before the pandas boundary&quot;,
+            &quot;shape&quot;: list(primitive_pandas_split.shape),
+            &quot;dtypes&quot;: {name: str(dtype) for name, dtype in primitive_pandas_split.dtypes.items()},
+        },
+        &quot;slice_buffer_reuse&quot;: {
+            &quot;operation&quot;: &quot;primitive.slice(2, 5)&quot;,
+            &quot;succeeded&quot;: True,
+            &quot;source_offset&quot;: int(primitive.offset),
+            &quot;slice_offset&quot;: int(sliced.offset),
+            &quot;source_buffer_addresses&quot;: sorted(_array_buffer_addresses(primitive)),
+            &quot;slice_buffer_addresses&quot;: sorted(_array_buffer_addresses(sliced)),
+            &quot;shares_buffers&quot;: bool(_array_buffer_addresses(primitive) &amp; _array_buffer_addresses(sliced)),
+        },
+        &quot;combine_chunks&quot;: {
+            &quot;operation&quot;: &quot;chunked_array.combine_chunks()&quot;,
+            &quot;succeeded&quot;: True,
+            &quot;source_num_chunks&quot;: int(chunked.num_chunks),
+            &quot;result_length&quot;: len(combined),
+            &quot;source_buffer_addresses&quot;: sorted(before_combine),
+            &quot;combined_buffer_addresses&quot;: sorted(after_combine),
+            &quot;shares_any_source_buffer&quot;: bool(before_combine &amp; after_combine),
+            &quot;requires_copy&quot;: not bool(before_combine &amp; after_combine),
+        },
+        &quot;dictionary_unify&quot;: {
+            &quot;operation&quot;: &quot;dictionary_chunked.unify_dictionaries()&quot;,
+            &quot;succeeded&quot;: True,
+            &quot;source_dictionaries&quot;: [
+                chunk.dictionary.to_pylist()
+                for chunk in dictionary_chunked.chunks
+            ],
+            &quot;unified_dictionaries&quot;: [
+                chunk.dictionary.to_pylist()
+                for chunk in unified_dictionary.chunks
+            ],
+            &quot;source_buffer_addresses&quot;: sorted(before_dictionary),
+            &quot;unified_buffer_addresses&quot;: sorted(after_dictionary),
+            &quot;shares_any_source_buffer&quot;: bool(before_dictionary &amp; after_dictionary),
+            &quot;requires_some_rewrite&quot;: [
+                chunk.dictionary.to_pylist()
+                for chunk in dictionary_chunked.chunks
+            ]
+            != [
+                chunk.dictionary.to_pylist()
+                for chunk in unified_dictionary.chunks
+            ],
+        },
+    }
+
+
+def build_arrow_memory_report(
+    *,
+    rows: int = 48,
+    chunk_size: int = 16,
+    seed: int = 42,
+) -&gt; dict[str, Any]:
+    table = build_customer_revenue_arrow_table(rows=rows, chunk_size=chunk_size, seed=seed)
+    inspection = inspect_table(table)
+    copy_audit = build_copy_audit(table)
+
+    buffer_findings = {
+        &quot;numeric_without_nulls_has_no_validity_bitmap&quot;: not inspection[&quot;columns_detail&quot;][5][&quot;chunks&quot;][0][&quot;buffers&quot;][0][&quot;present&quot;],
+        &quot;nullable_numeric_has_validity_bitmap&quot;: inspection[&quot;columns_detail&quot;][6][&quot;chunks&quot;][0][&quot;buffers&quot;][0][&quot;present&quot;],
+        &quot;string_column_has_offsets_and_values&quot;: all(
+            buffer[&quot;present&quot;]
+            for buffer in inspection[&quot;columns_detail&quot;][7][&quot;chunks&quot;][1][&quot;buffers&quot;][1:]
+        ),
+        &quot;dictionary_column_uses_indices_and_dictionary_values&quot;: (
+            &quot;dictionary&quot; in inspection[&quot;columns_detail&quot;][2][&quot;chunks&quot;][0]
+        ),
+        &quot;table_has_chunked_columns&quot;: any(
+            column[&quot;num_chunks&quot;] &gt; 1
+            for column in inspection[&quot;columns_detail&quot;]
+        ),
+    }
+    core_checks = [
+        *buffer_findings.values(),
+        copy_audit[&quot;zero_copy_numpy&quot;][&quot;shares_arrow_values_buffer&quot;],
+        not copy_audit[&quot;nullable_numpy_zero_copy&quot;][&quot;succeeded&quot;],
+        not copy_audit[&quot;chunked_numpy_zero_copy&quot;][&quot;succeeded&quot;],
+        not copy_audit[&quot;table_to_pandas_zero_copy&quot;][&quot;succeeded&quot;],
+        not copy_audit[&quot;chunked_table_to_pandas_split_blocks&quot;][&quot;succeeded&quot;],
+        copy_audit[&quot;single_chunk_table_to_pandas_split_blocks&quot;][&quot;succeeded&quot;],
+        copy_audit[&quot;slice_buffer_reuse&quot;][&quot;shares_buffers&quot;],
+        copy_audit[&quot;combine_chunks&quot;][&quot;requires_copy&quot;],
+        copy_audit[&quot;dictionary_unify&quot;][&quot;requires_some_rewrite&quot;],
+    ]
+
+    return {
+        &quot;scenario&quot;: {
+            &quot;scenario_id&quot;: &quot;arrow-memory-copy-audit&quot;,
+            &quot;rows&quot;: int(rows),
+            &quot;chunk_size&quot;: int(chunk_size),
+            &quot;seed&quot;: int(seed),
+            &quot;engine_versions&quot;: {
+                &quot;python&quot;: platform.python_version(),
+                &quot;numpy&quot;: np.__version__,
+                &quot;pandas&quot;: pd.__version__,
+                &quot;pyarrow&quot;: pa.__version__,
+            },
+        },
+        &quot;table&quot;: inspection,
+        &quot;buffer_findings&quot;: buffer_findings,
+        &quot;copy_audit&quot;: copy_audit,
+        &quot;interpretation&quot;: {
+            &quot;safe_to_ship&quot;: all(core_checks),
+            &quot;notes&quot;: [
+                &quot;Zero-copy is a boundary property, not a generic promise of every Arrow conversion.&quot;,
+                &quot;Primitive arrays without nulls can share values buffers with NumPy.&quot;,
+                &quot;Null bitmaps, offsets, chunks and dictionary unification are the places to inspect before assuming no copy.&quot;,
+            ],
+        },
+    }
+
+
+def write_report(report: dict[str, Any], output: Path) -&gt; None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=&quot;utf-8&quot;)
+
+
+def parse_args(argv: list[str]) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Inspect Arrow buffers and copy boundaries&quot;)
+    parser.add_argument(&quot;--rows&quot;, type=int, default=48)
+    parser.add_argument(&quot;--chunk-size&quot;, type=int, default=16)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42)
+    parser.add_argument(&quot;--output&quot;, type=Path, default=None)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv or sys.argv[1:])
+    try:
+        report = build_arrow_memory_report(
+            rows=args.rows,
+            chunk_size=args.chunk_size,
+            seed=args.seed,
+        )
+        if args.output is not None:
+            write_report(report, args.output)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    except ArrowMemoryError as error:
+        print(f&quot;arrow memory error: {error}&quot;, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/outputs/arrow_memory_inspector.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;arrow-memory-inspector&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/arrow_memory_inspector.py&quot;,
+  &quot;description&quot;: &quot;Инспектирует PyArrow Table/Array buffers, chunks, dictionary encoding и проверяет zero-copy/copy boundaries.&quot;,
+  &quot;usage&quot;: &quot;python outputs/arrow_memory_inspector.py --rows 48 --chunk-size 16 --output /tmp/arrow-memory-report.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/05-arrow-memory/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/05-arrow-memory" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/performance/parquet-pushdown/"><span>← Предыдущий урок</span><strong>Projection и predicate pushdown</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/performance/duckdb-out-of-core/"><span>Следующий урок →</span><strong>DuckDB и данные больше памяти</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

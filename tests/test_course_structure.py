@@ -65,7 +65,7 @@ class CourseStructureTest(TestCase):
         for path, expected in build_site_outputs(load_curriculum(), ROOT).items():
             self.assertEqual(path.read_text(encoding="utf-8"), expected, path.name)
 
-    def test_completed_lessons_have_github_links_on_site(self) -> None:
+    def test_completed_lessons_have_local_site_pages(self) -> None:
         data = build_site_data(load_curriculum(), ROOT)
         completed = [
             lesson
@@ -76,7 +76,8 @@ class CourseStructureTest(TestCase):
         self.assertTrue(completed)
         for lesson in completed:
             self.assertTrue(lesson["available"])
-            self.assertTrue(lesson["url"].startswith("https://github.com/stabuev/analyst_tools/"))
+            self.assertTrue(lesson["site_url"].startswith("lessons/"))
+            self.assertTrue((ROOT / "site" / lesson["site_url"] / "index.html").is_file())
             self.assertTrue((ROOT / lesson["path"] / "docs" / "ru.md").is_file())
 
     def test_static_site_entrypoints_exist(self) -> None:
@@ -92,6 +93,7 @@ class CourseStructureTest(TestCase):
             "site/style.css",
             "site/common.js",
             "site/app.js",
+            "site/lesson.js",
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
 
@@ -153,10 +155,38 @@ class CourseStructureTest(TestCase):
         sitemap = (ROOT / "site" / "sitemap.xml").read_text(encoding="utf-8")
         for suffix in ("", "catalog.html", "routes.html", "glossary.html"):
             self.assertIn(f"<loc>{SITE_URL}{suffix}</loc>", sitemap)
+        data = build_site_data(load_curriculum(), ROOT)
+        lesson_urls = [
+            lesson["site_url"]
+            for phase in data["phases"]
+            for lesson in phase["lessons"]
+        ]
+        self.assertEqual(len(lesson_urls), 201)
+        self.assertEqual(sitemap.count("<url>"), 4 + len(lesson_urls))
+        for lesson_url in lesson_urls:
+            self.assertIn(f"<loc>{SITE_URL}{lesson_url}</loc>", sitemap)
         robots = (ROOT / "site" / "robots.txt").read_text(encoding="utf-8")
         self.assertIn(f"Sitemap: {SITE_URL}sitemap.xml", robots)
         not_found = (ROOT / "site" / "404.html").read_text(encoding="utf-8")
         self.assertIn('<meta name="robots" content="noindex, follow">', not_found)
+
+    def test_lesson_pages_embed_course_content_and_practice(self) -> None:
+        data = build_site_data(load_curriculum(), ROOT)
+        canonicals: set[str] = set()
+        for phase in data["phases"]:
+            for lesson in phase["lessons"]:
+                page = ROOT / "site" / lesson["site_url"] / "index.html"
+                html = page.read_text(encoding="utf-8")
+                canonical = SITE_URL + lesson["site_url"]
+                self.assertIn(f'<link rel="canonical" href="{canonical}">', html)
+                self.assertIn('<article class="lesson-article">', html)
+                self.assertIn('class="lesson-quiz" data-stage="pre"', html)
+                self.assertIn('class="lesson-quiz" data-stage="post"', html)
+                self.assertIn('class="lesson-files" id="lesson-files"', html)
+                self.assertIn('src="../../../lesson.js"', html)
+                self.assertIn('type="application/ld+json"', html)
+                canonicals.add(canonical)
+        self.assertEqual(len(canonicals), 201)
 
     def test_tracked_lesson_outputs_do_not_embed_home_paths(self) -> None:
         tracked = subprocess.run(
@@ -222,6 +252,7 @@ class CourseStructureTest(TestCase):
         self.assertIn("seaborn>=0.13.2,<0.14", pyproject["project"]["dependencies"])
         self.assertIn("sqlalchemy>=2.0,<2.1", pyproject["project"]["dependencies"])
         self.assertIn("statsmodels>=0.14.6,<0.15", pyproject["project"]["dependencies"])
+        self.assertIn("markdown-it-py>=4.0,<5", pyproject["project"]["dependencies"])
         self.assertIn("pyyaml>=6.0.3,<7", pyproject["dependency-groups"]["dev"])
         self.assertIn("pytest>=9.0.3,<10", pyproject["dependency-groups"]["dev"])
         self.assertIn("ruff>=0.15.17,<0.16", pyproject["dependency-groups"]["dev"])
@@ -240,6 +271,7 @@ class CourseStructureTest(TestCase):
         self.assertEqual(locked["seaborn"], "0.13.2")
         self.assertEqual(locked["sqlalchemy"], "2.0.50")
         self.assertEqual(locked["statsmodels"], "0.14.6")
+        self.assertEqual(locked["markdown-it-py"], "4.2.0")
         self.assertEqual(locked["patsy"], "1.0.2")
         self.assertEqual(locked["pyyaml"], "6.0.3")
         self.assertEqual(locked["pytest"], "9.0.3")
@@ -509,7 +541,7 @@ class CourseStructureTest(TestCase):
 
     def test_site_uses_hosting_safe_relative_assets(self) -> None:
         site_root = ROOT / "site"
-        for html_path in site_root.glob("*.html"):
+        for html_path in site_root.rglob("*.html"):
             html = html_path.read_text(encoding="utf-8")
             references = re.findall(r'(?:href|src)="([^"]+)"', html)
             for reference in references:
@@ -518,8 +550,9 @@ class CourseStructureTest(TestCase):
                 self.assertFalse(reference.startswith("/"), reference)
                 local_path = reference.split("#", 1)[0].split("?", 1)[0]
                 if local_path:
+                    resolved = html_path.parent / local_path
                     self.assertTrue(
-                        (site_root / local_path).is_file(),
+                        resolved.is_file() or (resolved / "index.html").is_file(),
                         f"{html_path.name}: missing {reference}",
                     )
 

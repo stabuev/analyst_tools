@@ -1,0 +1,2545 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 13/02 у нас есть DAG и неприятный, но честный вывод:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/confounders/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Confounders и backdoor adjustment">
+  <meta property="og:description" content="После 13/02 у нас есть DAG и неприятный, но честный вывод:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/confounders/">
+  <meta name="twitter:card" content="summary">
+  <title>Confounders и backdoor adjustment — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Confounders и backdoor adjustment", "description": "После 13/02 у нас есть DAG и неприятный, но честный вывод:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/confounders/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 13: Причинный анализ", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=13"}, {"@type": "ListItem", "position": 3, "name": "Confounders и backdoor adjustment", "item": "https://datascience.xyz/courses/analyst-tools/lessons/causal-analysis/confounders/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 13</p><h2>Причинный анализ</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-question-and-estimand/"><span>01</span>Причинный вопрос и estimand</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-dags/"><span>02</span>Причинные DAG и идентификация</a><a class="lesson-sidebar-link is-active" href="../../../lessons/causal-analysis/confounders/"><span>03</span>Confounders и backdoor adjustment</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/colliders/"><span>04</span>Colliders, mediators и selection bias</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/regression-adjustment/"><span>05</span>Regression adjustment и g-formula</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/matching/"><span>06</span>Matching и баланс ковариат</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/weighting-and-doubly-robust/"><span>07</span>Propensity weighting и doubly robust оценка</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/difference-in-differences/"><span>08</span>Difference-in-Differences</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/quasi-experiments/"><span>09</span>RDD и instrumental variables: дизайн до оценки</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/sensitivity/"><span>10</span>Sensitivity analysis и falsification checks</a><a class="lesson-sidebar-link" href="../../../lessons/causal-analysis/causal-workflow/"><span>11</span>Causal workflow и границы автоматизации</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 13 · Причинный анализ</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 136 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/13-causal-analysis/03-confounders" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какая переменная является confounder для эффекта treatment на outcome?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Pre-treatment причина или общий источник treatment assignment и outcome.</button><button type="button" class="quiz-option" data-choice="1">Любая переменная, которая статистически коррелирует с outcome.</button><button type="button" class="quiz-option" data-choice="2">Любая переменная после treatment, которая хорошо предсказывает outcome.</button><button type="button" class="quiz-option" data-choice="3">Только переменная с p-value меньше 0.05 в regression.</button></div><p class="quiz-feedback" hidden>Confounder определяется причинной ролью в DAG и временным порядком, а не только корреляцией или значимостью коэффициента.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему нельзя автоматически добавить onboarding_completed_48h в adjustment set для total effect?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Это mediator после treatment; conditioning on it блокирует часть total effect.</button><button type="button" class="quiz-option" data-choice="1">У бинарных переменных всегда плохая дисперсия.</button><button type="button" class="quiz-option" data-choice="2">Любая переменная с пропусками запрещена в причинном анализе.</button><button type="button" class="quiz-option" data-choice="3">Она измеряется в той же таблице, что и outcome.</button></div><p class="quiz-feedback" hidden>Для total effect причинные пути через mediator должны оставаться открытыми; иначе меняется estimand.</p></article></section>
+        <article class="lesson-article"><h1 id="confounders-и-backdoor-adjustment">Confounders и backdoor adjustment</h1>
+<blockquote>
+<p>Хороший adjustment set не равен «все доступные колонки»; он закрывает нужные backdoor paths и честно оставляет то, что закрыть нельзя.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Decision, Product<br />
+<strong>Пререквизиты:</strong> 13/02 — Причинные DAG и идентификация<br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> находит открытые backdoor paths, выбирает pre-treatment adjustment set для
+измеренного confounding и фиксирует, какие confounders измерены, проксированы или остаются
+ненаблюдаемыми.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Отличать confounder от mediator, collider, selection variable и assignment mechanism.</li>
+<li>Строить confounder inventory из DAG, а не из списка корреляций.</li>
+<li>Проверять, что measured confounders действительно наблюдаются до treatment и есть в data contract.</li>
+<li>Сравнивать candidate adjustment sets по active backdoor paths.</li>
+<li>Формулировать честный claim policy, когда observed adjustment не закрывает unmeasured confounding.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>13/02</code> у нас есть DAG и неприятный, но честный вывод:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">active_backdoor_paths_without_adjustment = 48
+</code></pre></div><p>Часть путей проходит через очевидные measured variables:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">assisted_within_24h &lt;- friction_score -&gt; activation_14d
+assisted_within_24h &lt;- specialist_capacity -&gt; activation_14d
+</code></pre></div><p>Если просто сравнить treated/control, мы сравним не только помощь, но и то, кому помощь
+доставалась. Однако другая ошибка не лучше: взять все колонки, включая
+<code>onboarding_completed_48h</code>, <code>opened_support_chat_after_offer</code> и
+<code>telemetry_complete_30d</code>, и назвать это «контролем факторов».</p>
+<p>Этот урок превращает DAG в рабочий audit:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">active paths -&gt; confounder inventory -&gt; candidate sets -&gt; claim policy
+</code></pre></div><p>Важный нюанс: recommended measured set закрывает observed/measured backdoor paths, но не
+идентифицирует primary ATE полностью, потому что в графе остаётся:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">assisted_within_24h &lt;- latent_motivation -&gt; activation_14d
+</code></pre></div><h2 id="концепция">Концепция</h2>
+<h3 id="confounder-это-роль-в-причинной-истории">Confounder — это роль в причинной истории</h3>
+<p>Confounder — pre-treatment причина или общий источник treatment assignment и outcome.
+Он не обязан иметь самый большой коэффициент в regression. И наоборот, сильный predictor
+после treatment может быть плохим control.</p>
+<p>В нашем DAG measured confounders:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">platform
+device_tier
+acquisition_channel
+region_id
+language
+network_quality
+app_crashes_before_time_zero
+onboarding_steps_before_time_zero
+sessions_before_time_zero
+friction_score
+specialist_capacity
+</code></pre></div><p>Unmeasured confounder:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">latent_motivation
+</code></pre></div><p><code>sessions_before_time_zero</code> и <code>onboarding_steps_before_time_zero</code> — полезные measured
+proxies для мотивации, но proxy не становится магически полной заменой unobserved
+construct. Для такого шага нужен отдельный substantive argument и sensitivity analysis.</p>
+<h3 id="backdoor-adjustment-закрывает-пути-а-не-украшает-модель">Backdoor adjustment закрывает пути, а не украшает модель</h3>
+<p>Backdoor path начинается стрелкой в treatment. Если путь активен, association между
+treatment и outcome может возникать без causal effect.</p>
+<p>Naive set:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[]
+</code></pre></div><p>оставляет открытыми measured и unmeasured paths. Узкий set:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[&quot;friction_score&quot;, &quot;specialist_capacity&quot;]
+</code></pre></div><p>закрывает очевидные assignment drivers, но всё ещё оставляет measured paths через
+baseline UX, region, network quality и behavior. Поэтому аудитор отвергает его как
+<code>insufficient_measured_backdoors_open</code>.</p>
+<p>Recommended measured set:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[
+  &quot;platform&quot;,
+  &quot;device_tier&quot;,
+  &quot;acquisition_channel&quot;,
+  &quot;region_id&quot;,
+  &quot;language&quot;,
+  &quot;network_quality&quot;,
+  &quot;app_crashes_before_time_zero&quot;,
+  &quot;onboarding_steps_before_time_zero&quot;,
+  &quot;sessions_before_time_zero&quot;,
+  &quot;friction_score&quot;,
+  &quot;specialist_capacity&quot;
+]
+</code></pre></div><p>закрывает measured backdoor paths, но оставляет one open unmeasured path через
+<code>latent_motivation</code>. Поэтому его статус длинный, зато честный:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">recommended_measured_adjustment_with_unmeasured_limitation
+</code></pre></div><h3 id="forbidden-controls-должны-быть-названы-явно">Forbidden controls должны быть названы явно</h3>
+<p>Некоторые переменные доступны в данных, но не являются baseline confounders для primary
+total effect:</p>
+<table>
+<thead>
+<tr>
+<th>Переменная</th>
+<th>Почему нельзя в primary adjustment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>offered_assistance</code></td>
+<td>assignment mechanism на treatment timing; меняет received-treatment question</td>
+</tr>
+<tr>
+<td><code>onboarding_completed_48h</code></td>
+<td>mediator; блокирует часть total effect</td>
+</tr>
+<tr>
+<td><code>opened_support_chat_after_offer</code></td>
+<td>post-treatment collider; может открыть некаузальный path</td>
+</tr>
+<tr>
+<td><code>telemetry_complete_30d</code></td>
+<td>post-treatment selection; complete-case filter меняет population</td>
+</tr>
+<tr>
+<td><code>activation_14d</code></td>
+<td>primary outcome</td>
+</tr>
+</tbody>
+</table>
+<p>Аудитор не просто запрещает эти variables: он показывает, что <code>telemetry_complete_30d</code>
+может открыть больше путей, чем было в naive graph. Это полезное противоядие от фразы
+«мы просто почистили данные».</p>
+<h3 id="identification-status-часть-артефакта">Identification status — часть артефакта</h3>
+<p><code>adjustment_set_spec.json</code> содержит claim policy:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+  &quot;allowed_effect_claim&quot;: false
+}
+</code></pre></div><p>Это не пессимизм, а нормальная дисциплина. Урок ещё не говорит «эффекта нет» и не говорит
+«эффект найден». Он говорит: observed adjustment set готов для следующих estimators и
+diagnostics, но primary causal claim пока нельзя выпускать.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Артефакты урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/confounder_inventory.json
+outputs/adjustment_set_spec.json
+outputs/backdoor_adjustment_auditor.py
+outputs/backdoor_adjustment_audit.json
+</code></pre></div><h3 id="шаг-1-перечислите-confounders">Шаг 1: перечислите confounders</h3>
+<p>Каждый measured confounder должен быть:</p>
+<ul>
+<li>узлом в DAG;</li>
+<li>observed;</li>
+<li>baseline;</li>
+<li>связан с source field из <code>data/contract.json</code>;</li>
+<li>включён в inventory, если появляется на active backdoor paths.</li>
+</ul>
+<p>Фрагмент:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;variable&quot;: &quot;friction_score&quot;,
+  &quot;measurement_status&quot;: &quot;measured&quot;,
+  &quot;adjustment_role&quot;: &quot;include&quot;
+}
+</code></pre></div><p>Для unmeasured:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;variable&quot;: &quot;latent_motivation&quot;,
+  &quot;measurement_status&quot;: &quot;unmeasured&quot;,
+  &quot;adjustment_role&quot;: &quot;cannot_adjust_directly&quot;,
+  &quot;proxy_variables&quot;: [&quot;sessions_before_time_zero&quot;, &quot;onboarding_steps_before_time_zero&quot;]
+}
+</code></pre></div><h3 id="шаг-2-зафиксируйте-forbidden-controls">Шаг 2: зафиксируйте forbidden controls</h3>
+<p>Не надейтесь, что future regression сама поймет, что <code>onboarding_completed_48h</code> является
+mediator. Запишите это машинно:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;variable&quot;: &quot;onboarding_completed_48h&quot;,
+  &quot;forbidden_reason&quot;: &quot;mediator on the total-effect path&quot;
+}
+</code></pre></div><h3 id="шаг-3-сравните-candidate-sets">Шаг 3: сравните candidate sets</h3>
+<p><code>adjustment_set_spec.json</code> содержит несколько candidates:</p>
+<ul>
+<li><code>none</code>;</li>
+<li><code>friction_capacity_only</code>;</li>
+<li><code>measured_baseline_backdoor_set</code>;</li>
+<li><code>oracle_latent_adjustment</code>;</li>
+<li>bad-control sets с mediator, collider и selection.</li>
+</ul>
+<p>Аудитор для каждого set считает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">active_backdoor_paths
+open_measured_backdoor_paths
+open_unmeasured_backdoor_paths
+forbidden_variables
+unobserved_variables
+calculated_status
+</code></pre></div><h3 id="шаг-4-проверьте-primary-recommendation">Шаг 4: проверьте primary recommendation</h3>
+<p>Primary set должен быть ровно один:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;is_primary_recommendation&quot;: true
+</code></pre></div><p>И он обязан:</p>
+<ul>
+<li>не содержать unknown variables;</li>
+<li>не содержать unobserved variables;</li>
+<li>не содержать forbidden controls;</li>
+<li>закрывать measured backdoor paths;</li>
+<li>не разрешать causal effect claim, если остается unmeasured path.</li>
+</ul>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запуск учебного примера из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python3 phases/13-causal-analysis/03-confounders/code/main.py
+</code></pre></div><p>Ожидаемый смысл:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;active_backdoor_paths_without_adjustment&quot;: 48,
+  &quot;recommended_set_id&quot;: &quot;measured_baseline_backdoor_set&quot;,
+  &quot;recommended_open_measured_paths&quot;: 0,
+  &quot;recommended_open_unmeasured_paths&quot;: 1,
+  &quot;remaining_unmeasured_path&quot;: [
+    &quot;assisted_within_24h&quot;,
+    &quot;latent_motivation&quot;,
+    &quot;activation_14d&quot;
+  ],
+  &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;
+}
+</code></pre></div><p>Standalone CLI из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">cd phases/13-causal-analysis/03-confounders
+python3 outputs/backdoor_adjustment_auditor.py \
+  --dag ../02-causal-dags/outputs/causal_dag.json \
+  --inventory outputs/confounder_inventory.json \
+  --adjustment-spec outputs/adjustment_set_spec.json \
+  --data-contract ../data/contract.json \
+  --output outputs/backdoor_adjustment_audit.json
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="забыть-confounder">Забыть confounder</h3>
+<p>Удалите <code>friction_score</code> из <code>confounder_inventory.json</code>. Аудитор должен упасть на:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">active_backdoor_confounders_are_in_inventory
+</code></pre></div><h3 id="назвать-latent-variable-измеренной">Назвать latent variable измеренной</h3>
+<p>Поменяйте:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;latent_motivation&quot;: {&quot;measurement_status&quot;: &quot;measured&quot;}
+</code></pre></div><p>Это invalid: в DAG <code>observed=false</code>, и в data contract нет такой колонки.</p>
+<h3 id="разрешить-effect-claim">Разрешить effect claim</h3>
+<p>Поставьте:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;allowed_effect_claim&quot;: true
+</code></pre></div><p>Аудитор должен заблокировать spec, потому что recommended set оставляет open unmeasured
+path.</p>
+<h3 id="добавить-mediator">Добавить mediator</h3>
+<p>Добавьте <code>onboarding_completed_48h</code> в primary set. Это invalid для total effect: вы
+оцените уже другой вопрос.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запуск тестов урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest phases/13-causal-analysis/03-confounders/tests/test_main.py
+</code></pre></div><p>Проверяются:</p>
+<ul>
+<li>валидный measured/unmeasured inventory;</li>
+<li>участие <code>friction_score</code> и <code>latent_motivation</code> в active backdoor paths;</li>
+<li>наличие source fields в data contract;</li>
+<li>запрет unmeasured variable в observed adjustment;</li>
+<li>ровно один primary recommendation;</li>
+<li>статус candidate sets по графу;</li>
+<li>forbidden mediator/collider/selection controls;</li>
+<li>запрет causal effect claim при remaining unmeasured confounding;</li>
+<li>CLI non-zero для invalid adjustment spec.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Итоговый артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/backdoor_adjustment_auditor.py
+</code></pre></div><p>Он поставляет reusable contract для следующих уроков:</p>
+<ul>
+<li><code>13/04</code> получит список forbidden controls и разберёт bad-control/selection bias глубже;</li>
+<li><code>13/05</code> сможет использовать <code>measured_baseline_backdoor_set</code> для g-formula, но с
+ограниченным claim;</li>
+<li><code>13/10</code> вернётся к <code>latent_motivation</code> через sensitivity analysis.</li>
+</ul>
+<p>Главный итог: мы не спрятали проблему в сноску. Мы сделали её машинно проверяемой частью
+исследовательского пакета.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте candidate set только с <code>friction_score</code>, <code>region_id</code> и <code>specialist_capacity</code>.
+Сколько measured paths останется открытым?</li>
+<li>Представьте, что команда добавила валидированный survey score мотивации до time zero.
+Какие поля в DAG, inventory и data contract пришлось бы изменить?</li>
+<li>Сформулируйте claim для stakeholder memo, который честно использует measured
+adjustment set, но не обещает identified ATE.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Confounder</td>
+<td>Любой хороший predictor outcome</td>
+<td>Pre-treatment причина или общий источник treatment и outcome</td>
+</tr>
+<tr>
+<td>Adjustment set</td>
+<td>Все доступные control variables</td>
+<td>Набор variables, выбранный по DAG для закрытия backdoor paths</td>
+</tr>
+<tr>
+<td>Measured confounder</td>
+<td>Любая колонка в таблице</td>
+<td>Наблюдаемая baseline variable с известным источником и причинной ролью</td>
+</tr>
+<tr>
+<td>Unmeasured confounder</td>
+<td>То, что можно игнорировать, если есть proxies</td>
+<td>Ненаблюдаемый фактор, который остается limitation или требует отдельного design/sensitivity шага</td>
+</tr>
+<tr>
+<td>Proxy</td>
+<td>Полная замена latent variable</td>
+<td>Неполное измерение или индикатор, требующий substantive assumption</td>
+</tr>
+<tr>
+<td>Bad control</td>
+<td>Переменная с плохим качеством данных</td>
+<td>Variable, conditioning on which changes estimand or opens bias path</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://miguelhernan.org/whatifbook" target="_blank" rel="noopener">Hernán и Robins — Causal Inference: What If</a> — читать главы про exchangeability, positivity и standardization; они объясняют, почему adjustment set является assumption о сравнимости, а не механической regression recipe.</li>
+<li><a href="https://ftp.cs.ucla.edu/pub/stat_ser/r218-b.pdf" target="_blank" rel="noopener">Pearl — Causal diagrams for empirical research</a> — первичный текст о backdoor criterion и causal diagrams; полезен, чтобы связать path blocking с идентификацией, а не только с визуальной схемой.</li>
+<li><a href="https://www.dagitty.net/manual-3.x.pdf" target="_blank" rel="noopener">DAGitty manual</a> — практический reference по minimal sufficient adjustment sets, forbidden nodes и типичным ошибкам при ручном построении DAG.</li>
+<li><a href="https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/identifying_causal_effect/index.html" target="_blank" rel="noopener">DoWhy: Identifying causal effects</a> — официальный workflow identify-шага; читать как будущую автоматизированную проверку того, что в уроке сделано прозрачным валидатором.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает recommended measured baseline adjustment set в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он закрывает observed/measured backdoor paths, но не доказывает ATE из-за unmeasured latent_motivation.</button><button type="button" class="quiz-option" data-choice="1">Он автоматически делает treatment randomized.</button><button type="button" class="quiz-option" data-choice="2">Он гарантирует, что regression coefficient будет causal effect.</button><button type="button" class="quiz-option" data-choice="3">Он означает, что все future diagnostics можно пропустить.</button></div><p class="quiz-feedback" hidden>Primary set полезен для observed confounding, но claim policy всё равно запрещает effect claim при remaining unmeasured confounding.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Как аудитор трактует sessions_before_time_zero как proxy для latent_motivation?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Как measured baseline covariate и imperfect proxy, но не как полную замену unmeasured confounder.</button><button type="button" class="quiz-option" data-choice="1">Как доказательство, что latent_motivation больше не существует.</button><button type="button" class="quiz-option" data-choice="2">Как forbidden post-treatment control.</button><button type="button" class="quiz-option" data-choice="3">Как instrument для LATE.</button></div><p class="quiz-feedback" hidden>Proxy может помочь в дизайне и sensitivity reasoning, но нужен отдельный substantive argument, чтобы считать его достаточным.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему claim_policy оставляет allowed_effect_claim=false?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">После recommended set остается open backdoor path через latent_motivation.</button><button type="button" class="quiz-option" data-choice="1">Потому что в уроке нет достаточно красивого графика.</button><button type="button" class="quiz-option" data-choice="2">Потому что ATE всегда невозможно оценивать в observational данных.</button><button type="button" class="quiz-option" data-choice="3">Потому что friction_score не входит в данные.</button></div><p class="quiz-feedback" hidden>Даже идеальная валидация JSON не отменяет unmeasured confounding; causal wording нужно ограничить до выполненных assumptions.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Что показывает complete_case_selection_set с telemetry_complete_30d?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Post-treatment selection может открыть или переоткрыть дополнительные paths и изменить population.</button><button type="button" class="quiz-option" data-choice="1">Complete-case filter всегда безопасен, если данных становится меньше.</button><button type="button" class="quiz-option" data-choice="2">Selection variable нужно использовать как вес без diagnostics.</button><button type="button" class="quiz-option" data-choice="3">Telemetry completeness является baseline confounder.</button></div><p class="quiz-feedback" hidden>Conditioning on post-treatment selection может создать selection bias; это не обычный harmless data-cleaning filter.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DAG = PHASE_ROOT / &quot;02-causal-dags&quot; / &quot;outputs&quot; / &quot;causal_dag.json&quot;
+INVENTORY = ROOT / &quot;outputs&quot; / &quot;confounder_inventory.json&quot;
+ADJUSTMENT_SPEC = ROOT / &quot;outputs&quot; / &quot;adjustment_set_spec.json&quot;
+DATA_CONTRACT = PHASE_ROOT / &quot;data&quot; / &quot;contract.json&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;backdoor_adjustment_auditor.py&quot;
+CODE = ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+MODULE_SPEC = importlib.util.spec_from_file_location(&quot;backdoor_adjustment_auditor&quot;, ARTIFACT)
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDITOR = importlib.util.module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(AUDITOR)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def candidate(report: dict, set_id: str) -&gt; dict:
+    return next(item for item in report[&quot;candidate_set_audits&quot;] if item[&quot;set_id&quot;] == set_id)
+
+
+def candidate_spec(spec: dict, set_id: str) -&gt; dict:
+    return next(item for item in spec[&quot;candidate_adjustment_sets&quot;] if item[&quot;set_id&quot;] == set_id)
+
+
+class BackdoorAdjustmentAuditorTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.dag = read_json(DAG)
+        self.inventory = read_json(INVENTORY)
+        self.adjustment_spec = read_json(ADJUSTMENT_SPEC)
+        self.data_contract = read_json(DATA_CONTRACT)
+
+    def validate(
+        self,
+        *,
+        dag: dict | None = None,
+        inventory: dict | None = None,
+        adjustment_spec: dict | None = None,
+        data_contract: dict | None = None,
+    ) -&gt; dict:
+        return AUDITOR.validate_specs(
+            self.dag if dag is None else dag,
+            self.inventory if inventory is None else inventory,
+            self.adjustment_spec if adjustment_spec is None else adjustment_spec,
+            self.data_contract if data_contract is None else data_contract,
+        )
+
+    def test_valid_audit_closes_measured_paths_but_not_unmeasured_confounding(self) -&gt; None:
+        report = self.validate()
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;active_backdoor_paths_without_adjustment&quot;], 48)
+        self.assertEqual(report[&quot;summary&quot;][&quot;measured_confounders&quot;], 11)
+        self.assertEqual(report[&quot;summary&quot;][&quot;unmeasured_confounders&quot;], 1)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;primary_recommendation&quot;], &quot;measured_baseline_backdoor_set&quot;
+        )
+        self.assertEqual(report[&quot;summary&quot;][&quot;primary_open_measured_paths&quot;], 0)
+        self.assertEqual(report[&quot;summary&quot;][&quot;primary_open_unmeasured_paths&quot;], 1)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;identification_status&quot;],
+            &quot;not_identified_due_to_unmeasured_confounding&quot;,
+        )
+
+    def test_code_example_prints_transferable_summary(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, CODE],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;blocking_checks&quot;], [])
+        self.assertEqual(payload[&quot;recommended_open_measured_paths&quot;], 0)
+        self.assertEqual(payload[&quot;recommended_open_unmeasured_paths&quot;], 1)
+        self.assertIn(&quot;latent_motivation&quot;, payload[&quot;remaining_unmeasured_path&quot;])
+        self.assertIn(&quot;onboarding_completed_48h&quot;, payload[&quot;forbidden_controls&quot;])
+
+    def test_friction_score_participates_in_many_open_backdoor_paths(self) -&gt; None:
+        report = self.validate()
+        participation = report[&quot;summary&quot;][&quot;backdoor_participation&quot;]
+        self.assertGreaterEqual(participation[&quot;friction_score&quot;][&quot;path_count&quot;], 30)
+        self.assertEqual(participation[&quot;friction_score&quot;][&quot;timing&quot;], &quot;baseline&quot;)
+        self.assertEqual(participation[&quot;latent_motivation&quot;][&quot;observed&quot;], False)
+
+    def test_missing_active_confounder_breaks_inventory(self) -&gt; None:
+        inventory = copy.deepcopy(self.inventory)
+        inventory[&quot;confounders&quot;] = [
+            item for item in inventory[&quot;confounders&quot;] if item[&quot;variable&quot;] != &quot;friction_score&quot;
+        ]
+        report = self.validate(inventory=inventory)
+        self.assertFalse(report[&quot;valid&quot;])
+        inventory_check = check(report, &quot;active_backdoor_confounders_are_in_inventory&quot;)
+        self.assertFalse(inventory_check[&quot;valid&quot;])
+        self.assertIn(&quot;friction_score&quot;, inventory_check[&quot;sample&quot;])
+
+    def test_unmeasured_confounder_cannot_be_labeled_measured(self) -&gt; None:
+        inventory = copy.deepcopy(self.inventory)
+        latent = next(
+            item for item in inventory[&quot;confounders&quot;] if item[&quot;variable&quot;] == &quot;latent_motivation&quot;
+        )
+        latent[&quot;measurement_status&quot;] = &quot;measured&quot;
+        report = self.validate(inventory=inventory)
+        measurement = check(report, &quot;confounder_measurement_status_is_consistent&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(measurement[&quot;valid&quot;])
+        self.assertEqual(measurement[&quot;sample&quot;][0][&quot;reason&quot;], &quot;measured variable is not observed&quot;)
+
+    def test_measured_confounder_source_must_exist_in_data_contract(self) -&gt; None:
+        dag = copy.deepcopy(self.dag)
+        node = next(item for item in dag[&quot;nodes&quot;] if item[&quot;id&quot;] == &quot;friction_score&quot;)
+        node[&quot;source_fields&quot;].append({&quot;table&quot;: &quot;pre_treatment_behavior&quot;, &quot;field&quot;: &quot;unknown_score&quot;})
+        report = self.validate(dag=dag)
+        measurement = check(report, &quot;confounder_measurement_status_is_consistent&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(measurement[&quot;valid&quot;])
+        self.assertEqual(
+            measurement[&quot;sample&quot;][0][&quot;reason&quot;], &quot;source field is absent from data contract&quot;
+        )
+
+    def test_primary_recommendation_must_be_unique(self) -&gt; None:
+        spec = copy.deepcopy(self.adjustment_spec)
+        candidate_spec(spec, &quot;friction_capacity_only&quot;)[&quot;is_primary_recommendation&quot;] = True
+        report = self.validate(adjustment_spec=spec)
+        primary = check(report, &quot;exactly_one_primary_recommendation&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(primary[&quot;valid&quot;])
+        self.assertEqual(
+            set(primary[&quot;sample&quot;]),
+            {&quot;friction_capacity_only&quot;, &quot;measured_baseline_backdoor_set&quot;},
+        )
+
+    def test_primary_recommendation_must_block_all_measured_backdoor_paths(self) -&gt; None:
+        spec = copy.deepcopy(self.adjustment_spec)
+        primary = candidate_spec(spec, &quot;measured_baseline_backdoor_set&quot;)
+        primary[&quot;variables&quot;] = [&quot;friction_score&quot;, &quot;specialist_capacity&quot;]
+        primary[&quot;declared_status&quot;] = &quot;recommended_measured_adjustment_with_unmeasured_limitation&quot;
+        report = self.validate(adjustment_spec=spec)
+        primary_check = check(
+            report,
+            &quot;primary_recommendation_is_observed_baseline_and_blocks_measured_paths&quot;,
+        )
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(primary_check[&quot;valid&quot;])
+        reasons = {item[&quot;reason&quot;] for item in primary_check[&quot;sample&quot;]}
+        self.assertIn(&quot;measured_backdoors_still_open&quot;, reasons)
+
+    def test_candidate_declared_status_must_match_graph_audit(self) -&gt; None:
+        spec = copy.deepcopy(self.adjustment_spec)
+        candidate_spec(spec, &quot;none&quot;)[&quot;declared_status&quot;] = &quot;sufficient_observed_backdoor_adjustment&quot;
+        report = self.validate(adjustment_spec=spec)
+        status = check(report, &quot;candidate_statuses_match_graph&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(status[&quot;valid&quot;])
+        self.assertEqual(status[&quot;sample&quot;][0][&quot;set_id&quot;], &quot;none&quot;)
+
+    def test_oracle_latent_adjustment_is_not_observed_adjustment(self) -&gt; None:
+        report = self.validate()
+        oracle = candidate(report, &quot;oracle_latent_adjustment&quot;)
+        self.assertEqual(oracle[&quot;calculated_status&quot;], &quot;invalid_contains_unmeasured_variable&quot;)
+        self.assertEqual(oracle[&quot;unobserved_variables&quot;], [&quot;latent_motivation&quot;])
+        self.assertEqual(oracle[&quot;active_backdoor_paths&quot;], 0)
+
+    def test_mediator_and_selection_sets_are_forbidden_controls(self) -&gt; None:
+        report = self.validate()
+        mediator = candidate(report, &quot;mediator_leakage_set&quot;)
+        selection = candidate(report, &quot;complete_case_selection_set&quot;)
+        self.assertEqual(mediator[&quot;calculated_status&quot;], &quot;invalid_forbidden_control&quot;)
+        self.assertEqual(mediator[&quot;forbidden_variables&quot;][0][&quot;role&quot;], &quot;mediator&quot;)
+        self.assertEqual(selection[&quot;forbidden_variables&quot;][0][&quot;role&quot;], &quot;selection&quot;)
+        self.assertGreater(selection[&quot;newly_opened_or_reopened_paths&quot;], 0)
+
+    def test_unknown_candidate_variable_is_rejected(self) -&gt; None:
+        spec = copy.deepcopy(self.adjustment_spec)
+        primary = candidate_spec(spec, &quot;measured_baseline_backdoor_set&quot;)
+        primary[&quot;variables&quot;].append(&quot;ghost_baseline&quot;)
+        primary[&quot;declared_status&quot;] = &quot;invalid_unknown_variable&quot;
+        report = self.validate(adjustment_spec=spec)
+        primary_report = candidate(report, &quot;measured_baseline_backdoor_set&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(primary_report[&quot;unknown_variables&quot;], [&quot;ghost_baseline&quot;])
+        self.assertFalse(
+            check(
+                report,
+                &quot;primary_recommendation_is_observed_baseline_and_blocks_measured_paths&quot;,
+            )[&quot;valid&quot;]
+        )
+
+    def test_claim_policy_cannot_allow_effect_claim_with_unmeasured_path(self) -&gt; None:
+        spec = copy.deepcopy(self.adjustment_spec)
+        spec[&quot;claim_policy&quot;][&quot;allowed_effect_claim&quot;] = True
+        spec[&quot;claim_policy&quot;][&quot;identification_status&quot;] = &quot;identified&quot;
+        report = self.validate(adjustment_spec=spec)
+        claim = check(report, &quot;claim_policy_matches_remaining_unmeasured_confounding&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(claim[&quot;valid&quot;])
+        fields = {item[&quot;field&quot;] for item in claim[&quot;sample&quot;]}
+        self.assertEqual(fields, {&quot;allowed_effect_claim&quot;, &quot;identification_status&quot;})
+
+    def test_forbidden_control_inventory_must_point_to_actual_bad_control(self) -&gt; None:
+        inventory = copy.deepcopy(self.inventory)
+        inventory[&quot;forbidden_controls&quot;].append(
+            {&quot;variable&quot;: &quot;friction_score&quot;, &quot;forbidden_reason&quot;: &quot;incorrect test mutation&quot;}
+        )
+        report = self.validate(inventory=inventory)
+        forbidden = check(report, &quot;forbidden_controls_are_real_bad_controls&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(forbidden[&quot;valid&quot;])
+        self.assertEqual(forbidden[&quot;sample&quot;][0][&quot;variable&quot;], &quot;friction_score&quot;)
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_adjustment_spec(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            invalid = copy.deepcopy(self.adjustment_spec)
+            candidate_spec(invalid, &quot;none&quot;)[&quot;declared_status&quot;] = (
+                &quot;sufficient_observed_backdoor_adjustment&quot;
+            )
+            spec_path = root / &quot;adjustment_set_spec.json&quot;
+            output_path = root / &quot;audit.json&quot;
+            write_json(spec_path, invalid)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--dag&quot;,
+                    DAG,
+                    &quot;--inventory&quot;,
+                    INVENTORY,
+                    &quot;--adjustment-spec&quot;,
+                    spec_path,
+                    &quot;--data-contract&quot;,
+                    DATA_CONTRACT,
+                    &quot;--output&quot;,
+                    output_path,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            audit = read_json(output_path)
+            self.assertFalse(audit[&quot;valid&quot;])
+            self.assertFalse(check(audit, &quot;candidate_statuses_match_graph&quot;)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = ROOT.parent
+DAG = PHASE_ROOT / &quot;02-causal-dags&quot; / &quot;outputs&quot; / &quot;causal_dag.json&quot;
+INVENTORY = ROOT / &quot;outputs&quot; / &quot;confounder_inventory.json&quot;
+ADJUSTMENT_SPEC = ROOT / &quot;outputs&quot; / &quot;adjustment_set_spec.json&quot;
+DATA_CONTRACT = PHASE_ROOT / &quot;data&quot; / &quot;contract.json&quot;
+AUDITOR_PATH = ROOT / &quot;outputs&quot; / &quot;backdoor_adjustment_auditor.py&quot;
+
+
+def load_auditor():
+    spec = importlib.util.spec_from_file_location(&quot;backdoor_adjustment_auditor&quot;, AUDITOR_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {AUDITOR_PATH}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def main() -&gt; None:
+    auditor = load_auditor()
+    report = auditor.run(DAG, INVENTORY, ADJUSTMENT_SPEC, DATA_CONTRACT)
+    inventory = read_json(INVENTORY)
+    recommended = next(
+        candidate
+        for candidate in report[&quot;candidate_set_audits&quot;]
+        if candidate[&quot;is_primary_recommendation&quot;]
+    )
+    naive = next(
+        candidate for candidate in report[&quot;candidate_set_audits&quot;] if candidate[&quot;set_id&quot;] == &quot;none&quot;
+    )
+    payload = {
+        &quot;audit_valid&quot;: report[&quot;valid&quot;],
+        &quot;active_backdoor_paths_without_adjustment&quot;: report[&quot;summary&quot;][
+            &quot;active_backdoor_paths_without_adjustment&quot;
+        ],
+        &quot;measured_confounders&quot;: [
+            item[&quot;variable&quot;]
+            for item in inventory[&quot;confounders&quot;]
+            if item[&quot;measurement_status&quot;] == &quot;measured&quot;
+        ],
+        &quot;unmeasured_confounders&quot;: [
+            item[&quot;variable&quot;]
+            for item in inventory[&quot;confounders&quot;]
+            if item[&quot;measurement_status&quot;] == &quot;unmeasured&quot;
+        ],
+        &quot;forbidden_controls&quot;: [item[&quot;variable&quot;] for item in inventory[&quot;forbidden_controls&quot;]],
+        &quot;naive_open_measured_paths&quot;: naive[&quot;open_measured_backdoor_paths&quot;],
+        &quot;recommended_set_id&quot;: recommended[&quot;set_id&quot;],
+        &quot;recommended_variable_count&quot;: recommended[&quot;variable_count&quot;],
+        &quot;recommended_open_measured_paths&quot;: recommended[&quot;open_measured_backdoor_paths&quot;],
+        &quot;recommended_open_unmeasured_paths&quot;: recommended[&quot;open_unmeasured_backdoor_paths&quot;],
+        &quot;remaining_unmeasured_path&quot;: recommended[&quot;remaining_path_examples&quot;][0][&quot;path&quot;],
+        &quot;identification_status&quot;: report[&quot;summary&quot;][&quot;identification_status&quot;],
+        &quot;blocking_checks&quot;: [
+            check[&quot;id&quot;]
+            for check in report[&quot;checks&quot;]
+            if not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot;
+        ],
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/adjustment_set_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;adjustment_spec_id&quot;: &quot;assisted_onboarding_backdoor_adjustment_v1&quot;,
+  &quot;graph_id&quot;: &quot;assisted_onboarding_activation_dag_v1&quot;,
+  &quot;inventory_id&quot;: &quot;assisted_onboarding_confounder_inventory_v1&quot;,
+  &quot;question_id&quot;: &quot;assisted_onboarding_activation_ate_v1&quot;,
+  &quot;estimand_id&quot;: &quot;ate_activation_14d_eligible_users&quot;,
+  &quot;treatment&quot;: &quot;assisted_within_24h&quot;,
+  &quot;outcome&quot;: &quot;activation_14d&quot;,
+  &quot;effect&quot;: &quot;total_effect&quot;,
+  &quot;claim_policy&quot;: {
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+    &quot;allowed_effect_claim&quot;: false,
+    &quot;allowed_design_claim&quot;: &quot;Measured baseline adjustment set closes observed backdoor paths, but the primary ATE remains not identified from observed variables under the declared DAG.&quot;,
+    &quot;next_evidence_needed&quot;: [&quot;confounder proxy argument&quot;, &quot;positivity and overlap diagnostics&quot;, &quot;sensitivity analysis&quot;, &quot;alternative design audit&quot;]
+  },
+  &quot;candidate_adjustment_sets&quot;: [
+    {
+      &quot;set_id&quot;: &quot;none&quot;,
+      &quot;label&quot;: &quot;Naive treated/control comparison&quot;,
+      &quot;variables&quot;: [],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;interpretation&quot;: &quot;Open measured and unmeasured backdoor paths remain; this is association only.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;friction_capacity_only&quot;,
+      &quot;label&quot;: &quot;Too narrow business-intuitive set&quot;,
+      &quot;variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;interpretation&quot;: &quot;This blocks the obvious assignment drivers, but leaves measured baseline paths through platform, region, network quality and behavior.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;measured_baseline_backdoor_set&quot;,
+      &quot;label&quot;: &quot;Recommended observed baseline adjustment set&quot;,
+      &quot;variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;is_primary_recommendation&quot;: true,
+      &quot;declared_status&quot;: &quot;recommended_measured_adjustment_with_unmeasured_limitation&quot;,
+      &quot;interpretation&quot;: &quot;This set is the working adjustment set for observed confounding, but it does not identify the primary ATE because latent_motivation remains unmeasured.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;oracle_latent_adjustment&quot;,
+      &quot;label&quot;: &quot;Oracle set that is graphically sufficient but not observed&quot;,
+      &quot;variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;,
+        &quot;latent_motivation&quot;
+      ],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_contains_unmeasured_variable&quot;,
+      &quot;interpretation&quot;: &quot;Adding latent_motivation would close the graph, but this is not an observed adjustment set.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;mediator_leakage_set&quot;,
+      &quot;label&quot;: &quot;Bad control set with mediator&quot;,
+      &quot;variables&quot;: [&quot;friction_score&quot;, &quot;specialist_capacity&quot;, &quot;onboarding_completed_48h&quot;],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;interpretation&quot;: &quot;This blocks part of the total effect and changes the estimand.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;collider_filter_set&quot;,
+      &quot;label&quot;: &quot;Bad control set with support-chat collider&quot;,
+      &quot;variables&quot;: [&quot;friction_score&quot;, &quot;opened_support_chat_after_offer&quot;],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;interpretation&quot;: &quot;Conditioning on support chat opens a collider path.&quot;
+    },
+    {
+      &quot;set_id&quot;: &quot;complete_case_selection_set&quot;,
+      &quot;label&quot;: &quot;Bad control set with telemetry completeness&quot;,
+      &quot;variables&quot;: [&quot;telemetry_complete_30d&quot;],
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;interpretation&quot;: &quot;Complete-case filtering conditions on post-treatment selection.&quot;
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/outputs/adjustment_set_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;backdoor-adjustment-auditor&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/backdoor_adjustment_auditor.py&quot;,
+  &quot;description&quot;: &quot;Проверяет confounder inventory и candidate adjustment sets: measured/unmeasured confounders, source fields, active backdoor paths, forbidden controls, primary observed adjustment set и claim policy.&quot;,
+  &quot;usage&quot;: &quot;python outputs/backdoor_adjustment_auditor.py --dag ../02-causal-dags/outputs/causal_dag.json --inventory outputs/confounder_inventory.json --adjustment-spec outputs/adjustment_set_spec.json --data-contract ../data/contract.json --output outputs/backdoor_adjustment_audit.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backdoor_adjustment_audit.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;graph_id&quot;: &quot;assisted_onboarding_activation_dag_v1&quot;,
+    &quot;question_id&quot;: &quot;assisted_onboarding_activation_ate_v1&quot;,
+    &quot;estimand_id&quot;: &quot;ate_activation_14d_eligible_users&quot;,
+    &quot;treatment&quot;: &quot;assisted_within_24h&quot;,
+    &quot;outcome&quot;: &quot;activation_14d&quot;,
+    &quot;active_backdoor_paths_without_adjustment&quot;: 48,
+    &quot;backdoor_participation&quot;: {
+      &quot;friction_score&quot;: {
+        &quot;path_count&quot;: 38,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;offered_assistance&quot;: {
+        &quot;path_count&quot;: 23,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;treatment&quot;,
+        &quot;role&quot;: &quot;assignment_mechanism&quot;
+      },
+      &quot;app_crashes_before_time_zero&quot;: {
+        &quot;path_count&quot;: 14,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;network_quality&quot;: {
+        &quot;path_count&quot;: 14,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;latent_motivation&quot;: {
+        &quot;path_count&quot;: 13,
+        &quot;observed&quot;: false,
+        &quot;timing&quot;: &quot;unobserved_baseline&quot;,
+        &quot;role&quot;: &quot;unmeasured_confounder&quot;
+      },
+      &quot;sessions_before_time_zero&quot;: {
+        &quot;path_count&quot;: 12,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;device_tier&quot;: {
+        &quot;path_count&quot;: 10,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;onboarding_steps_before_time_zero&quot;: {
+        &quot;path_count&quot;: 10,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;specialist_capacity&quot;: {
+        &quot;path_count&quot;: 5,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;region_id&quot;: {
+        &quot;path_count&quot;: 4,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;acquisition_channel&quot;: {
+        &quot;path_count&quot;: 2,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;platform&quot;: {
+        &quot;path_count&quot;: 2,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      },
+      &quot;language&quot;: {
+        &quot;path_count&quot;: 1,
+        &quot;observed&quot;: true,
+        &quot;timing&quot;: &quot;baseline&quot;,
+        &quot;role&quot;: &quot;confounder&quot;
+      }
+    },
+    &quot;measured_confounders&quot;: 11,
+    &quot;unmeasured_confounders&quot;: 1,
+    &quot;forbidden_controls&quot;: 5,
+    &quot;candidate_sets&quot;: 7,
+    &quot;primary_recommendation&quot;: &quot;measured_baseline_backdoor_set&quot;,
+    &quot;primary_variable_count&quot;: 11,
+    &quot;primary_open_measured_paths&quot;: 0,
+    &quot;primary_open_unmeasured_paths&quot;: 1,
+    &quot;identification_status&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;
+  },
+  &quot;candidate_set_audits&quot;: [
+    {
+      &quot;set_id&quot;: &quot;none&quot;,
+      &quot;declared_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;calculated_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [],
+      &quot;variable_count&quot;: 0,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 48,
+      &quot;open_measured_backdoor_paths&quot;: 35,
+      &quot;open_unmeasured_backdoor_paths&quot;: 13,
+      &quot;closed_backdoor_paths&quot;: 0,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        }
+      ]
+    },
+    {
+      &quot;set_id&quot;: &quot;friction_capacity_only&quot;,
+      &quot;declared_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;calculated_status&quot;: &quot;insufficient_measured_backdoors_open&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;variable_count&quot;: 2,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 31,
+      &quot;open_measured_backdoor_paths&quot;: 2,
+      &quot;open_unmeasured_backdoor_paths&quot;: 29,
+      &quot;closed_backdoor_paths&quot;: 17,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        }
+      ]
+    },
+    {
+      &quot;set_id&quot;: &quot;measured_baseline_backdoor_set&quot;,
+      &quot;declared_status&quot;: &quot;recommended_measured_adjustment_with_unmeasured_limitation&quot;,
+      &quot;calculated_status&quot;: &quot;recommended_measured_adjustment_with_unmeasured_limitation&quot;,
+      &quot;is_primary_recommendation&quot;: true,
+      &quot;variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;
+      ],
+      &quot;variable_count&quot;: 11,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 1,
+      &quot;open_measured_backdoor_paths&quot;: 0,
+      &quot;open_unmeasured_backdoor_paths&quot;: 1,
+      &quot;closed_backdoor_paths&quot;: 47,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;
+          }
+        }
+      ]
+    },
+    {
+      &quot;set_id&quot;: &quot;oracle_latent_adjustment&quot;,
+      &quot;declared_status&quot;: &quot;invalid_contains_unmeasured_variable&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_contains_unmeasured_variable&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [
+        &quot;platform&quot;,
+        &quot;device_tier&quot;,
+        &quot;acquisition_channel&quot;,
+        &quot;region_id&quot;,
+        &quot;language&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;onboarding_steps_before_time_zero&quot;,
+        &quot;sessions_before_time_zero&quot;,
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;,
+        &quot;latent_motivation&quot;
+      ],
+      &quot;variable_count&quot;: 12,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [
+        {
+          &quot;variable&quot;: &quot;latent_motivation&quot;,
+          &quot;role&quot;: &quot;unmeasured_confounder&quot;,
+          &quot;timing&quot;: &quot;unobserved_baseline&quot;
+        }
+      ],
+      &quot;unobserved_variables&quot;: [
+        &quot;latent_motivation&quot;
+      ],
+      &quot;active_backdoor_paths&quot;: 0,
+      &quot;open_measured_backdoor_paths&quot;: 0,
+      &quot;open_unmeasured_backdoor_paths&quot;: 0,
+      &quot;closed_backdoor_paths&quot;: 48,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: []
+    },
+    {
+      &quot;set_id&quot;: &quot;mediator_leakage_set&quot;,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [
+        &quot;friction_score&quot;,
+        &quot;specialist_capacity&quot;,
+        &quot;onboarding_completed_48h&quot;
+      ],
+      &quot;variable_count&quot;: 3,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [
+        {
+          &quot;variable&quot;: &quot;onboarding_completed_48h&quot;,
+          &quot;role&quot;: &quot;mediator&quot;,
+          &quot;timing&quot;: &quot;mediator&quot;
+        }
+      ],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 31,
+      &quot;open_measured_backdoor_paths&quot;: 2,
+      &quot;open_unmeasured_backdoor_paths&quot;: 29,
+      &quot;closed_backdoor_paths&quot;: 17,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        }
+      ]
+    },
+    {
+      &quot;set_id&quot;: &quot;collider_filter_set&quot;,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [
+        &quot;friction_score&quot;,
+        &quot;opened_support_chat_after_offer&quot;
+      ],
+      &quot;variable_count&quot;: 2,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [
+        {
+          &quot;variable&quot;: &quot;opened_support_chat_after_offer&quot;,
+          &quot;role&quot;: &quot;collider&quot;,
+          &quot;timing&quot;: &quot;post_treatment&quot;
+        }
+      ],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 39,
+      &quot;open_measured_backdoor_paths&quot;: 10,
+      &quot;open_unmeasured_backdoor_paths&quot;: 29,
+      &quot;closed_backdoor_paths&quot;: 9,
+      &quot;newly_opened_or_reopened_paths&quot;: 0,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;latent_motivation&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- latent_motivation -- onboarding_steps_before_time_zero -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: true,
+          &quot;intermediate_roles&quot;: {
+            &quot;latent_motivation&quot;: &quot;unmeasured_confounder&quot;,
+            &quot;onboarding_steps_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        }
+      ]
+    },
+    {
+      &quot;set_id&quot;: &quot;complete_case_selection_set&quot;,
+      &quot;declared_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;calculated_status&quot;: &quot;invalid_forbidden_control&quot;,
+      &quot;is_primary_recommendation&quot;: false,
+      &quot;variables&quot;: [
+        &quot;telemetry_complete_30d&quot;
+      ],
+      &quot;variable_count&quot;: 1,
+      &quot;unknown_variables&quot;: [],
+      &quot;forbidden_variables&quot;: [
+        {
+          &quot;variable&quot;: &quot;telemetry_complete_30d&quot;,
+          &quot;role&quot;: &quot;selection&quot;,
+          &quot;timing&quot;: &quot;selection&quot;
+        }
+      ],
+      &quot;unobserved_variables&quot;: [],
+      &quot;active_backdoor_paths&quot;: 142,
+      &quot;open_measured_backdoor_paths&quot;: 79,
+      &quot;open_unmeasured_backdoor_paths&quot;: 63,
+      &quot;closed_backdoor_paths&quot;: 0,
+      &quot;newly_opened_or_reopened_paths&quot;: 94,
+      &quot;remaining_path_examples&quot;: [
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;device_tier&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;device_tier&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        },
+        {
+          &quot;path&quot;: [
+            &quot;assisted_within_24h&quot;,
+            &quot;friction_score&quot;,
+            &quot;app_crashes_before_time_zero&quot;,
+            &quot;network_quality&quot;,
+            &quot;activation_14d&quot;
+          ],
+          &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- network_quality -- activation_14d&quot;,
+          &quot;contains_unmeasured&quot;: false,
+          &quot;intermediate_roles&quot;: {
+            &quot;friction_score&quot;: &quot;confounder&quot;,
+            &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+            &quot;network_quality&quot;: &quot;confounder&quot;
+          }
+        }
+      ]
+    }
+  ],
+  &quot;active_backdoor_path_examples&quot;: [
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;device_tier&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+        &quot;device_tier&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;device_tier&quot;,
+        &quot;network_quality&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- device_tier -- network_quality -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+        &quot;device_tier&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;network_quality&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- network_quality -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;network_quality&quot;,
+        &quot;device_tier&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- app_crashes_before_time_zero -- network_quality -- device_tier -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;,
+        &quot;device_tier&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;network_quality&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- network_quality -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;network_quality&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- network_quality -- app_crashes_before_time_zero -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;network_quality&quot;,
+        &quot;device_tier&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- network_quality -- device_tier -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;,
+        &quot;device_tier&quot;: &quot;confounder&quot;
+      }
+    },
+    {
+      &quot;path&quot;: [
+        &quot;assisted_within_24h&quot;,
+        &quot;friction_score&quot;,
+        &quot;network_quality&quot;,
+        &quot;device_tier&quot;,
+        &quot;app_crashes_before_time_zero&quot;,
+        &quot;activation_14d&quot;
+      ],
+      &quot;path_text&quot;: &quot;assisted_within_24h -- friction_score -- network_quality -- device_tier -- app_crashes_before_time_zero -- activation_14d&quot;,
+      &quot;contains_unmeasured&quot;: false,
+      &quot;intermediate_roles&quot;: {
+        &quot;friction_score&quot;: &quot;confounder&quot;,
+        &quot;network_quality&quot;: &quot;confounder&quot;,
+        &quot;device_tier&quot;: &quot;confounder&quot;,
+        &quot;app_crashes_before_time_zero&quot;: &quot;confounder&quot;
+      }
+    }
+  ],
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;inventory_required_fields&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Confounder inventory содержит обязательные поля.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;inventory_aligns_with_graph&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Inventory относится к тому же graph/question.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;confounder_variables_exist_in_dag&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Все confounders из inventory существуют в DAG.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;confounder_measurement_status_is_consistent&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Measured confounders имеют observed baseline source fields, unmeasured — явно ненаблюдаемы.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;active_backdoor_confounders_are_in_inventory&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Все confounder/unmeasured nodes на active backdoor paths включены в inventory.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;forbidden_controls_are_real_bad_controls&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Forbidden controls существуют и не являются допустимыми baseline controls.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;adjustment_spec_required_fields&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Adjustment spec содержит обязательные поля.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;adjustment_spec_aligns_with_graph&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Adjustment spec относится к тому же graph/question.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;candidate_statuses_match_graph&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Declared statuses candidate adjustment sets совпадают с DAG-аудитом.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;exactly_one_primary_recommendation&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Ровно один candidate set объявлен primary recommendation.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;primary_recommendation_is_observed_baseline_and_blocks_measured_paths&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Primary recommendation использует observed baseline variables и закрывает measured backdoor paths.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;claim_policy_matches_remaining_unmeasured_confounding&quot;,
+      &quot;valid&quot;: true,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;message&quot;: &quot;Claim policy не разрешает causal effect claim при remaining unmeasured confounding.&quot;
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/outputs/backdoor_adjustment_audit.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/backdoor_adjustment_auditor.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+ALLOWED_BASELINE_TIMINGS = {&quot;baseline&quot;}
+FORBIDDEN_ADJUSTMENT_ROLES = {
+    &quot;assignment_mechanism&quot;,
+    &quot;treatment&quot;,
+    &quot;mediator&quot;,
+    &quot;collider&quot;,
+    &quot;selection&quot;,
+    &quot;outcome&quot;,
+}
+
+
+def read_json(path: str | Path) -&gt; dict[str, Any]:
+    with Path(path).open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: str | Path, payload: dict[str, Any]) -&gt; None:
+    Path(path).write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def make_check(
+    check_id: str,
+    valid: bool,
+    message: str,
+    *,
+    severity: str = &quot;error&quot;,
+    sample: Any | None = None,
+) -&gt; dict[str, Any]:
+    payload: dict[str, Any] = {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: valid,
+        &quot;severity&quot;: severity,
+        &quot;message&quot;: message,
+    }
+    if sample is not None:
+        payload[&quot;sample&quot;] = sample
+    return payload
+
+
+def load_dag_tools(path: str | Path | None = None):
+    if path is None:
+        phase_root = Path(__file__).resolve().parents[2]
+        path = phase_root / &quot;02-causal-dags&quot; / &quot;outputs&quot; / &quot;causal_dag_validator.py&quot;
+    spec = importlib.util.spec_from_file_location(&quot;causal_dag_validator&quot;, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load DAG validator from {path}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def node_map(dag: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    return {node[&quot;id&quot;]: node for node in dag.get(&quot;nodes&quot;, [])}
+
+
+def data_contract_fields(data_contract: dict[str, Any]) -&gt; set[tuple[str, str]]:
+    fields: set[tuple[str, str]] = set()
+    for table, table_spec in data_contract.get(&quot;tables&quot;, {}).items():
+        for field in table_spec.get(&quot;columns&quot;, {}):
+            fields.add((table, field))
+    return fields
+
+
+def path_contains_unobserved(dag: dict[str, Any], path: list[str]) -&gt; bool:
+    nodes = node_map(dag)
+    return any(nodes[node].get(&quot;observed&quot;) is False for node in path)
+
+
+def path_signature(path: list[str]) -&gt; str:
+    return &quot; -- &quot;.join(path)
+
+
+def active_path_report(
+    dag: dict[str, Any],
+    paths: list[list[str]],
+    *,
+    limit: int = 25,
+) -&gt; list[dict[str, Any]]:
+    nodes = node_map(dag)
+    report: list[dict[str, Any]] = []
+    for path in paths[:limit]:
+        intermediates = path[1:-1]
+        report.append(
+            {
+                &quot;path&quot;: path,
+                &quot;path_text&quot;: path_signature(path),
+                &quot;contains_unmeasured&quot;: any(
+                    nodes[node].get(&quot;observed&quot;) is False for node in intermediates
+                ),
+                &quot;intermediate_roles&quot;: {node: nodes[node].get(&quot;role&quot;) for node in intermediates},
+            }
+        )
+    return report
+
+
+def backdoor_participation(
+    dag: dict[str, Any],
+    paths: list[list[str]],
+) -&gt; dict[str, dict[str, Any]]:
+    nodes = node_map(dag)
+    counts = Counter(node for path in paths for node in path[1:-1])
+    return {
+        node: {
+            &quot;path_count&quot;: count,
+            &quot;observed&quot;: nodes[node].get(&quot;observed&quot;),
+            &quot;timing&quot;: nodes[node].get(&quot;timing&quot;),
+            &quot;role&quot;: nodes[node].get(&quot;role&quot;),
+        }
+        for node, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    }
+
+
+def candidate_by_id(adjustment_spec: dict[str, Any], set_id: str) -&gt; dict[str, Any] | None:
+    return next(
+        (
+            candidate
+            for candidate in adjustment_spec.get(&quot;candidate_adjustment_sets&quot;, [])
+            if candidate.get(&quot;set_id&quot;) == set_id
+        ),
+        None,
+    )
+
+
+def evaluate_candidate_set(
+    dag: dict[str, Any],
+    candidate: dict[str, Any],
+    treatment: str,
+    outcome: str,
+    dag_tools: Any,
+    initial_paths: list[list[str]],
+) -&gt; dict[str, Any]:
+    nodes = node_map(dag)
+    variables = list(candidate.get(&quot;variables&quot;, []))
+    unknown = [variable for variable in variables if variable not in nodes]
+    forbidden = [
+        {
+            &quot;variable&quot;: variable,
+            &quot;role&quot;: nodes[variable].get(&quot;role&quot;),
+            &quot;timing&quot;: nodes[variable].get(&quot;timing&quot;),
+        }
+        for variable in variables
+        if variable in nodes
+        and (
+            nodes[variable].get(&quot;role&quot;) in FORBIDDEN_ADJUSTMENT_ROLES
+            or nodes[variable].get(&quot;timing&quot;) not in ALLOWED_BASELINE_TIMINGS
+        )
+    ]
+    unobserved = [
+        variable
+        for variable in variables
+        if variable in nodes and nodes[variable].get(&quot;observed&quot;) is False
+    ]
+    remaining_paths = (
+        [] if unknown else dag_tools.active_backdoor_paths(dag, treatment, outcome, set(variables))
+    )
+    open_measured_paths = [
+        path for path in remaining_paths if not path_contains_unobserved(dag, path)
+    ]
+    open_unmeasured_paths = [
+        path for path in remaining_paths if path_contains_unobserved(dag, path)
+    ]
+    calculated_status = calculate_status(
+        candidate,
+        unknown,
+        forbidden,
+        unobserved,
+        open_measured_paths,
+        open_unmeasured_paths,
+    )
+    return {
+        &quot;set_id&quot;: candidate.get(&quot;set_id&quot;),
+        &quot;declared_status&quot;: candidate.get(&quot;declared_status&quot;),
+        &quot;calculated_status&quot;: calculated_status,
+        &quot;is_primary_recommendation&quot;: bool(candidate.get(&quot;is_primary_recommendation&quot;)),
+        &quot;variables&quot;: variables,
+        &quot;variable_count&quot;: len(variables),
+        &quot;unknown_variables&quot;: unknown,
+        &quot;forbidden_variables&quot;: forbidden,
+        &quot;unobserved_variables&quot;: unobserved,
+        &quot;active_backdoor_paths&quot;: len(remaining_paths),
+        &quot;open_measured_backdoor_paths&quot;: len(open_measured_paths),
+        &quot;open_unmeasured_backdoor_paths&quot;: len(open_unmeasured_paths),
+        &quot;closed_backdoor_paths&quot;: max(0, len(initial_paths) - len(remaining_paths))
+        if not unknown
+        else None,
+        &quot;newly_opened_or_reopened_paths&quot;: max(0, len(remaining_paths) - len(initial_paths))
+        if not unknown
+        else None,
+        &quot;remaining_path_examples&quot;: active_path_report(dag, remaining_paths, limit=5),
+    }
+
+
+def calculate_status(
+    candidate: dict[str, Any],
+    unknown: list[str],
+    forbidden: list[dict[str, Any]],
+    unobserved: list[str],
+    open_measured_paths: list[list[str]],
+    open_unmeasured_paths: list[list[str]],
+) -&gt; str:
+    if unknown:
+        return &quot;invalid_unknown_variable&quot;
+    if unobserved:
+        return &quot;invalid_contains_unmeasured_variable&quot;
+    if forbidden:
+        return &quot;invalid_forbidden_control&quot;
+    if open_measured_paths:
+        return &quot;insufficient_measured_backdoors_open&quot;
+    if open_unmeasured_paths:
+        if candidate.get(&quot;is_primary_recommendation&quot;):
+            return &quot;recommended_measured_adjustment_with_unmeasured_limitation&quot;
+        return &quot;insufficient_unmeasured_confounding&quot;
+    return &quot;sufficient_observed_backdoor_adjustment&quot;
+
+
+def validate_inventory(
+    dag: dict[str, Any],
+    inventory: dict[str, Any],
+    data_contract: dict[str, Any],
+    active_paths: list[list[str]],
+) -&gt; list[dict[str, Any]]:
+    nodes = node_map(dag)
+    contract_fields = data_contract_fields(data_contract)
+    confounders = inventory.get(&quot;confounders&quot;, [])
+    forbidden_controls = inventory.get(&quot;forbidden_controls&quot;, [])
+    path_variables = {node for path in active_paths for node in path[1:-1]}
+
+    required = [
+        &quot;inventory_id&quot;,
+        &quot;graph_id&quot;,
+        &quot;question_id&quot;,
+        &quot;estimand_id&quot;,
+        &quot;treatment&quot;,
+        &quot;outcome&quot;,
+        &quot;confounders&quot;,
+        &quot;forbidden_controls&quot;,
+    ]
+    missing = [field for field in required if field not in inventory]
+    checks = [
+        make_check(
+            &quot;inventory_required_fields&quot;,
+            not missing,
+            &quot;Confounder inventory содержит обязательные поля.&quot;,
+            sample=missing or None,
+        )
+    ]
+
+    alignment_errors = []
+    for field in [&quot;graph_id&quot;, &quot;question_id&quot;]:
+        if inventory.get(field) != dag.get(field):
+            alignment_errors.append(
+                {&quot;field&quot;: field, &quot;inventory&quot;: inventory.get(field), &quot;dag&quot;: dag.get(field)}
+            )
+    checks.append(
+        make_check(
+            &quot;inventory_aligns_with_graph&quot;,
+            not alignment_errors,
+            &quot;Inventory относится к тому же graph/question.&quot;,
+            sample=alignment_errors or None,
+        )
+    )
+
+    unknown_confounders = [
+        item.get(&quot;variable&quot;) for item in confounders if item.get(&quot;variable&quot;) not in nodes
+    ]
+    checks.append(
+        make_check(
+            &quot;confounder_variables_exist_in_dag&quot;,
+            not unknown_confounders,
+            &quot;Все confounders из inventory существуют в DAG.&quot;,
+            sample=unknown_confounders or None,
+        )
+    )
+
+    measurement_errors: list[dict[str, Any]] = []
+    for item in confounders:
+        variable = item.get(&quot;variable&quot;)
+        if variable not in nodes:
+            continue
+        node = nodes[variable]
+        category = item.get(&quot;measurement_status&quot;)
+        if category == &quot;measured&quot;:
+            if node.get(&quot;observed&quot;) is not True:
+                measurement_errors.append(
+                    {&quot;variable&quot;: variable, &quot;reason&quot;: &quot;measured variable is not observed&quot;}
+                )
+            if node.get(&quot;timing&quot;) != &quot;baseline&quot;:
+                measurement_errors.append(
+                    {
+                        &quot;variable&quot;: variable,
+                        &quot;reason&quot;: &quot;measured confounder must be baseline&quot;,
+                        &quot;timing&quot;: node.get(&quot;timing&quot;),
+                    }
+                )
+            source_fields = node.get(&quot;source_fields&quot;, [])
+            if not source_fields:
+                measurement_errors.append({&quot;variable&quot;: variable, &quot;reason&quot;: &quot;missing source_fields&quot;})
+            for source in source_fields:
+                table_field = (source.get(&quot;table&quot;), source.get(&quot;field&quot;))
+                if table_field not in contract_fields:
+                    measurement_errors.append(
+                        {
+                            &quot;variable&quot;: variable,
+                            &quot;reason&quot;: &quot;source field is absent from data contract&quot;,
+                            &quot;source&quot;: source,
+                        }
+                    )
+        elif category == &quot;unmeasured&quot;:
+            if node.get(&quot;observed&quot;) is not False:
+                measurement_errors.append(
+                    {&quot;variable&quot;: variable, &quot;reason&quot;: &quot;unmeasured variable is observed&quot;}
+                )
+        else:
+            measurement_errors.append(
+                {
+                    &quot;variable&quot;: variable,
+                    &quot;reason&quot;: &quot;measurement_status must be measured or unmeasured&quot;,
+                    &quot;measurement_status&quot;: category,
+                }
+            )
+    checks.append(
+        make_check(
+            &quot;confounder_measurement_status_is_consistent&quot;,
+            not measurement_errors,
+            &quot;Measured confounders имеют observed baseline source fields, &quot;
+            &quot;unmeasured — явно ненаблюдаемы.&quot;,
+            sample=measurement_errors or None,
+        )
+    )
+
+    missing_active_confounders = [
+        variable
+        for variable in sorted(path_variables)
+        if variable in nodes
+        and nodes[variable].get(&quot;role&quot;) in {&quot;confounder&quot;, &quot;unmeasured_confounder&quot;}
+        and variable not in {item.get(&quot;variable&quot;) for item in confounders}
+    ]
+    checks.append(
+        make_check(
+            &quot;active_backdoor_confounders_are_in_inventory&quot;,
+            not missing_active_confounders,
+            &quot;Все confounder/unmeasured nodes на active backdoor paths включены в inventory.&quot;,
+            sample=missing_active_confounders or None,
+        )
+    )
+
+    unknown_forbidden = [
+        item.get(&quot;variable&quot;) for item in forbidden_controls if item.get(&quot;variable&quot;) not in nodes
+    ]
+    forbidden_role_errors = [
+        {
+            &quot;variable&quot;: item.get(&quot;variable&quot;),
+            &quot;role&quot;: nodes[item.get(&quot;variable&quot;)].get(&quot;role&quot;),
+            &quot;timing&quot;: nodes[item.get(&quot;variable&quot;)].get(&quot;timing&quot;),
+        }
+        for item in forbidden_controls
+        if item.get(&quot;variable&quot;) in nodes
+        and nodes[item.get(&quot;variable&quot;)].get(&quot;role&quot;) not in FORBIDDEN_ADJUSTMENT_ROLES
+        and nodes[item.get(&quot;variable&quot;)].get(&quot;timing&quot;) in ALLOWED_BASELINE_TIMINGS
+    ]
+    checks.append(
+        make_check(
+            &quot;forbidden_controls_are_real_bad_controls&quot;,
+            not unknown_forbidden and not forbidden_role_errors,
+            &quot;Forbidden controls существуют и не являются допустимыми baseline controls.&quot;,
+            sample=(unknown_forbidden + forbidden_role_errors) or None,
+        )
+    )
+    return checks
+
+
+def validate_adjustment_spec(
+    dag: dict[str, Any],
+    adjustment_spec: dict[str, Any],
+    evaluated_sets: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    required = [
+        &quot;adjustment_spec_id&quot;,
+        &quot;graph_id&quot;,
+        &quot;inventory_id&quot;,
+        &quot;question_id&quot;,
+        &quot;estimand_id&quot;,
+        &quot;treatment&quot;,
+        &quot;outcome&quot;,
+        &quot;claim_policy&quot;,
+        &quot;candidate_adjustment_sets&quot;,
+    ]
+    missing = [field for field in required if field not in adjustment_spec]
+    checks = [
+        make_check(
+            &quot;adjustment_spec_required_fields&quot;,
+            not missing,
+            &quot;Adjustment spec содержит обязательные поля.&quot;,
+            sample=missing or None,
+        )
+    ]
+
+    alignment_errors = []
+    for field in [&quot;graph_id&quot;, &quot;question_id&quot;]:
+        if adjustment_spec.get(field) != dag.get(field):
+            alignment_errors.append(
+                {
+                    &quot;field&quot;: field,
+                    &quot;adjustment_spec&quot;: adjustment_spec.get(field),
+                    &quot;dag&quot;: dag.get(field),
+                }
+            )
+    checks.append(
+        make_check(
+            &quot;adjustment_spec_aligns_with_graph&quot;,
+            not alignment_errors,
+            &quot;Adjustment spec относится к тому же graph/question.&quot;,
+            sample=alignment_errors or None,
+        )
+    )
+
+    status_mismatches = [
+        {
+            &quot;set_id&quot;: item[&quot;set_id&quot;],
+            &quot;declared_status&quot;: item[&quot;declared_status&quot;],
+            &quot;calculated_status&quot;: item[&quot;calculated_status&quot;],
+        }
+        for item in evaluated_sets
+        if item[&quot;declared_status&quot;] != item[&quot;calculated_status&quot;]
+    ]
+    checks.append(
+        make_check(
+            &quot;candidate_statuses_match_graph&quot;,
+            not status_mismatches,
+            &quot;Declared statuses candidate adjustment sets совпадают с DAG-аудитом.&quot;,
+            sample=status_mismatches or None,
+        )
+    )
+
+    primary_sets = [item for item in evaluated_sets if item[&quot;is_primary_recommendation&quot;]]
+    checks.append(
+        make_check(
+            &quot;exactly_one_primary_recommendation&quot;,
+            len(primary_sets) == 1,
+            &quot;Ровно один candidate set объявлен primary recommendation.&quot;,
+            sample=[item[&quot;set_id&quot;] for item in primary_sets] if len(primary_sets) != 1 else None,
+        )
+    )
+
+    primary = primary_sets[0] if len(primary_sets) == 1 else None
+    primary_errors: list[dict[str, Any]] = []
+    if primary:
+        if primary[&quot;unknown_variables&quot;]:
+            primary_errors.append(
+                {&quot;reason&quot;: &quot;unknown_variables&quot;, &quot;items&quot;: primary[&quot;unknown_variables&quot;]}
+            )
+        if primary[&quot;forbidden_variables&quot;]:
+            primary_errors.append(
+                {&quot;reason&quot;: &quot;forbidden_variables&quot;, &quot;items&quot;: primary[&quot;forbidden_variables&quot;]}
+            )
+        if primary[&quot;unobserved_variables&quot;]:
+            primary_errors.append(
+                {&quot;reason&quot;: &quot;unobserved_variables&quot;, &quot;items&quot;: primary[&quot;unobserved_variables&quot;]}
+            )
+        if primary[&quot;open_measured_backdoor_paths&quot;] != 0:
+            primary_errors.append(
+                {
+                    &quot;reason&quot;: &quot;measured_backdoors_still_open&quot;,
+                    &quot;count&quot;: primary[&quot;open_measured_backdoor_paths&quot;],
+                }
+            )
+    checks.append(
+        make_check(
+            &quot;primary_recommendation_is_observed_baseline_and_blocks_measured_paths&quot;,
+            not primary_errors and primary is not None,
+            &quot;Primary recommendation использует observed baseline variables &quot;
+            &quot;и закрывает measured backdoor paths.&quot;,
+            sample=primary_errors or None,
+        )
+    )
+
+    claim_policy = adjustment_spec.get(&quot;claim_policy&quot;, {})
+    unsupported_claim = []
+    if primary and primary[&quot;open_unmeasured_backdoor_paths&quot;] &gt; 0:
+        if (
+            claim_policy.get(&quot;identification_status&quot;)
+            != &quot;not_identified_due_to_unmeasured_confounding&quot;
+        ):
+            unsupported_claim.append(
+                {
+                    &quot;field&quot;: &quot;identification_status&quot;,
+                    &quot;value&quot;: claim_policy.get(&quot;identification_status&quot;),
+                    &quot;expected&quot;: &quot;not_identified_due_to_unmeasured_confounding&quot;,
+                }
+            )
+        if claim_policy.get(&quot;allowed_effect_claim&quot;) is not False:
+            unsupported_claim.append(
+                {
+                    &quot;field&quot;: &quot;allowed_effect_claim&quot;,
+                    &quot;value&quot;: claim_policy.get(&quot;allowed_effect_claim&quot;),
+                    &quot;expected&quot;: False,
+                }
+            )
+    checks.append(
+        make_check(
+            &quot;claim_policy_matches_remaining_unmeasured_confounding&quot;,
+            not unsupported_claim,
+            &quot;Claim policy не разрешает causal effect claim при remaining unmeasured confounding.&quot;,
+            sample=unsupported_claim or None,
+        )
+    )
+    return checks
+
+
+def validate_specs(
+    dag: dict[str, Any],
+    inventory: dict[str, Any],
+    adjustment_spec: dict[str, Any],
+    data_contract: dict[str, Any],
+    dag_tools: Any | None = None,
+) -&gt; dict[str, Any]:
+    dag_tools = dag_tools or load_dag_tools()
+    treatment = adjustment_spec.get(&quot;treatment&quot;)
+    outcome = adjustment_spec.get(&quot;outcome&quot;)
+    initial_paths = dag_tools.active_backdoor_paths(dag, treatment, outcome, set())
+    evaluated_sets = [
+        evaluate_candidate_set(dag, candidate, treatment, outcome, dag_tools, initial_paths)
+        for candidate in adjustment_spec.get(&quot;candidate_adjustment_sets&quot;, [])
+    ]
+    checks = []
+    checks.extend(validate_inventory(dag, inventory, data_contract, initial_paths))
+    checks.extend(validate_adjustment_spec(dag, adjustment_spec, evaluated_sets))
+    recommended = next((item for item in evaluated_sets if item[&quot;is_primary_recommendation&quot;]), None)
+    measured_confounders = [
+        item
+        for item in inventory.get(&quot;confounders&quot;, [])
+        if item.get(&quot;measurement_status&quot;) == &quot;measured&quot;
+    ]
+    unmeasured_confounders = [
+        item
+        for item in inventory.get(&quot;confounders&quot;, [])
+        if item.get(&quot;measurement_status&quot;) == &quot;unmeasured&quot;
+    ]
+    report = {
+        &quot;valid&quot;: not any(not check[&quot;valid&quot;] and check[&quot;severity&quot;] == &quot;error&quot; for check in checks),
+        &quot;summary&quot;: {
+            &quot;graph_id&quot;: dag.get(&quot;graph_id&quot;),
+            &quot;question_id&quot;: adjustment_spec.get(&quot;question_id&quot;),
+            &quot;estimand_id&quot;: adjustment_spec.get(&quot;estimand_id&quot;),
+            &quot;treatment&quot;: treatment,
+            &quot;outcome&quot;: outcome,
+            &quot;active_backdoor_paths_without_adjustment&quot;: len(initial_paths),
+            &quot;backdoor_participation&quot;: backdoor_participation(dag, initial_paths),
+            &quot;measured_confounders&quot;: len(measured_confounders),
+            &quot;unmeasured_confounders&quot;: len(unmeasured_confounders),
+            &quot;forbidden_controls&quot;: len(inventory.get(&quot;forbidden_controls&quot;, [])),
+            &quot;candidate_sets&quot;: len(evaluated_sets),
+            &quot;primary_recommendation&quot;: recommended[&quot;set_id&quot;] if recommended else None,
+            &quot;primary_variable_count&quot;: recommended[&quot;variable_count&quot;] if recommended else None,
+            &quot;primary_open_measured_paths&quot;: recommended[&quot;open_measured_backdoor_paths&quot;]
+            if recommended
+            else None,
+            &quot;primary_open_unmeasured_paths&quot;: recommended[&quot;open_unmeasured_backdoor_paths&quot;]
+            if recommended
+            else None,
+            &quot;identification_status&quot;: adjustment_spec.get(&quot;claim_policy&quot;, {}).get(
+                &quot;identification_status&quot;
+            ),
+        },
+        &quot;candidate_set_audits&quot;: evaluated_sets,
+        &quot;active_backdoor_path_examples&quot;: active_path_report(dag, initial_paths, limit=10),
+        &quot;checks&quot;: checks,
+    }
+    return report
+
+
+def run(
+    dag_path: str | Path,
+    inventory_path: str | Path,
+    adjustment_spec_path: str | Path,
+    data_contract_path: str | Path,
+    *,
+    dag_validator_path: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -&gt; dict[str, Any]:
+    dag = read_json(dag_path)
+    inventory = read_json(inventory_path)
+    adjustment_spec = read_json(adjustment_spec_path)
+    data_contract = read_json(data_contract_path)
+    dag_tools = load_dag_tools(dag_validator_path)
+    report = validate_specs(dag, inventory, adjustment_spec, data_contract, dag_tools)
+    if output_path:
+        write_json(output_path, report)
+    return report
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(
+        description=&quot;Audit confounders and candidate backdoor adjustment sets.&quot;
+    )
+    parser.add_argument(&quot;--dag&quot;, required=True, help=&quot;Path to causal_dag.json&quot;)
+    parser.add_argument(&quot;--inventory&quot;, required=True, help=&quot;Path to confounder_inventory.json&quot;)
+    parser.add_argument(
+        &quot;--adjustment-spec&quot;,
+        required=True,
+        help=&quot;Path to adjustment_set_spec.json&quot;,
+    )
+    parser.add_argument(&quot;--data-contract&quot;, required=True, help=&quot;Path to phase data contract&quot;)
+    parser.add_argument(
+        &quot;--dag-validator&quot;,
+        help=&quot;Optional path to causal_dag_validator.py from lesson 13/02&quot;,
+    )
+    parser.add_argument(&quot;--output&quot;, help=&quot;Optional path for backdoor_adjustment_audit.json&quot;)
+    args = parser.parse_args()
+    report = run(
+        args.dag,
+        args.inventory,
+        args.adjustment_spec,
+        args.data_contract,
+        dag_validator_path=args.dag_validator,
+        output_path=args.output,
+    )
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    if not report[&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/outputs/backdoor_adjustment_auditor.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/confounder_inventory.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;inventory_id&quot;: &quot;assisted_onboarding_confounder_inventory_v1&quot;,
+  &quot;graph_id&quot;: &quot;assisted_onboarding_activation_dag_v1&quot;,
+  &quot;question_id&quot;: &quot;assisted_onboarding_activation_ate_v1&quot;,
+  &quot;estimand_id&quot;: &quot;ate_activation_14d_eligible_users&quot;,
+  &quot;treatment&quot;: &quot;assisted_within_24h&quot;,
+  &quot;outcome&quot;: &quot;activation_14d&quot;,
+  &quot;inventory_policy&quot;: {
+    &quot;scope&quot;: &quot;Backdoor paths for the total effect of assisted_within_24h on activation_14d.&quot;,
+    &quot;include_rule&quot;: &quot;Include observed baseline causes or proxies that appear on active backdoor paths, and explicitly list unmeasured confounders that cannot be adjusted directly.&quot;,
+    &quot;exclude_rule&quot;: &quot;Do not include treatment, assignment mechanism after time zero, mediator, collider, outcome or post-treatment selection variables in the primary total-effect adjustment set.&quot;
+  },
+  &quot;confounders&quot;: [
+    {
+      &quot;variable&quot;: &quot;latent_motivation&quot;,
+      &quot;measurement_status&quot;: &quot;unmeasured&quot;,
+      &quot;adjustment_role&quot;: &quot;cannot_adjust_directly&quot;,
+      &quot;proxy_variables&quot;: [&quot;sessions_before_time_zero&quot;, &quot;onboarding_steps_before_time_zero&quot;],
+      &quot;rationale&quot;: &quot;Unobserved baseline motivation causes both actual treatment take-up and activation; measured proxies do not close the direct latent path in the declared DAG.&quot;,
+      &quot;evidence_needed&quot;: [&quot;sensitivity analysis&quot;, &quot;proxy validity argument&quot;, &quot;alternative design such as encouragement or quasi-experiment&quot;]
+    },
+    {
+      &quot;variable&quot;: &quot;platform&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Platform influences friction and activation, so it participates in measured backdoor paths.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;device_tier&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Device tier influences crashes, network quality and activation before treatment.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;acquisition_channel&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Acquisition channel captures baseline intent and affects both pre-treatment engagement and activation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;region_id&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Region affects rollout/capacity and activation, so it is a pre-treatment confounder for observed adjustment.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;language&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Language affects support availability and activation through localization quality.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;network_quality&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Network quality is measured before treatment and affects friction, crashes and activation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;app_crashes_before_time_zero&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Pre-treatment app crashes affect friction score and future activation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;onboarding_steps_before_time_zero&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include_and_proxy&quot;,
+      &quot;proxy_variables&quot;: [&quot;latent_motivation&quot;],
+      &quot;rationale&quot;: &quot;Pre-treatment progress affects friction and activation and is an imperfect proxy for motivation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;sessions_before_time_zero&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include_and_proxy&quot;,
+      &quot;proxy_variables&quot;: [&quot;latent_motivation&quot;],
+      &quot;rationale&quot;: &quot;Baseline sessions affect activation and partially proxy motivation, but do not measure it perfectly.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;friction_score&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Friction score directly drives offer/received assistance and future activation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;specialist_capacity&quot;,
+      &quot;measurement_status&quot;: &quot;measured&quot;,
+      &quot;adjustment_role&quot;: &quot;include&quot;,
+      &quot;proxy_variables&quot;: [],
+      &quot;rationale&quot;: &quot;Capacity changes the chance of receiving assistance and is related to operational quality that affects activation.&quot;
+    }
+  ],
+  &quot;forbidden_controls&quot;: [
+    {
+      &quot;variable&quot;: &quot;offered_assistance&quot;,
+      &quot;forbidden_reason&quot;: &quot;assignment mechanism measured at treatment timing; including it changes the received-treatment question and may block assignment channels.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;onboarding_completed_48h&quot;,
+      &quot;forbidden_reason&quot;: &quot;mediator on the total-effect path from assistance to activation.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;opened_support_chat_after_offer&quot;,
+      &quot;forbidden_reason&quot;: &quot;post-treatment collider between treatment and friction/support need.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;telemetry_complete_30d&quot;,
+      &quot;forbidden_reason&quot;: &quot;post-treatment selection variable affected by treatment and outcome.&quot;
+    },
+    {
+      &quot;variable&quot;: &quot;activation_14d&quot;,
+      &quot;forbidden_reason&quot;: &quot;primary outcome cannot be a pre-treatment control.&quot;
+    }
+  ],
+  &quot;known_limitations&quot;: [
+    &quot;The measured adjustment set is useful for observed confounding, but it does not identify the ATE under the declared graph because latent_motivation remains open.&quot;,
+    &quot;Proxy variables for latent motivation require a substantive measurement assumption; the auditor does not silently upgrade proxies into a perfect measurement.&quot;,
+    &quot;Balance diagnostics in later lessons can reveal mismatch in measured covariates, but cannot prove unmeasured exchangeability.&quot;
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/13-causal-analysis/03-confounders/outputs/confounder_inventory.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/13-causal-analysis/03-confounders" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/causal-analysis/causal-dags/"><span>← Предыдущий урок</span><strong>Причинные DAG и идентификация</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/causal-analysis/colliders/"><span>Следующий урок →</span><strong>Colliders, mediators и selection bias</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

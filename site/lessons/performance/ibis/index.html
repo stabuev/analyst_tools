@@ -1,0 +1,2756 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="К концу фазы у нас есть рабочие pipeline на pandas, DuckDB и Polars. Но production выбор редко заканчивается фразой &quot;этот движок быстрее&quot;:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/ibis/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Ibis как переносимый DataFrame API">
+  <meta property="og:description" content="К концу фазы у нас есть рабочие pipeline на pandas, DuckDB и Polars. Но production выбор редко заканчивается фразой &quot;этот движок быстрее&quot;:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/ibis/">
+  <meta name="twitter:card" content="summary">
+  <title>Ibis как переносимый DataFrame API — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Ibis как переносимый DataFrame API", "description": "К концу фазы у нас есть рабочие pipeline на pandas, DuckDB и Polars. Но production выбор редко заканчивается фразой \"этот движок быстрее\":", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/ibis/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT120M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "Ibis как переносимый DataFrame API", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/ibis/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 133 из 201</span>
+          <span>120 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/11-ibis" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает переносимый Ibis expression?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Одна декларативная логика может быть скомпилирована несколькими backend, но поддержку каждой операции нужно проверить.</button><button type="button" class="quiz-option" data-choice="1">Все backend обязаны строить одинаковый физический план.</button><button type="button" class="quiz-option" data-choice="2">Ibis всегда выполняет вычисления собственным движком.</button><button type="button" class="quiz-option" data-choice="3">Любой Python UDF автоматически переносится между SQL и Polars.</button></div><p class="quiz-feedback" hidden>Ibis задает общий expression API и делегирует выполнение backend. Диалекты, планы и поддержка операций остаются backend-specific.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что должно произойти до измерения времени нескольких движков?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Все реализации должны пройти один output contract и equivalence gate.</button><button type="button" class="quiz-option" data-choice="1">Нужно выбрать самый модный движок.</button><button type="button" class="quiz-option" data-choice="2">Нужно удалить warm-up.</button><button type="button" class="quiz-option" data-choice="3">Нужно сравнить разные наборы колонок.</button></div><p class="quiz-feedback" hidden>Без эквивалентности benchmark может наградить реализацию, которая считает другой бизнес-результат.</p></article></section>
+        <article class="lesson-article"><h1 id="ibis-как-переносимый-dataframe-api">Ibis как переносимый DataFrame API</h1>
+<blockquote>
+<p>Переносимый expression уменьшает дублирование логики, но не отменяет различия
+backend, планов и runtime.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>12-performance/10-interoperability</code>
+<strong>Время:</strong> ~120 минут
+<strong>Результат:</strong> выражает один performance pipeline переносимым Ibis API, сравнивает
+backend-specific планы и измерения с pandas, DuckDB и Polars и оформляет решение о
+движке с ограничениями.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Построить прозрачный ручной baseline и reviewed tiny expected output.</li>
+<li>Выразить общий relational core одним Ibis expression.</li>
+<li>Выполнить этот expression на Ibis DuckDB и Ibis Polars.</li>
+<li>Сравнить пять реализаций только после exact equivalence gate.</li>
+<li>Сохранить SQL, LazyFrame plans, raw runs, environment и ограничения.</li>
+<li>Найти backend divergence и не маскировать его portability-абстракцией.</li>
+<li>Выпустить проверяемый engine decision с measurement и limitation links.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>К концу фазы у нас есть рабочие pipeline на pandas, DuckDB и Polars. Но production
+выбор редко заканчивается фразой &quot;этот движок быстрее&quot;:</p>
+<ul>
+<li>локально быстрее Polars, а в другом окружении нужен SQL backend;</li>
+<li>DuckDB хорошо читает Parquet, но команда поддерживает несколько warehouses;</li>
+<li>pandas API знаком, но sample уже приближается к memory budget;</li>
+<li>копирование одной и той же бизнес-логики на три API создает semantic drift;</li>
+<li>переносимый API обещает единый код, но backend поддерживают разные операции.</li>
+</ul>
+<p>Ibis решает часть задачи: expression описывается один раз, а выполнение делегируется
+backend. Но если воспринимать Ibis как &quot;один движок для всего&quot;, можно потерять именно ту
+наблюдаемость, которую мы строили всю фазу.</p>
+<p>Финальный урок отвечает на более строгий вопрос:</p>
+<blockquote>
+<p>Можно ли сохранить один tested relational core и при этом выбирать backend по
+измерениям, планам и ограничениям?</p>
+</blockquote>
+<h2 id="концепция">Концепция</h2>
+<p>Ibis expression - это декларативный граф операций. Сам Ibis не является вычислительным
+движком:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Ibis expression
+├── DuckDB backend -&gt; SQL -&gt; DuckDB runtime
+└── Polars backend -&gt; LazyFrame -&gt; Polars runtime
+</code></pre></div><p>Переносимость имеет уровни:</p>
+<table>
+<thead>
+<tr>
+<th>Уровень</th>
+<th>Что проверяем</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Expression</td>
+<td>Одинаковая логика filter/mutate/group/aggregate/case</td>
+</tr>
+<tr>
+<td>Compilation</td>
+<td>Backend может перевести все операции</td>
+</tr>
+<tr>
+<td>Semantics</td>
+<td>Результат совпадает с reviewed control</td>
+</tr>
+<tr>
+<td>Plan</td>
+<td>Scan, filter и aggregate видны в backend-specific плане</td>
+</tr>
+<tr>
+<td>Runtime</td>
+<td>Измерение проведено в одинаковой границе</td>
+</tr>
+<tr>
+<td>Operations</td>
+<td>Непереносимые окна/UDF/fallback явно перечислены</td>
+</tr>
+</tbody>
+</table>
+<p>Один expression не означает одинаковый physical plan. Это хорошо: backend должен
+использовать собственный optimizer. Плохо только скрывать различия и считать успешную
+компиляцию доказательством корректности или скорости.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Итоговый артефакт создает
+<code>performance-benchmark-package/</code> для pipeline
+<code>customer_revenue_health_weekly</code>.</p>
+<h3 id="шаг-1-зафиксируйте-ручной-механизм">Шаг 1. Зафиксируйте ручной механизм</h3>
+<p><code>run_manual_reference</code> проходит eligible orders циклом и хранит state по grain:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">week_start, platform, region
+</code></pre></div><p>Partial state содержит:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders
+paid_orders
+gross_revenue_cents
+refund_amount_cents
+net_revenue_cents
+support_ticket_count
+active_subscription_days
+</code></pre></div><p>Производные метрики считаются после aggregation:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">revenue_per_paid_order_cents
+refund_rate_bp
+health_band
+</code></pre></div><p>Отдельные десять строк <code>TINY_ROWS</code> имеют вручную проверенный <code>TINY_EXPECTED</code>. Этот gate
+нужен до сравнения библиотек: если ошибся сам reference, пять одинаковых движков лишь
+подтвердят одну ошибку.</p>
+<h3 id="шаг-2-постройте-portable-ibis-core">Шаг 2. Постройте portable Ibis core</h3>
+<p>Функция:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">build_ibis_pipeline(table)
+</code></pre></div><p>использует только общий набор:</p>
+<ul>
+<li><code>filter</code>;</li>
+<li><code>mutate</code>;</li>
+<li><code>group_by().aggregate()</code>;</li>
+<li><code>nunique</code> и <code>sum</code>;</li>
+<li>integer floor division;</li>
+<li><code>ibis.ifelse</code> и <code>ibis.cases</code>;</li>
+<li><code>select</code> и <code>order_by</code>.</li>
+</ul>
+<p>Один и тот же Python-код вызывается для таблиц двух backend:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">duckdb_table = ibis.duckdb.connect().read_parquet(path)
+polars_table = ibis.polars.connect().read_parquet(path)
+
+duckdb_expr = build_ibis_pipeline(duckdb_table)
+polars_expr = build_ibis_pipeline(polars_table)
+</code></pre></div><p>Компиляция различается:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Ibis DuckDB -&gt; SQL string
+Ibis Polars -&gt; polars.LazyFrame
+</code></pre></div><p>Пакет сохраняет оба результата в <code>profiles/</code>.</p>
+<h3 id="шаг-3-проверьте-portability-failure">Шаг 3. Проверьте portability failure</h3>
+<p>Дополнительный probe добавляет:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">ibis.dense_rank().over(
+    ibis.window(
+        group_by=&quot;week_start&quot;,
+        order_by=ibis.desc(net_revenue_cents),
+    )
+)
+</code></pre></div><p>На зафиксированных версиях:</p>
+<ul>
+<li>DuckDB backend компилирует окно;</li>
+<li>Polars backend Ibis <code>12.0.0</code> возвращает <code>OperationNotDefinedError</code>.</li>
+</ul>
+<p>Это не повод удалить Ibis. Это граница portable core:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">shared core -&gt; portable
+weekly dense rank -&gt; backend-specific fallback
+</code></pre></div><p>Артефакт сохраняет error type и policy. Нельзя ловить исключение и молча менять смысл
+pipeline.</p>
+<h3 id="шаг-4-подготовьте-пять-сравнимых-runners">Шаг 4. Подготовьте пять сравнимых runners</h3>
+<p>Benchmark включает:</p>
+<ol>
+<li><code>pandas</code>;</li>
+<li><code>duckdb_native</code>;</li>
+<li><code>polars_native</code>;</li>
+<li><code>ibis_duckdb</code>;</li>
+<li><code>ibis_polars</code>.</li>
+</ol>
+<p>Setup выполняется заранее:</p>
+<ul>
+<li>deterministic generation;</li>
+<li>Parquet write;</li>
+<li>backend connections;</li>
+<li>expression creation;</li>
+<li>compilation.</li>
+</ul>
+<p>Timed section одинаков:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Parquet scan -&gt; compute -&gt; normalized pandas handoff
+</code></pre></div><p>Так измерение включает цену реального локального pipeline, но не смешивается с
+генерацией данных или установкой connection.</p>
+<h3 id="шаг-5-поставьте-equivalence-gate">Шаг 5. Поставьте equivalence gate</h3>
+<p>До warm-up каждый runner выполняется один раз. Результат нормализуется:</p>
+<ul>
+<li>одинаковый column order;</li>
+<li>string dimensions;</li>
+<li>nullable integer metrics;</li>
+<li>стабильная сортировка по grain.</li>
+</ul>
+<p>Если хотя бы один checksum расходится:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">equivalence gate failed before timing
+</code></pre></div><p>и package не строится.</p>
+<h3 id="шаг-6-измерьте-без-ложной-точности">Шаг 6. Измерьте без ложной точности</h3>
+<p>Каждый engine получает:</p>
+<ul>
+<li>минимум один warm-up;</li>
+<li>минимум три measured runs;</li>
+<li><code>perf_counter</code>;</li>
+<li><code>process_time</code>;</li>
+<li>result checksum каждого run.</li>
+</ul>
+<p>В <code>summary.csv</code> записываются min, median, max и mean. Selection rule использует median,
+но raw measurements не перезаписываются.</p>
+<p>Cache policy честная:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">warm filesystem cache after warm-up
+</code></pre></div><p>Это не cold-cache benchmark и не переносимый результат для другой машины.</p>
+<h3 id="шаг-7-свяжите-решение-с-evidence">Шаг 7. Свяжите решение с evidence</h3>
+<p>Сначала выбирается самый быстрый эквивалентный native backend. Затем проверяется Ibis
+overhead:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ibis median / native median &lt;= 1.25
+</code></pre></div><p>Если portable core проходит оба backend и overhead не больше 25%, допустимо решение:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">use_ibis_over_backend
+</code></pre></div><p>Иначе выбирается native pandas, DuckDB или Polars. Результат зависит от машины и
+профиля данных, поэтому урок не зашивает победителя.</p>
+<p>Каждый decision содержит:</p>
+<ul>
+<li>measurement IDs;</li>
+<li>profile ID;</li>
+<li>plan checks;</li>
+<li>limitation IDs.</li>
+</ul>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите компактный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/11-ibis/code/main.py
+</code></pre></div><p>Соберите sample package:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python \
+  phases/12-performance/11-ibis/outputs/performance_benchmark_packager.py \
+  --profile sample \
+  --repeat 5 \
+  --warmup 1 \
+  --output-dir /tmp/performance-benchmark-package
+</code></pre></div><p>Для быстрого smoke:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python \
+  phases/12-performance/11-ibis/outputs/performance_benchmark_packager.py \
+  --profile tiny \
+  --rows 1200 \
+  --users 160 \
+  --repeat 3 \
+  --row-group-size 256 \
+  --output-dir /tmp/performance-benchmark-tiny
+</code></pre></div><p><code>large</code> запрещен без явного подтверждения:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">... --profile large --allow-large ...
+</code></pre></div><p>Это защищает обычный запуск от случайной генерации миллиона широких строк.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="измеряйте-до-equivalence">Измеряйте до equivalence</h3>
+<p>Измените <code>net_revenue_cents</code> у одного runner на одну копейку. Gate обязан остановить
+benchmark до первого warm-up.</p>
+<h3 id="сравнивайте-разный-scope">Сравнивайте разный scope</h3>
+<p>Если pandas включает <code>read_parquet</code>, а Polars измеряет уже собранный DataFrame, это
+benchmark разных задач.</p>
+<h3 id="считайте-один-run-доказательством">Считайте один run доказательством</h3>
+<p>Cold start, filesystem cache и соседняя нагрузка могут поменять порядок движков. Один
+run не используется для selection rule.</p>
+<h3 id="назовите-ibis-универсальным-backend">Назовите Ibis универсальным backend</h3>
+<p>Ibis делегирует выполнение. SQL string и Polars LazyFrame имеют разные optimizers,
+операции и failure modes.</p>
+<h3 id="спрячьте-rank-fallback">Спрячьте rank fallback</h3>
+<p>Автоматическая замена dense rank другой операцией меняет output contract. Fallback
+должен быть отдельным backend-specific кодом и тестом.</p>
+<h3 id="назовите-tracemalloc-полной-памятью">Назовите tracemalloc полной памятью</h3>
+<p><code>tracemalloc</code> видит Python allocations, но может пропустить native memory DuckDB,
+Arrow и Polars. Package сохраняет это ограничение как <code>L2</code>.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечные тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/11-ibis/tests -v
+</code></pre></div><p>Контракт готового package:</p>
+<ul>
+<li>reviewed tiny expected output совпадает с manual reference;</li>
+<li>все пять engines проходят exact equivalence до timing;</li>
+<li>каждый engine имеет warm-up и минимум три raw runs;</li>
+<li>каждый measured run сохраняет тот же result checksum;</li>
+<li>DuckDB и Polars plans содержат scan/filter/aggregate evidence;</li>
+<li>Ibis DuckDB компилируется в SQL;</li>
+<li>Ibis Polars компилируется в <code>LazyFrame</code>;</li>
+<li>portable core поддерживается обоими backend;</li>
+<li>dense-rank divergence воспроизводится и документируется;</li>
+<li>engine decision входит в разрешенный словарь;</li>
+<li>decision ссылается на measurements и limitations;</li>
+<li>SHA-256 manifest проходит повторную проверку.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">performance-benchmark-packager
+</code></pre></div><p>Он выпускает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">performance-benchmark-package/
+├── benchmark-plan.json
+├── data/
+│   └── orders.parquet
+├── data-contract/
+│   ├── sources.json
+│   ├── output-contract.json
+│   └── dtype-policy.json
+├── data-layout/
+│   ├── parquet-layout.json
+│   ├── partition-summary.json
+│   └── row-group-summary.json
+├── pipelines/
+│   ├── pandas_pipeline.py
+│   ├── duckdb_pipeline.sql
+│   ├── polars_pipeline.py
+│   └── ibis_pipeline.py
+├── profiles/
+│   ├── python-profile.json
+│   ├── memory-profile.json
+│   ├── duckdb-plan.json
+│   ├── polars-plan.txt
+│   ├── ibis-duckdb.sql
+│   └── ibis-polars-plan.txt
+├── measurements/
+│   ├── raw-runs.csv
+│   ├── summary.csv
+│   └── environment.json
+├── equivalence/
+│   ├── output-checks.json
+│   ├── reconciliation.csv
+│   └── tiny-expected-output.json
+├── reports/
+│   ├── engine-decision.json
+│   ├── engine-decision.md
+│   ├── portability-audit.json
+│   ├── portability-audit.md
+│   └── limitations.md
+├── report.json
+└── manifest.json
+</code></pre></div><p>Package можно передать на другую машину и повторить с теми же profile, rows, seed,
+warm-up и repeat. Сравнивать два package можно только после проверки environment и cache
+policy.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Реализуйте backend-specific dense rank после portable core и добавьте отдельный
+equivalence test для DuckDB и Polars.</li>
+<li>Повторите benchmark с явным <code>threads=1</code>, затем с доступным числом ядер. Не смешивайте
+результаты в одной summary.</li>
+<li>Добавьте второй Parquet layout и разрешите <code>redesign_layout</code>, только если оба layout
+имеют одинаковый output contract и отдельные measurement IDs.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ibis expression</td>
+<td>Универсальный physical plan</td>
+<td>Декларативный граф, который backend переводит в собственное представление</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Просто формат вывода</td>
+<td>Реальный runtime и compiler со своими возможностями</td>
+</tr>
+<tr>
+<td>Portable core</td>
+<td>Весь pipeline обязан работать везде</td>
+<td>Подмножество операций, проверенное на выбранных backend</td>
+</tr>
+<tr>
+<td>Backend divergence</td>
+<td>Баг, который нужно скрыть</td>
+<td>Наблюдаемое различие support/semantics, требующее policy</td>
+</tr>
+<tr>
+<td>Equivalence gate</td>
+<td>Проверка после benchmark</td>
+<td>Блокирующая проверка до timing</td>
+</tr>
+<tr>
+<td>Engine decision</td>
+<td>Название самого быстрого run</td>
+<td>Решение по median, plans, portability и limitations</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://ibis-project.org/install" target="_blank" rel="noopener">Ibis: Installation</a> - проверьте extras backend и принцип установки только нужных движков.</li>
+<li><a href="https://ibis-project.org/backends" target="_blank" rel="noopener">Ibis: Backends</a> - используйте support matrix перед обещанием переносимости конкретной операции.</li>
+<li><a href="https://ibis-project.org/backends/duckdb" target="_blank" rel="noopener">Ibis: DuckDB backend</a> - изучите <code>read_parquet</code>, compilation и локальное выполнение SQL.</li>
+<li><a href="https://ibis-project.org/backends/polars" target="_blank" rel="noopener">Ibis: Polars backend</a> - сравните LazyFrame execution и список поддержанных операций.</li>
+<li><a href="https://ibis-project.org/release_notes.html#version-12-0-0" target="_blank" rel="noopener">Ibis 12.0 release notes</a> - зафиксируйте изменения версии, на которой построен portability audit.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Во что компилируется portable core в двух Ibis backend урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">В SQL для DuckDB и в Polars LazyFrame для Polars backend.</button><button type="button" class="quiz-option" data-choice="1">В pandas DataFrame для обоих backend.</button><button type="button" class="quiz-option" data-choice="2">Только в Python bytecode.</button><button type="button" class="quiz-option" data-choice="3">В один универсальный физический план.</button></div><p class="quiz-feedback" hidden>Один Ibis expression получает разные backend-specific представления, которые нужно сохранять и инспектировать отдельно.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что показал dense-rank portability probe?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">DuckDB backend поддержал окно, а Polars backend Ibis 12.0.0 вернул OperationNotDefinedError.</button><button type="button" class="quiz-option" data-choice="1">Оба backend вернули разные значения без ошибки.</button><button type="button" class="quiz-option" data-choice="2">Polars поддержал окно, а DuckDB нет.</button><button type="button" class="quiz-option" data-choice="3">Ibis автоматически заменил rank на group_by.</button></div><p class="quiz-feedback" hidden>Rank оставлен вне portable core, а divergence записан как ограничение и backend-specific fallback point.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что входит в timed section финального benchmark?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Parquet scan, вычисление и передача нормализованного результата в pandas.</button><button type="button" class="quiz-option" data-choice="1">Генерация данных, установка библиотек и компиляция expression.</button><button type="button" class="quiz-option" data-choice="2">Только создание backend connection.</button><button type="button" class="quiz-option" data-choice="3">Запись документации и manifest.</button></div><p class="quiz-feedback" hidden>Setup выполняется до timing. Все движки измеряются в одинаковой границе scan-compute-handoff.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Когда selection rule может выбрать `use_ibis_over_backend`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда Ibis на быстрейшем native backend не медленнее более чем на 25%, а portable core проходит проверки.</button><button type="button" class="quiz-option" data-choice="1">Всегда, если Ibis установлен.</button><button type="button" class="quiz-option" data-choice="2">Только если pandas возвращает ошибку.</button><button type="button" class="quiz-option" data-choice="3">Когда один случайный run оказался самым быстрым.</button></div><p class="quiz-feedback" hidden>Решение связывает portability benefit с измеренным overhead и не принимает одиночный run за доказательство.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Почему memory-profile не считается полной оценкой памяти движков?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">tracemalloc видит Python allocations, но может пропускать native memory Arrow, DuckDB и Polars.</button><button type="button" class="quiz-option" data-choice="1">Память нельзя измерять в Python.</button><button type="button" class="quiz-option" data-choice="2">Все движки используют только Python heap.</button><button type="button" class="quiz-option" data-choice="3">Профиль содержит только размер CSV.</button></div><p class="quiz-feedback" hidden>Ограничение инструмента записано в package и связано с engine decision.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import duckdb
+import ibis
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;performance_benchmark_packager.py&quot;
+SPEC = importlib.util.spec_from_file_location(
+    &quot;performance_benchmark_packager&quot;,
+    ARTIFACT,
+)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+PACKAGER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PACKAGER)
+
+
+class PerformanceBenchmarkPackagerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -&gt; None:
+        cls.directory = tempfile.TemporaryDirectory()
+        cls.package_dir = Path(cls.directory.name) / &quot;package&quot;
+        cls.report = PACKAGER.build_performance_benchmark_package(
+            dataset_profile=&quot;tiny&quot;,
+            rows=1_200,
+            users=160,
+            seed=42,
+            repeat=3,
+            warmup=1,
+            row_group_size=256,
+            output_dir=cls.package_dir,
+        )
+        cls.parquet_path = cls.package_dir / &quot;data&quot; / &quot;orders.parquet&quot;
+
+    @classmethod
+    def tearDownClass(cls) -&gt; None:
+        cls.directory.cleanup()
+
+    def test_generation_is_reproducible_and_has_unused_wide_columns(self) -&gt; None:
+        first = PACKAGER.generate_customer_revenue_rows(
+            rows=512,
+            users=64,
+            seed=42,
+        )
+        second = PACKAGER.generate_customer_revenue_rows(
+            rows=512,
+            users=64,
+            seed=42,
+        )
+        self.assertTrue(first.equals(second))
+        self.assertIn(&quot;debug_payload&quot;, first.columns)
+        self.assertIn(&quot;raw_event_json&quot;, first.columns)
+
+    def test_invalid_generation_parameters_raise_lesson_error(self) -&gt; None:
+        with self.assertRaises(PACKAGER.PerformancePackageError):
+            PACKAGER.generate_customer_revenue_rows(
+                rows=128,
+                users=64,
+            )
+        with self.assertRaises(PACKAGER.PerformancePackageError):
+            PACKAGER.generate_customer_revenue_rows(
+                rows=512,
+                users=800,
+            )
+
+    def test_manual_tiny_reference_matches_reviewed_expected_output(self) -&gt; None:
+        observed = PACKAGER.run_manual_reference(pd.DataFrame(PACKAGER.TINY_ROWS))
+        expected = PACKAGER.normalize_output(pd.DataFrame(PACKAGER.TINY_EXPECTED))
+        comparison = PACKAGER.compare_output(
+            expected,
+            observed,
+            engine=&quot;manual_reference&quot;,
+        )
+        self.assertTrue(comparison[&quot;passed&quot;])
+        self.assertEqual(comparison[&quot;row_count&quot;], 3)
+
+    def test_native_engines_match_manual_reference(self) -&gt; None:
+        frame = pd.read_parquet(self.parquet_path)
+        expected = PACKAGER.run_manual_reference(frame)
+        connection = duckdb.connect()
+        connection.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+        try:
+            outputs = {
+                &quot;pandas&quot;: PACKAGER.run_pandas_pipeline(self.parquet_path),
+                &quot;duckdb_native&quot;: PACKAGER.run_duckdb_pipeline(
+                    connection,
+                    self.parquet_path,
+                ),
+                &quot;polars_native&quot;: PACKAGER.run_polars_pipeline(self.parquet_path),
+            }
+        finally:
+            connection.close()
+        for engine, output in outputs.items():
+            with self.subTest(engine=engine):
+                self.assertTrue(
+                    PACKAGER.compare_output(
+                        expected,
+                        output,
+                        engine=engine,
+                    )[&quot;passed&quot;]
+                )
+
+    def test_ibis_portable_core_executes_on_duckdb_and_polars(self) -&gt; None:
+        expected = PACKAGER.run_pandas_pipeline(self.parquet_path)
+        duckdb_backend = ibis.duckdb.connect()
+        polars_backend = ibis.polars.connect()
+        try:
+            duckdb_expression = PACKAGER.build_ibis_pipeline(
+                duckdb_backend.read_parquet(
+                    self.parquet_path,
+                    table_name=&quot;orders&quot;,
+                )
+            )
+            polars_expression = PACKAGER.build_ibis_pipeline(
+                polars_backend.read_parquet(
+                    self.parquet_path,
+                    table_name=&quot;orders&quot;,
+                )
+            )
+            duckdb_output = PACKAGER.normalize_output(duckdb_backend.execute(duckdb_expression))
+            polars_output = PACKAGER.normalize_output(
+                polars_backend.execute(
+                    polars_expression,
+                    engine=&quot;streaming&quot;,
+                )
+            )
+        finally:
+            duckdb_backend.disconnect()
+        self.assertTrue(
+            PACKAGER.compare_output(
+                expected,
+                duckdb_output,
+                engine=&quot;ibis_duckdb&quot;,
+            )[&quot;passed&quot;]
+        )
+        self.assertTrue(
+            PACKAGER.compare_output(
+                expected,
+                polars_output,
+                engine=&quot;ibis_polars&quot;,
+            )[&quot;passed&quot;]
+        )
+
+    def test_ibis_backends_compile_to_sql_and_lazyframe(self) -&gt; None:
+        plan_types = self.report[&quot;plans&quot;]
+        self.assertEqual(plan_types[&quot;ibis_duckdb&quot;][&quot;compiled_type&quot;], &quot;str&quot;)
+        self.assertEqual(
+            plan_types[&quot;ibis_polars&quot;][&quot;compiled_type&quot;],
+            &quot;LazyFrame&quot;,
+        )
+        self.assertTrue(all(plan_types[&quot;ibis_duckdb&quot;][&quot;checks&quot;].values()))
+        self.assertTrue(all(plan_types[&quot;ibis_polars&quot;][&quot;checks&quot;].values()))
+
+    def test_window_rank_divergence_is_explicit(self) -&gt; None:
+        audit = self.report[&quot;portability&quot;]
+        self.assertTrue(audit[&quot;portable_core&quot;][&quot;portable_on_tested_backends&quot;])
+        self.assertTrue(audit[&quot;window_rank_probe&quot;][&quot;duckdb&quot;][&quot;supported&quot;])
+        self.assertFalse(audit[&quot;window_rank_probe&quot;][&quot;polars&quot;][&quot;supported&quot;])
+        self.assertEqual(
+            audit[&quot;window_rank_probe&quot;][&quot;polars&quot;][&quot;error_type&quot;],
+            &quot;OperationNotDefinedError&quot;,
+        )
+        self.assertTrue(audit[&quot;window_rank_probe&quot;][&quot;divergence_detected&quot;])
+
+    def test_equivalence_gate_rejects_mutated_output_before_timing(self) -&gt; None:
+        expected = PACKAGER.run_pandas_pipeline(self.parquet_path)
+        broken = expected.copy()
+        broken.loc[0, &quot;net_revenue_cents&quot;] += 1
+        checks = [
+            PACKAGER.compare_output(
+                expected,
+                broken,
+                engine=&quot;broken&quot;,
+            )
+        ]
+        with self.assertRaisesRegex(
+            PACKAGER.PerformancePackageError,
+            &quot;equivalence gate failed before timing&quot;,
+        ):
+            PACKAGER.enforce_equivalence(checks)
+
+    def test_measurement_uses_warmup_and_three_raw_runs(self) -&gt; None:
+        calls = {&quot;count&quot;: 0}
+        result = PACKAGER.normalize_output(pd.DataFrame(PACKAGER.TINY_EXPECTED))
+
+        def runner() -&gt; pd.DataFrame:
+            calls[&quot;count&quot;] += 1
+            return result
+
+        runs = PACKAGER.measure_runner(
+            runner,
+            engine=&quot;demo&quot;,
+            repeat=3,
+            warmup=2,
+        )
+        self.assertEqual(calls[&quot;count&quot;], 5)
+        self.assertEqual(len(runs), 3)
+        self.assertTrue(all(run[&quot;result_checksum&quot;] == runs[0][&quot;result_checksum&quot;] for run in runs))
+
+    def test_report_has_five_engines_and_allowed_decision(self) -&gt; None:
+        summary = self.report[&quot;measurements&quot;][&quot;summary&quot;]
+        self.assertEqual(
+            {row[&quot;engine&quot;] for row in summary},
+            set(PACKAGER.ENGINE_NAMES),
+        )
+        self.assertEqual(
+            len(self.report[&quot;measurements&quot;][&quot;raw_runs&quot;]),
+            5 * 3,
+        )
+        decision = self.report[&quot;decision&quot;]
+        self.assertIn(
+            decision[&quot;decision&quot;],
+            PACKAGER.ALLOWED_DECISIONS,
+        )
+        self.assertTrue(decision[&quot;evidence&quot;][&quot;measurement_ids&quot;])
+        self.assertTrue(decision[&quot;evidence&quot;][&quot;limitation_ids&quot;])
+
+    def test_native_plans_show_scan_filter_and_aggregate(self) -&gt; None:
+        plans = self.report[&quot;plans&quot;]
+        self.assertTrue(all(plans[&quot;duckdb_native&quot;][&quot;checks&quot;].values()))
+        self.assertTrue(all(plans[&quot;polars_native&quot;][&quot;checks&quot;].values()))
+        polars_plan = (self.package_dir / &quot;profiles&quot; / &quot;polars-plan.txt&quot;).read_text(
+            encoding=&quot;utf-8&quot;
+        )
+        self.assertIn(&quot;PARQUET SCAN&quot;, polars_plan.upper())
+        self.assertIn(&quot;SELECTION:&quot;, polars_plan)
+
+    def test_package_contains_required_structure_and_pipeline_snapshots(self) -&gt; None:
+        required = [
+            &quot;benchmark-plan.json&quot;,
+            &quot;data/orders.parquet&quot;,
+            &quot;data-contract/sources.json&quot;,
+            &quot;data-contract/output-contract.json&quot;,
+            &quot;data-contract/dtype-policy.json&quot;,
+            &quot;data-layout/parquet-layout.json&quot;,
+            &quot;data-layout/partition-summary.json&quot;,
+            &quot;data-layout/row-group-summary.json&quot;,
+            &quot;pipelines/pandas_pipeline.py&quot;,
+            &quot;pipelines/duckdb_pipeline.sql&quot;,
+            &quot;pipelines/polars_pipeline.py&quot;,
+            &quot;pipelines/ibis_pipeline.py&quot;,
+            &quot;profiles/python-profile.json&quot;,
+            &quot;profiles/memory-profile.json&quot;,
+            &quot;profiles/duckdb-plan.json&quot;,
+            &quot;profiles/polars-plan.txt&quot;,
+            &quot;measurements/raw-runs.csv&quot;,
+            &quot;measurements/summary.csv&quot;,
+            &quot;measurements/environment.json&quot;,
+            &quot;equivalence/output-checks.json&quot;,
+            &quot;equivalence/reconciliation.csv&quot;,
+            &quot;reports/engine-decision.md&quot;,
+            &quot;reports/portability-audit.md&quot;,
+            &quot;reports/limitations.md&quot;,
+            &quot;manifest.json&quot;,
+            &quot;report.json&quot;,
+        ]
+        for relative in required:
+            self.assertTrue(
+                (self.package_dir / relative).is_file(),
+                relative,
+            )
+        ibis_source = (self.package_dir / &quot;pipelines&quot; / &quot;ibis_pipeline.py&quot;).read_text(
+            encoding=&quot;utf-8&quot;
+        )
+        self.assertIn(&quot;def build_ibis_pipeline&quot;, ibis_source)
+        self.assertIn(&quot;def build_ibis_rank_probe&quot;, ibis_source)
+
+    def test_manifest_validation_detects_tampering(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            copied = Path(tmp) / &quot;package&quot;
+            shutil.copytree(self.package_dir, copied)
+            clean = PACKAGER.validate_manifest(copied)
+            self.assertTrue(clean[&quot;valid&quot;])
+            target = copied / &quot;reports&quot; / &quot;limitations.md&quot;
+            target.write_text(
+                target.read_text(encoding=&quot;utf-8&quot;) + &quot;\ntampered\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            broken = PACKAGER.validate_manifest(copied)
+        self.assertFalse(broken[&quot;valid&quot;])
+        self.assertEqual(
+            broken[&quot;mismatches&quot;][0][&quot;path&quot;],
+            &quot;reports/limitations.md&quot;,
+        )
+
+    def test_large_profile_requires_explicit_opt_in(self) -&gt; None:
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            self.assertRaisesRegex(
+                PACKAGER.PerformancePackageError,
+                &quot;large profile requires&quot;,
+            ),
+        ):
+            PACKAGER.build_performance_benchmark_package(
+                dataset_profile=&quot;large&quot;,
+                repeat=3,
+                output_dir=tmp,
+            )
+
+    def test_cli_writes_package_and_prints_report(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / &quot;package&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--profile&quot;,
+                    &quot;tiny&quot;,
+                    &quot;--rows&quot;,
+                    &quot;512&quot;,
+                    &quot;--users&quot;,
+                    &quot;64&quot;,
+                    &quot;--repeat&quot;,
+                    &quot;3&quot;,
+                    &quot;--row-group-size&quot;,
+                    &quot;128&quot;,
+                    &quot;--output-dir&quot;,
+                    str(output_dir),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stdout_report = json.loads(result.stdout)
+            file_report = json.loads((output_dir / &quot;report.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+            self.assertEqual(
+                stdout_report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+                file_report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+            )
+            self.assertTrue(stdout_report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;])
+            self.assertTrue(PACKAGER.validate_manifest(output_dir)[&quot;valid&quot;])
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ARTIFACT),
+                    &quot;--profile&quot;,
+                    &quot;tiny&quot;,
+                    &quot;--rows&quot;,
+                    &quot;128&quot;,
+                    &quot;--repeat&quot;,
+                    &quot;3&quot;,
+                    &quot;--output-dir&quot;,
+                    tmp,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;performance package error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;performance_benchmark_packager.py&quot;
+SPEC = importlib.util.spec_from_file_location(
+    &quot;performance_benchmark_packager&quot;,
+    ARTIFACT,
+)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+PACKAGER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PACKAGER)
+
+
+def main() -&gt; None:
+    with tempfile.TemporaryDirectory() as tmp:
+        report = PACKAGER.build_performance_benchmark_package(
+            dataset_profile=&quot;tiny&quot;,
+            rows=1_200,
+            users=160,
+            seed=2026,
+            repeat=3,
+            warmup=1,
+            row_group_size=256,
+            output_dir=tmp,
+        )
+    preview = {
+        &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+        &quot;ibis_version&quot;: report[&quot;environment&quot;][&quot;versions&quot;][&quot;ibis&quot;],
+        &quot;engines&quot;: [row[&quot;engine&quot;] for row in report[&quot;measurements&quot;][&quot;summary&quot;]],
+        &quot;portable_core&quot;: report[&quot;portability&quot;][&quot;portable_core&quot;][&quot;portable_on_tested_backends&quot;],
+        &quot;rank_divergence&quot;: report[&quot;portability&quot;][&quot;window_rank_probe&quot;][&quot;divergence_detected&quot;],
+        &quot;decision&quot;: report[&quot;decision&quot;][&quot;decision&quot;],
+        &quot;manifest_files&quot;: report[&quot;package&quot;][&quot;manifest_files&quot;],
+        &quot;safe_to_ship&quot;: report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;],
+    }
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;performance-benchmark-packager&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/performance_benchmark_packager.py&quot;,
+  &quot;description&quot;: &quot;Собирает финальный multi-engine benchmark package для pandas, DuckDB, Polars и Ibis, проверяет эквивалентность, планы, portability, измерения, решение о движке и SHA-256 manifest.&quot;,
+  &quot;usage&quot;: &quot;python outputs/performance_benchmark_packager.py --profile sample --repeat 5 --output-dir /tmp/performance-benchmark-package&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/performance_benchmark_packager.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import cProfile
+import csv
+import hashlib
+import inspect
+import json
+import platform
+import pstats
+import random
+import statistics
+import sys
+import time
+import tracemalloc
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import ibis
+import numpy as np
+import pandas as pd
+import polars as pl
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+
+class PerformancePackageError(ValueError):
+    &quot;&quot;&quot;Raised when the final benchmark package cannot be trusted.&quot;&quot;&quot;
+
+
+PROFILE_ROWS = {
+    &quot;tiny&quot;: 1_200,
+    &quot;sample&quot;: 12_000,
+    &quot;large&quot;: 1_000_000,
+}
+
+REQUIRED_COLUMNS = [
+    &quot;order_id&quot;,
+    &quot;user_id&quot;,
+    &quot;week_index&quot;,
+    &quot;week_start&quot;,
+    &quot;platform&quot;,
+    &quot;region&quot;,
+    &quot;plan&quot;,
+    &quot;status&quot;,
+    &quot;gross_revenue_cents&quot;,
+    &quot;refund_amount_cents&quot;,
+    &quot;support_ticket_count&quot;,
+    &quot;active_subscription_days&quot;,
+    &quot;is_test_user&quot;,
+    &quot;debug_payload&quot;,
+    &quot;raw_event_json&quot;,
+]
+
+PIPELINE_COLUMNS = [
+    &quot;order_id&quot;,
+    &quot;week_index&quot;,
+    &quot;week_start&quot;,
+    &quot;platform&quot;,
+    &quot;region&quot;,
+    &quot;status&quot;,
+    &quot;gross_revenue_cents&quot;,
+    &quot;refund_amount_cents&quot;,
+    &quot;support_ticket_count&quot;,
+    &quot;active_subscription_days&quot;,
+    &quot;is_test_user&quot;,
+]
+
+GROUP_COLUMNS = [&quot;week_start&quot;, &quot;platform&quot;, &quot;region&quot;]
+
+OUTPUT_COLUMNS = [
+    *GROUP_COLUMNS,
+    &quot;orders&quot;,
+    &quot;paid_orders&quot;,
+    &quot;gross_revenue_cents&quot;,
+    &quot;refund_amount_cents&quot;,
+    &quot;net_revenue_cents&quot;,
+    &quot;support_ticket_count&quot;,
+    &quot;active_subscription_days&quot;,
+    &quot;revenue_per_paid_order_cents&quot;,
+    &quot;refund_rate_bp&quot;,
+    &quot;health_band&quot;,
+]
+
+INTEGER_OUTPUT_COLUMNS = [
+    &quot;orders&quot;,
+    &quot;paid_orders&quot;,
+    &quot;gross_revenue_cents&quot;,
+    &quot;refund_amount_cents&quot;,
+    &quot;net_revenue_cents&quot;,
+    &quot;support_ticket_count&quot;,
+    &quot;active_subscription_days&quot;,
+    &quot;revenue_per_paid_order_cents&quot;,
+    &quot;refund_rate_bp&quot;,
+]
+
+ENGINE_NAMES = [
+    &quot;pandas&quot;,
+    &quot;duckdb_native&quot;,
+    &quot;polars_native&quot;,
+    &quot;ibis_duckdb&quot;,
+    &quot;ibis_polars&quot;,
+]
+
+ALLOWED_DECISIONS = {
+    &quot;keep_pandas&quot;,
+    &quot;use_duckdb&quot;,
+    &quot;use_polars&quot;,
+    &quot;use_ibis_over_backend&quot;,
+    &quot;redesign_layout&quot;,
+    &quot;split_pipeline&quot;,
+}
+
+NATIVE_DUCKDB_SQL = &quot;&quot;&quot;
+WITH prepared AS (
+    SELECT
+        order_id,
+        week_start,
+        platform,
+        region,
+        gross_revenue_cents,
+        refund_amount_cents,
+        support_ticket_count,
+        active_subscription_days,
+        gross_revenue_cents - refund_amount_cents AS net_revenue_cents,
+        CAST(
+            status = &#x27;paid&#x27; AND gross_revenue_cents &gt; 0
+            AS BIGINT
+        ) AS paid_order
+    FROM read_parquet(?)
+    WHERE week_index BETWEEN 1 AND 6
+      AND region &lt;&gt; &#x27;tr&#x27;
+      AND NOT is_test_user
+),
+aggregated AS (
+    SELECT
+        week_start,
+        platform,
+        region,
+        COUNT(DISTINCT order_id) AS orders,
+        SUM(paid_order) AS paid_orders,
+        SUM(gross_revenue_cents) AS gross_revenue_cents,
+        SUM(refund_amount_cents) AS refund_amount_cents,
+        SUM(net_revenue_cents) AS net_revenue_cents,
+        SUM(support_ticket_count) AS support_ticket_count,
+        SUM(active_subscription_days) AS active_subscription_days
+    FROM prepared
+    GROUP BY week_start, platform, region
+)
+SELECT
+    week_start,
+    platform,
+    region,
+    orders,
+    paid_orders,
+    gross_revenue_cents,
+    refund_amount_cents,
+    net_revenue_cents,
+    support_ticket_count,
+    active_subscription_days,
+    CASE
+        WHEN paid_orders &gt; 0
+        THEN CAST(FLOOR(net_revenue_cents / paid_orders) AS BIGINT)
+        ELSE NULL
+    END AS revenue_per_paid_order_cents,
+    CASE
+        WHEN gross_revenue_cents &gt; 0
+        THEN CAST(
+            FLOOR(
+                (
+                    refund_amount_cents * 10000
+                    + FLOOR(gross_revenue_cents / 2)
+                ) / gross_revenue_cents
+            )
+            AS BIGINT
+        )
+        ELSE NULL
+    END AS refund_rate_bp,
+    CASE
+        WHEN net_revenue_cents &gt;= 2400000 THEN &#x27;healthy&#x27;
+        WHEN net_revenue_cents &gt;= 1400000 THEN &#x27;watch&#x27;
+        ELSE &#x27;weak&#x27;
+    END AS health_band
+FROM aggregated
+ORDER BY week_start, platform, region
+&quot;&quot;&quot;.strip()
+
+
+TINY_ROWS = [
+    {
+        &quot;order_id&quot;: &quot;T001&quot;,
+        &quot;user_id&quot;: &quot;U001&quot;,
+        &quot;week_index&quot;: 1,
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;plan&quot;: &quot;basic&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 1_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 1,
+        &quot;active_subscription_days&quot;: 4,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T002&quot;,
+        &quot;user_id&quot;: &quot;U002&quot;,
+        &quot;week_index&quot;: 1,
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;plan&quot;: &quot;plus&quot;,
+        &quot;status&quot;: &quot;refunded&quot;,
+        &quot;gross_revenue_cents&quot;: 500,
+        &quot;refund_amount_cents&quot;: 200,
+        &quot;support_ticket_count&quot;: 1,
+        &quot;active_subscription_days&quot;: 4,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T003&quot;,
+        &quot;user_id&quot;: &quot;U003&quot;,
+        &quot;week_index&quot;: 1,
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;plan&quot;: &quot;trial&quot;,
+        &quot;status&quot;: &quot;trial&quot;,
+        &quot;gross_revenue_cents&quot;: 0,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 0,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T004&quot;,
+        &quot;user_id&quot;: &quot;U004&quot;,
+        &quot;week_index&quot;: 1,
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;ios&quot;,
+        &quot;region&quot;: &quot;kz&quot;,
+        &quot;plan&quot;: &quot;plus&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 3_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T005&quot;,
+        &quot;user_id&quot;: &quot;U005&quot;,
+        &quot;week_index&quot;: 1,
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;ios&quot;,
+        &quot;region&quot;: &quot;kz&quot;,
+        &quot;plan&quot;: &quot;pro&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 4_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T006&quot;,
+        &quot;user_id&quot;: &quot;U006&quot;,
+        &quot;week_index&quot;: 2,
+        &quot;week_start&quot;: &quot;2026-01-19&quot;,
+        &quot;platform&quot;: &quot;android&quot;,
+        &quot;region&quot;: &quot;am&quot;,
+        &quot;plan&quot;: &quot;pro&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 10_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 2,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T007&quot;,
+        &quot;user_id&quot;: &quot;U007&quot;,
+        &quot;week_index&quot;: 2,
+        &quot;week_start&quot;: &quot;2026-01-19&quot;,
+        &quot;platform&quot;: &quot;android&quot;,
+        &quot;region&quot;: &quot;am&quot;,
+        &quot;plan&quot;: &quot;plus&quot;,
+        &quot;status&quot;: &quot;refunded&quot;,
+        &quot;gross_revenue_cents&quot;: 6_000,
+        &quot;refund_amount_cents&quot;: 3_000,
+        &quot;support_ticket_count&quot;: 1,
+        &quot;active_subscription_days&quot;: 5,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;tiny&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T008&quot;,
+        &quot;user_id&quot;: &quot;U008&quot;,
+        &quot;week_index&quot;: 2,
+        &quot;week_start&quot;: &quot;2026-01-19&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;tr&quot;,
+        &quot;plan&quot;: &quot;basic&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 99_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;excluded-region&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T009&quot;,
+        &quot;user_id&quot;: &quot;U009&quot;,
+        &quot;week_index&quot;: 2,
+        &quot;week_start&quot;: &quot;2026-01-19&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;plan&quot;: &quot;basic&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 88_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: True,
+        &quot;debug_payload&quot;: &quot;excluded-test&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+    {
+        &quot;order_id&quot;: &quot;T010&quot;,
+        &quot;user_id&quot;: &quot;U010&quot;,
+        &quot;week_index&quot;: 0,
+        &quot;week_start&quot;: &quot;2026-01-05&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;plan&quot;: &quot;basic&quot;,
+        &quot;status&quot;: &quot;paid&quot;,
+        &quot;gross_revenue_cents&quot;: 77_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 7,
+        &quot;is_test_user&quot;: False,
+        &quot;debug_payload&quot;: &quot;excluded-week&quot;,
+        &quot;raw_event_json&quot;: &quot;{}&quot;,
+    },
+]
+
+
+TINY_EXPECTED = [
+    {
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;ios&quot;,
+        &quot;region&quot;: &quot;kz&quot;,
+        &quot;orders&quot;: 2,
+        &quot;paid_orders&quot;: 2,
+        &quot;gross_revenue_cents&quot;: 7_000,
+        &quot;refund_amount_cents&quot;: 0,
+        &quot;net_revenue_cents&quot;: 7_000,
+        &quot;support_ticket_count&quot;: 0,
+        &quot;active_subscription_days&quot;: 14,
+        &quot;revenue_per_paid_order_cents&quot;: 3_500,
+        &quot;refund_rate_bp&quot;: 0,
+        &quot;health_band&quot;: &quot;weak&quot;,
+    },
+    {
+        &quot;week_start&quot;: &quot;2026-01-12&quot;,
+        &quot;platform&quot;: &quot;web&quot;,
+        &quot;region&quot;: &quot;ru&quot;,
+        &quot;orders&quot;: 3,
+        &quot;paid_orders&quot;: 1,
+        &quot;gross_revenue_cents&quot;: 1_500,
+        &quot;refund_amount_cents&quot;: 200,
+        &quot;net_revenue_cents&quot;: 1_300,
+        &quot;support_ticket_count&quot;: 2,
+        &quot;active_subscription_days&quot;: 8,
+        &quot;revenue_per_paid_order_cents&quot;: 1_300,
+        &quot;refund_rate_bp&quot;: 1_333,
+        &quot;health_band&quot;: &quot;weak&quot;,
+    },
+    {
+        &quot;week_start&quot;: &quot;2026-01-19&quot;,
+        &quot;platform&quot;: &quot;android&quot;,
+        &quot;region&quot;: &quot;am&quot;,
+        &quot;orders&quot;: 2,
+        &quot;paid_orders&quot;: 1,
+        &quot;gross_revenue_cents&quot;: 16_000,
+        &quot;refund_amount_cents&quot;: 3_000,
+        &quot;net_revenue_cents&quot;: 13_000,
+        &quot;support_ticket_count&quot;: 3,
+        &quot;active_subscription_days&quot;: 12,
+        &quot;revenue_per_paid_order_cents&quot;: 13_000,
+        &quot;refund_rate_bp&quot;: 1_875,
+        &quot;health_band&quot;: &quot;weak&quot;,
+    },
+]
+
+
+def stable_json_hash(value: Any) -&gt; str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(&quot;,&quot;, &quot;:&quot;),
+    )
+    return hashlib.sha256(payload.encode(&quot;utf-8&quot;)).hexdigest()
+
+
+def generate_customer_revenue_rows(
+    *,
+    rows: int = 12_000,
+    users: int = 1_600,
+    seed: int = 42,
+) -&gt; pd.DataFrame:
+    if rows &lt; 512:
+        raise PerformancePackageError(&quot;rows must be at least 512&quot;)
+    if users &lt; 32 or users &gt; rows:
+        raise PerformancePackageError(&quot;users must be between 32 and rows&quot;)
+
+    rng = np.random.default_rng(seed)
+    index = np.arange(rows, dtype=np.int64)
+    user_ids = np.array(
+        [f&quot;U{position:07d}&quot; for position in range(users)],
+        dtype=object,
+    )
+    platforms = np.array([&quot;web&quot;, &quot;ios&quot;, &quot;android&quot;], dtype=object)
+    regions = np.array([&quot;ru&quot;, &quot;kz&quot;, &quot;am&quot;, &quot;tr&quot;], dtype=object)
+    plans = np.array([&quot;trial&quot;, &quot;basic&quot;, &quot;plus&quot;, &quot;pro&quot;], dtype=object)
+    statuses = np.array(
+        [&quot;paid&quot;, &quot;paid&quot;, &quot;paid&quot;, &quot;trial&quot;, &quot;refunded&quot;],
+        dtype=object,
+    )
+    week_index = (index % 8).astype(np.int16)
+    base_week = pd.Timestamp(&quot;2026-01-05&quot;)
+    status = statuses[rng.integers(0, len(statuses), size=rows)]
+    gross = rng.integers(399, 70_000, size=rows, dtype=np.int64)
+    gross = np.where(status == &quot;trial&quot;, 0, gross)
+    refund = np.where(
+        status == &quot;refunded&quot;,
+        np.rint(gross * rng.uniform(0.2, 1.0, size=rows)).astype(np.int64),
+        0,
+    )
+    payload_ids = rng.integers(100_000, 999_999, size=rows)
+    frame = pd.DataFrame(
+        {
+            &quot;order_id&quot;: [f&quot;O{position:010d}&quot; for position in index],
+            &quot;user_id&quot;: user_ids[rng.integers(0, users, size=rows)],
+            &quot;week_index&quot;: week_index,
+            &quot;week_start&quot;: [
+                (base_week + pd.Timedelta(days=int(value) * 7)).date().isoformat()
+                for value in week_index
+            ],
+            &quot;platform&quot;: platforms[(index * 13) % len(platforms)],
+            &quot;region&quot;: regions[(index * 17) % len(regions)],
+            &quot;plan&quot;: plans[rng.integers(0, len(plans), size=rows)],
+            &quot;status&quot;: status,
+            &quot;gross_revenue_cents&quot;: gross.astype(np.int64),
+            &quot;refund_amount_cents&quot;: refund.astype(np.int64),
+            &quot;support_ticket_count&quot;: rng.poisson(0.18, size=rows).astype(np.int64),
+            &quot;active_subscription_days&quot;: rng.integers(
+                0,
+                8,
+                size=rows,
+                dtype=np.int64,
+            ),
+            &quot;is_test_user&quot;: index % 113 == 0,
+            &quot;debug_payload&quot;: [
+                f&quot;trace={int(value)};stage=final-benchmark;unused-wide-column&quot;
+                for value in payload_ids
+            ],
+            &quot;raw_event_json&quot;: [
+                (
+                    &#x27;{&quot;source&quot;:&quot;phase-12&quot;,&quot;event_id&quot;:&quot;evt-&#x27;
+                    f&#x27;{int(value)}&quot;,&quot;attributes&quot;:&quot;unused-wide-column&quot;}}&#x27;
+                )
+                for value in payload_ids
+            ],
+        }
+    )
+    return frame.sort_values([&quot;week_index&quot;, &quot;order_id&quot;]).reset_index(drop=True)
+
+
+def validate_input_frame(frame: pd.DataFrame) -&gt; dict[str, Any]:
+    missing = sorted(set(REQUIRED_COLUMNS) - set(frame.columns))
+    if missing:
+        raise PerformancePackageError(f&quot;required columns are missing: {missing}&quot;)
+    if frame.empty:
+        raise PerformancePackageError(&quot;input frame is empty&quot;)
+    if frame[&quot;order_id&quot;].isna().any() or frame[&quot;order_id&quot;].duplicated().any():
+        raise PerformancePackageError(&quot;order_id must be non-null and unique&quot;)
+    for column in [
+        &quot;gross_revenue_cents&quot;,
+        &quot;refund_amount_cents&quot;,
+        &quot;support_ticket_count&quot;,
+        &quot;active_subscription_days&quot;,
+    ]:
+        if (frame[column] &lt; 0).any():
+            raise PerformancePackageError(f&quot;{column} must be non-negative&quot;)
+    if (frame[&quot;refund_amount_cents&quot;] &gt; frame[&quot;gross_revenue_cents&quot;]).any():
+        raise PerformancePackageError(&quot;refund_amount_cents cannot exceed gross_revenue_cents&quot;)
+    return {
+        &quot;rows&quot;: int(len(frame)),
+        &quot;columns&quot;: list(frame.columns),
+        &quot;unique_orders&quot;: int(frame[&quot;order_id&quot;].nunique()),
+        &quot;unused_wide_columns&quot;: [&quot;debug_payload&quot;, &quot;raw_event_json&quot;],
+    }
+
+
+def write_parquet_input(
+    frame: pd.DataFrame,
+    path: str | Path,
+    *,
+    row_group_size: int = 1_024,
+) -&gt; Path:
+    if row_group_size &lt;= 0:
+        raise PerformancePackageError(&quot;row_group_size must be positive&quot;)
+    validate_input_frame(frame)
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(
+        pa.Table.from_pandas(frame, preserve_index=False),
+        output_path,
+        row_group_size=row_group_size,
+        compression=&quot;zstd&quot;,
+        use_dictionary=True,
+        write_statistics=True,
+    )
+    return output_path
+
+
+def _eligible_rows(frame: pd.DataFrame) -&gt; pd.DataFrame:
+    return frame.loc[
+        frame[&quot;week_index&quot;].between(1, 6) &amp; (frame[&quot;region&quot;] != &quot;tr&quot;) &amp; ~frame[&quot;is_test_user&quot;],
+        PIPELINE_COLUMNS,
+    ].copy()
+
+
+def _health_band(net_revenue_cents: int) -&gt; str:
+    if net_revenue_cents &gt;= 2_400_000:
+        return &quot;healthy&quot;
+    if net_revenue_cents &gt;= 1_400_000:
+        return &quot;watch&quot;
+    return &quot;weak&quot;
+
+
+def run_manual_reference(frame: pd.DataFrame) -&gt; pd.DataFrame:
+    validate_input_frame(frame)
+    state: dict[tuple[str, str, str], dict[str, int]] = {}
+    for row in _eligible_rows(frame).to_dict(orient=&quot;records&quot;):
+        key = (
+            str(row[&quot;week_start&quot;]),
+            str(row[&quot;platform&quot;]),
+            str(row[&quot;region&quot;]),
+        )
+        bucket = state.setdefault(
+            key,
+            {
+                &quot;orders&quot;: 0,
+                &quot;paid_orders&quot;: 0,
+                &quot;gross_revenue_cents&quot;: 0,
+                &quot;refund_amount_cents&quot;: 0,
+                &quot;net_revenue_cents&quot;: 0,
+                &quot;support_ticket_count&quot;: 0,
+                &quot;active_subscription_days&quot;: 0,
+            },
+        )
+        gross = int(row[&quot;gross_revenue_cents&quot;])
+        refund = int(row[&quot;refund_amount_cents&quot;])
+        bucket[&quot;orders&quot;] += 1
+        bucket[&quot;paid_orders&quot;] += int(row[&quot;status&quot;] == &quot;paid&quot; and gross &gt; 0)
+        bucket[&quot;gross_revenue_cents&quot;] += gross
+        bucket[&quot;refund_amount_cents&quot;] += refund
+        bucket[&quot;net_revenue_cents&quot;] += gross - refund
+        bucket[&quot;support_ticket_count&quot;] += int(row[&quot;support_ticket_count&quot;])
+        bucket[&quot;active_subscription_days&quot;] += int(row[&quot;active_subscription_days&quot;])
+
+    rows = []
+    for key, values in sorted(state.items()):
+        gross = values[&quot;gross_revenue_cents&quot;]
+        paid = values[&quot;paid_orders&quot;]
+        net = values[&quot;net_revenue_cents&quot;]
+        rows.append(
+            {
+                **dict(zip(GROUP_COLUMNS, key, strict=True)),
+                **values,
+                &quot;revenue_per_paid_order_cents&quot;: net // paid if paid &gt; 0 else None,
+                &quot;refund_rate_bp&quot;: (values[&quot;refund_amount_cents&quot;] * 10_000 + gross // 2) // gross
+                if gross &gt; 0
+                else None,
+                &quot;health_band&quot;: _health_band(net),
+            }
+        )
+    return normalize_output(pd.DataFrame(rows))
+
+
+def run_pandas_pipeline(parquet_path: str | Path) -&gt; pd.DataFrame:
+    frame = pd.read_parquet(parquet_path, columns=PIPELINE_COLUMNS)
+    prepared = _eligible_rows(frame)
+    prepared[&quot;net_revenue_cents&quot;] = (
+        prepared[&quot;gross_revenue_cents&quot;] - prepared[&quot;refund_amount_cents&quot;]
+    )
+    prepared[&quot;paid_order&quot;] = (
+        (prepared[&quot;status&quot;] == &quot;paid&quot;) &amp; (prepared[&quot;gross_revenue_cents&quot;] &gt; 0)
+    ).astype(&quot;int64&quot;)
+    grouped = prepared.groupby(GROUP_COLUMNS, as_index=False).agg(
+        orders=(&quot;order_id&quot;, &quot;nunique&quot;),
+        paid_orders=(&quot;paid_order&quot;, &quot;sum&quot;),
+        gross_revenue_cents=(&quot;gross_revenue_cents&quot;, &quot;sum&quot;),
+        refund_amount_cents=(&quot;refund_amount_cents&quot;, &quot;sum&quot;),
+        net_revenue_cents=(&quot;net_revenue_cents&quot;, &quot;sum&quot;),
+        support_ticket_count=(&quot;support_ticket_count&quot;, &quot;sum&quot;),
+        active_subscription_days=(&quot;active_subscription_days&quot;, &quot;sum&quot;),
+    )
+    grouped[&quot;revenue_per_paid_order_cents&quot;] = grouped[&quot;net_revenue_cents&quot;] // grouped[
+        &quot;paid_orders&quot;
+    ].replace(0, pd.NA)
+    grouped[&quot;refund_rate_bp&quot;] = np.where(
+        grouped[&quot;gross_revenue_cents&quot;] &gt; 0,
+        (grouped[&quot;refund_amount_cents&quot;] * 10_000 + grouped[&quot;gross_revenue_cents&quot;] // 2)
+        // grouped[&quot;gross_revenue_cents&quot;],
+        pd.NA,
+    )
+    grouped[&quot;health_band&quot;] = np.select(
+        [
+            grouped[&quot;net_revenue_cents&quot;] &gt;= 2_400_000,
+            grouped[&quot;net_revenue_cents&quot;] &gt;= 1_400_000,
+        ],
+        [&quot;healthy&quot;, &quot;watch&quot;],
+        default=&quot;weak&quot;,
+    )
+    return normalize_output(grouped)
+
+
+def build_polars_lazy_pipeline(parquet_path: str | Path) -&gt; pl.LazyFrame:
+    return (
+        pl.scan_parquet(parquet_path)
+        .filter(
+            pl.col(&quot;week_index&quot;).is_between(1, 6)
+            &amp; (pl.col(&quot;region&quot;) != &quot;tr&quot;)
+            &amp; (~pl.col(&quot;is_test_user&quot;))
+        )
+        .with_columns(
+            [
+                (pl.col(&quot;gross_revenue_cents&quot;) - pl.col(&quot;refund_amount_cents&quot;)).alias(
+                    &quot;net_revenue_cents&quot;
+                ),
+                ((pl.col(&quot;status&quot;) == &quot;paid&quot;) &amp; (pl.col(&quot;gross_revenue_cents&quot;) &gt; 0))
+                .cast(pl.Int64)
+                .alias(&quot;paid_order&quot;),
+            ]
+        )
+        .group_by(GROUP_COLUMNS)
+        .agg(
+            [
+                pl.col(&quot;order_id&quot;).n_unique().alias(&quot;orders&quot;),
+                pl.col(&quot;paid_order&quot;).sum().alias(&quot;paid_orders&quot;),
+                pl.col(&quot;gross_revenue_cents&quot;).sum(),
+                pl.col(&quot;refund_amount_cents&quot;).sum(),
+                pl.col(&quot;net_revenue_cents&quot;).sum(),
+                pl.col(&quot;support_ticket_count&quot;).sum(),
+                pl.col(&quot;active_subscription_days&quot;).sum(),
+            ]
+        )
+        .with_columns(
+            [
+                pl.when(pl.col(&quot;paid_orders&quot;) &gt; 0)
+                .then(pl.col(&quot;net_revenue_cents&quot;) // pl.col(&quot;paid_orders&quot;))
+                .otherwise(None)
+                .cast(pl.Int64)
+                .alias(&quot;revenue_per_paid_order_cents&quot;),
+                pl.when(pl.col(&quot;gross_revenue_cents&quot;) &gt; 0)
+                .then(
+                    (
+                        (
+                            pl.col(&quot;refund_amount_cents&quot;) * 10_000
+                            + pl.col(&quot;gross_revenue_cents&quot;) // 2
+                        )
+                        // pl.col(&quot;gross_revenue_cents&quot;)
+                    ).cast(pl.Int64)
+                )
+                .otherwise(None)
+                .alias(&quot;refund_rate_bp&quot;),
+                pl.when(pl.col(&quot;net_revenue_cents&quot;) &gt;= 2_400_000)
+                .then(pl.lit(&quot;healthy&quot;))
+                .when(pl.col(&quot;net_revenue_cents&quot;) &gt;= 1_400_000)
+                .then(pl.lit(&quot;watch&quot;))
+                .otherwise(pl.lit(&quot;weak&quot;))
+                .alias(&quot;health_band&quot;),
+            ]
+        )
+        .select(OUTPUT_COLUMNS)
+        .sort(GROUP_COLUMNS)
+    )
+
+
+def run_polars_pipeline(parquet_path: str | Path) -&gt; pd.DataFrame:
+    result = build_polars_lazy_pipeline(parquet_path).collect(engine=&quot;streaming&quot;)
+    return normalize_output(result)
+
+
+def run_duckdb_pipeline(
+    connection: duckdb.DuckDBPyConnection,
+    parquet_path: str | Path,
+) -&gt; pd.DataFrame:
+    result = connection.execute(
+        NATIVE_DUCKDB_SQL,
+        [str(parquet_path)],
+    ).fetchdf()
+    return normalize_output(result)
+
+
+def build_ibis_pipeline(table: Any) -&gt; Any:
+    prepared = table.filter(
+        table.week_index.between(1, 6) &amp; (table.region != &quot;tr&quot;) &amp; ~table.is_test_user
+    ).mutate(
+        net_revenue_cents=(table.gross_revenue_cents - table.refund_amount_cents),
+        paid_order=((table.status == &quot;paid&quot;) &amp; (table.gross_revenue_cents &gt; 0)).cast(&quot;int64&quot;),
+    )
+    grouped = prepared.group_by(*GROUP_COLUMNS).aggregate(
+        orders=prepared.order_id.nunique(),
+        paid_orders=prepared.paid_order.sum(),
+        gross_revenue_cents=prepared.gross_revenue_cents.sum(),
+        refund_amount_cents=prepared.refund_amount_cents.sum(),
+        net_revenue_cents=prepared.net_revenue_cents.sum(),
+        support_ticket_count=prepared.support_ticket_count.sum(),
+        active_subscription_days=prepared.active_subscription_days.sum(),
+    )
+    return (
+        grouped.mutate(
+            revenue_per_paid_order_cents=ibis.ifelse(
+                grouped.paid_orders &gt; 0,
+                grouped.net_revenue_cents // grouped.paid_orders,
+                ibis.null(),
+            ).cast(&quot;int64&quot;),
+            refund_rate_bp=ibis.ifelse(
+                grouped.gross_revenue_cents &gt; 0,
+                (
+                    (grouped.refund_amount_cents * 10_000 + grouped.gross_revenue_cents // 2)
+                    // grouped.gross_revenue_cents
+                ).cast(&quot;int64&quot;),
+                ibis.null(),
+            ).cast(&quot;int64&quot;),
+            health_band=ibis.cases(
+                (
+                    grouped.net_revenue_cents &gt;= 2_400_000,
+                    &quot;healthy&quot;,
+                ),
+                (
+                    grouped.net_revenue_cents &gt;= 1_400_000,
+                    &quot;watch&quot;,
+                ),
+                else_=&quot;weak&quot;,
+            ),
+        )
+        .select(*OUTPUT_COLUMNS)
+        .order_by(*GROUP_COLUMNS)
+    )
+
+
+def build_ibis_rank_probe(table: Any) -&gt; Any:
+    portable = build_ibis_pipeline(table)
+    window = ibis.window(
+        group_by=&quot;week_start&quot;,
+        order_by=ibis.desc(portable.net_revenue_cents),
+    )
+    return portable.mutate(week_revenue_rank=(ibis.dense_rank().over(window) + 1).cast(&quot;int64&quot;))
+
+
+def normalize_output(frame: pd.DataFrame | pl.DataFrame) -&gt; pd.DataFrame:
+    normalized = frame.to_pandas() if isinstance(frame, pl.DataFrame) else frame.copy()
+    normalized = normalized[OUTPUT_COLUMNS].copy()
+    for column in [*GROUP_COLUMNS, &quot;health_band&quot;]:
+        normalized[column] = normalized[column].astype(&quot;string&quot;)
+    for column in INTEGER_OUTPUT_COLUMNS:
+        normalized[column] = pd.to_numeric(normalized[column]).astype(&quot;Int64&quot;)
+    return normalized.sort_values(
+        GROUP_COLUMNS,
+        kind=&quot;mergesort&quot;,
+    ).reset_index(drop=True)
+
+
+def output_records(frame: pd.DataFrame | pl.DataFrame) -&gt; list[dict[str, Any]]:
+    normalized = normalize_output(frame)
+    return json.loads(normalized.to_json(orient=&quot;records&quot;))
+
+
+def compare_output(
+    reference: pd.DataFrame,
+    observed: pd.DataFrame,
+    *,
+    engine: str,
+) -&gt; dict[str, Any]:
+    expected = normalize_output(reference)
+    actual = normalize_output(observed)
+    matches = expected.equals(actual)
+    mismatch_count = 0
+    mismatch_preview: list[dict[str, Any]] = []
+    if not matches:
+        expected_records = output_records(expected)
+        actual_records = output_records(actual)
+        for index in range(max(len(expected_records), len(actual_records))):
+            expected_row = expected_records[index] if index &lt; len(expected_records) else None
+            actual_row = actual_records[index] if index &lt; len(actual_records) else None
+            if expected_row != actual_row:
+                mismatch_count += 1
+                if len(mismatch_preview) &lt; 10:
+                    mismatch_preview.append(
+                        {
+                            &quot;row_index&quot;: index,
+                            &quot;expected&quot;: expected_row,
+                            &quot;actual&quot;: actual_row,
+                        }
+                    )
+    return {
+        &quot;engine&quot;: engine,
+        &quot;passed&quot;: bool(matches),
+        &quot;row_count&quot;: len(actual),
+        &quot;expected_checksum&quot;: stable_json_hash(output_records(expected)),
+        &quot;actual_checksum&quot;: stable_json_hash(output_records(actual)),
+        &quot;mismatch_count&quot;: mismatch_count,
+        &quot;mismatch_preview&quot;: mismatch_preview,
+    }
+
+
+def enforce_equivalence(checks: list[dict[str, Any]]) -&gt; None:
+    failed = [check[&quot;engine&quot;] for check in checks if not check[&quot;passed&quot;]]
+    if failed:
+        raise PerformancePackageError(
+            &quot;equivalence gate failed before timing for engines: &quot; + &quot;, &quot;.join(failed)
+        )
+
+
+def measure_runner(
+    runner: Callable[[], pd.DataFrame],
+    *,
+    engine: str,
+    repeat: int,
+    warmup: int,
+) -&gt; list[dict[str, Any]]:
+    if repeat &lt; 3:
+        raise PerformancePackageError(&quot;repeat must be at least 3&quot;)
+    if warmup &lt; 1:
+        raise PerformancePackageError(&quot;warmup must be at least 1&quot;)
+    for _ in range(warmup):
+        runner()
+    runs = []
+    for run_id in range(1, repeat + 1):
+        wall_started = time.perf_counter()
+        cpu_started = time.process_time()
+        result = runner()
+        cpu_seconds = time.process_time() - cpu_started
+        wall_seconds = time.perf_counter() - wall_started
+        runs.append(
+            {
+                &quot;measurement_id&quot;: f&quot;{engine}-run-{run_id}&quot;,
+                &quot;engine&quot;: engine,
+                &quot;run_id&quot;: run_id,
+                &quot;wall_seconds&quot;: wall_seconds,
+                &quot;process_cpu_seconds&quot;: cpu_seconds,
+                &quot;result_rows&quot;: len(result),
+                &quot;result_checksum&quot;: stable_json_hash(output_records(result)),
+            }
+        )
+    return runs
+
+
+def summarize_runs(
+    raw_runs: list[dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for run in raw_runs:
+        grouped.setdefault(str(run[&quot;engine&quot;]), []).append(run)
+    summary = []
+    for engine, runs in sorted(grouped.items()):
+        wall = [float(run[&quot;wall_seconds&quot;]) for run in runs]
+        cpu = [float(run[&quot;process_cpu_seconds&quot;]) for run in runs]
+        summary.append(
+            {
+                &quot;engine&quot;: engine,
+                &quot;runs&quot;: len(runs),
+                &quot;min_wall_seconds&quot;: min(wall),
+                &quot;median_wall_seconds&quot;: statistics.median(wall),
+                &quot;max_wall_seconds&quot;: max(wall),
+                &quot;mean_wall_seconds&quot;: statistics.fmean(wall),
+                &quot;median_process_cpu_seconds&quot;: statistics.median(cpu),
+            }
+        )
+    return summary
+
+
+def profile_python_runner(
+    runner: Callable[[], pd.DataFrame],
+    *,
+    engine: str,
+) -&gt; dict[str, Any]:
+    profiler = cProfile.Profile()
+    profiler.enable()
+    runner()
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats(&quot;cumulative&quot;)
+    top = []
+    for (filename, line_number, function_name), values in list(stats.stats.items())[:20]:
+        primitive_calls, total_calls, total_time, cumulative_time, _callers = values
+        top.append(
+            {
+                &quot;function&quot;: function_name,
+                &quot;file&quot;: Path(filename).name,
+                &quot;line&quot;: line_number,
+                &quot;primitive_calls&quot;: primitive_calls,
+                &quot;total_calls&quot;: total_calls,
+                &quot;total_time_seconds&quot;: total_time,
+                &quot;cumulative_time_seconds&quot;: cumulative_time,
+            }
+        )
+    return {
+        &quot;engine&quot;: engine,
+        &quot;profiler&quot;: &quot;cProfile&quot;,
+        &quot;top_functions&quot;: sorted(
+            top,
+            key=lambda row: row[&quot;cumulative_time_seconds&quot;],
+            reverse=True,
+        )[:10],
+        &quot;limitation&quot;: (
+            &quot;cProfile attributes Python call time and does not expose native operator internals.&quot;
+        ),
+    }
+
+
+def profile_python_memory(
+    runners: dict[str, Callable[[], pd.DataFrame]],
+) -&gt; dict[str, Any]:
+    measurements = []
+    for engine, runner in runners.items():
+        tracemalloc.start()
+        runner()
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        measurements.append(
+            {
+                &quot;engine&quot;: engine,
+                &quot;current_python_bytes&quot;: current,
+                &quot;peak_python_bytes&quot;: peak,
+            }
+        )
+    return {
+        &quot;tool&quot;: &quot;tracemalloc&quot;,
+        &quot;measurements&quot;: measurements,
+        &quot;limitation&quot;: (
+            &quot;tracemalloc measures Python allocations and can miss native memory &quot;
+            &quot;used by DuckDB, Arrow and Polars.&quot;
+        ),
+    }
+
+
+def parquet_layout_report(
+    parquet_path: str | Path,
+    *,
+    row_group_size: int,
+) -&gt; dict[str, Any]:
+    path = Path(parquet_path)
+    metadata = pq.ParquetFile(path).metadata
+    row_groups = []
+    for index in range(metadata.num_row_groups):
+        group = metadata.row_group(index)
+        row_groups.append(
+            {
+                &quot;row_group&quot;: index,
+                &quot;rows&quot;: group.num_rows,
+                &quot;total_byte_size&quot;: group.total_byte_size,
+            }
+        )
+    return {
+        &quot;format&quot;: &quot;parquet&quot;,
+        &quot;compression&quot;: &quot;zstd&quot;,
+        &quot;row_group_size_requested&quot;: row_group_size,
+        &quot;row_groups&quot;: row_groups,
+        &quot;files&quot;: 1,
+        &quot;file_size_bytes&quot;: path.stat().st_size,
+        &quot;partitioning&quot;: &quot;none&quot;,
+        &quot;statistics_written&quot;: True,
+    }
+
+
+def plan_evidence(
+    *,
+    native_duckdb: duckdb.DuckDBPyConnection,
+    parquet_path: Path,
+    native_polars: pl.LazyFrame,
+    ibis_duckdb_backend: Any,
+    ibis_duckdb_expression: Any,
+    ibis_polars_backend: Any,
+    ibis_polars_expression: Any,
+) -&gt; dict[str, Any]:
+    duckdb_plan = native_duckdb.execute(
+        &quot;EXPLAIN &quot; + NATIVE_DUCKDB_SQL,
+        [str(parquet_path)],
+    ).fetchone()[1]
+    polars_plan = native_polars.explain(optimized=True)
+    ibis_duckdb_sql = ibis_duckdb_backend.compile(ibis_duckdb_expression)
+    ibis_polars_lazy = ibis_polars_backend.compile(ibis_polars_expression)
+    ibis_polars_plan = ibis_polars_lazy.explain(optimized=True)
+    return {
+        &quot;duckdb_native&quot;: {
+            &quot;plan_text&quot;: duckdb_plan,
+            &quot;checks&quot;: {
+                &quot;parquet_scan&quot;: &quot;PARQUET&quot; in duckdb_plan.upper(),
+                &quot;aggregate&quot;: &quot;GROUP_BY&quot; in duckdb_plan.upper()
+                or &quot;AGGREGATE&quot; in duckdb_plan.upper(),
+                &quot;filter&quot;: &quot;FILTER&quot; in duckdb_plan.upper(),
+            },
+        },
+        &quot;polars_native&quot;: {
+            &quot;plan_text&quot;: polars_plan,
+            &quot;checks&quot;: {
+                &quot;parquet_scan&quot;: &quot;PARQUET SCAN&quot; in polars_plan.upper(),
+                &quot;predicate_pushdown&quot;: &quot;SELECTION:&quot; in polars_plan,
+                &quot;aggregate&quot;: &quot;AGGREGATE&quot; in polars_plan.upper(),
+            },
+        },
+        &quot;ibis_duckdb&quot;: {
+            &quot;compiled_type&quot;: type(ibis_duckdb_sql).__name__,
+            &quot;compiled_sql&quot;: str(ibis_duckdb_sql),
+            &quot;checks&quot;: {
+                &quot;select&quot;: &quot;SELECT&quot; in str(ibis_duckdb_sql).upper(),
+                &quot;group_by&quot;: &quot;GROUP BY&quot; in str(ibis_duckdb_sql).upper(),
+                &quot;case&quot;: &quot;CASE WHEN&quot; in str(ibis_duckdb_sql).upper(),
+            },
+        },
+        &quot;ibis_polars&quot;: {
+            &quot;compiled_type&quot;: type(ibis_polars_lazy).__name__,
+            &quot;plan_text&quot;: ibis_polars_plan,
+            &quot;checks&quot;: {
+                &quot;lazy_frame&quot;: isinstance(
+                    ibis_polars_lazy,
+                    pl.LazyFrame,
+                ),
+                &quot;parquet_scan&quot;: &quot;PARQUET SCAN&quot; in ibis_polars_plan.upper(),
+                &quot;aggregate&quot;: &quot;AGGREGATE&quot; in ibis_polars_plan.upper(),
+            },
+        },
+    }
+
+
+def compile_probe(
+    backend: Any,
+    expression: Any,
+) -&gt; dict[str, Any]:
+    try:
+        compiled = backend.compile(expression)
+    except Exception as error:  # noqa: BLE001 - portability evidence.
+        return {
+            &quot;supported&quot;: False,
+            &quot;error_type&quot;: type(error).__name__,
+            &quot;message&quot;: str(error),
+        }
+    return {
+        &quot;supported&quot;: True,
+        &quot;compiled_type&quot;: type(compiled).__name__,
+        &quot;preview&quot;: str(compiled)[:500],
+    }
+
+
+def portability_audit(
+    *,
+    ibis_duckdb_backend: Any,
+    ibis_duckdb_table: Any,
+    ibis_polars_backend: Any,
+    ibis_polars_table: Any,
+) -&gt; dict[str, Any]:
+    portable_duckdb = compile_probe(
+        ibis_duckdb_backend,
+        build_ibis_pipeline(ibis_duckdb_table),
+    )
+    portable_polars = compile_probe(
+        ibis_polars_backend,
+        build_ibis_pipeline(ibis_polars_table),
+    )
+    rank_duckdb = compile_probe(
+        ibis_duckdb_backend,
+        build_ibis_rank_probe(ibis_duckdb_table),
+    )
+    rank_polars = compile_probe(
+        ibis_polars_backend,
+        build_ibis_rank_probe(ibis_polars_table),
+    )
+    return {
+        &quot;portable_core&quot;: {
+            &quot;operations&quot;: [
+                &quot;parquet scan&quot;,
+                &quot;filter&quot;,
+                &quot;mutate&quot;,
+                &quot;group_by&quot;,
+                &quot;nunique&quot;,
+                &quot;sum&quot;,
+                &quot;integer floor division&quot;,
+                &quot;case&quot;,
+                &quot;sort&quot;,
+            ],
+            &quot;duckdb&quot;: portable_duckdb,
+            &quot;polars&quot;: portable_polars,
+            &quot;portable_on_tested_backends&quot;: portable_duckdb[&quot;supported&quot;]
+            and portable_polars[&quot;supported&quot;],
+        },
+        &quot;window_rank_probe&quot;: {
+            &quot;operation&quot;: &quot;dense_rank over week_start ordered by revenue&quot;,
+            &quot;duckdb&quot;: rank_duckdb,
+            &quot;polars&quot;: rank_polars,
+            &quot;divergence_detected&quot;: rank_duckdb[&quot;supported&quot;] and not rank_polars[&quot;supported&quot;],
+            &quot;policy&quot;: (
+                &quot;Keep rank outside the portable core or provide an explicit &quot;
+                &quot;backend-specific fallback.&quot;
+            ),
+        },
+        &quot;conclusion&quot;: (
+            &quot;Ibis makes the shared relational core reusable, but backend &quot;
+            &quot;capability checks remain mandatory.&quot;
+        ),
+    }
+
+
+def environment_report(
+    *,
+    dataset_profile: str,
+    rows: int,
+    repeat: int,
+    warmup: int,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;python_version&quot;: platform.python_version(),
+        &quot;python_implementation&quot;: platform.python_implementation(),
+        &quot;platform&quot;: platform.platform(),
+        &quot;machine&quot;: platform.machine(),
+        &quot;processor&quot;: platform.processor() or &quot;unknown&quot;,
+        &quot;dataset_profile&quot;: dataset_profile,
+        &quot;rows&quot;: rows,
+        &quot;warmup_runs&quot;: warmup,
+        &quot;measured_runs&quot;: repeat,
+        &quot;versions&quot;: {
+            &quot;pandas&quot;: pd.__version__,
+            &quot;duckdb&quot;: duckdb.__version__,
+            &quot;polars&quot;: pl.__version__,
+            &quot;pyarrow&quot;: pa.__version__,
+            &quot;ibis&quot;: ibis.__version__,
+        },
+        &quot;thread_policy&quot;: (
+            &quot;Library defaults; reported without claiming cross-machine comparability.&quot;
+        ),
+        &quot;cache_policy&quot;: (
+            &quot;One warm-up per engine; measured runs use the same local Parquet &quot;
+            &quot;file and therefore represent a warm filesystem cache.&quot;
+        ),
+        &quot;timing_scope&quot;: (
+            &quot;Parquet scan, compute and conversion to normalized pandas output; &quot;
+            &quot;data generation, Parquet write, connection setup and compilation &quot;
+            &quot;are excluded.&quot;
+        ),
+    }
+
+
+def default_benchmark_plan(
+    *,
+    dataset_profile: str,
+    rows: int,
+    repeat: int,
+    warmup: int,
+    parquet_path: str,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;scenario_id&quot;: &quot;customer-revenue-health-multi-engine&quot;,
+        &quot;business_question&quot;: (
+            &quot;Which local engine should run the weekly customer revenue health &quot;
+            &quot;pipeline without changing metric semantics?&quot;
+        ),
+        &quot;pipeline_name&quot;: &quot;customer_revenue_health_weekly&quot;,
+        &quot;pipeline_version&quot;: &quot;1.0&quot;,
+        &quot;dataset_profile&quot;: dataset_profile,
+        &quot;input_paths&quot;: [parquet_path],
+        &quot;input_format&quot;: &quot;parquet&quot;,
+        &quot;layout_policy&quot;: &quot;single zstd Parquet file with row-group statistics&quot;,
+        &quot;expected_output_contract&quot;: (
+            &quot;one row per week_start, platform, region with exact integer metrics&quot;
+        ),
+        &quot;scale_rows&quot;: rows,
+        &quot;memory_budget_mb&quot;: 512,
+        &quot;engines&quot;: ENGINE_NAMES,
+        &quot;engine_versions&quot;: &quot;recorded in measurements/environment.json&quot;,
+        &quot;thread_policy&quot;: &quot;library defaults&quot;,
+        &quot;cache_policy&quot;: (&quot;warm filesystem cache after one warm-up; no cold-cache claim&quot;),
+        &quot;warmup_runs&quot;: warmup,
+        &quot;measured_runs&quot;: repeat,
+        &quot;timer&quot;: &quot;time.perf_counter and time.process_time&quot;,
+        &quot;memory_metric&quot;: &quot;tracemalloc Python peak with native-memory limitation&quot;,
+        &quot;cpu_metric&quot;: &quot;process_time plus cProfile for pandas control&quot;,
+        &quot;io_metric&quot;: &quot;input file bytes and row-group metadata&quot;,
+        &quot;plan_checks&quot;: [
+            &quot;DuckDB EXPLAIN&quot;,
+            &quot;Polars optimized plan&quot;,
+            &quot;Ibis DuckDB compiled SQL&quot;,
+            &quot;Ibis Polars LazyFrame plan&quot;,
+        ],
+        &quot;equivalence_checks&quot;: [
+            &quot;manual tiny expected output&quot;,
+            &quot;exact normalized output equality before timing&quot;,
+            &quot;stable result checksum on every measured run&quot;,
+        ],
+        &quot;quality_gates&quot;: [
+            &quot;unique output grain&quot;,
+            &quot;all engines equivalent&quot;,
+            &quot;portable Ibis core supported by DuckDB and Polars&quot;,
+            &quot;decision references measurements and limitations&quot;,
+        ],
+        &quot;selection_rule&quot;: (
+            &quot;Choose the fastest equivalent native backend; prefer Ibis over that &quot;
+            &quot;backend when its median overhead is at most 25% and portability &quot;
+            &quot;checks pass.&quot;
+        ),
+        &quot;known_limitations&quot;: [
+            &quot;warm-cache local benchmark&quot;,
+            &quot;native memory is not fully measured&quot;,
+            &quot;Ibis Polars does not support the tested dense-rank window&quot;,
+        ],
+        &quot;rerun_instructions&quot;: (
+            &quot;Run the packager again with the same profile, rows, seed, warm-up &quot;
+            &quot;and repeat values on the target machine.&quot;
+        ),
+    }
+
+
+def select_engine_decision(
+    summary: list[dict[str, Any]],
+    portability: dict[str, Any],
+) -&gt; dict[str, Any]:
+    medians = {row[&quot;engine&quot;]: float(row[&quot;median_wall_seconds&quot;]) for row in summary}
+    native_names = [&quot;pandas&quot;, &quot;duckdb_native&quot;, &quot;polars_native&quot;]
+    fastest_native = min(native_names, key=medians.__getitem__)
+    fastest_median = medians[fastest_native]
+    ibis_for_native = {
+        &quot;duckdb_native&quot;: &quot;ibis_duckdb&quot;,
+        &quot;polars_native&quot;: &quot;ibis_polars&quot;,
+    }
+    if fastest_native == &quot;pandas&quot;:
+        decision = &quot;keep_pandas&quot;
+        selected_engine = &quot;pandas&quot;
+        reason = &quot;pandas has the lowest native median for this measured profile.&quot;
+    else:
+        ibis_name = ibis_for_native[fastest_native]
+        overhead_ratio = medians[ibis_name] / fastest_median
+        if portability[&quot;portable_core&quot;][&quot;portable_on_tested_backends&quot;] and overhead_ratio &lt;= 1.25:
+            decision = &quot;use_ibis_over_backend&quot;
+            selected_engine = ibis_name
+            reason = (
+                f&quot;{ibis_name} stays within 25% of {fastest_native} while &quot;
+                &quot;preserving a tested portable core.&quot;
+            )
+        elif fastest_native == &quot;duckdb_native&quot;:
+            decision = &quot;use_duckdb&quot;
+            selected_engine = fastest_native
+            reason = &quot;DuckDB has the lowest equivalent native median.&quot;
+        else:
+            decision = &quot;use_polars&quot;
+            selected_engine = fastest_native
+            reason = &quot;Polars has the lowest equivalent native median.&quot;
+
+    if decision not in ALLOWED_DECISIONS:
+        raise PerformancePackageError(f&quot;invalid engine decision: {decision}&quot;)
+    selected_summary = next(row for row in summary if row[&quot;engine&quot;] == selected_engine)
+    limitation_ids = [
+        &quot;L1-warm-cache-local-only&quot;,
+        &quot;L2-native-memory-not-fully-measured&quot;,
+        &quot;L3-ibis-polars-window-rank-unsupported&quot;,
+    ]
+    return {
+        &quot;decision&quot;: decision,
+        &quot;selected_engine&quot;: selected_engine,
+        &quot;reason&quot;: reason,
+        &quot;evidence&quot;: {
+            &quot;measurement_ids&quot;: [
+                f&quot;{selected_engine}-run-{run_id}&quot;
+                for run_id in range(
+                    1,
+                    int(selected_summary[&quot;runs&quot;]) + 1,
+                )
+            ],
+            &quot;profile_id&quot;: &quot;customer-revenue-health-multi-engine&quot;,
+            &quot;plan_checks&quot;: [
+                &quot;duckdb_native&quot;,
+                &quot;polars_native&quot;,
+                &quot;ibis_duckdb&quot;,
+                &quot;ibis_polars&quot;,
+            ],
+            &quot;limitation_ids&quot;: limitation_ids,
+        },
+        &quot;medians&quot;: medians,
+        &quot;selection_rule_applied&quot;: True,
+    }
+
+
+def _write_json(path: Path, value: Any) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def _write_csv(path: Path, rows: list[dict[str, Any]]) -&gt; None:
+    if not rows:
+        raise PerformancePackageError(f&quot;cannot write empty CSV: {path}&quot;)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as target:
+        writer = csv.DictWriter(target, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_text(path: Path, content: str) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.rstrip() + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def _render_engine_decision(decision: dict[str, Any]) -&gt; str:
+    evidence = decision[&quot;evidence&quot;]
+    return f&quot;&quot;&quot;# Engine decision
+
+**Decision:** `{decision[&quot;decision&quot;]}`
+**Selected engine:** `{decision[&quot;selected_engine&quot;]}`
+
+{decision[&quot;reason&quot;]}
+
+## Evidence
+
+- Measurement IDs: {&quot;, &quot;.join(evidence[&quot;measurement_ids&quot;])}
+- Profile ID: `{evidence[&quot;profile_id&quot;]}`
+- Plan checks: {&quot;, &quot;.join(evidence[&quot;plan_checks&quot;])}
+- Limitations: {&quot;, &quot;.join(evidence[&quot;limitation_ids&quot;])}
+
+The decision is valid only for the recorded dataset profile, environment and cache policy.
+&quot;&quot;&quot;
+
+
+def _render_portability_audit(portability: dict[str, Any]) -&gt; str:
+    core = portability[&quot;portable_core&quot;]
+    probe = portability[&quot;window_rank_probe&quot;]
+    return f&quot;&quot;&quot;# Ibis portability audit
+
+## Portable core
+
+- DuckDB supported: `{core[&quot;duckdb&quot;][&quot;supported&quot;]}`
+- Polars supported: `{core[&quot;polars&quot;][&quot;supported&quot;]}`
+- Portable on tested backends: `{core[&quot;portable_on_tested_backends&quot;]}`
+- Operations: {&quot;, &quot;.join(core[&quot;operations&quot;])}
+
+## Backend divergence
+
+- Probe: {probe[&quot;operation&quot;]}
+- DuckDB supported: `{probe[&quot;duckdb&quot;][&quot;supported&quot;]}`
+- Polars supported: `{probe[&quot;polars&quot;][&quot;supported&quot;]}`
+- Divergence detected: `{probe[&quot;divergence_detected&quot;]}`
+
+Policy: {probe[&quot;policy&quot;]}
+
+{portability[&quot;conclusion&quot;]}
+&quot;&quot;&quot;
+
+
+def _limitations_markdown() -&gt; str:
+    return &quot;&quot;&quot;# Limitations
+
+## L1-warm-cache-local-only
+
+The benchmark runs on one local machine after warm-up. It is not a cold-cache or
+cross-machine claim.
+
+## L2-native-memory-not-fully-measured
+
+`tracemalloc` does not capture all native allocations made by Arrow, DuckDB and Polars.
+
+## L3-ibis-polars-window-rank-unsupported
+
+Ibis 12.0.0 compiles the tested dense-rank window for DuckDB but not for the Polars
+backend. Rank remains outside the portable core.
+
+## L4-default-thread-policy
+
+Libraries use their defaults. A production decision should repeat the benchmark with an
+explicit thread and concurrency policy.
+&quot;&quot;&quot;
+
+
+def _pipeline_sources() -&gt; dict[str, str]:
+    return {
+        &quot;pandas_pipeline.py&quot;: inspect.getsource(run_pandas_pipeline),
+        &quot;duckdb_pipeline.sql&quot;: NATIVE_DUCKDB_SQL,
+        &quot;polars_pipeline.py&quot;: (
+            inspect.getsource(build_polars_lazy_pipeline)
+            + &quot;\n\n&quot;
+            + inspect.getsource(run_polars_pipeline)
+        ),
+        &quot;ibis_pipeline.py&quot;: (
+            inspect.getsource(build_ibis_pipeline)
+            + &quot;\n\n&quot;
+            + inspect.getsource(build_ibis_rank_probe)
+        ),
+    }
+
+
+def _sha256_file(path: Path) -&gt; str:
+    digest = hashlib.sha256()
+    with path.open(&quot;rb&quot;) as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b&quot;&quot;):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_manifest(package_dir: Path) -&gt; dict[str, Any]:
+    files = []
+    for path in sorted(package_dir.rglob(&quot;*&quot;)):
+        if not path.is_file() or path.name == &quot;manifest.json&quot;:
+            continue
+        files.append(
+            {
+                &quot;path&quot;: str(path.relative_to(package_dir)),
+                &quot;size_bytes&quot;: path.stat().st_size,
+                &quot;sha256&quot;: _sha256_file(path),
+            }
+        )
+    manifest = {
+        &quot;algorithm&quot;: &quot;sha256&quot;,
+        &quot;files&quot;: files,
+        &quot;file_count&quot;: len(files),
+    }
+    _write_json(package_dir / &quot;manifest.json&quot;, manifest)
+    return manifest
+
+
+def validate_manifest(package_dir: Path) -&gt; dict[str, Any]:
+    manifest_path = package_dir / &quot;manifest.json&quot;
+    if not manifest_path.is_file():
+        raise PerformancePackageError(&quot;manifest.json is missing&quot;)
+    manifest = json.loads(manifest_path.read_text(encoding=&quot;utf-8&quot;))
+    mismatches = []
+    for item in manifest[&quot;files&quot;]:
+        path = package_dir / item[&quot;path&quot;]
+        if not path.is_file():
+            mismatches.append({&quot;path&quot;: item[&quot;path&quot;], &quot;reason&quot;: &quot;missing&quot;})
+        elif _sha256_file(path) != item[&quot;sha256&quot;]:
+            mismatches.append({&quot;path&quot;: item[&quot;path&quot;], &quot;reason&quot;: &quot;checksum&quot;})
+    return {
+        &quot;valid&quot;: not mismatches,
+        &quot;checked_files&quot;: len(manifest[&quot;files&quot;]),
+        &quot;mismatches&quot;: mismatches,
+    }
+
+
+def _build_runners(
+    *,
+    parquet_path: Path,
+) -&gt; tuple[
+    dict[str, Callable[[], pd.DataFrame]],
+    dict[str, Any],
+]:
+    native_duckdb = duckdb.connect()
+    native_duckdb.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+    native_polars = build_polars_lazy_pipeline(parquet_path)
+
+    ibis_duckdb_backend = ibis.duckdb.connect()
+    ibis_duckdb_table = ibis_duckdb_backend.read_parquet(
+        parquet_path,
+        table_name=&quot;orders&quot;,
+    )
+    ibis_duckdb_expression = build_ibis_pipeline(ibis_duckdb_table)
+
+    ibis_polars_backend = ibis.polars.connect()
+    ibis_polars_table = ibis_polars_backend.read_parquet(
+        parquet_path,
+        table_name=&quot;orders&quot;,
+    )
+    ibis_polars_expression = build_ibis_pipeline(ibis_polars_table)
+
+    runners = {
+        &quot;pandas&quot;: lambda: run_pandas_pipeline(parquet_path),
+        &quot;duckdb_native&quot;: lambda: run_duckdb_pipeline(
+            native_duckdb,
+            parquet_path,
+        ),
+        &quot;polars_native&quot;: lambda: normalize_output(native_polars.collect(engine=&quot;streaming&quot;)),
+        &quot;ibis_duckdb&quot;: lambda: normalize_output(
+            ibis_duckdb_backend.execute(ibis_duckdb_expression)
+        ),
+        &quot;ibis_polars&quot;: lambda: normalize_output(
+            ibis_polars_backend.execute(
+                ibis_polars_expression,
+                engine=&quot;streaming&quot;,
+            )
+        ),
+    }
+    context = {
+        &quot;native_duckdb&quot;: native_duckdb,
+        &quot;native_polars&quot;: native_polars,
+        &quot;ibis_duckdb_backend&quot;: ibis_duckdb_backend,
+        &quot;ibis_duckdb_table&quot;: ibis_duckdb_table,
+        &quot;ibis_duckdb_expression&quot;: ibis_duckdb_expression,
+        &quot;ibis_polars_backend&quot;: ibis_polars_backend,
+        &quot;ibis_polars_table&quot;: ibis_polars_table,
+        &quot;ibis_polars_expression&quot;: ibis_polars_expression,
+    }
+    return runners, context
+
+
+def build_performance_benchmark_package(
+    *,
+    dataset_profile: str = &quot;sample&quot;,
+    rows: int | None = None,
+    users: int | None = None,
+    seed: int = 42,
+    repeat: int = 5,
+    warmup: int = 1,
+    row_group_size: int = 1_024,
+    allow_large: bool = False,
+    output_dir: str | Path | None = None,
+) -&gt; dict[str, Any]:
+    if dataset_profile not in PROFILE_ROWS:
+        raise PerformancePackageError(f&quot;unknown dataset_profile: {dataset_profile}&quot;)
+    if dataset_profile == &quot;large&quot; and not allow_large:
+        raise PerformancePackageError(&quot;large profile requires allow_large=True or --allow-large&quot;)
+    if output_dir is None:
+        raise PerformancePackageError(&quot;output_dir is required&quot;)
+    if repeat &lt; 3:
+        raise PerformancePackageError(&quot;repeat must be at least 3&quot;)
+    if warmup &lt; 1:
+        raise PerformancePackageError(&quot;warmup must be at least 1&quot;)
+
+    resolved_rows = rows or PROFILE_ROWS[dataset_profile]
+    resolved_users = users or max(32, resolved_rows // 8)
+    package_dir = Path(output_dir)
+    package_dir.mkdir(parents=True, exist_ok=True)
+
+    frame = generate_customer_revenue_rows(
+        rows=resolved_rows,
+        users=resolved_users,
+        seed=seed,
+    )
+    input_summary = validate_input_frame(frame)
+    parquet_path = write_parquet_input(
+        frame,
+        package_dir / &quot;data&quot; / &quot;orders.parquet&quot;,
+        row_group_size=row_group_size,
+    )
+    layout = parquet_layout_report(
+        parquet_path,
+        row_group_size=row_group_size,
+    )
+
+    tiny_frame = pd.DataFrame(TINY_ROWS)
+    tiny_observed = run_manual_reference(tiny_frame)
+    tiny_expected = normalize_output(pd.DataFrame(TINY_EXPECTED))
+    tiny_check = compare_output(
+        tiny_expected,
+        tiny_observed,
+        engine=&quot;manual_reference&quot;,
+    )
+    if not tiny_check[&quot;passed&quot;]:
+        raise PerformancePackageError(&quot;manual tiny expected-output check failed&quot;)
+
+    reference = run_manual_reference(frame)
+    runners, context = _build_runners(parquet_path=parquet_path)
+    try:
+        outputs = {name: runner() for name, runner in runners.items()}
+        checks = [
+            compare_output(reference, output, engine=name) for name, output in outputs.items()
+        ]
+        enforce_equivalence(checks)
+
+        engine_order = list(ENGINE_NAMES)
+        random.Random(seed).shuffle(engine_order)
+        raw_runs = []
+        for engine in engine_order:
+            raw_runs.extend(
+                measure_runner(
+                    runners[engine],
+                    engine=engine,
+                    repeat=repeat,
+                    warmup=warmup,
+                )
+            )
+        summary = summarize_runs(raw_runs)
+
+        plans = plan_evidence(
+            native_duckdb=context[&quot;native_duckdb&quot;],
+            parquet_path=parquet_path,
+            native_polars=context[&quot;native_polars&quot;],
+            ibis_duckdb_backend=context[&quot;ibis_duckdb_backend&quot;],
+            ibis_duckdb_expression=context[&quot;ibis_duckdb_expression&quot;],
+            ibis_polars_backend=context[&quot;ibis_polars_backend&quot;],
+            ibis_polars_expression=context[&quot;ibis_polars_expression&quot;],
+        )
+        portability = portability_audit(
+            ibis_duckdb_backend=context[&quot;ibis_duckdb_backend&quot;],
+            ibis_duckdb_table=context[&quot;ibis_duckdb_table&quot;],
+            ibis_polars_backend=context[&quot;ibis_polars_backend&quot;],
+            ibis_polars_table=context[&quot;ibis_polars_table&quot;],
+        )
+        decision = select_engine_decision(summary, portability)
+        python_profile = profile_python_runner(
+            runners[&quot;pandas&quot;],
+            engine=&quot;pandas&quot;,
+        )
+        memory_profile = profile_python_memory(runners)
+    finally:
+        context[&quot;native_duckdb&quot;].close()
+        context[&quot;ibis_duckdb_backend&quot;].disconnect()
+
+    environment = environment_report(
+        dataset_profile=dataset_profile,
+        rows=resolved_rows,
+        repeat=repeat,
+        warmup=warmup,
+    )
+    benchmark_plan = default_benchmark_plan(
+        dataset_profile=dataset_profile,
+        rows=resolved_rows,
+        repeat=repeat,
+        warmup=warmup,
+        parquet_path=&quot;data/orders.parquet&quot;,
+    )
+    output_grain_unique = not reference[GROUP_COLUMNS].duplicated().any()
+    report_checks = {
+        &quot;manual_tiny_expected_output_passed&quot;: tiny_check[&quot;passed&quot;],
+        &quot;all_engines_equivalent_before_timing&quot;: all(check[&quot;passed&quot;] for check in checks),
+        &quot;all_measured_runs_keep_result_checksum&quot;: all(
+            run[&quot;result_checksum&quot;] == checks[0][&quot;actual_checksum&quot;] for run in raw_runs
+        ),
+        &quot;output_grain_unique&quot;: output_grain_unique,
+        &quot;duckdb_plan_checks_pass&quot;: all(plans[&quot;duckdb_native&quot;][&quot;checks&quot;].values()),
+        &quot;polars_plan_checks_pass&quot;: all(plans[&quot;polars_native&quot;][&quot;checks&quot;].values()),
+        &quot;ibis_portable_core_supported&quot;: portability[&quot;portable_core&quot;][&quot;portable_on_tested_backends&quot;],
+        &quot;backend_divergence_documented&quot;: portability[&quot;window_rank_probe&quot;][&quot;divergence_detected&quot;],
+        &quot;engine_decision_is_allowed&quot;: decision[&quot;decision&quot;] in ALLOWED_DECISIONS,
+        &quot;engine_decision_has_measurement_links&quot;: bool(decision[&quot;evidence&quot;][&quot;measurement_ids&quot;]),
+        &quot;engine_decision_has_limitations&quot;: bool(decision[&quot;evidence&quot;][&quot;limitation_ids&quot;]),
+    }
+
+    _write_json(package_dir / &quot;benchmark-plan.json&quot;, benchmark_plan)
+    _write_json(
+        package_dir / &quot;data-contract&quot; / &quot;sources.json&quot;,
+        {
+            &quot;table&quot;: &quot;orders&quot;,
+            &quot;grain&quot;: &quot;one order&quot;,
+            &quot;primary_key&quot;: [&quot;order_id&quot;],
+            &quot;required_columns&quot;: REQUIRED_COLUMNS,
+            &quot;input_summary&quot;: input_summary,
+        },
+    )
+    _write_json(
+        package_dir / &quot;data-contract&quot; / &quot;output-contract.json&quot;,
+        {
+            &quot;table&quot;: &quot;customer_revenue_health_weekly&quot;,
+            &quot;grain&quot;: GROUP_COLUMNS,
+            &quot;columns&quot;: OUTPUT_COLUMNS,
+            &quot;integer_columns&quot;: INTEGER_OUTPUT_COLUMNS,
+            &quot;sort_order&quot;: GROUP_COLUMNS,
+        },
+    )
+    _write_json(
+        package_dir / &quot;data-contract&quot; / &quot;dtype-policy.json&quot;,
+        {
+            &quot;money&quot;: &quot;int64 cents&quot;,
+            &quot;counts&quot;: &quot;int64 nullable only when denominator is zero&quot;,
+            &quot;dimensions&quot;: &quot;string labels&quot;,
+            &quot;test_user&quot;: &quot;boolean&quot;,
+            &quot;forbidden&quot;: [&quot;float money&quot;, &quot;category codes as business keys&quot;],
+        },
+    )
+    _write_json(
+        package_dir / &quot;data-layout&quot; / &quot;parquet-layout.json&quot;,
+        layout,
+    )
+    _write_json(
+        package_dir / &quot;data-layout&quot; / &quot;partition-summary.json&quot;,
+        {
+            &quot;partitioned&quot;: False,
+            &quot;reason&quot;: (
+                &quot;The sample package uses one file; partitioning decisions require &quot;
+                &quot;the target workload and scale.&quot;
+            ),
+        },
+    )
+    _write_json(
+        package_dir / &quot;data-layout&quot; / &quot;row-group-summary.json&quot;,
+        {&quot;row_groups&quot;: layout[&quot;row_groups&quot;]},
+    )
+    for filename, content in _pipeline_sources().items():
+        _write_text(package_dir / &quot;pipelines&quot; / filename, content)
+    _write_json(
+        package_dir / &quot;profiles&quot; / &quot;python-profile.json&quot;,
+        python_profile,
+    )
+    _write_json(
+        package_dir / &quot;profiles&quot; / &quot;memory-profile.json&quot;,
+        memory_profile,
+    )
+    _write_json(
+        package_dir / &quot;profiles&quot; / &quot;duckdb-plan.json&quot;,
+        plans[&quot;duckdb_native&quot;],
+    )
+    _write_text(
+        package_dir / &quot;profiles&quot; / &quot;polars-plan.txt&quot;,
+        plans[&quot;polars_native&quot;][&quot;plan_text&quot;],
+    )
+    _write_text(
+        package_dir / &quot;profiles&quot; / &quot;ibis-duckdb.sql&quot;,
+        plans[&quot;ibis_duckdb&quot;][&quot;compiled_sql&quot;],
+    )
+    _write_text(
+        package_dir / &quot;profiles&quot; / &quot;ibis-polars-plan.txt&quot;,
+        plans[&quot;ibis_polars&quot;][&quot;plan_text&quot;],
+    )
+    _write_csv(
+        package_dir / &quot;measurements&quot; / &quot;raw-runs.csv&quot;,
+        raw_runs,
+    )
+    _write_csv(
+        package_dir / &quot;measurements&quot; / &quot;summary.csv&quot;,
+        summary,
+    )
+    _write_json(
+        package_dir / &quot;measurements&quot; / &quot;environment.json&quot;,
+        environment,
+    )
+    _write_json(
+        package_dir / &quot;equivalence&quot; / &quot;output-checks.json&quot;,
+        {
+            &quot;tiny_expected&quot;: tiny_check,
+            &quot;engine_checks&quot;: checks,
+            &quot;output_grain_unique&quot;: output_grain_unique,
+        },
+    )
+    _write_csv(
+        package_dir / &quot;equivalence&quot; / &quot;reconciliation.csv&quot;,
+        [
+            {
+                &quot;engine&quot;: check[&quot;engine&quot;],
+                &quot;passed&quot;: check[&quot;passed&quot;],
+                &quot;row_count&quot;: check[&quot;row_count&quot;],
+                &quot;expected_checksum&quot;: check[&quot;expected_checksum&quot;],
+                &quot;actual_checksum&quot;: check[&quot;actual_checksum&quot;],
+                &quot;mismatch_count&quot;: check[&quot;mismatch_count&quot;],
+            }
+            for check in checks
+        ],
+    )
+    _write_json(
+        package_dir / &quot;equivalence&quot; / &quot;tiny-expected-output.json&quot;,
+        output_records(tiny_expected),
+    )
+    _write_json(
+        package_dir / &quot;reports&quot; / &quot;portability-audit.json&quot;,
+        portability,
+    )
+    _write_text(
+        package_dir / &quot;reports&quot; / &quot;portability-audit.md&quot;,
+        _render_portability_audit(portability),
+    )
+    _write_json(
+        package_dir / &quot;reports&quot; / &quot;engine-decision.json&quot;,
+        decision,
+    )
+    _write_text(
+        package_dir / &quot;reports&quot; / &quot;engine-decision.md&quot;,
+        _render_engine_decision(decision),
+    )
+    _write_text(
+        package_dir / &quot;reports&quot; / &quot;limitations.md&quot;,
+        _limitations_markdown(),
+    )
+
+    report = {
+        &quot;scenario&quot;: benchmark_plan,
+        &quot;environment&quot;: environment,
+        &quot;input&quot;: {
+            **input_summary,
+            &quot;parquet_path&quot;: &quot;data/orders.parquet&quot;,
+            &quot;file_size_bytes&quot;: layout[&quot;file_size_bytes&quot;],
+            &quot;seed&quot;: seed,
+            &quot;users&quot;: resolved_users,
+        },
+        &quot;equivalence&quot;: {
+            &quot;tiny_expected&quot;: tiny_check,
+            &quot;engine_checks&quot;: checks,
+        },
+        &quot;measurements&quot;: {
+            &quot;raw_runs&quot;: raw_runs,
+            &quot;summary&quot;: summary,
+        },
+        &quot;plans&quot;: {
+            name: {
+                &quot;checks&quot;: detail[&quot;checks&quot;],
+                &quot;compiled_type&quot;: detail.get(&quot;compiled_type&quot;),
+            }
+            for name, detail in plans.items()
+        },
+        &quot;portability&quot;: portability,
+        &quot;decision&quot;: decision,
+        &quot;interpretation&quot;: {
+            &quot;checks&quot;: report_checks,
+            &quot;safe_to_ship&quot;: all(report_checks.values()),
+        },
+        &quot;package&quot;: {
+            &quot;output_dir&quot;: str(package_dir),
+            &quot;expected_directories&quot;: [
+                &quot;data-contract&quot;,
+                &quot;data-layout&quot;,
+                &quot;pipelines&quot;,
+                &quot;profiles&quot;,
+                &quot;measurements&quot;,
+                &quot;equivalence&quot;,
+                &quot;reports&quot;,
+            ],
+        },
+    }
+    _write_json(package_dir / &quot;report.json&quot;, report)
+    manifest = write_manifest(package_dir)
+    manifest_check = validate_manifest(package_dir)
+    report[&quot;package&quot;][&quot;manifest_files&quot;] = manifest[&quot;file_count&quot;]
+    report[&quot;package&quot;][&quot;manifest_valid&quot;] = manifest_check[&quot;valid&quot;]
+    report[&quot;interpretation&quot;][&quot;checks&quot;][&quot;manifest_valid&quot;] = manifest_check[&quot;valid&quot;]
+    report[&quot;interpretation&quot;][&quot;safe_to_ship&quot;] = all(report[&quot;interpretation&quot;][&quot;checks&quot;].values())
+    _write_json(package_dir / &quot;report.json&quot;, report)
+    write_manifest(package_dir)
+    return report
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=&quot;Build the final multi-engine performance benchmark package&quot;
+    )
+    parser.add_argument(
+        &quot;--profile&quot;,
+        choices=sorted(PROFILE_ROWS),
+        default=&quot;sample&quot;,
+    )
+    parser.add_argument(&quot;--rows&quot;, type=int)
+    parser.add_argument(&quot;--users&quot;, type=int)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42)
+    parser.add_argument(&quot;--repeat&quot;, type=int, default=5)
+    parser.add_argument(&quot;--warmup&quot;, type=int, default=1)
+    parser.add_argument(&quot;--row-group-size&quot;, type=int, default=1_024)
+    parser.add_argument(&quot;--allow-large&quot;, action=&quot;store_true&quot;)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv)
+    try:
+        report = build_performance_benchmark_package(
+            dataset_profile=args.profile,
+            rows=args.rows,
+            users=args.users,
+            seed=args.seed,
+            repeat=args.repeat,
+            warmup=args.warmup,
+            row_group_size=args.row_group_size,
+            allow_large=args.allow_large,
+            output_dir=args.output_dir,
+        )
+    except PerformancePackageError as error:
+        print(f&quot;performance package error: {error}&quot;, file=sys.stderr)
+        return 2
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/11-ibis/outputs/performance_benchmark_packager.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/11-ibis" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/performance/interoperability/"><span>← Предыдущий урок</span><strong>Обмен между pandas, Arrow и Polars</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/causal-analysis/causal-question-and-estimand/"><span>Следующий урок →</span><strong>Причинный вопрос и estimand</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

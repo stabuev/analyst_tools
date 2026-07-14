@@ -1,0 +1,2599 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 15/04 мы сделали честный preprocessing contract: imputation, scaling и one-hot schema fit-ятся только на train. Но если оставить этот код отдельным шагом, появляется…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/pipeline/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="scikit-learn Pipeline">
+  <meta property="og:description" content="В 15/04 мы сделали честный preprocessing contract: imputation, scaling и one-hot schema fit-ятся только на train. Но если оставить этот код отдельным шагом, появляется…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/pipeline/">
+  <meta name="twitter:card" content="summary">
+  <title>scikit-learn Pipeline — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "scikit-learn Pipeline", "description": "В 15/04 мы сделали честный preprocessing contract: imputation, scaling и one-hot schema fit-ятся только на train. Но если оставить этот код отдельным шагом, появляется…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/pipeline/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 15: Прикладное машинное обучение", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=15"}, {"@type": "ListItem", "position": 3, "name": "scikit-learn Pipeline", "item": "https://datascience.xyz/courses/analyst-tools/lessons/applied-machine-learning/pipeline/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 15</p><h2>Прикладное машинное обучение</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/problem-framing/"><span>01</span>Постановка ML-задачи</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/data-splitting/"><span>02</span>Train, validation и test</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/metrics/"><span>03</span>Метрики и стоимость ошибки</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/preprocessing/"><span>04</span>Предобработка как часть модели</a><a class="lesson-sidebar-link is-active" href="../../../lessons/applied-machine-learning/pipeline/"><span>05</span>scikit-learn Pipeline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/column-transformer/"><span>06</span>ColumnTransformer</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/linear-models/"><span>07</span>Линейные baseline</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/trees/"><span>08</span>Деревья решений</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/ensembles/"><span>09</span>Ансамбли деревьев</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/cross-validation/"><span>10</span>Cross-validation</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/imbalanced-data/"><span>11</span>Несбалансированные классы</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/calibration/"><span>12</span>Калибровка вероятностей</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/leakage/"><span>13</span>Data leakage</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/error-analysis/"><span>14</span>Анализ ошибок по сегментам</a><a class="lesson-sidebar-link" href="../../../lessons/applied-machine-learning/model-card/"><span>15</span>Model card и ограничения</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 15 · Прикладное машинное обучение</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 161 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/15-applied-machine-learning/05-pipeline" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Зачем после отдельного preprocessing contract переносить preprocessing внутрь Pipeline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы preprocessing и estimator fit-ились одним объектом и не расходились между train/validation/test.</button><button type="button" class="quiz-option" data-choice="1">Чтобы validation можно было использовать для fit scaler.</button><button type="button" class="quiz-option" data-choice="2">Чтобы one-hot columns создавались заново на каждом split.</button><button type="button" class="quiz-option" data-choice="3">Чтобы убрать необходимость в split manifest.</button></div><p class="quiz-feedback" hidden>Pipeline делает порядок fit/transform/predict явным: train fit проходит один раз, а validation/test получают только transform и predict.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какой split должен попасть в Pipeline.fit в честной supervised ML-задаче?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только train split.</button><button type="button" class="quiz-option" data-choice="1">Train и validation, потому что validation участвует в настройке threshold.</button><button type="button" class="quiz-option" data-choice="2">Validation и test, потому что на них считаются прогнозы.</button><button type="button" class="quiz-option" data-choice="3">Все строки, чтобы модель увидела больше данных.</button></div><p class="quiz-feedback" hidden>Validation/test не должны обучать ни preprocessing, ни estimator; иначе итоговые метрики получают leakage.</p></article></section>
+        <article class="lesson-article"><h1 id="scikit-learn-pipeline">scikit-learn Pipeline</h1>
+<blockquote>
+<p>Pipeline - это не удобная обертка вокруг модели, а исполняемый договор: какие шаги fit-ятся
+на train и какие шаги только применяются к validation/test.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> ML<br />
+<strong>Пререквизиты:</strong> <code>15-applied-machine-learning/04-preprocessing</code><br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> вы собираете scikit-learn <code>Pipeline</code>, где preprocessing и estimator обучаются
+одним объектом, а predictions воспроизводимо строятся для validation/test.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Объяснить, почему preprocessing должен жить внутри model pipeline, а не в отдельном
+&quot;предварительном&quot; скрипте.</li>
+<li>Собрать минимальный sklearn-compatible transformer с <code>fit</code>, <code>transform</code> и
+<code>get_feature_names_out</code>.</li>
+<li>Fit-ить <code>Pipeline</code> только на train split и использовать <code>predict_proba</code> только для
+validation/test.</li>
+<li>Сохранить serialized spec: шаги, estimator params, feature names и trace операций.</li>
+<li>Блокировать внешнюю preprocessed matrix как опасный вход для обучения модели.</li>
+<li>Подготовить артефакт к следующему уроку про <code>ColumnTransformer</code>.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>15/04</code> мы сделали честный preprocessing contract: imputation, scaling и one-hot schema
+fit-ятся только на train. Но если оставить этот код отдельным шагом, появляется новый класс
+ошибок:</p>
+<ul>
+<li>analyst запускает preprocessing на full dataset, а потом обучает модель на &quot;готовой&quot;
+матрице;</li>
+<li>validation/test случайно участвуют в fit encoder-а или scaler-а;</li>
+<li>порядок колонок в saved matrix расходится с тем, что получает модель;</li>
+<li>в production вызывается модель без того же preprocessing state;</li>
+<li>audit видит только прогнозы, но не видит, какой объект и на каких rows был fit-нут.</li>
+</ul>
+<p>В прикладном ML это особенно неприятно: метрики могут выглядеть лучше, чем в реальности, а
+ошибка обнаружится только при переносе модели в scoring. Поэтому следующий шаг после
+preprocessing contract - собрать preprocessing и estimator в один объект с проверяемым
+порядком операций.</p>
+<h2 id="концепция">Концепция</h2>
+<p><code>Pipeline</code> в scikit-learn хранит последовательность named steps. Все промежуточные шаги
+должны уметь <code>fit</code> и <code>transform</code>; последний шаг обычно является estimator-ом и умеет <code>fit</code>,
+<code>predict</code> или <code>predict_proba</code>.</p>
+<p>Для этого урока договор такой:</p>
+<table>
+<thead>
+<tr>
+<th>Шаг</th>
+<th>Что делает</th>
+<th>На каких строках fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preprocess</code></td>
+<td>impute, scale, one-hot encode по <code>preprocessing_contract.json</code></td>
+<td>только train</td>
+</tr>
+<tr>
+<td><code>estimator</code></td>
+<td><code>LogisticRegression</code> для churn probability</td>
+<td>только train</td>
+</tr>
+<tr>
+<td><code>predict_proba</code></td>
+<td>строит probability scores</td>
+<td>validation и test</td>
+</tr>
+</tbody>
+</table>
+<p>Важно различать два входа:</p>
+<table>
+<thead>
+<tr>
+<th>Вход</th>
+<th>Статус</th>
+<th>Почему</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw features + contract</td>
+<td>Разрешен</td>
+<td>Pipeline сам fit-ит preprocessing state на train.</td>
+</tr>
+<tr>
+<td>External preprocessed matrix</td>
+<td>Запрещен</td>
+<td>Нельзя доказать, на каких данных были fit-нуты imputer, scaler и encoder.</td>
+</tr>
+</tbody>
+</table>
+<p>В tiny profile появился новый файл:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/15-applied-machine-learning/data/tiny/pipeline_spec.json
+</code></pre></div><p>В нем зафиксирован исполняемый контракт:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+  &quot;fit_split&quot;: &quot;train&quot;,
+  &quot;predict_splits&quot;: [&quot;validation&quot;, &quot;test&quot;],
+  &quot;preprocessing_location&quot;: &quot;inside_pipeline&quot;,
+  &quot;steps&quot;: [&quot;preprocess&quot;, &quot;estimator&quot;]
+}
+</code></pre></div><p>Этот spec не заменяет sklearn-объект. Он делает объект проверяемым: тесты могут сравнить
+заявленный порядок шагов, split boundaries, estimator params и выходные файлы.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Начнем с минимального transformer-а. scikit-learn вызывает у промежуточных шагов <code>fit</code> на
+обучении и <code>transform</code> при обучении и прогнозировании. Для нашего контракта это выглядит
+так:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">class ContractPreprocessor:
+    def fit(self, X, y=None):
+        self.numeric_state_ = fit_numeric_state(X)
+        self.categorical_state_ = fit_categorical_state(X)
+        self.feature_names_out_ = build_feature_names(self.categorical_state_)
+        return self
+
+    def transform(self, X):
+        numeric = transform_numeric(X, self.numeric_state_)
+        categorical = transform_categorical(X, self.categorical_state_)
+        return hstack(numeric, categorical)
+</code></pre></div><p>Суффикс <code>_</code> у fitted attributes - соглашение sklearn: такие поля появляются после <code>fit</code>.
+Это удобно для аудита. Если <code>transform</code> вызывается до <code>fit</code>, это ошибка.</p>
+<p>Минимальная ручная схема выполнения:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">preprocess = ContractPreprocessor(contract)
+X_train_transformed = preprocess.fit(train_raw_features).transform(train_raw_features)
+
+estimator = LogisticRegression(solver=&quot;liblinear&quot;, C=1.0, l1_ratio=0.0, random_state=0)
+estimator.fit(X_train_transformed, y_train)
+
+X_validation_transformed = preprocess.transform(validation_raw_features)
+validation_scores = estimator.predict_proba(X_validation_transformed)[:, 1]
+</code></pre></div><p>Такой код уже держит правильный порядок, но его легко случайно разорвать. Например, можно
+сохранить <code>X_train_transformed</code> в CSV, передать не тот файл или refit-нуть preprocess на
+validation. Поэтому финальная сборка должна быть одним объектом:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">pipeline = Pipeline(
+    steps=[
+        (&quot;preprocess&quot;, ContractPreprocessor(contract)),
+        (&quot;estimator&quot;, LogisticRegression(solver=&quot;liblinear&quot;, C=1.0, l1_ratio=0.0, random_state=0)),
+    ]
+)
+
+pipeline.fit(X_train, y_train)
+validation_scores = pipeline.predict_proba(X_validation)[:, 1]
+test_scores = pipeline.predict_proba(X_test)[:, 1]
+</code></pre></div><p>Теперь <code>Pipeline.fit</code> сам вызывает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">preprocess.fit(train)
+preprocess.transform(train)
+estimator.fit(transformed_train, y_train)
+</code></pre></div><p>А <code>Pipeline.predict_proba(validation)</code> вызывает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">preprocess.transform(validation)
+estimator.predict_proba(transformed_validation)
+</code></pre></div><p>Никакого <code>fit</code> на validation/test в этой цепочке быть не должно.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Урок поставляет CLI <code>pipeline-runner</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/pipeline_runner.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --output outputs/pipeline_report.json \
+  --predictions-output outputs/pipeline_predictions.csv \
+  --serialized-spec-output outputs/pipeline_serialized_spec.json
+</code></pre></div><p>Короткий пример запуска из <code>code/main.py</code>:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python code/main.py
+</code></pre></div><p>Ожидаемый итог tiny profile:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;fit_split&quot;: &quot;train&quot;,
+  &quot;fit_row_count&quot;: 4,
+  &quot;prediction_row_count&quot;: 8,
+  &quot;transformed_feature_count&quot;: 23,
+  &quot;validation_score_mean&quot;: 0.528642,
+  &quot;test_score_mean&quot;: 0.432755,
+  &quot;warnings&quot;: [
+    &quot;pipeline_unknown_categories_bucketed&quot;,
+    &quot;tiny_pipeline_training_sample_expected&quot;
+  ],
+  &quot;readiness_status&quot;: &quot;ready_for_column_transformer_lesson&quot;
+}
+</code></pre></div><p>Warnings здесь ожидаемые:</p>
+<ul>
+<li><code>pipeline_unknown_categories_bucketed</code> - на validation/test есть новые категории
+<code>influencer</code> и <code>partnership</code>, они отправлены в <code>__unknown__</code>;</li>
+<li><code>tiny_pipeline_training_sample_expected</code> - учебный train split содержит 4 строки, это
+нормально для tiny profile и недопустимо для production.</li>
+</ul>
+<p><code>pipeline_predictions.csv</code> содержит только validation/test:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">snapshot_id,pipeline_id,split,score,score_type,trained_on_split,generated_at
+S005,trial-churn-sklearn-pipeline-v0,validation,0.501623,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S006,trial-churn-sklearn-pipeline-v0,validation,0.302765,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S007,trial-churn-sklearn-pipeline-v0,validation,0.781539,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+</code></pre></div><p><code>pipeline_serialized_spec.json</code> фиксирует:</p>
+<ul>
+<li>версию sklearn;</li>
+<li>names и classes шагов;</li>
+<li>params <code>LogisticRegression</code>;</li>
+<li><code>coef_shape</code> и <code>intercept</code>;</li>
+<li>итоговые transformed feature names;</li>
+<li><code>fit_trace</code>.</li>
+</ul>
+<p>Фрагмент trace:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">[
+  {
+    &quot;event&quot;: &quot;pipeline.fit&quot;,
+    &quot;split&quot;: &quot;train&quot;,
+    &quot;snapshot_ids&quot;: [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;],
+    &quot;fits_preprocessing&quot;: true,
+    &quot;fits_estimator&quot;: true
+  },
+  {
+    &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+    &quot;split&quot;: &quot;validation&quot;,
+    &quot;fits_anything&quot;: false
+  }
+]
+</code></pre></div><p>Именно этот trace связывает модельный результат с договором предыдущих уроков.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Попробуйте изменить <code>pipeline_spec.json</code>:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;fit_split&quot;: &quot;validation&quot;
+}
+</code></pre></div><p>CLI должен вернуть неуспех:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">pipeline_spec_declares_single_safe_pipeline
+</code></pre></div><p>Другие failure modes:</p>
+<table>
+<thead>
+<tr>
+<th>Поломка</th>
+<th>Почему блокируется</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preprocessing_location = &quot;external_preprocessed_matrix&quot;</code></td>
+<td>Нельзя доказать train-only fit preprocessing.</td>
+</tr>
+<tr>
+<td><code>predict_splits = [&quot;train&quot;, &quot;validation&quot;]</code></td>
+<td>Prediction report не должен смешивать train scores с validation/test audit.</td>
+</tr>
+<tr>
+<td>Steps идут как <code>[&quot;estimator&quot;, &quot;preprocess&quot;]</code></td>
+<td>Estimator не должен получать raw categorical strings.</td>
+</tr>
+<tr>
+<td>Нет <code>random_state</code></td>
+<td>Reproducibility contract не зафиксирован.</td>
+</tr>
+<tr>
+<td>В raw features появилась <code>churned_14d</code></td>
+<td>Target leakage внутри feature table.</td>
+</tr>
+<tr>
+<td>У train labels остался один класс</td>
+<td><code>LogisticRegression</code> не может обучить binary classifier.</td>
+</tr>
+</tbody>
+</table>
+<p>Для строгого CI можно включить предупреждения как hard gate:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/pipeline_runner.py \
+  --spec ../data/tiny/problem_spec.json \
+  --preprocessing-contract ../data/tiny/preprocessing_contract.json \
+  --pipeline-spec ../data/tiny/pipeline_spec.json \
+  --features ../data/tiny/ml_raw_features.csv \
+  --labels ../data/tiny/ml_labels.csv \
+  --manifest ../data/tiny/ml_split_manifest.csv \
+  --fail-on-warning
+</code></pre></div><p>На tiny profile команда завершится с non-zero exit code из-за ожидаемых warning-ов. В
+production такое поведение полезно, если новая категория должна открывать расследование.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest discover -s phases/15-applied-machine-learning/05-pipeline/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>валидный Pipeline fit-ится на 4 train rows и строит 8 validation/test scores;</li>
+<li>serialized spec содержит steps <code>preprocess -&gt; estimator</code>;</li>
+<li><code>fit_trace</code> не содержит fit на validation/test;</li>
+<li>predictions имеют probability scores в <code>[0, 1]</code> и <code>trained_on_split = train</code>;</li>
+<li>preprocessing state совпадает с train-fitted state из <code>15/04</code>;</li>
+<li>unknown categories видны в warning-е;</li>
+<li>CLI возвращает non-zero для invalid spec и для <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Также полезно прогонять весь курс:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python scripts/validate_course.py
+python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Артефакт урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/pipeline_runner.py
+</code></pre></div><p>Он нужен, когда у вас уже есть:</p>
+<ul>
+<li>problem spec;</li>
+<li>split manifest;</li>
+<li>preprocessing contract;</li>
+<li>raw feature table;</li>
+<li>labels;</li>
+<li>pipeline spec.</li>
+</ul>
+<p>На выходе вы получаете:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/pipeline_report.json
+outputs/pipeline_predictions.csv
+outputs/pipeline_serialized_spec.json
+</code></pre></div><p><code>pipeline_report.json</code> - основной audit artifact. Его можно приложить к ML-ревью перед
+следующими шагами: <code>ColumnTransformer</code>, linear baseline, threshold selection и model card.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте в <code>pipeline_spec.json</code> новый параметр <code>max_iter = 500</code> и проверьте, что он
+появился в serialized spec.</li>
+<li>Измените одну validation категорию на уже известную train категорию и убедитесь, что
+warning про unknown categories меняется.</li>
+<li>Сделайте отдельный check, который запрещает <code>class_weight = &quot;balanced&quot;</code> без явного
+объяснения в spec.</li>
+<li>Добавьте в prediction report колонку <code>model_family</code> и проверьте ее тестом.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Pipeline</code></td>
+<td>Просто способ писать меньше кода</td>
+<td>Последовательность fitted steps с единым <code>fit</code> и prediction API.</td>
+</tr>
+<tr>
+<td>Transformer</td>
+<td>Любой preprocessing script</td>
+<td>Объект с <code>fit</code> и <code>transform</code>, который хранит fitted state.</td>
+</tr>
+<tr>
+<td>Estimator</td>
+<td>Только финальная модель</td>
+<td>Любой sklearn-объект с <code>fit</code>; в Pipeline последний шаг обычно предсказывает.</td>
+</tr>
+<tr>
+<td>Serialized spec</td>
+<td>Pickle модели</td>
+<td>Читаемый audit report о версии, шагах, параметрах и feature names.</td>
+</tr>
+<tr>
+<td>Fit trace</td>
+<td>Лог выполнения для красоты</td>
+<td>Проверка, какие splits обучали state, а какие только прогнозировались.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/compose.html#pipeline" target="_blank" rel="noopener">scikit-learn: Pipeline and composite estimators</a> - прочитайте раздел про <code>Pipeline</code>, чтобы увидеть официальный порядок <code>fit</code>, <code>transform</code> и chaining.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html" target="_blank" rel="noopener">sklearn.pipeline.Pipeline API</a> - проверьте параметры конструктора, named steps и методы prediction API.</li>
+<li><a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank" rel="noopener">scikit-learn: Common pitfalls</a> - особенно разделы про inconsistent preprocessing и data leakage.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html" target="_blank" rel="noopener">sklearn.linear_model.LogisticRegression API</a> - посмотрите параметры solver, regularization и reproducibility для baseline classifier.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.compose.ColumnTransformer.html" target="_blank" rel="noopener">sklearn.compose.ColumnTransformer API</a> - мост к следующему уроку, где routing numeric/categorical columns станет стандартным sklearn-объектом.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должно быть видно в serialized spec честного Pipeline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Один pipeline.fit на train и pipeline.predict_proba на validation/test без fit-anything.</button><button type="button" class="quiz-option" data-choice="1">Отдельный fit scaler на validation и отдельный fit estimator на test.</button><button type="button" class="quiz-option" data-choice="2">Только итоговая accuracy без информации о split.</button><button type="button" class="quiz-option" data-choice="3">Raw target column внутри feature_names.</button></div><p class="quiz-feedback" hidden>Fit trace нужен, чтобы проверить порядок операций: обучение только на train, прогнозирование на validation/test без refit.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какие строки должен содержать prediction report этого урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Probability scores для validation и test, помеченные trained_on_split=train.</button><button type="button" class="quiz-option" data-choice="1">Scores для train, validation и test, чтобы проще сравнить качество.</button><button type="button" class="quiz-option" data-choice="2">Только test scores, потому что validation уже использовался в предыдущем уроке.</button><button type="button" class="quiz-option" data-choice="3">Raw features и labels в одной таблице с predictions.</button></div><p class="quiz-feedback" hidden>Урок проверяет reproducible scoring для validation/test; train scores не нужны для выбора threshold и могут путать audit boundary.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что должен сделать Pipeline, когда на validation/test встречает новую категорию?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Использовать fitted preprocessing state и отправить категорию в заранее объявленный unknown bucket.</button><button type="button" class="quiz-option" data-choice="1">Добавить новую one-hot колонку только для этого split.</button><button type="button" class="quiz-option" data-choice="2">Refit categorical encoder на validation/test.</button><button type="button" class="quiz-option" data-choice="3">Удалить строку из prediction report.</button></div><p class="quiz-feedback" hidden>Feature schema должна оставаться стабильной; новые категории видны в audit report, но не меняют набор колонок.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;pipeline_runner.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+GENERATOR = PHASE_ROOT / &quot;data&quot; / &quot;generate_data.py&quot;
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from pipeline_runner import run  # noqa: E402
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class PipelineRunnerTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, **outputs: Path) -&gt; dict:
+        return run(
+            spec_path=root / &quot;problem_spec.json&quot;,
+            preprocessing_contract_path=root / &quot;preprocessing_contract.json&quot;,
+            pipeline_spec_path=root / &quot;pipeline_spec.json&quot;,
+            features_path=root / &quot;ml_raw_features.csv&quot;,
+            labels_path=root / &quot;ml_labels.csv&quot;,
+            manifest_path=root / &quot;ml_split_manifest.csv&quot;,
+            **outputs,
+        )
+
+    def copy_profile(self, directory: Path) -&gt; Path:
+        target = directory / &quot;tiny&quot;
+        shutil.copytree(DATA_ROOT, target)
+        return target
+
+    def test_valid_pipeline_fits_train_and_scores_validation_test(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;pipeline_id&quot;], &quot;trial-churn-sklearn-pipeline-v0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;sklearn_version&quot;], &quot;1.9.0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_row_count&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;predict_splits&quot;], [&quot;validation&quot;, &quot;test&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;prediction_row_count&quot;], 8)
+        self.assertEqual(report[&quot;summary&quot;][&quot;transformed_feature_count&quot;], 23)
+        self.assertEqual(report[&quot;summary&quot;][&quot;estimator&quot;], &quot;LogisticRegression&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [])
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;warnings&quot;],
+            [&quot;pipeline_unknown_categories_bucketed&quot;, &quot;tiny_pipeline_training_sample_expected&quot;],
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_column_transformer_lesson&quot;
+        )
+
+    def test_serialized_spec_records_single_pipeline_order_and_fit_trace(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(
+            [step[&quot;name&quot;] for step in serialized[&quot;steps&quot;]], [&quot;preprocess&quot;, &quot;estimator&quot;]
+        )
+        self.assertEqual(serialized[&quot;steps&quot;][0][&quot;class&quot;], &quot;ContractPreprocessor&quot;)
+        self.assertEqual(serialized[&quot;steps&quot;][1][&quot;class&quot;], &quot;LogisticRegression&quot;)
+        self.assertEqual(serialized[&quot;steps&quot;][1][&quot;params&quot;][&quot;solver&quot;], &quot;liblinear&quot;)
+        self.assertEqual(serialized[&quot;steps&quot;][1][&quot;params&quot;][&quot;random_state&quot;], 0)
+        self.assertEqual(serialized[&quot;steps&quot;][1][&quot;coef_shape&quot;], [1, 23])
+        self.assertEqual(len(serialized[&quot;feature_names&quot;]), 23)
+        self.assertIn(&quot;cat__acquisition_channel=__unknown__&quot;, serialized[&quot;feature_names&quot;])
+
+        fit, validation, test = serialized[&quot;fit_trace&quot;]
+        self.assertEqual(fit[&quot;event&quot;], &quot;pipeline.fit&quot;)
+        self.assertEqual(fit[&quot;snapshot_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertTrue(fit[&quot;fits_preprocessing&quot;])
+        self.assertTrue(fit[&quot;fits_estimator&quot;])
+        self.assertEqual(validation[&quot;event&quot;], &quot;pipeline.predict_proba&quot;)
+        self.assertEqual(validation[&quot;snapshot_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertFalse(validation[&quot;fits_anything&quot;])
+        self.assertEqual(test[&quot;snapshot_ids&quot;], [&quot;S009&quot;, &quot;S010&quot;, &quot;S011&quot;, &quot;S012&quot;, &quot;S013&quot;])
+        self.assertFalse(test[&quot;fits_anything&quot;])
+
+    def test_prediction_rows_have_probabilities_for_validation_and_test_only(self) -&gt; None:
+        report = self.audit()
+        rows = report[&quot;predictions&quot;]
+
+        self.assertEqual(len(rows), 8)
+        self.assertEqual({row[&quot;split&quot;] for row in rows}, {&quot;validation&quot;, &quot;test&quot;})
+        self.assertNotIn(&quot;train&quot;, {row[&quot;split&quot;] for row in rows})
+        self.assertTrue(all(0 &lt;= row[&quot;score&quot;] &lt;= 1 for row in rows))
+        self.assertEqual({row[&quot;trained_on_split&quot;] for row in rows}, {&quot;train&quot;})
+        self.assertEqual(
+            {row[&quot;snapshot_id&quot;]: row[&quot;score&quot;] for row in rows},
+            {
+                &quot;S005&quot;: 0.501623,
+                &quot;S006&quot;: 0.302765,
+                &quot;S007&quot;: 0.781539,
+                &quot;S009&quot;: 0.620732,
+                &quot;S010&quot;: 0.414951,
+                &quot;S011&quot;: 0.18009,
+                &quot;S012&quot;: 0.555921,
+                &quot;S013&quot;: 0.392083,
+            },
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;score_summary_by_split&quot;][&quot;validation&quot;],
+            {&quot;row_count&quot;: 3, &quot;min&quot;: 0.302765, &quot;max&quot;: 0.781539, &quot;mean&quot;: 0.528642},
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;score_summary_by_split&quot;][&quot;test&quot;],
+            {&quot;row_count&quot;: 5, &quot;min&quot;: 0.18009, &quot;max&quot;: 0.620732, &quot;mean&quot;: 0.432755},
+        )
+
+    def test_preprocessing_state_is_embedded_and_fit_on_train_only(self) -&gt; None:
+        report = self.audit()
+        state = report[&quot;preprocessing_state&quot;]
+
+        self.assertEqual(state[&quot;fit_row_count&quot;], 4)
+        self.assertEqual(state[&quot;numeric_features&quot;][&quot;sessions_14d&quot;][&quot;fill_value&quot;], 4.0)
+        self.assertEqual(state[&quot;numeric_features&quot;][&quot;sessions_14d&quot;][&quot;mean&quot;], 4.5)
+        self.assertEqual(state[&quot;numeric_features&quot;][&quot;sessions_14d&quot;][&quot;scale&quot;], 2.179449)
+        self.assertEqual(state[&quot;numeric_features&quot;][&quot;days_since_signup&quot;][&quot;mean&quot;], 7.0)
+        self.assertEqual(
+            state[&quot;categorical_features&quot;][&quot;acquisition_channel&quot;][&quot;observed_train_categories&quot;],
+            [&quot;organic&quot;, &quot;paid_search&quot;, &quot;referral&quot;],
+        )
+        self.assertEqual(
+            state[&quot;categorical_features&quot;][&quot;acquisition_channel&quot;][&quot;encoded_categories&quot;],
+            [&quot;organic&quot;, &quot;paid_search&quot;, &quot;referral&quot;, &quot;__missing__&quot;, &quot;__unknown__&quot;],
+        )
+
+    def test_unknown_validation_and_test_categories_are_audited(self) -&gt; None:
+        report = self.audit()
+        unknown = report[&quot;summary&quot;][&quot;unknown_category_events&quot;]
+
+        self.assertEqual(len(unknown), 2)
+        self.assertEqual({item[&quot;value&quot;] for item in unknown}, {&quot;influencer&quot;, &quot;partnership&quot;})
+        warning = check(report, &quot;pipeline_unknown_categories_bucketed&quot;)
+        self.assertEqual(warning[&quot;severity&quot;], &quot;warning&quot;)
+        self.assertFalse(warning[&quot;valid&quot;])
+        self.assertEqual(warning[&quot;observed&quot;], 2)
+
+    def test_code_example_writes_report_predictions_and_serialized_spec(self) -&gt; None:
+        report_path = LESSON_ROOT / &quot;outputs&quot; / &quot;pipeline_report.json&quot;
+        predictions_path = LESSON_ROOT / &quot;outputs&quot; / &quot;pipeline_predictions.csv&quot;
+        serialized_path = LESSON_ROOT / &quot;outputs&quot; / &quot;pipeline_serialized_spec.json&quot;
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;pipeline_id&quot;], &quot;trial-churn-sklearn-pipeline-v0&quot;)
+        self.assertEqual(payload[&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(payload[&quot;prediction_row_count&quot;], 8)
+        self.assertEqual(payload[&quot;transformed_feature_count&quot;], 23)
+        self.assertEqual(payload[&quot;validation_score_mean&quot;], 0.528642)
+        self.assertEqual(payload[&quot;test_score_mean&quot;], 0.432755)
+        self.assertEqual(
+            read_json(report_path)[&quot;summary&quot;][&quot;readiness_status&quot;],
+            &quot;ready_for_column_transformer_lesson&quot;,
+        )
+        self.assertEqual(len(read_csv(predictions_path)), 8)
+        self.assertEqual(read_json(serialized_path)[&quot;steps&quot;][1][&quot;class&quot;], &quot;LogisticRegression&quot;)
+
+    def test_data_generator_check_rebuilds_committed_pipeline_inputs(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, GENERATOR, &quot;--check&quot;, &quot;--output&quot;, DATA_ROOT],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(&quot;reproducible&quot;, result.stdout)
+
+    def test_pipeline_fit_split_cannot_be_validation(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;fit_split&quot;] = &quot;validation&quot;
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;fit_split&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;blocked_before_pipeline_fit&quot;)
+
+    def test_external_preprocessed_matrix_input_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;preprocessing_location&quot;] = &quot;external_preprocessed_matrix&quot;
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;preprocessing_location&quot;)
+
+    def test_prediction_splits_must_be_validation_and_test_only(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;predict_splits&quot;] = [&quot;train&quot;, &quot;validation&quot;]
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;predict_splits&quot;)
+
+    def test_pipeline_step_order_is_part_of_the_contract(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;steps&quot;] = list(reversed(spec[&quot;steps&quot;]))
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;steps&quot;)
+
+    def test_estimator_must_be_declared_as_logistic_regression(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;steps&quot;][1][&quot;kind&quot;] = &quot;decision_tree&quot;
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;steps.estimator.kind&quot;)
+
+    def test_estimator_requires_fixed_random_state(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            del spec[&quot;steps&quot;][1][&quot;params&quot;][&quot;random_state&quot;]
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+
+            report = self.audit(root)
+
+        contract = check(report, &quot;pipeline_spec_declares_single_safe_pipeline&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;sample&quot;][0][&quot;field&quot;], &quot;steps.estimator.params.random_state&quot;)
+
+    def test_missing_feature_row_blocks_fit_before_pipeline_is_built(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = [
+                row
+                for row in read_csv(root / &quot;ml_raw_features.csv&quot;)
+                if row[&quot;snapshot_id&quot;] != &quot;S006&quot;
+            ]
+            write_csv(root / &quot;ml_raw_features.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        population = check(report, &quot;raw_features_cover_pipeline_population&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(population[&quot;valid&quot;])
+        self.assertEqual(population[&quot;sample&quot;][0][&quot;reason&quot;], &quot;manifest rows missing features&quot;)
+        self.assertIn(&quot;S006&quot;, population[&quot;sample&quot;][0][&quot;sample&quot;])
+
+    def test_duplicate_feature_row_blocks_pipeline(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_raw_features.csv&quot;)
+            rows.append(dict(rows[0]))
+            write_csv(root / &quot;ml_raw_features.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        population = check(report, &quot;raw_features_cover_pipeline_population&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(population[&quot;sample&quot;][0][&quot;reason&quot;], &quot;duplicate feature rows&quot;)
+
+    def test_forbidden_target_column_in_raw_features_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_raw_features.csv&quot;)
+            for row in rows:
+                row[&quot;churned_14d&quot;] = &quot;false&quot;
+            write_csv(root / &quot;ml_raw_features.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        population = check(report, &quot;raw_features_cover_pipeline_population&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(population[&quot;sample&quot;][0][&quot;reason&quot;], &quot;forbidden columns present&quot;)
+        self.assertIn(&quot;churned_14d&quot;, population[&quot;sample&quot;][0][&quot;sample&quot;])
+
+    def test_labels_must_be_complete_for_audited_splits(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_labels.csv&quot;)
+            rows[0][&quot;label_window_complete&quot;] = &quot;false&quot;
+            write_csv(root / &quot;ml_labels.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        labels = check(report, &quot;labels_support_pipeline_training_and_prediction_audit&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(labels[&quot;sample&quot;][0][&quot;reason&quot;], &quot;label window is incomplete&quot;)
+
+    def test_train_split_must_contain_both_classes_for_logistic_regression(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            rows = read_csv(root / &quot;ml_labels.csv&quot;)
+            for row in rows:
+                if row[&quot;snapshot_id&quot;] in {&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;}:
+                    row[&quot;churned_14d&quot;] = &quot;false&quot;
+            write_csv(root / &quot;ml_labels.csv&quot;, rows)
+
+            report = self.audit(root)
+
+        train_classes = check(report, &quot;train_split_has_both_classes_for_estimator&quot;)
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertFalse(train_classes[&quot;valid&quot;])
+        self.assertEqual(train_classes[&quot;observed&quot;], [0])
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_pipeline(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            root = self.copy_profile(Path(directory))
+            spec = read_json(root / &quot;pipeline_spec.json&quot;)
+            spec[&quot;fit_split&quot;] = &quot;test&quot;
+            write_json(root / &quot;pipeline_spec.json&quot;, spec)
+            output = Path(directory) / &quot;report.json&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--spec&quot;,
+                    root / &quot;problem_spec.json&quot;,
+                    &quot;--preprocessing-contract&quot;,
+                    root / &quot;preprocessing_contract.json&quot;,
+                    &quot;--pipeline-spec&quot;,
+                    root / &quot;pipeline_spec.json&quot;,
+                    &quot;--features&quot;,
+                    root / &quot;ml_raw_features.csv&quot;,
+                    &quot;--labels&quot;,
+                    root / &quot;ml_labels.csv&quot;,
+                    &quot;--manifest&quot;,
+                    root / &quot;ml_split_manifest.csv&quot;,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            payload = read_json(output)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(payload[&quot;valid&quot;])
+        self.assertIn(
+            &quot;pipeline_spec_declares_single_safe_pipeline&quot;, payload[&quot;summary&quot;][&quot;blocking_errors&quot;]
+        )
+
+    def test_cli_can_fail_on_warning_for_strict_gate(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--spec&quot;,
+                DATA_ROOT / &quot;problem_spec.json&quot;,
+                &quot;--preprocessing-contract&quot;,
+                DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+                &quot;--pipeline-spec&quot;,
+                DATA_ROOT / &quot;pipeline_spec.json&quot;,
+                &quot;--features&quot;,
+                DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+                &quot;--labels&quot;,
+                DATA_ROOT / &quot;ml_labels.csv&quot;,
+                &quot;--manifest&quot;,
+                DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+                &quot;--fail-on-warning&quot;,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(&quot;pipeline_unknown_categories_bucketed&quot;, result.stdout)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+OUTPUT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+sys.path.insert(0, str(OUTPUT_ROOT))
+
+from pipeline_runner import run  # noqa: E402
+
+
+def main() -&gt; None:
+    report = run(
+        spec_path=DATA_ROOT / &quot;problem_spec.json&quot;,
+        preprocessing_contract_path=DATA_ROOT / &quot;preprocessing_contract.json&quot;,
+        pipeline_spec_path=DATA_ROOT / &quot;pipeline_spec.json&quot;,
+        features_path=DATA_ROOT / &quot;ml_raw_features.csv&quot;,
+        labels_path=DATA_ROOT / &quot;ml_labels.csv&quot;,
+        manifest_path=DATA_ROOT / &quot;ml_split_manifest.csv&quot;,
+        predictions_output_path=OUTPUT_ROOT / &quot;pipeline_predictions.csv&quot;,
+        serialized_spec_output_path=OUTPUT_ROOT / &quot;pipeline_serialized_spec.json&quot;,
+    )
+    output = OUTPUT_ROOT / &quot;pipeline_report.json&quot;
+    output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+    summary = {
+        &quot;audit_valid&quot;: report[&quot;valid&quot;],
+        &quot;problem_id&quot;: report[&quot;problem_id&quot;],
+        &quot;pipeline_id&quot;: report[&quot;summary&quot;][&quot;pipeline_id&quot;],
+        &quot;sklearn_version&quot;: report[&quot;summary&quot;][&quot;sklearn_version&quot;],
+        &quot;fit_split&quot;: report[&quot;summary&quot;][&quot;fit_split&quot;],
+        &quot;fit_row_count&quot;: report[&quot;summary&quot;][&quot;fit_row_count&quot;],
+        &quot;prediction_row_count&quot;: report[&quot;summary&quot;][&quot;prediction_row_count&quot;],
+        &quot;transformed_feature_count&quot;: report[&quot;summary&quot;][&quot;transformed_feature_count&quot;],
+        &quot;validation_score_mean&quot;: report[&quot;summary&quot;][&quot;score_summary_by_split&quot;][&quot;validation&quot;][&quot;mean&quot;],
+        &quot;test_score_mean&quot;: report[&quot;summary&quot;][&quot;score_summary_by_split&quot;][&quot;test&quot;][&quot;mean&quot;],
+        &quot;blocking_errors&quot;: report[&quot;summary&quot;][&quot;blocking_errors&quot;],
+        &quot;warnings&quot;: report[&quot;summary&quot;][&quot;warnings&quot;],
+        &quot;readiness_status&quot;: report[&quot;summary&quot;][&quot;readiness_status&quot;],
+    }
+    print(json.dumps(summary, ensure_ascii=False))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;pipeline-runner&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/pipeline_runner.py&quot;,
+  &quot;description&quot;: &quot;Fit-ит scikit-learn Pipeline с train-fitted preprocessing и LogisticRegression, строит validation/test probability scores, serialized spec и audit report.&quot;,
+  &quot;usage&quot;: &quot;python outputs/pipeline_runner.py --spec ../data/tiny/problem_spec.json --preprocessing-contract ../data/tiny/preprocessing_contract.json --pipeline-spec ../data/tiny/pipeline_spec.json --features ../data/tiny/ml_raw_features.csv --labels ../data/tiny/ml_labels.csv --manifest ../data/tiny/ml_split_manifest.csv --output outputs/pipeline_report.json --predictions-output outputs/pipeline_predictions.csv --serialized-spec-output outputs/pipeline_serialized_spec.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/pipeline_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,pipeline_id,split,score,score_type,trained_on_split,generated_at
+S005,trial-churn-sklearn-pipeline-v0,validation,0.501623,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S006,trial-churn-sklearn-pipeline-v0,validation,0.302765,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S007,trial-churn-sklearn-pipeline-v0,validation,0.781539,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S009,trial-churn-sklearn-pipeline-v0,test,0.620732,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S010,trial-churn-sklearn-pipeline-v0,test,0.414951,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S011,trial-churn-sklearn-pipeline-v0,test,0.18009,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S012,trial-churn-sklearn-pipeline-v0,test,0.555921,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+S013,trial-churn-sklearn-pipeline-v0,test,0.392083,churn_risk_probability,train,2026-07-02T09:00:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/outputs/pipeline_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/pipeline_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;fit_row_count&quot;: 4,
+    &quot;predict_splits&quot;: [
+      &quot;validation&quot;,
+      &quot;test&quot;
+    ],
+    &quot;prediction_row_count&quot;: 8,
+    &quot;transformed_feature_count&quot;: 23,
+    &quot;estimator&quot;: &quot;LogisticRegression&quot;,
+    &quot;estimator_classes&quot;: [
+      0,
+      1
+    ],
+    &quot;score_summary_by_split&quot;: {
+      &quot;validation&quot;: {
+        &quot;row_count&quot;: 3,
+        &quot;min&quot;: 0.302765,
+        &quot;max&quot;: 0.781539,
+        &quot;mean&quot;: 0.528642
+      },
+      &quot;test&quot;: {
+        &quot;row_count&quot;: 5,
+        &quot;min&quot;: 0.18009,
+        &quot;max&quot;: 0.620732,
+        &quot;mean&quot;: 0.432755
+      }
+    },
+    &quot;unknown_category_events&quot;: [
+      {
+        &quot;snapshot_id&quot;: &quot;S006&quot;,
+        &quot;split&quot;: &quot;validation&quot;,
+        &quot;feature&quot;: &quot;acquisition_channel&quot;,
+        &quot;value&quot;: &quot;influencer&quot;
+      },
+      {
+        &quot;snapshot_id&quot;: &quot;S010&quot;,
+        &quot;split&quot;: &quot;test&quot;,
+        &quot;feature&quot;: &quot;acquisition_channel&quot;,
+        &quot;value&quot;: &quot;partnership&quot;
+      }
+    ],
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;pipeline_unknown_categories_bucketed&quot;,
+      &quot;tiny_pipeline_training_sample_expected&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_column_transformer_lesson&quot;
+  },
+  &quot;serialized_spec&quot;: {
+    &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+    &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+    &quot;steps&quot;: [
+      {
+        &quot;name&quot;: &quot;preprocess&quot;,
+        &quot;class&quot;: &quot;ContractPreprocessor&quot;,
+        &quot;contract_id&quot;: &quot;trial-churn-preprocessing-v0&quot;
+      },
+      {
+        &quot;name&quot;: &quot;estimator&quot;,
+        &quot;class&quot;: &quot;LogisticRegression&quot;,
+        &quot;params&quot;: {
+          &quot;C&quot;: 1.0,
+          &quot;class_weight&quot;: null,
+          &quot;dual&quot;: false,
+          &quot;fit_intercept&quot;: true,
+          &quot;intercept_scaling&quot;: 1,
+          &quot;l1_ratio&quot;: 0.0,
+          &quot;max_iter&quot;: 200,
+          &quot;n_jobs&quot;: null,
+          &quot;penalty&quot;: &quot;deprecated&quot;,
+          &quot;random_state&quot;: 0,
+          &quot;solver&quot;: &quot;liblinear&quot;,
+          &quot;tol&quot;: 0.0001,
+          &quot;verbose&quot;: 0,
+          &quot;warm_start&quot;: false
+        },
+        &quot;classes&quot;: [
+          0,
+          1
+        ],
+        &quot;coef_shape&quot;: [
+          1,
+          23
+        ],
+        &quot;intercept&quot;: [
+          -0.063754
+        ]
+      }
+    ],
+    &quot;feature_names&quot;: [
+      &quot;num__sessions_14d&quot;,
+      &quot;num__active_days_14d&quot;,
+      &quot;num__support_tickets_14d&quot;,
+      &quot;num__revenue_30d&quot;,
+      &quot;num__days_since_signup&quot;,
+      &quot;cat__plan_id=trial_basic&quot;,
+      &quot;cat__plan_id=trial_pro&quot;,
+      &quot;cat__plan_id=__missing__&quot;,
+      &quot;cat__plan_id=__unknown__&quot;,
+      &quot;cat__platform=android&quot;,
+      &quot;cat__platform=ios&quot;,
+      &quot;cat__platform=web&quot;,
+      &quot;cat__platform=__missing__&quot;,
+      &quot;cat__platform=__unknown__&quot;,
+      &quot;cat__country=KZ&quot;,
+      &quot;cat__country=RU&quot;,
+      &quot;cat__country=__missing__&quot;,
+      &quot;cat__country=__unknown__&quot;,
+      &quot;cat__acquisition_channel=organic&quot;,
+      &quot;cat__acquisition_channel=paid_search&quot;,
+      &quot;cat__acquisition_channel=referral&quot;,
+      &quot;cat__acquisition_channel=__missing__&quot;,
+      &quot;cat__acquisition_channel=__unknown__&quot;
+    ],
+    &quot;fit_trace&quot;: [
+      {
+        &quot;event&quot;: &quot;pipeline.fit&quot;,
+        &quot;split&quot;: &quot;train&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ],
+        &quot;row_count&quot;: 4,
+        &quot;fits_preprocessing&quot;: true,
+        &quot;fits_estimator&quot;: true
+      },
+      {
+        &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+        &quot;split&quot;: &quot;validation&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;row_count&quot;: 3,
+        &quot;uses_fitted_preprocessing&quot;: true,
+        &quot;fits_anything&quot;: false
+      },
+      {
+        &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+        &quot;split&quot;: &quot;test&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S009&quot;,
+          &quot;S010&quot;,
+          &quot;S011&quot;,
+          &quot;S012&quot;,
+          &quot;S013&quot;
+        ],
+        &quot;row_count&quot;: 5,
+        &quot;uses_fitted_preprocessing&quot;: true,
+        &quot;fits_anything&quot;: false
+      }
+    ]
+  },
+  &quot;preprocessing_state&quot;: {
+    &quot;numeric_features&quot;: {
+      &quot;sessions_14d&quot;: {
+        &quot;imputation_strategy&quot;: &quot;median&quot;,
+        &quot;fill_value&quot;: 4.0,
+        &quot;mean&quot;: 4.5,
+        &quot;scale&quot;: 2.179449,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;active_days_14d&quot;: {
+        &quot;imputation_strategy&quot;: &quot;median&quot;,
+        &quot;fill_value&quot;: 2.5,
+        &quot;mean&quot;: 2.75,
+        &quot;scale&quot;: 1.47902,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;support_tickets_14d&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: 0.0,
+        &quot;mean&quot;: 0.75,
+        &quot;scale&quot;: 0.829156,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;revenue_30d&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: 0.0,
+        &quot;mean&quot;: 247.5,
+        &quot;scale&quot;: 428.682575,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;days_since_signup&quot;: {
+        &quot;imputation_strategy&quot;: &quot;median&quot;,
+        &quot;fill_value&quot;: 7.0,
+        &quot;mean&quot;: 7.0,
+        &quot;scale&quot;: 2.236068,
+        &quot;source_split&quot;: &quot;train&quot;
+      }
+    },
+    &quot;categorical_features&quot;: {
+      &quot;plan_id&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: &quot;__missing__&quot;,
+        &quot;observed_train_categories&quot;: [
+          &quot;trial_basic&quot;,
+          &quot;trial_pro&quot;
+        ],
+        &quot;encoded_categories&quot;: [
+          &quot;trial_basic&quot;,
+          &quot;trial_pro&quot;,
+          &quot;__missing__&quot;,
+          &quot;__unknown__&quot;
+        ],
+        &quot;handle_unknown&quot;: &quot;use_unknown_bucket&quot;,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;platform&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: &quot;__missing__&quot;,
+        &quot;observed_train_categories&quot;: [
+          &quot;android&quot;,
+          &quot;ios&quot;,
+          &quot;web&quot;
+        ],
+        &quot;encoded_categories&quot;: [
+          &quot;android&quot;,
+          &quot;ios&quot;,
+          &quot;web&quot;,
+          &quot;__missing__&quot;,
+          &quot;__unknown__&quot;
+        ],
+        &quot;handle_unknown&quot;: &quot;use_unknown_bucket&quot;,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;country&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: &quot;__missing__&quot;,
+        &quot;observed_train_categories&quot;: [
+          &quot;KZ&quot;,
+          &quot;RU&quot;
+        ],
+        &quot;encoded_categories&quot;: [
+          &quot;KZ&quot;,
+          &quot;RU&quot;,
+          &quot;__missing__&quot;,
+          &quot;__unknown__&quot;
+        ],
+        &quot;handle_unknown&quot;: &quot;use_unknown_bucket&quot;,
+        &quot;source_split&quot;: &quot;train&quot;
+      },
+      &quot;acquisition_channel&quot;: {
+        &quot;imputation_strategy&quot;: &quot;constant&quot;,
+        &quot;fill_value&quot;: &quot;__missing__&quot;,
+        &quot;observed_train_categories&quot;: [
+          &quot;organic&quot;,
+          &quot;paid_search&quot;,
+          &quot;referral&quot;
+        ],
+        &quot;encoded_categories&quot;: [
+          &quot;organic&quot;,
+          &quot;paid_search&quot;,
+          &quot;referral&quot;,
+          &quot;__missing__&quot;,
+          &quot;__unknown__&quot;
+        ],
+        &quot;handle_unknown&quot;: &quot;use_unknown_bucket&quot;,
+        &quot;source_split&quot;: &quot;train&quot;
+      }
+    },
+    &quot;feature_names&quot;: [
+      &quot;num__sessions_14d&quot;,
+      &quot;num__active_days_14d&quot;,
+      &quot;num__support_tickets_14d&quot;,
+      &quot;num__revenue_30d&quot;,
+      &quot;num__days_since_signup&quot;,
+      &quot;cat__plan_id=trial_basic&quot;,
+      &quot;cat__plan_id=trial_pro&quot;,
+      &quot;cat__plan_id=__missing__&quot;,
+      &quot;cat__plan_id=__unknown__&quot;,
+      &quot;cat__platform=android&quot;,
+      &quot;cat__platform=ios&quot;,
+      &quot;cat__platform=web&quot;,
+      &quot;cat__platform=__missing__&quot;,
+      &quot;cat__platform=__unknown__&quot;,
+      &quot;cat__country=KZ&quot;,
+      &quot;cat__country=RU&quot;,
+      &quot;cat__country=__missing__&quot;,
+      &quot;cat__country=__unknown__&quot;,
+      &quot;cat__acquisition_channel=organic&quot;,
+      &quot;cat__acquisition_channel=paid_search&quot;,
+      &quot;cat__acquisition_channel=referral&quot;,
+      &quot;cat__acquisition_channel=__missing__&quot;,
+      &quot;cat__acquisition_channel=__unknown__&quot;
+    ],
+    &quot;fit_row_count&quot;: 4
+  },
+  &quot;predictions&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.501623,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.302765,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.781539,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S009&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.620732,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.414951,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S011&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.18009,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S012&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.555921,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S013&quot;,
+      &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.392083,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-02T09:00:00+03:00&quot;
+    }
+  ],
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;pipeline_spec_declares_single_safe_pipeline&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+        &quot;steps&quot;: [
+          &quot;preprocess&quot;,
+          &quot;estimator&quot;
+        ],
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;predict_splits&quot;: [
+          &quot;validation&quot;,
+          &quot;test&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;single sklearn Pipeline contract&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;split_manifest_supports_pipeline_roles&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;test&quot;: 5,
+        &quot;train&quot;: 4,
+        &quot;validation&quot;: 3
+      },
+      &quot;expected&quot;: &quot;manifest supports Pipeline fit and prediction boundaries&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;raw_features_cover_pipeline_population&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 12,
+        &quot;columns&quot;: [
+          &quot;acquisition_channel&quot;,
+          &quot;active_days_14d&quot;,
+          &quot;country&quot;,
+          &quot;days_since_signup&quot;,
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;revenue_30d&quot;,
+          &quot;sessions_14d&quot;,
+          &quot;snapshot_id&quot;,
+          &quot;support_tickets_14d&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;raw features match split population&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;labels_support_pipeline_training_and_prediction_audit&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 12,
+        &quot;target&quot;: &quot;churned_14d&quot;
+      },
+      &quot;expected&quot;: &quot;labels are complete for training and audit&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;pipeline_fit_uses_train_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;fit_snapshot_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;Pipeline.fit used train rows only&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;pipeline_steps_are_ordered_preprocess_then_estimator&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;preprocess&quot;,
+        &quot;estimator&quot;
+      ],
+      &quot;expected&quot;: [
+        &quot;preprocess&quot;,
+        &quot;estimator&quot;
+      ],
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;prediction_report_has_validation_and_test_scores_only&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;rows&quot;: 8,
+        &quot;splits&quot;: [
+          &quot;validation&quot;,
+          &quot;test&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;validation/test probability scores only&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;pipeline_unknown_categories_bucketed&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 2,
+      &quot;expected&quot;: &quot;unknown validation/test categories routed by fitted preprocessor&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;snapshot_id&quot;: &quot;S006&quot;,
+          &quot;split&quot;: &quot;validation&quot;,
+          &quot;feature&quot;: &quot;acquisition_channel&quot;,
+          &quot;value&quot;: &quot;influencer&quot;
+        },
+        {
+          &quot;snapshot_id&quot;: &quot;S010&quot;,
+          &quot;split&quot;: &quot;test&quot;,
+          &quot;feature&quot;: &quot;acquisition_channel&quot;,
+          &quot;value&quot;: &quot;partnership&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_pipeline_training_sample_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: &quot;&gt;= 20 train rows for production estimator fit&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/outputs/pipeline_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/pipeline_runner.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+import math
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import sklearn
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.utils.validation import check_is_fitted
+
+REQUIRED_MANIFEST_COLUMNS = {
+    &quot;snapshot_id&quot;,
+    &quot;user_id&quot;,
+    &quot;prediction_time&quot;,
+    &quot;split&quot;,
+    &quot;split_order&quot;,
+    &quot;role&quot;,
+    &quot;assigned_by_policy&quot;,
+}
+REQUIRED_LABEL_COLUMNS = {
+    &quot;snapshot_id&quot;,
+    &quot;target_name&quot;,
+    &quot;label_observed_at&quot;,
+    &quot;churned_14d&quot;,
+    &quot;label_window_complete&quot;,
+}
+ROLE_BY_SPLIT = {
+    &quot;train&quot;: &quot;fit_preprocessing_and_estimator&quot;,
+    &quot;validation&quot;: &quot;model_selection_and_threshold_selection&quot;,
+    &quot;test&quot;: &quot;final_once_only_evaluation&quot;,
+}
+EXPECTED_STEPS = [&quot;preprocess&quot;, &quot;estimator&quot;]
+GENERATED_AT = &quot;2026-07-02T09:00:00+03:00&quot;
+TINY_TRAIN_WARNING_THRESHOLD = 20
+
+
+class PipelineRunnerError(ValueError):
+    &quot;&quot;&quot;Raised when pipeline runner inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    value = json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+    if not isinstance(value, dict):
+        raise PipelineRunnerError(f&quot;{path} must contain a JSON object&quot;)
+    return value
+
+
+def read_csv(path: Path) -&gt; tuple[list[dict[str, str]], list[str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        reader = csv.DictReader(source)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def is_missing(value: Any) -&gt; bool:
+    if value is None:
+        return True
+    if isinstance(value, float) and math.isnan(value):
+        return True
+    return str(value).strip() == &quot;&quot;
+
+
+def parse_bool(value: Any) -&gt; bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized == &quot;true&quot;:
+            return True
+        if normalized == &quot;false&quot;:
+            return False
+    raise PipelineRunnerError(f&quot;expected boolean, got {value!r}&quot;)
+
+
+def parse_int(value: Any) -&gt; int:
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise PipelineRunnerError(f&quot;expected integer, got {value!r}&quot;) from error
+
+
+def parse_float(value: Any) -&gt; float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as error:
+        raise PipelineRunnerError(f&quot;expected finite number, got {value!r}&quot;) from error
+    if not math.isfinite(parsed):
+        raise PipelineRunnerError(f&quot;expected finite number, got {value!r}&quot;)
+    return parsed
+
+
+def rounded(value: float) -&gt; float:
+    return round(float(value), 6)
+
+
+def median(values: list[float]) -&gt; float:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / 2
+
+
+def target_column(spec: dict[str, Any]) -&gt; str:
+    target_definition = spec.get(&quot;target_definition&quot;)
+    if isinstance(target_definition, dict) and target_definition.get(&quot;target_column&quot;):
+        return str(target_definition[&quot;target_column&quot;])
+    return &quot;churned_14d&quot;
+
+
+def feature_names(contract: dict[str, Any]) -&gt; tuple[list[str], list[str]]:
+    numeric = [
+        str(item[&quot;name&quot;])
+        for item in contract.get(&quot;numeric_features&quot;, [])
+        if isinstance(item, dict) and item.get(&quot;name&quot;)
+    ]
+    categorical = [
+        str(item[&quot;name&quot;])
+        for item in contract.get(&quot;categorical_features&quot;, [])
+        if isinstance(item, dict) and item.get(&quot;name&quot;)
+    ]
+    return numeric, categorical
+
+
+def duplicate_values(values: list[str]) -&gt; list[str]:
+    return sorted(value for value, count in Counter(values).items() if count &gt; 1)
+
+
+def validate_pipeline_spec(
+    *,
+    problem_spec: dict[str, Any],
+    preprocessing_contract: dict[str, Any],
+    pipeline_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+
+    if pipeline_spec.get(&quot;problem_id&quot;) != problem_spec.get(&quot;problem_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;problem_id&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;problem_id&quot;),
+                &quot;expected&quot;: problem_spec.get(&quot;problem_id&quot;),
+            }
+        )
+    if pipeline_spec.get(&quot;preprocessing_contract_id&quot;) != preprocessing_contract.get(&quot;contract_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;preprocessing_contract_id&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;preprocessing_contract_id&quot;),
+                &quot;expected&quot;: preprocessing_contract.get(&quot;contract_id&quot;),
+            }
+        )
+    if pipeline_spec.get(&quot;fit_split&quot;) != &quot;train&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;fit_split&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;fit_split&quot;),
+                &quot;expected&quot;: &quot;train&quot;,
+            }
+        )
+    if set(pipeline_spec.get(&quot;predict_splits&quot;) or []) != {&quot;validation&quot;, &quot;test&quot;}:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;predict_splits&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;predict_splits&quot;),
+                &quot;expected&quot;: [&quot;validation&quot;, &quot;test&quot;],
+            }
+        )
+    if pipeline_spec.get(&quot;preprocessing_location&quot;) != &quot;inside_pipeline&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;preprocessing_location&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;preprocessing_location&quot;),
+                &quot;expected&quot;: &quot;inside_pipeline&quot;,
+            }
+        )
+    if pipeline_spec.get(&quot;score_type&quot;) != &quot;churn_risk_probability&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;score_type&quot;,
+                &quot;observed&quot;: pipeline_spec.get(&quot;score_type&quot;),
+                &quot;expected&quot;: &quot;churn_risk_probability&quot;,
+            }
+        )
+
+    steps = pipeline_spec.get(&quot;steps&quot;)
+    step_names = [step.get(&quot;name&quot;) for step in steps] if isinstance(steps, list) else []
+    if step_names != EXPECTED_STEPS:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;steps&quot;,
+                &quot;observed&quot;: step_names,
+                &quot;expected&quot;: EXPECTED_STEPS,
+            }
+        )
+    else:
+        preprocess_step, estimator_step = steps
+        if preprocess_step.get(&quot;kind&quot;) != &quot;contract_preprocessor&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;steps.preprocess.kind&quot;,
+                    &quot;observed&quot;: preprocess_step.get(&quot;kind&quot;),
+                    &quot;expected&quot;: &quot;contract_preprocessor&quot;,
+                }
+            )
+        if estimator_step.get(&quot;kind&quot;) != &quot;logistic_regression&quot;:
+            errors.append(
+                {
+                    &quot;field&quot;: &quot;steps.estimator.kind&quot;,
+                    &quot;observed&quot;: estimator_step.get(&quot;kind&quot;),
+                    &quot;expected&quot;: &quot;logistic_regression&quot;,
+                }
+            )
+        params = estimator_step.get(&quot;params&quot;) if isinstance(estimator_step, dict) else {}
+        if not isinstance(params, dict):
+            errors.append({&quot;field&quot;: &quot;steps.estimator.params&quot;, &quot;reason&quot;: &quot;object required&quot;})
+        else:
+            if params.get(&quot;solver&quot;) != &quot;liblinear&quot;:
+                errors.append(
+                    {
+                        &quot;field&quot;: &quot;steps.estimator.params.solver&quot;,
+                        &quot;observed&quot;: params.get(&quot;solver&quot;),
+                        &quot;expected&quot;: &quot;liblinear&quot;,
+                    }
+                )
+            if params.get(&quot;random_state&quot;) is None:
+                errors.append(
+                    {
+                        &quot;field&quot;: &quot;steps.estimator.params.random_state&quot;,
+                        &quot;reason&quot;: &quot;fixed random_state required&quot;,
+                    }
+                )
+
+    audit_policy = pipeline_spec.get(&quot;audit_policy&quot;)
+    if not isinstance(audit_policy, dict):
+        errors.append({&quot;field&quot;: &quot;audit_policy&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (
+            &quot;require_single_pipeline_object&quot;,
+            &quot;fit_preprocessing_and_estimator_together&quot;,
+            &quot;forbid_external_preprocessed_matrix_input&quot;,
+            &quot;forbid_fit_on_validation_or_test&quot;,
+        ):
+            if audit_policy.get(field) is not True:
+                errors.append(
+                    {
+                        &quot;field&quot;: f&quot;audit_policy.{field}&quot;,
+                        &quot;observed&quot;: audit_policy.get(field),
+                        &quot;expected&quot;: True,
+                    }
+                )
+
+    output = pipeline_spec.get(&quot;output&quot;)
+    if not isinstance(output, dict):
+        errors.append({&quot;field&quot;: &quot;output&quot;, &quot;reason&quot;: &quot;object required&quot;})
+    else:
+        for field in (&quot;prediction_file&quot;, &quot;report_file&quot;, &quot;serialized_spec_file&quot;):
+            if not output.get(field):
+                errors.append({&quot;field&quot;: f&quot;output.{field}&quot;, &quot;reason&quot;: &quot;required&quot;})
+
+    if errors:
+        return failed(
+            &quot;pipeline_spec_declares_single_safe_pipeline&quot;,
+            len(errors),
+            &quot;inside-pipeline preprocessing, train fit split, validation/test predictions&quot;,
+            errors,
+        )
+    return passed(
+        &quot;pipeline_spec_declares_single_safe_pipeline&quot;,
+        {
+            &quot;pipeline_id&quot;: pipeline_spec[&quot;pipeline_id&quot;],
+            &quot;steps&quot;: step_names,
+            &quot;fit_split&quot;: pipeline_spec[&quot;fit_split&quot;],
+            &quot;predict_splits&quot;: pipeline_spec[&quot;predict_splits&quot;],
+        },
+        &quot;single sklearn Pipeline contract&quot;,
+    )
+
+
+def validate_manifest(
+    rows: list[dict[str, str]], columns: list[str]
+) -&gt; tuple[dict[str, Any], list[dict[str, str]]]:
+    errors: list[dict[str, Any]] = []
+    missing_columns = sorted(REQUIRED_MANIFEST_COLUMNS - set(columns))
+    if missing_columns:
+        errors.append({&quot;reason&quot;: &quot;missing manifest columns&quot;, &quot;sample&quot;: missing_columns})
+
+    split_counts = Counter(row.get(&quot;split&quot;) for row in rows)
+    for split in (&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;):
+        if split_counts[split] == 0:
+            errors.append({&quot;reason&quot;: &quot;missing required split&quot;, &quot;split&quot;: split})
+    for row in rows:
+        split = row.get(&quot;split&quot;)
+        if split in ROLE_BY_SPLIT and row.get(&quot;role&quot;) != ROLE_BY_SPLIT[split]:
+            errors.append(
+                {
+                    &quot;snapshot_id&quot;: row.get(&quot;snapshot_id&quot;),
+                    &quot;field&quot;: &quot;role&quot;,
+                    &quot;observed&quot;: row.get(&quot;role&quot;),
+                    &quot;expected&quot;: ROLE_BY_SPLIT[split],
+                }
+            )
+
+    if errors:
+        return (
+            failed(
+                &quot;split_manifest_supports_pipeline_roles&quot;,
+                len(errors),
+                &quot;train fit role and validation/test prediction roles&quot;,
+                errors,
+            ),
+            rows,
+        )
+    return (
+        passed(
+            &quot;split_manifest_supports_pipeline_roles&quot;,
+            dict(sorted(split_counts.items())),
+            &quot;manifest supports Pipeline fit and prediction boundaries&quot;,
+        ),
+        rows,
+    )
+
+
+def validate_features(
+    feature_rows: list[dict[str, str]],
+    feature_columns: list[str],
+    manifest_rows: list[dict[str, str]],
+    preprocessing_contract: dict[str, Any],
+) -&gt; dict[str, Any]:
+    key = str(preprocessing_contract.get(&quot;key&quot;, &quot;snapshot_id&quot;))
+    numeric, categorical = feature_names(preprocessing_contract)
+    required_columns = {key, *numeric, *categorical}
+    errors: list[dict[str, Any]] = []
+
+    missing_columns = sorted(required_columns - set(feature_columns))
+    if missing_columns:
+        errors.append({&quot;reason&quot;: &quot;missing feature columns&quot;, &quot;sample&quot;: missing_columns})
+
+    forbidden_columns = sorted(
+        set(preprocessing_contract.get(&quot;forbidden_columns&quot;) or []) &amp; set(feature_columns)
+    )
+    if forbidden_columns:
+        errors.append({&quot;reason&quot;: &quot;forbidden columns present&quot;, &quot;sample&quot;: forbidden_columns})
+
+    row_keys = [row.get(key, &quot;&quot;) for row in feature_rows]
+    duplicates = duplicate_values(row_keys)
+    if duplicates:
+        errors.append({&quot;reason&quot;: &quot;duplicate feature rows&quot;, &quot;sample&quot;: duplicates[:5]})
+
+    manifest_ids = {row[&quot;snapshot_id&quot;] for row in manifest_rows}
+    feature_ids = set(row_keys)
+    missing_rows = sorted(manifest_ids - feature_ids)
+    extra_rows = sorted(feature_ids - manifest_ids)
+    if missing_rows:
+        errors.append({&quot;reason&quot;: &quot;manifest rows missing features&quot;, &quot;sample&quot;: missing_rows[:5]})
+    if extra_rows:
+        errors.append({&quot;reason&quot;: &quot;feature rows outside split manifest&quot;, &quot;sample&quot;: extra_rows[:5]})
+
+    if errors:
+        return failed(
+            &quot;raw_features_cover_pipeline_population&quot;,
+            len(errors),
+            &quot;one raw feature row per split manifest row and no forbidden columns&quot;,
+            errors,
+        )
+    return passed(
+        &quot;raw_features_cover_pipeline_population&quot;,
+        {&quot;rows&quot;: len(feature_rows), &quot;columns&quot;: sorted(required_columns)},
+        &quot;raw features match split population&quot;,
+    )
+
+
+def validate_labels(
+    labels: list[dict[str, str]],
+    columns: list[str],
+    manifest_rows: list[dict[str, str]],
+    problem_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    errors: list[dict[str, Any]] = []
+    missing_columns = sorted(REQUIRED_LABEL_COLUMNS - set(columns))
+    if missing_columns:
+        errors.append({&quot;reason&quot;: &quot;missing label columns&quot;, &quot;sample&quot;: missing_columns})
+
+    target = target_column(problem_spec)
+    label_by_id: dict[str, dict[str, str]] = {}
+    for row in labels:
+        snapshot_id = row.get(&quot;snapshot_id&quot;, &quot;&quot;)
+        if snapshot_id in label_by_id:
+            errors.append({&quot;reason&quot;: &quot;duplicate label row&quot;, &quot;snapshot_id&quot;: snapshot_id})
+        label_by_id[snapshot_id] = row
+
+    manifest_ids = {row[&quot;snapshot_id&quot;] for row in manifest_rows}
+    missing_labels = sorted(manifest_ids - set(label_by_id))
+    if missing_labels:
+        errors.append({&quot;reason&quot;: &quot;manifest rows missing labels&quot;, &quot;sample&quot;: missing_labels[:5]})
+
+    for snapshot_id in sorted(manifest_ids &amp; set(label_by_id)):
+        row = label_by_id[snapshot_id]
+        try:
+            parse_bool(row[target])
+            complete = parse_bool(row[&quot;label_window_complete&quot;])
+        except (KeyError, PipelineRunnerError) as error:
+            errors.append({&quot;snapshot_id&quot;: snapshot_id, &quot;reason&quot;: str(error)})
+            continue
+        if not complete:
+            errors.append({&quot;snapshot_id&quot;: snapshot_id, &quot;reason&quot;: &quot;label window is incomplete&quot;})
+
+    if errors:
+        return failed(
+            &quot;labels_support_pipeline_training_and_prediction_audit&quot;,
+            len(errors),
+            &quot;complete binary labels for all split rows&quot;,
+            errors,
+        )
+    return passed(
+        &quot;labels_support_pipeline_training_and_prediction_audit&quot;,
+        {&quot;rows&quot;: len(manifest_ids), &quot;target&quot;: target},
+        &quot;labels are complete for training and audit&quot;,
+    )
+
+
+def rows_by_id(rows: list[dict[str, str]], key: str = &quot;snapshot_id&quot;) -&gt; dict[str, dict[str, str]]:
+    return {row[key]: row for row in rows}
+
+
+def ordered_manifest(rows: list[dict[str, str]]) -&gt; list[dict[str, str]]:
+    return sorted(rows, key=lambda row: (parse_int(row[&quot;split_order&quot;]), row[&quot;snapshot_id&quot;]))
+
+
+def split_ids(manifest_rows: list[dict[str, str]], split: str) -&gt; list[str]:
+    return [row[&quot;snapshot_id&quot;] for row in ordered_manifest(manifest_rows) if row[&quot;split&quot;] == split]
+
+
+def make_frame(
+    snapshot_ids: list[str],
+    feature_rows_by_id: dict[str, dict[str, str]],
+    preprocessing_contract: dict[str, Any],
+) -&gt; pd.DataFrame:
+    numeric, categorical = feature_names(preprocessing_contract)
+    columns = numeric + categorical
+    rows = [
+        {column: feature_rows_by_id[snapshot_id][column] for column in columns}
+        for snapshot_id in snapshot_ids
+    ]
+    return pd.DataFrame(rows, index=snapshot_ids, columns=columns)
+
+
+def make_target(
+    snapshot_ids: list[str],
+    labels_by_id: dict[str, dict[str, str]],
+    problem_spec: dict[str, Any],
+) -&gt; np.ndarray:
+    target = target_column(problem_spec)
+    return np.array(
+        [int(parse_bool(labels_by_id[snapshot_id][target])) for snapshot_id in snapshot_ids]
+    )
+
+
+def imputation_value(feature: dict[str, Any], values: list[float]) -&gt; float:
+    impute = feature[&quot;impute&quot;]
+    strategy = impute[&quot;strategy&quot;]
+    if strategy == &quot;constant&quot;:
+        return parse_float(impute[&quot;fill_value&quot;])
+    if not values:
+        raise PipelineRunnerError(f&quot;{feature[&#x27;name&#x27;]} has no observed train values&quot;)
+    if strategy == &quot;median&quot;:
+        return median(values)
+    if strategy == &quot;mean&quot;:
+        return sum(values) / len(values)
+    raise PipelineRunnerError(f&quot;unknown imputation strategy {strategy!r}&quot;)
+
+
+class ContractPreprocessor(BaseEstimator, TransformerMixin):
+    &quot;&quot;&quot;A small sklearn-compatible transformer backed by preprocessing_contract.json.&quot;&quot;&quot;
+
+    def __init__(self, contract: dict[str, Any]):
+        self.contract = contract
+
+    def fit(self, X: pd.DataFrame, y: Any = None) -&gt; ContractPreprocessor:
+        numeric_features, categorical_features = feature_names(self.contract)
+        self.numeric_features_ = numeric_features
+        self.categorical_features_ = categorical_features
+        self.missing_bucket_ = str(self.contract[&quot;missing_category_bucket&quot;])
+        self.unknown_bucket_ = str(self.contract[&quot;unknown_category_bucket&quot;])
+        self.numeric_state_: dict[str, dict[str, float | str]] = {}
+        self.categorical_state_: dict[str, dict[str, Any]] = {}
+
+        for feature in self.contract[&quot;numeric_features&quot;]:
+            name = str(feature[&quot;name&quot;])
+            observed: list[float] = []
+            for value in X[name].tolist():
+                if is_missing(value):
+                    continue
+                observed.append(parse_float(value))
+            fill_value = imputation_value(feature, observed)
+            imputed = [
+                fill_value if is_missing(value) else parse_float(value)
+                for value in X[name].tolist()
+            ]
+            mean_value = float(np.mean(imputed))
+            scale = float(np.std(imputed))
+            if scale == 0.0:
+                scale = 1.0
+            self.numeric_state_[name] = {
+                &quot;imputation_strategy&quot;: feature[&quot;impute&quot;][&quot;strategy&quot;],
+                &quot;fill_value&quot;: fill_value,
+                &quot;mean&quot;: mean_value,
+                &quot;scale&quot;: scale,
+                &quot;source_split&quot;: &quot;train&quot;,
+            }
+
+        for feature in self.contract[&quot;categorical_features&quot;]:
+            name = str(feature[&quot;name&quot;])
+            fill_value = str(feature[&quot;impute&quot;][&quot;fill_value&quot;])
+            observed_train = [
+                fill_value if is_missing(value) else str(value) for value in X[name].tolist()
+            ]
+            categories = sorted(set(observed_train))
+            for special in (self.missing_bucket_, self.unknown_bucket_):
+                if special not in categories:
+                    categories.append(special)
+            self.categorical_state_[name] = {
+                &quot;imputation_strategy&quot;: &quot;constant&quot;,
+                &quot;fill_value&quot;: fill_value,
+                &quot;observed_train_categories&quot;: sorted(set(observed_train)),
+                &quot;encoded_categories&quot;: categories,
+                &quot;handle_unknown&quot;: feature[&quot;handle_unknown&quot;],
+                &quot;source_split&quot;: &quot;train&quot;,
+            }
+
+        feature_names_out = [f&quot;num__{name}&quot; for name in numeric_features]
+        for name in categorical_features:
+            for category in self.categorical_state_[name][&quot;encoded_categories&quot;]:
+                feature_names_out.append(f&quot;cat__{name}={category}&quot;)
+        self.feature_names_out_ = np.array(feature_names_out, dtype=object)
+        self.fit_row_count_ = len(X)
+        return self
+
+    def transform(self, X: pd.DataFrame) -&gt; np.ndarray:
+        check_is_fitted(self, [&quot;numeric_state_&quot;, &quot;categorical_state_&quot;, &quot;feature_names_out_&quot;])
+        columns: list[np.ndarray] = []
+        for name in self.numeric_features_:
+            state = self.numeric_state_[name]
+            values = [
+                state[&quot;fill_value&quot;] if is_missing(value) else parse_float(value)
+                for value in X[name].tolist()
+            ]
+            transformed = (np.array(values, dtype=float) - float(state[&quot;mean&quot;])) / float(
+                state[&quot;scale&quot;]
+            )
+            columns.append(transformed.reshape(-1, 1))
+
+        for name in self.categorical_features_:
+            state = self.categorical_state_[name]
+            categories = state[&quot;encoded_categories&quot;]
+            values = []
+            for raw_value in X[name].tolist():
+                value = self.missing_bucket_ if is_missing(raw_value) else str(raw_value)
+                if value not in state[&quot;observed_train_categories&quot;] and value not in {
+                    self.missing_bucket_,
+                    self.unknown_bucket_,
+                }:
+                    value = self.unknown_bucket_
+                values.append(value)
+            for category in categories:
+                encoded = np.array([1.0 if value == category else 0.0 for value in values])
+                columns.append(encoded.reshape(-1, 1))
+
+        if not columns:
+            return np.empty((len(X), 0))
+        return np.hstack(columns)
+
+    def get_feature_names_out(self, input_features: Any = None) -&gt; np.ndarray:
+        check_is_fitted(self, [&quot;feature_names_out_&quot;])
+        return self.feature_names_out_
+
+    def unknown_events(self, X: pd.DataFrame, split: str) -&gt; list[dict[str, Any]]:
+        check_is_fitted(self, [&quot;categorical_state_&quot;])
+        events: list[dict[str, Any]] = []
+        for snapshot_id, row in X.iterrows():
+            for name in self.categorical_features_:
+                state = self.categorical_state_[name]
+                raw_value = row[name]
+                if is_missing(raw_value):
+                    continue
+                value = str(raw_value)
+                if value not in state[&quot;observed_train_categories&quot;] and value not in {
+                    self.missing_bucket_,
+                    self.unknown_bucket_,
+                }:
+                    events.append(
+                        {
+                            &quot;snapshot_id&quot;: str(snapshot_id),
+                            &quot;split&quot;: split,
+                            &quot;feature&quot;: name,
+                            &quot;value&quot;: value,
+                        }
+                    )
+        return events
+
+    def state_for_report(self) -&gt; dict[str, Any]:
+        check_is_fitted(self, [&quot;numeric_state_&quot;, &quot;categorical_state_&quot;])
+        return {
+            &quot;numeric_features&quot;: {
+                name: {
+                    key: rounded(value) if isinstance(value, float) else value
+                    for key, value in state.items()
+                }
+                for name, state in self.numeric_state_.items()
+            },
+            &quot;categorical_features&quot;: self.categorical_state_,
+            &quot;feature_names&quot;: list(self.feature_names_out_),
+            &quot;fit_row_count&quot;: self.fit_row_count_,
+        }
+
+
+def estimator_params(pipeline_spec: dict[str, Any]) -&gt; dict[str, Any]:
+    estimator_step = pipeline_spec[&quot;steps&quot;][1]
+    params = dict(estimator_step[&quot;params&quot;])
+    return params
+
+
+def build_pipeline(
+    preprocessing_contract: dict[str, Any],
+    pipeline_spec: dict[str, Any],
+) -&gt; Pipeline:
+    return Pipeline(
+        steps=[
+            (&quot;preprocess&quot;, ContractPreprocessor(preprocessing_contract)),
+            (&quot;estimator&quot;, LogisticRegression(**estimator_params(pipeline_spec))),
+        ]
+    )
+
+
+def score_summary(rows: list[dict[str, Any]], split: str) -&gt; dict[str, Any]:
+    values = [float(row[&quot;score&quot;]) for row in rows if row[&quot;split&quot;] == split]
+    if not values:
+        return {&quot;row_count&quot;: 0, &quot;min&quot;: None, &quot;max&quot;: None, &quot;mean&quot;: None}
+    return {
+        &quot;row_count&quot;: len(values),
+        &quot;min&quot;: rounded(min(values)),
+        &quot;max&quot;: rounded(max(values)),
+        &quot;mean&quot;: rounded(sum(values) / len(values)),
+    }
+
+
+def validate_prediction_rows(
+    prediction_rows: list[dict[str, Any]],
+    manifest_rows: list[dict[str, str]],
+    pipeline_spec: dict[str, Any],
+) -&gt; dict[str, Any]:
+    predict_ids = {
+        row[&quot;snapshot_id&quot;]
+        for row in manifest_rows
+        if row[&quot;split&quot;] in set(pipeline_spec[&quot;predict_splits&quot;])
+    }
+    observed_ids = [str(row[&quot;snapshot_id&quot;]) for row in prediction_rows]
+    errors: list[dict[str, Any]] = []
+    duplicates = duplicate_values(observed_ids)
+    if duplicates:
+        errors.append({&quot;reason&quot;: &quot;duplicate prediction rows&quot;, &quot;sample&quot;: duplicates[:5]})
+    missing = sorted(predict_ids - set(observed_ids))
+    extra = sorted(set(observed_ids) - predict_ids)
+    if missing:
+        errors.append({&quot;reason&quot;: &quot;prediction rows missing split rows&quot;, &quot;sample&quot;: missing[:5]})
+    if extra:
+        errors.append({&quot;reason&quot;: &quot;prediction rows outside predict splits&quot;, &quot;sample&quot;: extra[:5]})
+    for row in prediction_rows:
+        score = parse_float(row[&quot;score&quot;])
+        if score &lt; 0 or score &gt; 1:
+            errors.append(
+                {&quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;], &quot;field&quot;: &quot;score&quot;, &quot;reason&quot;: &quot;outside [0, 1]&quot;}
+            )
+        if row[&quot;trained_on_split&quot;] != &quot;train&quot;:
+            errors.append(
+                {
+                    &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                    &quot;field&quot;: &quot;trained_on_split&quot;,
+                    &quot;observed&quot;: row[&quot;trained_on_split&quot;],
+                    &quot;expected&quot;: &quot;train&quot;,
+                }
+            )
+
+    if errors:
+        return failed(
+            &quot;prediction_report_has_validation_and_test_scores_only&quot;,
+            len(errors),
+            &quot;one probability score for every validation/test row and none for train&quot;,
+            errors,
+        )
+    return passed(
+        &quot;prediction_report_has_validation_and_test_scores_only&quot;,
+        {&quot;rows&quot;: len(prediction_rows), &quot;splits&quot;: pipeline_spec[&quot;predict_splits&quot;]},
+        &quot;validation/test probability scores only&quot;,
+    )
+
+
+def run(
+    *,
+    spec_path: Path,
+    preprocessing_contract_path: Path,
+    pipeline_spec_path: Path,
+    features_path: Path,
+    labels_path: Path,
+    manifest_path: Path,
+    predictions_output_path: Path | None = None,
+    serialized_spec_output_path: Path | None = None,
+) -&gt; dict[str, Any]:
+    problem_spec = read_json(spec_path)
+    preprocessing_contract = read_json(preprocessing_contract_path)
+    pipeline_spec = read_json(pipeline_spec_path)
+    feature_rows, feature_columns = read_csv(features_path)
+    labels, label_columns = read_csv(labels_path)
+    manifest_rows, manifest_columns = read_csv(manifest_path)
+
+    checks: list[dict[str, Any]] = [
+        validate_pipeline_spec(
+            problem_spec=problem_spec,
+            preprocessing_contract=preprocessing_contract,
+            pipeline_spec=pipeline_spec,
+        )
+    ]
+    manifest_check, manifest_rows = validate_manifest(manifest_rows, manifest_columns)
+    checks.append(manifest_check)
+    checks.append(
+        validate_features(feature_rows, feature_columns, manifest_rows, preprocessing_contract)
+    )
+    checks.append(validate_labels(labels, label_columns, manifest_rows, problem_spec))
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    if blocking_errors:
+        return {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;pipeline_id&quot;: pipeline_spec.get(&quot;pipeline_id&quot;),
+                &quot;blocking_errors&quot;: blocking_errors,
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_pipeline_fit&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+
+    feature_rows_by_id = rows_by_id(feature_rows)
+    labels_by_id = rows_by_id(labels)
+    train_ids = split_ids(manifest_rows, &quot;train&quot;)
+    predict_splits = list(pipeline_spec[&quot;predict_splits&quot;])
+
+    X_train = make_frame(train_ids, feature_rows_by_id, preprocessing_contract)
+    y_train = make_target(train_ids, labels_by_id, problem_spec)
+    if len(set(y_train.tolist())) &lt; 2:
+        checks.append(
+            failed(
+                &quot;train_split_has_both_classes_for_estimator&quot;,
+                sorted(set(y_train.tolist())),
+                &quot;binary train labels&quot;,
+            )
+        )
+        return {
+            &quot;valid&quot;: False,
+            &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: {
+                &quot;pipeline_id&quot;: pipeline_spec.get(&quot;pipeline_id&quot;),
+                &quot;blocking_errors&quot;: [&quot;train_split_has_both_classes_for_estimator&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;blocked_before_pipeline_fit&quot;,
+            },
+            &quot;checks&quot;: checks,
+        }
+
+    pipeline = build_pipeline(preprocessing_contract, pipeline_spec)
+    pipeline.fit(X_train, y_train)
+    fitted_preprocessor: ContractPreprocessor = pipeline.named_steps[&quot;preprocess&quot;]
+    estimator: LogisticRegression = pipeline.named_steps[&quot;estimator&quot;]
+    feature_names_out = list(fitted_preprocessor.get_feature_names_out())
+    trace: list[dict[str, Any]] = [
+        {
+            &quot;event&quot;: &quot;pipeline.fit&quot;,
+            &quot;split&quot;: &quot;train&quot;,
+            &quot;snapshot_ids&quot;: train_ids,
+            &quot;row_count&quot;: len(train_ids),
+            &quot;fits_preprocessing&quot;: True,
+            &quot;fits_estimator&quot;: True,
+        }
+    ]
+
+    prediction_rows: list[dict[str, Any]] = []
+    unknown_events: list[dict[str, Any]] = []
+    for split in predict_splits:
+        ids = split_ids(manifest_rows, split)
+        X_split = make_frame(ids, feature_rows_by_id, preprocessing_contract)
+        scores = pipeline.predict_proba(X_split)[:, 1]
+        unknown_events.extend(fitted_preprocessor.unknown_events(X_split, split))
+        trace.append(
+            {
+                &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+                &quot;split&quot;: split,
+                &quot;snapshot_ids&quot;: ids,
+                &quot;row_count&quot;: len(ids),
+                &quot;uses_fitted_preprocessing&quot;: True,
+                &quot;fits_anything&quot;: False,
+            }
+        )
+        for snapshot_id, score in zip(ids, scores, strict=True):
+            prediction_rows.append(
+                {
+                    &quot;snapshot_id&quot;: snapshot_id,
+                    &quot;pipeline_id&quot;: pipeline_spec[&quot;pipeline_id&quot;],
+                    &quot;split&quot;: split,
+                    &quot;score&quot;: rounded(float(score)),
+                    &quot;score_type&quot;: pipeline_spec[&quot;score_type&quot;],
+                    &quot;trained_on_split&quot;: &quot;train&quot;,
+                    &quot;generated_at&quot;: GENERATED_AT,
+                }
+            )
+
+    fit_ids = set(train_ids)
+    validation_test_ids = {
+        row[&quot;snapshot_id&quot;] for row in manifest_rows if row[&quot;split&quot;] in {&quot;validation&quot;, &quot;test&quot;}
+    }
+    if fit_ids &amp; validation_test_ids:
+        checks.append(
+            failed(
+                &quot;pipeline_fit_uses_train_only&quot;,
+                sorted(fit_ids &amp; validation_test_ids),
+                &quot;no validation/test ids in fit&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;pipeline_fit_uses_train_only&quot;,
+                {&quot;fit_split&quot;: &quot;train&quot;, &quot;fit_snapshot_ids&quot;: train_ids},
+                &quot;Pipeline.fit used train rows only&quot;,
+            )
+        )
+
+    step_names = [name for name, _step in pipeline.steps]
+    if step_names != EXPECTED_STEPS:
+        checks.append(
+            failed(
+                &quot;pipeline_steps_are_ordered_preprocess_then_estimator&quot;,
+                step_names,
+                EXPECTED_STEPS,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;pipeline_steps_are_ordered_preprocess_then_estimator&quot;,
+                step_names,
+                EXPECTED_STEPS,
+            )
+        )
+
+    checks.append(validate_prediction_rows(prediction_rows, manifest_rows, pipeline_spec))
+
+    if unknown_events:
+        checks.append(
+            failed(
+                &quot;pipeline_unknown_categories_bucketed&quot;,
+                len(unknown_events),
+                &quot;unknown validation/test categories routed by fitted preprocessor&quot;,
+                unknown_events,
+                severity=&quot;warning&quot;,
+            )
+        )
+    if len(train_ids) &lt; TINY_TRAIN_WARNING_THRESHOLD:
+        checks.append(
+            failed(
+                &quot;tiny_pipeline_training_sample_expected&quot;,
+                len(train_ids),
+                f&quot;&gt;= {TINY_TRAIN_WARNING_THRESHOLD} train rows for production estimator fit&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    serialized_spec = {
+        &quot;pipeline_id&quot;: pipeline_spec[&quot;pipeline_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;steps&quot;: [
+            {
+                &quot;name&quot;: &quot;preprocess&quot;,
+                &quot;class&quot;: &quot;ContractPreprocessor&quot;,
+                &quot;contract_id&quot;: preprocessing_contract[&quot;contract_id&quot;],
+            },
+            {
+                &quot;name&quot;: &quot;estimator&quot;,
+                &quot;class&quot;: &quot;LogisticRegression&quot;,
+                &quot;params&quot;: estimator.get_params(),
+                &quot;classes&quot;: [int(value) for value in estimator.classes_],
+                &quot;coef_shape&quot;: list(estimator.coef_.shape),
+                &quot;intercept&quot;: [rounded(value) for value in estimator.intercept_.tolist()],
+            },
+        ],
+        &quot;feature_names&quot;: feature_names_out,
+        &quot;fit_trace&quot;: trace,
+    }
+
+    if predictions_output_path is not None:
+        write_csv(
+            predictions_output_path,
+            prediction_rows,
+            [
+                &quot;snapshot_id&quot;,
+                &quot;pipeline_id&quot;,
+                &quot;split&quot;,
+                &quot;score&quot;,
+                &quot;score_type&quot;,
+                &quot;trained_on_split&quot;,
+                &quot;generated_at&quot;,
+            ],
+        )
+    if serialized_spec_output_path is not None:
+        write_json(serialized_spec_output_path, serialized_spec)
+
+    blocking_errors = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]
+    ]
+    warnings = [
+        check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]
+    ]
+    valid = not blocking_errors
+    summary = {
+        &quot;pipeline_id&quot;: pipeline_spec[&quot;pipeline_id&quot;],
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;sklearn_version&quot;: sklearn.__version__,
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;fit_row_count&quot;: len(train_ids),
+        &quot;predict_splits&quot;: predict_splits,
+        &quot;prediction_row_count&quot;: len(prediction_rows),
+        &quot;transformed_feature_count&quot;: len(feature_names_out),
+        &quot;estimator&quot;: &quot;LogisticRegression&quot;,
+        &quot;estimator_classes&quot;: [int(value) for value in estimator.classes_],
+        &quot;score_summary_by_split&quot;: {
+            split: score_summary(prediction_rows, split) for split in predict_splits
+        },
+        &quot;unknown_category_events&quot;: unknown_events,
+        &quot;blocking_errors&quot;: blocking_errors,
+        &quot;warnings&quot;: warnings,
+        &quot;readiness_status&quot;: &quot;ready_for_column_transformer_lesson&quot;
+        if valid
+        else &quot;blocked_by_pipeline_audit&quot;,
+    }
+    return {
+        &quot;valid&quot;: valid,
+        &quot;problem_id&quot;: problem_spec[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;serialized_spec&quot;: serialized_spec,
+        &quot;preprocessing_state&quot;: fitted_preprocessor.state_for_report(),
+        &quot;predictions&quot;: prediction_rows,
+        &quot;checks&quot;: checks,
+    }
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description=&quot;Fit and audit a scikit-learn Pipeline&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--preprocessing-contract&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--pipeline-spec&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--features&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--labels&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--predictions-output&quot;, type=Path)
+    parser.add_argument(&quot;--serialized-spec-output&quot;, type=Path)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    args = parser.parse_args(argv)
+
+    try:
+        report = run(
+            spec_path=args.spec,
+            preprocessing_contract_path=args.preprocessing_contract,
+            pipeline_spec_path=args.pipeline_spec,
+            features_path=args.features,
+            labels_path=args.labels,
+            manifest_path=args.manifest,
+            predictions_output_path=args.predictions_output,
+            serialized_spec_output_path=args.serialized_spec_output,
+        )
+    except (OSError, json.JSONDecodeError, PipelineRunnerError, KeyError, ValueError) as error:
+        report = {
+            &quot;valid&quot;: False,
+            &quot;summary&quot;: {
+                &quot;blocking_errors&quot;: [&quot;pipeline_runner_runtime_error&quot;],
+                &quot;warnings&quot;: [],
+                &quot;readiness_status&quot;: &quot;runtime_error&quot;,
+            },
+            &quot;checks&quot;: [
+                failed(
+                    &quot;pipeline_runner_runtime_error&quot;,
+                    str(error),
+                    &quot;readable JSON/CSV inputs and fit-able sklearn Pipeline&quot;,
+                )
+            ],
+        }
+
+    if args.output is not None:
+        write_json(args.output, report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+
+    has_errors = any(
+        check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    has_warnings = any(
+        check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;] for check in report[&quot;checks&quot;]
+    )
+    if has_errors or (args.fail_on_warning and has_warnings):
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/outputs/pipeline_runner.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/pipeline_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;pipeline_id&quot;: &quot;trial-churn-sklearn-pipeline-v0&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;steps&quot;: [
+    {
+      &quot;name&quot;: &quot;preprocess&quot;,
+      &quot;class&quot;: &quot;ContractPreprocessor&quot;,
+      &quot;contract_id&quot;: &quot;trial-churn-preprocessing-v0&quot;
+    },
+    {
+      &quot;name&quot;: &quot;estimator&quot;,
+      &quot;class&quot;: &quot;LogisticRegression&quot;,
+      &quot;params&quot;: {
+        &quot;C&quot;: 1.0,
+        &quot;class_weight&quot;: null,
+        &quot;dual&quot;: false,
+        &quot;fit_intercept&quot;: true,
+        &quot;intercept_scaling&quot;: 1,
+        &quot;l1_ratio&quot;: 0.0,
+        &quot;max_iter&quot;: 200,
+        &quot;n_jobs&quot;: null,
+        &quot;penalty&quot;: &quot;deprecated&quot;,
+        &quot;random_state&quot;: 0,
+        &quot;solver&quot;: &quot;liblinear&quot;,
+        &quot;tol&quot;: 0.0001,
+        &quot;verbose&quot;: 0,
+        &quot;warm_start&quot;: false
+      },
+      &quot;classes&quot;: [
+        0,
+        1
+      ],
+      &quot;coef_shape&quot;: [
+        1,
+        23
+      ],
+      &quot;intercept&quot;: [
+        -0.063754
+      ]
+    }
+  ],
+  &quot;feature_names&quot;: [
+    &quot;num__sessions_14d&quot;,
+    &quot;num__active_days_14d&quot;,
+    &quot;num__support_tickets_14d&quot;,
+    &quot;num__revenue_30d&quot;,
+    &quot;num__days_since_signup&quot;,
+    &quot;cat__plan_id=trial_basic&quot;,
+    &quot;cat__plan_id=trial_pro&quot;,
+    &quot;cat__plan_id=__missing__&quot;,
+    &quot;cat__plan_id=__unknown__&quot;,
+    &quot;cat__platform=android&quot;,
+    &quot;cat__platform=ios&quot;,
+    &quot;cat__platform=web&quot;,
+    &quot;cat__platform=__missing__&quot;,
+    &quot;cat__platform=__unknown__&quot;,
+    &quot;cat__country=KZ&quot;,
+    &quot;cat__country=RU&quot;,
+    &quot;cat__country=__missing__&quot;,
+    &quot;cat__country=__unknown__&quot;,
+    &quot;cat__acquisition_channel=organic&quot;,
+    &quot;cat__acquisition_channel=paid_search&quot;,
+    &quot;cat__acquisition_channel=referral&quot;,
+    &quot;cat__acquisition_channel=__missing__&quot;,
+    &quot;cat__acquisition_channel=__unknown__&quot;
+  ],
+  &quot;fit_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;pipeline.fit&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;,
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;row_count&quot;: 4,
+      &quot;fits_preprocessing&quot;: true,
+      &quot;fits_estimator&quot;: true
+    },
+    {
+      &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;row_count&quot;: 3,
+      &quot;uses_fitted_preprocessing&quot;: true,
+      &quot;fits_anything&quot;: false
+    },
+    {
+      &quot;event&quot;: &quot;pipeline.predict_proba&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;snapshot_ids&quot;: [
+        &quot;S009&quot;,
+        &quot;S010&quot;,
+        &quot;S011&quot;,
+        &quot;S012&quot;,
+        &quot;S013&quot;
+      ],
+      &quot;row_count&quot;: 5,
+      &quot;uses_fitted_preprocessing&quot;: true,
+      &quot;fits_anything&quot;: false
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/15-applied-machine-learning/05-pipeline/outputs/pipeline_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/15-applied-machine-learning/05-pipeline" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/applied-machine-learning/preprocessing/"><span>← Предыдущий урок</span><strong>Предобработка как часть модели</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/applied-machine-learning/column-transformer/"><span>Следующий урок →</span><strong>ColumnTransformer</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

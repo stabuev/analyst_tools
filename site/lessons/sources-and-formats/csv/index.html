@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Поставщик прислал файл заказов с расширением .csv. На одной машине он открывается, на другой падает с UnicodeDecodeError, а при pd.readcsv(path) вся строка оказывается…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/csv/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="CSV и неоднозначность типов">
+  <meta property="og:description" content="Поставщик прислал файл заказов с расширением .csv. На одной машине он открывается, на другой падает с UnicodeDecodeError, а при pd.readcsv(path) вся строка оказывается…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/csv/">
+  <meta name="twitter:card" content="summary">
+  <title>CSV и неоднозначность типов — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "CSV и неоднозначность типов", "description": "Поставщик прислал файл заказов с расширением .csv. На одной машине он открывается, на другой падает с UnicodeDecodeError, а при pd.readcsv(path) вся строка оказывается…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/csv/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "CSV и неоднозначность типов", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/csv/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 48 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/01-csv" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Файл открылся в редакторе, но pandas поместил всю строку в один столбец. Что нужно проверить первым?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Разделитель и quotechar файла</button><button type="button" class="quiz-option" data-choice="1">Размер оперативной памяти</button><button type="button" class="quiz-option" data-choice="2">Порядок строк</button><button type="button" class="quiz-option" data-choice="3">Версию Git</button></div><p class="quiz-feedback" hidden>Один столбец вместо нескольких обычно означает, что фактический delimiter не совпал с параметром парсера.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему строка `NULL` не всегда должна автоматически становиться пропуском?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Она может быть допустимым текстовым значением домена</button><button type="button" class="quiz-option" data-choice="1">CSV запрещает пустые значения</button><button type="button" class="quiz-option" data-choice="2">pandas не поддерживает пропуски</button><button type="button" class="quiz-option" data-choice="3">Пропуски допустимы только в JSON</button></div><p class="quiz-feedback" hidden>Семантика маркеров пропуска зависит от контракта конкретного источника, а не от написания токена.</p></article></section>
+        <article class="lesson-article"><h1 id="csv-и-неоднозначность-типов">CSV и неоднозначность типов</h1>
+<blockquote>
+<p>CSV становится данными только после явного договора о байтах, разделителях, пропусках и типах.</p>
+</blockquote>
+<p><strong>Тип:</strong> Learn<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 04/12<br />
+<strong>Время:</strong> ~75 минут<br />
+<strong>Результат:</strong> объявляет диалект, кодировку, схему и правила пропусков CSV и обнаруживает
+поврежденные строки до анализа.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разделять байтовую кодировку, CSV-диалект и табличную схему.</li>
+<li>Проверять одинаковую ширину строк до типизации значений.</li>
+<li>Задавать маркеры пропуска и числовой формат как часть контракта источника.</li>
+<li>Читать CSV в pandas без молчаливого пропуска строк и необратимой ранней инференции.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Поставщик прислал файл заказов с расширением <code>.csv</code>. На одной машине он открывается, на
+другой падает с <code>UnicodeDecodeError</code>, а при <code>pd.read_csv(path)</code> вся строка оказывается в
+одном столбце. После указания <code>sep=&quot;;&quot;</code> суммы всё равно остаются строками:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">1 200,50
+950,00
+</code></pre></div><p>В комментарии встречается <code>скидка; май</code>, а два пропуска записаны по-разному: пустой
+строкой и словом <code>NULL</code>. Одна поврежденная строка содержит неэкранированный <code>;</code>.</p>
+<p>Если решить проблемы набором случайных параметров, файл может загрузиться, но результат
+не станет проверяемым. Опасные варианты:</p>
+<ul>
+<li>декодировать с <code>errors=&quot;replace&quot;</code> и потерять исходные символы;</li>
+<li>использовать неверный delimiter и получить один широкий столбец;</li>
+<li>включить <code>on_bad_lines=&quot;skip&quot;</code> и незаметно потерять заказ;</li>
+<li>разрешить parser inference превратить идентификатор или маркер пропуска не в тот тип;</li>
+<li>удалить запятые, смешав разделитель полей и десятичный знак.</li>
+</ul>
+<h2 id="концепция">Концепция</h2>
+<p>CSV не хранит единую самодостаточную схему. Для воспроизводимого чтения нужны четыре
+отдельных договора.</p>
+<table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Вопрос</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encoding</td>
+<td>Как байты превращаются в символы?</td>
+<td><code>cp1251</code></td>
+</tr>
+<tr>
+<td>Dialect</td>
+<td>Как символы делятся на поля и строки?</td>
+<td>delimiter <code>;</code>, quotechar <code>&quot;</code></td>
+</tr>
+<tr>
+<td>Null policy</td>
+<td>Какие токены означают отсутствие значения?</td>
+<td><code>&quot;&quot;</code>, <code>NULL</code></td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>Какие столбцы и типы ожидаются?</td>
+<td><code>amount: decimal</code>, non-null</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encoding</strong> применяется раньше CSV-парсера. Если байты CP1251 попытаться строго
+декодировать как UTF-8, ошибка полезна: она останавливает порчу данных. Символ замены
+<code>�</code> не является исправлением.</p>
+<p><strong>Dialect</strong> определяет delimiter, quotechar, правила двойных кавычек и пробелов. Символ
+delimiter внутри quoted field не создаёт новое поле:</p>
+<div class="code-block"><span class="code-language">csv</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-csv">O2002;U002;2026-05-02T08:30:00Z;950,00;RUB;&quot;скидка; май&quot;
+</code></pre></div><p><strong>Null policy</strong> является семантикой источника. Токен <code>NULL</code> иногда означает пропуск, а
+иногда является настоящей строкой. Автоматический словарь NA нельзя считать универсальным.</p>
+<p><strong>Schema</strong> применяется после структурной проверки. Сначала нужно доказать, что заголовок
+и ширина строк согласованы, затем приводить <code>amount</code> и <code>ordered_at</code>.</p>
+<p><code>csv.Sniffer</code> и parser inference полезны для разведки, но эвристика не заменяет контракт:
+результат угадывания нужно проверить и зафиксировать.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Committed fixture использует CP1251, <code>;</code>, десятичную запятую и пробел тысяч.</p>
+<h3 id="шаг-1-декодируйте-строго">Шаг 1. Декодируйте строго</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">raw = path.read_bytes()
+text = raw.decode(&quot;cp1251&quot;, errors=&quot;strict&quot;)
+</code></pre></div><p><code>strict</code> превращает неверную кодировку в наблюдаемую ошибку. Не используйте
+<code>errors=&quot;ignore&quot;</code> или <code>errors=&quot;replace&quot;</code> в quality gate.</p>
+<h3 id="шаг-2-сравните-наивный-и-явный-dialect">Шаг 2. Сравните наивный и явный dialect</h3>
+<p>Парсер по умолчанию ожидает запятую:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">naive_header = next(csv.reader(io.StringIO(text)))
+</code></pre></div><p>В учебном файле он видит один field. Явный delimiter восстанавливает шесть:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">reader = csv.DictReader(
+    io.StringIO(text),
+    delimiter=&quot;;&quot;,
+    quotechar=&#x27;&quot;&#x27;,
+)
+</code></pre></div><h3 id="шаг-3-проверьте-ширину-каждой-строки">Шаг 3. Проверьте ширину каждой строки</h3>
+<p>До создания словаря сравните фактическое число полей с заголовком:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">if len(row) != len(header):
+    raise ValueError(
+        f&quot;line {reader.line_num}: expected {len(header)}, got {len(row)}&quot;
+    )
+</code></pre></div><p>Номер строки и обе ширины важнее сообщения «CSV сломан»: они позволяют найти источник
+дефекта, не удаляя наблюдение.</p>
+<h3 id="шаг-4-примените-числовой-договор">Шаг 4. Примените числовой договор</h3>
+<p>Для <code>1 200,50</code>:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">normalized = value.replace(&quot; &quot;, &quot;&quot;).replace(&quot;,&quot;, &quot;.&quot;)
+amount = Decimal(normalized)
+</code></pre></div><p>Это не универсальная очистка строк, а преобразование, разрешённое конкретным контрактом.</p>
+<p>Запустите прозрачный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><p>Он показывает, что наивное чтение видит один столбец, явное — шесть, quoted delimiter
+остаётся внутри комментария, а сумма после договорного преобразования равна <code>3226.59</code>.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>pandas читает тот же файл только после фиксации структуры:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">frame = pd.read_csv(
+    path,
+    encoding=&quot;cp1251&quot;,
+    sep=&quot;;&quot;,
+    quotechar=&#x27;&quot;&#x27;,
+    dtype=&quot;string&quot;,
+    keep_default_na=False,
+    na_filter=False,
+    on_bad_lines=&quot;error&quot;,
+)
+</code></pre></div><p>Первый проход намеренно сохраняет исходные токены как строки:</p>
+<ul>
+<li><code>dtype=&quot;string&quot;</code> откладывает типизацию;</li>
+<li><code>keep_default_na=False</code> и <code>na_filter=False</code> не расширяют null policy;</li>
+<li><code>on_bad_lines=&quot;error&quot;</code> не разрешает молчаливую потерю строк;</li>
+<li>encoding и dialect не зависят от локали машины.</li>
+</ul>
+<p>После структурного gate можно отдельно применить <code>null_values</code>, <code>decimal</code>, <code>thousands</code>,
+timestamp parser и domain checks.</p>
+<p>Самостоятельный аудитор выполняет оба слоя:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/csv_audit.py \
+  --input ../data/tiny/orders_semicolon_cp1251.csv \
+  --contract ../data/contract.json
+</code></pre></div><p>JSON-отчёт содержит:</p>
+<ul>
+<li>размер и SHA-256 исходных байтов;</li>
+<li>объявленную кодировку и обнаруженный BOM;</li>
+<li>фактический и ожидаемый заголовок;</li>
+<li>malformed rows с номером строки и шириной;</li>
+<li>null и invalid counts по каждому столбцу;</li>
+<li>результат строгого чтения pandas;</li>
+<li>итоговый <code>valid</code> и число проваленных проверок.</li>
+</ul>
+<p>Коды возврата:</p>
+<ul>
+<li><code>0</code> — файл соответствует контракту;</li>
+<li><code>1</code> — файл прочитан, но данные или структура нарушают контракт;</li>
+<li><code>2</code> — файл или контракт нельзя проверить;</li>
+<li><code>0</code> с <code>--allow-failures</code> — учебный просмотр известного дефекта.</li>
+</ul>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Второй fixture содержит строку:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">O2002;U002;2026-05-02T08:30:00Z;950,00;RUB;скидка; май
+</code></pre></div><p>Комментарий не заключён в кавычки, поэтому parser видит семь полей вместо шести.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/csv_audit.py \
+  --input ../data/tiny/orders_broken_cp1251.csv \
+  --contract ../data/contract.json \
+  --allow-failures
+</code></pre></div><p>Отчёт должен показать line <code>3</code>, expected fields <code>6</code> и actual fields <code>7</code>.</p>
+<p>Проверьте другие failure modes:</p>
+<ol>
+<li>замените encoding в копии контракта на <code>utf-8</code>;</li>
+<li>удалите <code>currency</code> из заголовка;</li>
+<li>запишите <code>not-a-number</code> в <code>amount</code>;</li>
+<li>сделайте пустым non-null <code>order_id</code>;</li>
+<li>поменяйте <code>NULL</code> на <code>N/A</code>, не меняя null policy.</li>
+</ol>
+<p>Каждый дефект должен менять конкретную проверку, а не приводить к неуправляемому
+traceback.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Контрольные факты:</p>
+<ul>
+<li>корректный файл содержит 5 data rows и 6 columns;</li>
+<li>declared encoding равен <code>cp1251</code>, delimiter — <code>;</code>;</li>
+<li><code>скидка; май</code> остаётся одним значением;</li>
+<li><code>comment</code> содержит два договорных пропуска;</li>
+<li>все суммы соответствуют decimal policy;</li>
+<li>поврежденный файл содержит malformed row на строке 3;</li>
+<li>чтение CP1251 как UTF-8 завершается decoding failure без replacement characters.</li>
+</ul>
+<p>Запустите behavioral tests:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><p>Проверьте воспроизводимость fixtures:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python ../data/generate_data.py --check
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/csv_audit.py</code> — самостоятельный CLI для preflight-проверки внешнего CSV. Он
+получает путь к файлу и JSON-контракт, не зависит от текста урока и подходит как локальный
+gate перед pandas/DuckDB или как шаг CI.</p>
+<p>Артефакт не исправляет данные автоматически. Его задача — доказать, какой договор
+выполнен, и точно локализовать расхождение.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте тип <code>boolean</code> с явными токенами <code>true_values</code> и <code>false_values</code>.</li>
+<li>Расширьте контракт допустимыми категориями <code>currency</code> и покажите неизвестное значение.</li>
+<li>Добавьте режим сравнения двух CSV-контрактов и отчёт о schema drift.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encoding</td>
+<td>Настройка pandas</td>
+<td>Правило преобразования байтов в символы до CSV-парсинга</td>
+</tr>
+<tr>
+<td>CSV dialect</td>
+<td>Всегда запятая</td>
+<td>Набор правил delimiter, quotechar и экранирования</td>
+</tr>
+<tr>
+<td>Header</td>
+<td>Первая строка с любыми словами</td>
+<td>Объявленные имена и порядок полей</td>
+</tr>
+<tr>
+<td>Null policy</td>
+<td>Все похожие слова являются NA</td>
+<td>Явный набор токенов отсутствующего значения</td>
+</tr>
+<tr>
+<td>Type inference</td>
+<td>Надёжное определение схемы</td>
+<td>Эвристика по наблюдаемой выборке значений</td>
+</tr>
+<tr>
+<td>Malformed row</td>
+<td>Строка, которую можно пропустить</td>
+<td>Запись, не соответствующая структурному контракту</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.python.org/3/library/csv.html" target="_blank" rel="noopener">Python: <code>csv</code></a> — изучите dialect parameters, <code>DictReader</code>, <code>Sniffer</code> и <code>line_num</code>.</li>
+<li><a href="https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html" target="_blank" rel="noopener">pandas: <code>read_csv</code></a> — разберите <code>dtype</code>, <code>na_values</code>, <code>decimal</code>, <code>thousands</code>, <code>encoding_errors</code> и <code>on_bad_lines</code>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc4180" target="_blank" rel="noopener">RFC 4180</a> — сопоставьте распространённый CSV-формат с реальными отклонениями поставщиков.</li>
+<li><a href="https://docs.python.org/3/library/codecs.html" target="_blank" rel="noopener">Python: codecs</a> — прочитайте про зарегистрированные encoding и error handlers, особенно различие <code>strict</code>, <code>ignore</code> и <code>replace</code>.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Как безопаснее читать CSV, где суммы записаны как `1 200,50`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Зафиксировать encoding, delimiter, decimal и thousands в контракте</button><button type="button" class="quiz-option" data-choice="1">Удалить все пробелы и запятые из файла</button><button type="button" class="quiz-option" data-choice="2">Разрешить pandas угадывать параметры на каждой машине</button><button type="button" class="quiz-option" data-choice="3">Сначала преобразовать файл в обычный текст без проверок</button></div><p class="quiz-feedback" hidden>Явный контракт делает преобразование воспроизводимым и отделяет разделитель полей от числового формата.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что должен сделать quality gate со строкой, в которой семь полей вместо ожидаемых шести?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Показать номер строки и завершиться с ошибкой</button><button type="button" class="quiz-option" data-choice="1">Молча пропустить строку</button><button type="button" class="quiz-option" data-choice="2">Склеить последние два поля без правила</button><button type="button" class="quiz-option" data-choice="3">Считать лишнее поле новым столбцом схемы</button></div><p class="quiz-feedback" hidden>Молчаливое исправление или пропуск меняют данные; нарушение ширины должно быть наблюдаемым.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему `dtype=&quot;string&quot;` полезен на первом чтении неизвестного CSV?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он сохраняет исходные токены до явной проверки и приведения типов</button><button type="button" class="quiz-option" data-choice="1">Он автоматически исправляет поврежденные строки</button><button type="button" class="quiz-option" data-choice="2">Он определяет кодировку по содержимому</button><button type="button" class="quiz-option" data-choice="3">Он гарантирует уникальность ключей</button></div><p class="quiz-feedback" hidden>Первичное строковое чтение не смешивает структурный парсинг с необратимой автоматической типизацией.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;csv_audit.py&quot;
+DATA_ROOT = ROOT.parent / &quot;data&quot;
+TINY = DATA_ROOT / &quot;tiny&quot;
+CONTRACT = DATA_ROOT / &quot;contract.json&quot;
+VALID = TINY / &quot;orders_semicolon_cp1251.csv&quot;
+BROKEN = TINY / &quot;orders_broken_cp1251.csv&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;csv_audit&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+AUDITOR = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(AUDITOR)
+
+
+class CsvAuditTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -&gt; None:
+        cls.report = AUDITOR.audit_csv(VALID, CONTRACT)
+
+    def test_explicit_cp1251_semicolon_contract_passes(self) -&gt; None:
+        self.assertTrue(self.report[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertEqual(self.report[&quot;encoding&quot;][&quot;declared&quot;], &quot;cp1251&quot;)
+        self.assertEqual(self.report[&quot;dialect&quot;][&quot;delimiter&quot;], &quot;;&quot;)
+        self.assertEqual(self.report[&quot;structure&quot;][&quot;data_rows&quot;], 5)
+
+    def test_quoted_delimiter_stays_inside_comment(self) -&gt; None:
+        preview = self.report[&quot;pandas&quot;][&quot;preview&quot;]
+        self.assertEqual(preview[1][&quot;comment&quot;], &quot;скидка; май&quot;)
+        self.assertEqual(len(preview[1]), 6)
+
+    def test_decimal_comma_and_thousands_are_parsed_by_policy(self) -&gt; None:
+        parsed = AUDITOR.parse_decimal(
+            &quot;1 200,50&quot;,
+            decimal_mark=&quot;,&quot;,
+            thousands=&quot; &quot;,
+        )
+        self.assertEqual(parsed, Decimal(&quot;1200.50&quot;))
+        self.assertTrue(self.report[&quot;columns&quot;][&quot;amount&quot;][&quot;valid&quot;])
+
+    def test_null_tokens_are_not_inferred_beyond_contract(self) -&gt; None:
+        comment = self.report[&quot;columns&quot;][&quot;comment&quot;]
+        self.assertEqual(comment[&quot;null_count&quot;], 2)
+        self.assertTrue(comment[&quot;valid&quot;])
+        self.assertEqual(self.report[&quot;pandas&quot;][&quot;preview&quot;][2][&quot;comment&quot;], &quot;NULL&quot;)
+
+    def test_broken_row_width_is_visible(self) -&gt; None:
+        report = AUDITOR.audit_csv(BROKEN, CONTRACT)
+        self.assertFalse(report[&quot;summary&quot;][&quot;valid&quot;])
+        malformed = report[&quot;structure&quot;][&quot;malformed_rows&quot;]
+        self.assertEqual(malformed[0][&quot;line&quot;], 3)
+        self.assertEqual(malformed[0][&quot;expected_fields&quot;], 6)
+        self.assertEqual(malformed[0][&quot;actual_fields&quot;], 7)
+
+    def test_wrong_encoding_fails_without_replacement_characters(self) -&gt; None:
+        contract = json.loads(CONTRACT.read_text(encoding=&quot;utf-8&quot;))
+        contract[&quot;encoding&quot;] = &quot;utf-8&quot;
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / &quot;contract.json&quot;
+            path.write_text(json.dumps(contract), encoding=&quot;utf-8&quot;)
+            report = AUDITOR.audit_csv(VALID, path)
+        self.assertFalse(report[&quot;encoding&quot;][&quot;valid&quot;])
+        self.assertIn(&quot;cannot decode byte&quot;, report[&quot;encoding&quot;][&quot;error&quot;])
+        self.assertFalse(report[&quot;summary&quot;][&quot;valid&quot;])
+
+    def test_missing_schema_column_is_reported(self) -&gt; None:
+        contract = json.loads(CONTRACT.read_text(encoding=&quot;utf-8&quot;))
+        contract[&quot;columns&quot;][&quot;source_system&quot;] = {&quot;type&quot;: &quot;string&quot;, &quot;nullable&quot;: False}
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / &quot;contract.json&quot;
+            path.write_text(json.dumps(contract), encoding=&quot;utf-8&quot;)
+            report = AUDITOR.audit_csv(VALID, path)
+        self.assertEqual(report[&quot;structure&quot;][&quot;missing_columns&quot;], [&quot;source_system&quot;])
+        self.assertFalse(report[&quot;structure&quot;][&quot;valid&quot;])
+
+    def test_cli_returns_json_for_valid_file(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                VALID,
+                &quot;--contract&quot;,
+                CONTRACT,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+
+    def test_cli_is_quality_gate_for_broken_file(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                BROKEN,
+                &quot;--contract&quot;,
+                CONTRACT,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+        self.assertFalse(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import io
+import json
+from decimal import Decimal
+from pathlib import Path
+
+import pandas as pd
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+DATA_ROOT = LESSON_ROOT.parent / &quot;data&quot;
+INPUT = DATA_ROOT / &quot;tiny&quot; / &quot;orders_semicolon_cp1251.csv&quot;
+CONTRACT = DATA_ROOT / &quot;contract.json&quot;
+
+
+def normalize_decimal(value: str, decimal_mark: str, thousands: str) -&gt; Decimal:
+    normalized = value.replace(thousands, &quot;&quot;).replace(decimal_mark, &quot;.&quot;)
+    return Decimal(normalized)
+
+
+def main() -&gt; None:
+    contract = json.loads(CONTRACT.read_text(encoding=&quot;utf-8&quot;))
+    text = INPUT.read_bytes().decode(contract[&quot;encoding&quot;], errors=&quot;strict&quot;)
+    dialect = contract[&quot;dialect&quot;]
+
+    naive_header = next(csv.reader(io.StringIO(text)))
+    explicit_rows = list(
+        csv.DictReader(
+            io.StringIO(text),
+            delimiter=dialect[&quot;delimiter&quot;],
+            quotechar=dialect[&quot;quotechar&quot;],
+        )
+    )
+    number_format = contract[&quot;number_format&quot;]
+    manual_total = sum(
+        (
+            normalize_decimal(
+                row[&quot;amount&quot;],
+                number_format[&quot;decimal&quot;],
+                number_format[&quot;thousands&quot;],
+            )
+            for row in explicit_rows
+        ),
+        start=Decimal(&quot;0&quot;),
+    )
+
+    frame = pd.read_csv(
+        INPUT,
+        encoding=contract[&quot;encoding&quot;],
+        sep=dialect[&quot;delimiter&quot;],
+        quotechar=dialect[&quot;quotechar&quot;],
+        dtype=&quot;string&quot;,
+        keep_default_na=False,
+        na_filter=False,
+        on_bad_lines=&quot;error&quot;,
+    )
+    print(
+        json.dumps(
+            {
+                &quot;naive_header_fields&quot;: len(naive_header),
+                &quot;explicit_header_fields&quot;: len(frame.columns),
+                &quot;rows&quot;: len(frame),
+                &quot;manual_amount_total&quot;: str(manual_total),
+                &quot;quoted_delimiter_comment&quot;: frame.loc[1, &quot;comment&quot;],
+                &quot;raw_missing_tokens&quot;: frame[&quot;comment&quot;].iloc[2:4].tolist(),
+                &quot;pandas_dtypes&quot;: {name: str(dtype) for name, dtype in frame.dtypes.items()},
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;csv-contract-audit&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/csv_audit.py&quot;,
+  &quot;description&quot;: &quot;Проверяет encoding, dialect, ширину строк, схему, пропуски и типы CSV до аналитического чтения.&quot;,
+  &quot;usage&quot;: &quot;python outputs/csv_audit.py --input ../data/tiny/orders_semicolon_cp1251.csv --contract ../data/contract.json&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/csv_audit.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import codecs
+import csv
+import hashlib
+import io
+import json
+import sys
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+
+SUPPORTED_TYPES = {&quot;string&quot;, &quot;integer&quot;, &quot;decimal&quot;, &quot;timestamp&quot;}
+BOMS = (
+    (codecs.BOM_UTF32_LE, &quot;utf-32-le&quot;),
+    (codecs.BOM_UTF32_BE, &quot;utf-32-be&quot;),
+    (codecs.BOM_UTF8, &quot;utf-8&quot;),
+    (codecs.BOM_UTF16_LE, &quot;utf-16-le&quot;),
+    (codecs.BOM_UTF16_BE, &quot;utf-16-be&quot;),
+)
+
+
+class CsvContractError(ValueError):
+    &quot;&quot;&quot;Raised when a CSV contract or input path cannot be audited.&quot;&quot;&quot;
+
+
+def load_contract(path: str | Path) -&gt; dict[str, Any]:
+    contract_path = Path(path)
+    if not contract_path.is_file():
+        raise CsvContractError(f&quot;contract file does not exist: {contract_path}&quot;)
+    try:
+        contract = json.loads(contract_path.read_text(encoding=&quot;utf-8&quot;))
+    except json.JSONDecodeError as error:
+        raise CsvContractError(f&quot;invalid contract JSON: {error.msg}&quot;) from error
+    return validate_contract(contract)
+
+
+def validate_contract(contract: Any) -&gt; dict[str, Any]:
+    if not isinstance(contract, dict):
+        raise CsvContractError(&quot;contract must be a JSON object&quot;)
+
+    encoding = contract.get(&quot;encoding&quot;)
+    if not isinstance(encoding, str) or not encoding:
+        raise CsvContractError(&quot;contract must declare a non-empty encoding&quot;)
+    try:
+        codecs.lookup(encoding)
+    except LookupError as error:
+        raise CsvContractError(f&quot;unknown encoding: {encoding}&quot;) from error
+
+    dialect = contract.get(&quot;dialect&quot;)
+    if not isinstance(dialect, dict):
+        raise CsvContractError(&quot;contract must declare a dialect object&quot;)
+    for field in (&quot;delimiter&quot;, &quot;quotechar&quot;):
+        value = dialect.get(field)
+        if not isinstance(value, str) or len(value) != 1:
+            raise CsvContractError(f&quot;dialect.{field} must contain one character&quot;)
+    for field in (&quot;doublequote&quot;, &quot;skipinitialspace&quot;):
+        if not isinstance(dialect.get(field), bool):
+            raise CsvContractError(f&quot;dialect.{field} must be boolean&quot;)
+
+    null_values = contract.get(&quot;null_values&quot;)
+    if not isinstance(null_values, list) or not all(
+        isinstance(value, str) for value in null_values
+    ):
+        raise CsvContractError(&quot;null_values must be a list of strings&quot;)
+
+    number_format = contract.get(&quot;number_format&quot;)
+    if not isinstance(number_format, dict):
+        raise CsvContractError(&quot;contract must declare number_format&quot;)
+    decimal_mark = number_format.get(&quot;decimal&quot;)
+    thousands = number_format.get(&quot;thousands&quot;)
+    if not isinstance(decimal_mark, str) or len(decimal_mark) != 1:
+        raise CsvContractError(&quot;number_format.decimal must contain one character&quot;)
+    if not isinstance(thousands, str) or len(thousands) &gt; 1:
+        raise CsvContractError(&quot;number_format.thousands must contain at most one character&quot;)
+    if thousands and thousands == decimal_mark:
+        raise CsvContractError(&quot;decimal and thousands separators must differ&quot;)
+
+    columns = contract.get(&quot;columns&quot;)
+    if not isinstance(columns, dict) or not columns:
+        raise CsvContractError(&quot;contract must declare a non-empty columns object&quot;)
+    for name, column in columns.items():
+        if not isinstance(name, str) or not name:
+            raise CsvContractError(&quot;column names must be non-empty strings&quot;)
+        if not isinstance(column, dict):
+            raise CsvContractError(f&quot;column contract must be an object: {name}&quot;)
+        if column.get(&quot;type&quot;) not in SUPPORTED_TYPES:
+            raise CsvContractError(f&quot;unsupported type for {name}: {column.get(&#x27;type&#x27;)}&quot;)
+        if not isinstance(column.get(&quot;nullable&quot;), bool):
+            raise CsvContractError(f&quot;column {name} must declare nullable&quot;)
+
+    expected_rows = contract.get(&quot;expected_rows&quot;)
+    if not isinstance(expected_rows, int) or expected_rows &lt; 0:
+        raise CsvContractError(&quot;expected_rows must be a non-negative integer&quot;)
+    if contract.get(&quot;header&quot;) is not True:
+        raise CsvContractError(&quot;this auditor requires header=true&quot;)
+    return contract
+
+
+def detect_bom(raw: bytes) -&gt; str | None:
+    for prefix, name in BOMS:
+        if raw.startswith(prefix):
+            return name
+    return None
+
+
+def parse_decimal(
+    value: str,
+    *,
+    decimal_mark: str,
+    thousands: str,
+) -&gt; Decimal:
+    normalized = value.replace(thousands, &quot;&quot;) if thousands else value
+    if decimal_mark != &quot;.&quot;:
+        normalized = normalized.replace(decimal_mark, &quot;.&quot;)
+    try:
+        return Decimal(normalized)
+    except InvalidOperation as error:
+        raise ValueError(f&quot;invalid decimal: {value!r}&quot;) from error
+
+
+def parse_timestamp(value: str) -&gt; datetime:
+    normalized = value[:-1] + &quot;+00:00&quot; if value.endswith(&quot;Z&quot;) else value
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as error:
+        raise ValueError(f&quot;invalid ISO timestamp: {value!r}&quot;) from error
+
+
+def validate_value(value: str, column: dict[str, Any], contract: dict[str, Any]) -&gt; None:
+    value_type = column[&quot;type&quot;]
+    if value_type == &quot;string&quot;:
+        return
+    if value_type == &quot;integer&quot;:
+        int(value)
+        return
+    if value_type == &quot;decimal&quot;:
+        number_format = contract[&quot;number_format&quot;]
+        parse_decimal(
+            value,
+            decimal_mark=number_format[&quot;decimal&quot;],
+            thousands=number_format[&quot;thousands&quot;],
+        )
+        return
+    if value_type == &quot;timestamp&quot;:
+        parse_timestamp(value)
+        return
+    raise CsvContractError(f&quot;unsupported type: {value_type}&quot;)
+
+
+def inspect_rows(text: str, contract: dict[str, Any]) -&gt; dict[str, Any]:
+    expected_columns = list(contract[&quot;columns&quot;])
+    dialect = contract[&quot;dialect&quot;]
+    reader = csv.reader(
+        io.StringIO(text, newline=&quot;&quot;),
+        delimiter=dialect[&quot;delimiter&quot;],
+        quotechar=dialect[&quot;quotechar&quot;],
+        doublequote=dialect[&quot;doublequote&quot;],
+        skipinitialspace=dialect[&quot;skipinitialspace&quot;],
+        strict=True,
+    )
+
+    parse_errors: list[dict[str, Any]] = []
+    try:
+        header = next(reader)
+    except StopIteration:
+        header = []
+        parse_errors.append({&quot;line&quot;: 1, &quot;error&quot;: &quot;empty CSV&quot;})
+    except csv.Error as error:
+        header = []
+        parse_errors.append({&quot;line&quot;: reader.line_num or 1, &quot;error&quot;: str(error)})
+
+    duplicate_headers = sorted({name for name in header if header.count(name) &gt; 1})
+    missing_columns = [name for name in expected_columns if name not in header]
+    unexpected_columns = [name for name in header if name not in expected_columns]
+    order_matches = header == expected_columns
+
+    rows: list[tuple[int, dict[str, str]]] = []
+    malformed_rows: list[dict[str, Any]] = []
+    data_rows = 0
+    if header:
+        try:
+            for row in reader:
+                data_rows += 1
+                if len(row) != len(header):
+                    malformed_rows.append(
+                        {
+                            &quot;line&quot;: reader.line_num,
+                            &quot;expected_fields&quot;: len(header),
+                            &quot;actual_fields&quot;: len(row),
+                            &quot;values&quot;: row,
+                        }
+                    )
+                    continue
+                rows.append((reader.line_num, dict(zip(header, row, strict=True))))
+        except csv.Error as error:
+            parse_errors.append({&quot;line&quot;: reader.line_num, &quot;error&quot;: str(error)})
+
+    expected_rows = contract[&quot;expected_rows&quot;]
+    row_count_matches = data_rows == expected_rows
+    header_valid = (
+        not duplicate_headers and not missing_columns and not unexpected_columns and order_matches
+    )
+    return {
+        &quot;header&quot;: header,
+        &quot;expected_header&quot;: expected_columns,
+        &quot;duplicate_headers&quot;: duplicate_headers,
+        &quot;missing_columns&quot;: missing_columns,
+        &quot;unexpected_columns&quot;: unexpected_columns,
+        &quot;order_matches&quot;: order_matches,
+        &quot;data_rows&quot;: data_rows,
+        &quot;expected_rows&quot;: expected_rows,
+        &quot;row_count_matches&quot;: row_count_matches,
+        &quot;malformed_rows&quot;: malformed_rows[:5],
+        &quot;parse_errors&quot;: parse_errors,
+        &quot;records&quot;: rows,
+        &quot;valid&quot;: header_valid and row_count_matches and not malformed_rows and not parse_errors,
+    }
+
+
+def inspect_columns(
+    rows: list[tuple[int, dict[str, str]]],
+    contract: dict[str, Any],
+) -&gt; dict[str, Any]:
+    null_values = set(contract[&quot;null_values&quot;])
+    report: dict[str, Any] = {}
+    for name, column in contract[&quot;columns&quot;].items():
+        null_count = 0
+        invalid: list[dict[str, Any]] = []
+        for line, row in rows:
+            if name not in row:
+                continue
+            value = row[name]
+            if value in null_values:
+                null_count += 1
+                if not column[&quot;nullable&quot;]:
+                    invalid.append({&quot;line&quot;: line, &quot;value&quot;: value, &quot;error&quot;: &quot;null is forbidden&quot;})
+                continue
+            try:
+                validate_value(value, column, contract)
+            except (TypeError, ValueError) as error:
+                invalid.append({&quot;line&quot;: line, &quot;value&quot;: value, &quot;error&quot;: str(error)})
+        report[name] = {
+            &quot;type&quot;: column[&quot;type&quot;],
+            &quot;nullable&quot;: column[&quot;nullable&quot;],
+            &quot;null_count&quot;: null_count,
+            &quot;invalid_count&quot;: len(invalid),
+            &quot;sample_invalid&quot;: invalid[:5],
+            &quot;valid&quot;: not invalid,
+        }
+    return report
+
+
+def inspect_with_pandas(path: Path, contract: dict[str, Any]) -&gt; dict[str, Any]:
+    dialect = contract[&quot;dialect&quot;]
+    try:
+        frame = pd.read_csv(
+            path,
+            encoding=contract[&quot;encoding&quot;],
+            sep=dialect[&quot;delimiter&quot;],
+            quotechar=dialect[&quot;quotechar&quot;],
+            doublequote=dialect[&quot;doublequote&quot;],
+            skipinitialspace=dialect[&quot;skipinitialspace&quot;],
+            dtype=&quot;string&quot;,
+            keep_default_na=False,
+            na_filter=False,
+            on_bad_lines=&quot;error&quot;,
+        )
+    except (OSError, UnicodeError, pd.errors.ParserError) as error:
+        return {&quot;loaded&quot;: False, &quot;error&quot;: str(error), &quot;valid&quot;: False}
+    return {
+        &quot;loaded&quot;: True,
+        &quot;rows&quot;: len(frame),
+        &quot;columns&quot;: frame.columns.tolist(),
+        &quot;dtypes&quot;: {name: str(dtype) for name, dtype in frame.dtypes.items()},
+        &quot;preview&quot;: frame.head(3).to_dict(orient=&quot;records&quot;),
+        &quot;valid&quot;: frame.columns.tolist() == list(contract[&quot;columns&quot;])
+        and len(frame) == contract[&quot;expected_rows&quot;],
+    }
+
+
+def audit_csv(input_path: str | Path, contract_path: str | Path) -&gt; dict[str, Any]:
+    path = Path(input_path)
+    if not path.is_file():
+        raise CsvContractError(f&quot;input file does not exist: {path}&quot;)
+    contract = load_contract(contract_path)
+    raw = path.read_bytes()
+    encoding_report: dict[str, Any] = {
+        &quot;declared&quot;: contract[&quot;encoding&quot;],
+        &quot;bom&quot;: detect_bom(raw),
+        &quot;valid&quot;: True,
+        &quot;error&quot;: None,
+    }
+    try:
+        text = raw.decode(contract[&quot;encoding&quot;], errors=&quot;strict&quot;)
+    except UnicodeDecodeError as error:
+        text = None
+        encoding_report.update(
+            {
+                &quot;valid&quot;: False,
+                &quot;error&quot;: f&quot;cannot decode byte {error.start} as {contract[&#x27;encoding&#x27;]}&quot;,
+            }
+        )
+
+    if text is None:
+        structure = {
+            &quot;valid&quot;: False,
+            &quot;error&quot;: &quot;structure was not inspected because decoding failed&quot;,
+            &quot;records&quot;: [],
+        }
+        columns = {
+            name: {
+                &quot;type&quot;: column[&quot;type&quot;],
+                &quot;nullable&quot;: column[&quot;nullable&quot;],
+                &quot;null_count&quot;: None,
+                &quot;invalid_count&quot;: None,
+                &quot;sample_invalid&quot;: [],
+                &quot;valid&quot;: False,
+            }
+            for name, column in contract[&quot;columns&quot;].items()
+        }
+        pandas_report = {&quot;loaded&quot;: False, &quot;error&quot;: &quot;decoding failed&quot;, &quot;valid&quot;: False}
+    else:
+        structure = inspect_rows(text, contract)
+        columns = inspect_columns(structure[&quot;records&quot;], contract)
+        pandas_report = inspect_with_pandas(path, contract)
+
+    structure_for_output = {key: value for key, value in structure.items() if key != &quot;records&quot;}
+    checks = {
+        &quot;encoding&quot;: encoding_report[&quot;valid&quot;],
+        &quot;structure&quot;: structure_for_output[&quot;valid&quot;],
+        &quot;columns&quot;: all(column[&quot;valid&quot;] for column in columns.values()),
+        &quot;pandas&quot;: pandas_report[&quot;valid&quot;],
+    }
+    return {
+        &quot;source&quot;: str(path),
+        &quot;bytes&quot;: len(raw),
+        &quot;sha256&quot;: hashlib.sha256(raw).hexdigest(),
+        &quot;encoding&quot;: encoding_report,
+        &quot;dialect&quot;: contract[&quot;dialect&quot;],
+        &quot;null_values&quot;: contract[&quot;null_values&quot;],
+        &quot;structure&quot;: structure_for_output,
+        &quot;columns&quot;: columns,
+        &quot;pandas&quot;: pandas_report,
+        &quot;summary&quot;: {
+            &quot;checks&quot;: checks,
+            &quot;failed_checks&quot;: sum(not valid for valid in checks.values()),
+            &quot;valid&quot;: all(checks.values()),
+        },
+    }
+
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=&quot;Audit CSV against an explicit contract&quot;)
+    parser.add_argument(&quot;--input&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--contract&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--allow-failures&quot;, action=&quot;store_true&quot;)
+    return parser
+
+
+def main() -&gt; int:
+    args = build_parser().parse_args()
+    try:
+        report = audit_csv(args.input, args.contract)
+    except (CsvContractError, OSError) as error:
+        print(f&quot;error: {error}&quot;, file=sys.stderr)
+        return 2
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    if report[&quot;summary&quot;][&quot;valid&quot;] or args.allow_failures:
+        return 0
+    return 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/01-csv/outputs/csv_audit.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/01-csv" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>← Предыдущий урок</span><strong>SQL или DataFrame: выбор инструмента</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/excel/"><span>Следующий урок →</span><strong>Excel как источник: листы, диапазоны и формулы</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

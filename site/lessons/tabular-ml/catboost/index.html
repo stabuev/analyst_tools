@@ -1,0 +1,2411 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В фазе 15 вы собрали baseline package для churn-risk задачи: есть problem spec, split policy, метрики, calibration, leakage audit, error analysis и model card. Теперь…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/catboost/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="CatBoost как сильный табличный baseline">
+  <meta property="og:description" content="В фазе 15 вы собрали baseline package для churn-risk задачи: есть problem spec, split policy, метрики, calibration, leakage audit, error analysis и model card. Теперь…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/catboost/">
+  <meta name="twitter:card" content="summary">
+  <title>CatBoost как сильный табличный baseline — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "CatBoost как сильный табличный baseline", "description": "В фазе 15 вы собрали baseline package для churn-risk задачи: есть problem spec, split policy, метрики, calibration, leakage audit, error analysis и model card. Теперь…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/catboost/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "CatBoost как сильный табличный baseline", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/catboost/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 172 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/01-catboost" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что должно остаться неизменным, когда вместо baseline обучают CatBoost-кандидат?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">ML-постановка, target, split roles и primary metric</button><button type="button" class="quiz-option" data-choice="1">Только список гиперпараметров CatBoost</button><button type="button" class="quiz-option" data-choice="2">Только test set, потому что train можно пересобрать</button><button type="button" class="quiz-option" data-choice="3">Только название модели в model card</button></div><p class="quiz-feedback" hidden>Сильная модель сравнивается честно только на той же постановке, тех же split roles и заранее выбранной метрике.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем CatBoost-кандидату нужен явный список `cat_features`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы CatBoost обрабатывал категориальные колонки как категории, а audit мог проверить contract</button><button type="button" class="quiz-option" data-choice="1">Чтобы удалить все категориальные колонки перед fit</button><button type="button" class="quiz-option" data-choice="2">Чтобы разрешить использовать target encoding на test</button><button type="button" class="quiz-option" data-choice="3">Чтобы заменить split manifest</button></div><p class="quiz-feedback" hidden>`cat_features` фиксирует, какие признаки передаются в native categorical handling, и делает этот выбор проверяемым.</p></article></section>
+        <article class="lesson-article"><h1 id="catboost-как-сильный-табличный-baseline">CatBoost как сильный табличный baseline</h1>
+<h2 id="проблема">Проблема</h2>
+<p>В фазе 15 вы собрали baseline package для churn-risk задачи: есть problem spec, split
+policy, метрики, calibration, leakage audit, error analysis и model card. Теперь хочется
+сделать естественный следующий шаг: взять сильную табличную модель и проверить, улучшает
+ли она решение.</p>
+<p>Опасность в том, что &quot;сильная библиотека&quot; легко ломает дисциплину эксперимента. Можно
+переобучиться на маленьком train, поменять split, выбрать модель по test, забыть передать
+категориальные признаки как категории или потерять warnings из baseline package. Тогда
+CatBoost score выглядит убедительно, но сравнение уже нечестное.</p>
+<p>В этом уроке вы обучите CatBoost-кандидат как сильный табличный baseline, но не дадите ему
+специальных правил:</p>
+<ul>
+<li>fit только на <code>train</code>;</li>
+<li>selection только на <code>validation</code>;</li>
+<li><code>test</code> остается final holdout и не участвует в promotion decision;</li>
+<li><code>cat_features</code> передаются явно и проверяются;</li>
+<li>результат сравнивается с phase 15 baseline package, а не заменяет его автоматически.</li>
+</ul>
+<h2 id="концепция">Концепция</h2>
+<p>CatBoost удобен для табличных задач: он умеет работать с категориальными признаками через
+native categorical handling и дает sklearn-like интерфейс <code>fit</code> / <code>predict_proba</code>. Но в
+учебном production contract важнее не сам факт использования CatBoost, а границы сравнения.</p>
+<p>Минимальный contract сильного кандидата:</p>
+<ol>
+<li><strong>Та же ML-постановка.</strong> <code>problem_id</code>, target, eligible population, decision budget и
+primary metric не меняются.</li>
+<li><strong>Те же split roles.</strong> Train нужен для fit, validation для выбора кандидата, test для
+финальной проверки.</li>
+<li><strong>Явные признаки.</strong> Numeric и categorical features перечислены в spec; target, label,
+split и prediction-time поля запрещены как model inputs.</li>
+<li><strong>Честный promotion gate.</strong> CatBoost может стать выбранным кандидатом только при
+validation gain по <code>precision_at_budget</code>.</li>
+<li><strong>Сохранение ограничений.</strong> Warnings из baseline package не исчезают только потому, что
+появилась новая модель.</li>
+</ol>
+<p>В tiny-профиле этот урок специально показывает неприятный, но полезный результат:
+CatBoost обучается корректно, однако по validation не превосходит baseline. Значит,
+артефакт не продвигает его. Это не провал модели, а правильное поведение audit.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый contract лежит в:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/catboost_model_spec.json
+</code></pre></div><p>В нем зафиксированы:</p>
+<ul>
+<li><code>catboost_baseline_id</code>;</li>
+<li><code>baseline_package_id</code> и source baseline из фазы 15;</li>
+<li><code>fit_split = train</code>;</li>
+<li><code>selection_split = validation</code>;</li>
+<li><code>final_holdout_split = test</code>;</li>
+<li>CatBoost params: <code>iterations</code>, <code>depth</code>, <code>learning_rate</code>, <code>random_seed</code>,
+<code>allow_writing_files = false</code>, <code>thread_count = 1</code>, <code>verbose = false</code>;</li>
+<li>numeric и categorical feature contract;</li>
+<li>output filenames.</li>
+</ul>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/01-catboost/outputs/catboost_baseline_trainer.py
+</code></pre></div><p>Он делает пять вещей.</p>
+<ol>
+<li>Читает phase 15 inputs: <code>problem_spec.json</code>, <code>ml_raw_features.csv</code>,
+<code>ml_labels.csv</code>, <code>ml_split_manifest.csv</code>.</li>
+<li>Читает phase 15 evidence: <code>ml_baseline_package_report.json</code> и
+<code>imbalance_report.json</code>.</li>
+<li>Проверяет, что CatBoost spec не меняет problem, split policy и promotion rule.</li>
+<li>Строит <code>Pool</code> с явными <code>cat_features</code> и обучает <code>CatBoostClassifier</code> только на train.</li>
+<li>Пишет report, comparison, predictions, training trace и serialized spec.</li>
+</ol>
+<p>Ключевой фрагмент в trainer выглядит так:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">train_pool = Pool(
+    matrix.loc[train_mask],
+    frame.loc[train_mask, &quot;target&quot;],
+    cat_features=categorical_features,
+)
+model.fit(train_pool)
+all_pool = Pool(matrix, cat_features=categorical_features)
+scores = model.predict_proba(all_pool)[:, 1]
+</code></pre></div><p>Обратите внимание: validation и test используются только после fit. Validation участвует в
+сравнении, test не участвует в выборе кандидата.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/01-catboost/code/main.py
+</code></pre></div><p>Ожидаемая сводка показывает, что audit валиден, CatBoost обучен, но выбранным остается
+phase 15 baseline:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;fit_row_count&quot;: 4,
+  &quot;selected_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+  &quot;catboost_validation_precision_at_budget&quot;: 0.0,
+  &quot;baseline_validation_precision_at_budget&quot;: 0.5,
+  &quot;test_used_for_selection&quot;: false,
+  &quot;readiness_status&quot;: &quot;ready_for_categorical_feature_lesson&quot;
+}
+</code></pre></div><p>После запуска в <code>outputs/</code> появляются файлы:</p>
+<ul>
+<li><code>catboost_report.json</code> — общий audit report;</li>
+<li><code>catboost_comparison.csv</code> — сравнение CatBoost и phase 15 baseline;</li>
+<li><code>catboost_predictions.csv</code> — score rows по train, validation и test;</li>
+<li><code>catboost_training_trace.csv</code> — доказательство, какие split что делали;</li>
+<li><code>catboost_serialized_spec.json</code> — переносимый spec без pickle/joblib модели.</li>
+</ul>
+<p>CLI можно запустить напрямую:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/01-catboost/outputs/catboost_baseline_trainer.py \
+  --output-dir phases/16-tabular-ml/01-catboost/outputs
+</code></pre></div><p>Если нужно сделать warning строгим условием CI, добавьте:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/01-catboost/outputs/catboost_baseline_trainer.py \
+  --fail-on-warning
+</code></pre></div><p>На tiny-профиле команда завершится кодом <code>2</code>, потому что warnings ожидаемы:
+маленький train, отсутствие validation gain у CatBoost и перенос предупреждений baseline
+package.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Попробуйте сломать contract в копии <code>catboost_model_spec.json</code>.</p>
+<p>Поменяйте selection data на test:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;comparison&quot;: {
+    &quot;selection_data&quot;: &quot;test&quot;
+  }
+}
+</code></pre></div><p>Audit должен упасть на проверке
+<code>catboost_spec_declares_reproducible_no_test_selection</code>: test не может выбирать модель.</p>
+<p>Добавьте несуществующий categorical feature:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;feature_contract&quot;: {
+    &quot;categorical_features&quot;: [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;plan_name_from_future&quot;]
+  }
+}
+</code></pre></div><p>Audit должен остановиться до fit на <code>feature_contract_matches_table</code>: модель нельзя
+обучать, если contract не совпадает с feature table.</p>
+<p>Добавьте target column в <code>cat_features</code>:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;feature_contract&quot;: {
+    &quot;categorical_features&quot;: [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;churned_14d&quot;]
+  }
+}
+</code></pre></div><p>Audit снова блокирует fit. Target, label и split columns не могут быть model inputs.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/01-catboost/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>валидный CatBoost report и фиксированную версию <code>catboost==1.2.10</code>;</li>
+<li><code>cat_features</code> как явные native categorical columns;</li>
+<li>стабильные prediction scores на tiny-профиле;</li>
+<li><code>training_trace</code>: fit на train, selection на validation, test без fit;</li>
+<li>serialized spec без сохранения небезопасного бинарного model artifact;</li>
+<li>блокировку invalid baseline package;</li>
+<li>блокировку selection на test;</li>
+<li>блокировку сломанного feature contract;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полной проверки курса после изменения lesson status используйте общий набор команд:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока — не &quot;CatBoost победил&quot;, а проверяемый handoff:</p>
+<ul>
+<li>CatBoost candidate обучен воспроизводимо;</li>
+<li>categorical features переданы явно;</li>
+<li>comparison показывает, что phase 15 baseline остается выбранным по validation;</li>
+<li>test не использован для selection;</li>
+<li>warnings сохранены;</li>
+<li>следующий урок может углубиться в categorical features без leakage.</li>
+</ul>
+<p>Статус <code>ready_for_categorical_feature_lesson</code> означает: contract готов для 16/02, но
+production claim по-прежнему запрещен. Tiny-data нужен для проверки поведения артефакта,
+а не для реального вывода о качестве модели.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Увеличьте <code>iterations</code> в копии spec и проверьте, меняется ли validation
+<code>precision_at_budget</code>. Объясните, почему одного улучшенного train score недостаточно.</li>
+<li>Уберите <code>acquisition_channel</code> из <code>cat_features</code> и посмотрите, как меняется audit. Чем
+опасна неявная обработка категории как обычной строки или object column?</li>
+<li>Добавьте в comparison еще один baseline row из phase 15 и продумайте tie-break rule:
+какая метрика должна идти после <code>precision_at_budget</code>?</li>
+<li>Сформулируйте, какие дополнительные данные нужны, чтобы warning
+<code>tiny_catboost_training_sample_expected</code> перестал быть ожидаемым.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<ul>
+<li><strong>CatBoostClassifier</strong> — классификатор CatBoost с sklearn-like API.</li>
+<li><strong>Pool</strong> — контейнер CatBoost для features, target и metadata, включая <code>cat_features</code>.</li>
+<li><strong>cat_features</strong> — список категориальных колонок, которые CatBoost должен обрабатывать
+как категории.</li>
+<li><strong>promotion gate</strong> — правило, по которому candidate model может заменить текущий
+baseline.</li>
+<li><strong>no-test-selection audit</strong> — проверка, что test не использовался для выбора модели,
+threshold, hyperparameters или best iteration.</li>
+<li><strong>training trace</strong> — машинно читаемая запись, какие split участвовали в fit, selection и
+final evaluation.</li>
+</ul>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier" target="_blank" rel="noopener">CatBoostClassifier</a> — официальный reference по параметрам, атрибутам и методам классификатора.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_pool" target="_blank" rel="noopener">CatBoost Pool</a> — как CatBoost принимает features, label и <code>cat_features</code> в воспроизводимый training object.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboost_fit" target="_blank" rel="noopener">CatBoost fit</a> — параметры <code>fit</code>, включая eval sets и границы будущего урока про early stopping.</li>
+<li><a href="https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics" target="_blank" rel="noopener">scikit-learn classification metrics</a> — справочник по метрикам, которые используются в comparison table.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>На каком split урок выбирает, продвигать ли CatBoost-кандидат относительно baseline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">validation</button><button type="button" class="quiz-option" data-choice="1">test</button><button type="button" class="quiz-option" data-choice="2">train</button><button type="button" class="quiz-option" data-choice="3">на объединении validation и test</button></div><p class="quiz-feedback" hidden>Selection остается на validation; test используется только как final holdout и не влияет на выбор кандидата.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему в tiny-профиле CatBoost-кандидат не продвигается вместо phase 15 baseline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он не дает validation gain по precision_at_budget</button><button type="button" class="quiz-option" data-choice="1">CatBoost нельзя использовать для табличных данных</button><button type="button" class="quiz-option" data-choice="2">CatBoost не умеет работать с категориальными признаками</button><button type="button" class="quiz-option" data-choice="3">Baseline package был выбран по test, поэтому менять его нельзя</button></div><p class="quiz-feedback" hidden>В отчете CatBoost получает 0.0 precision_at_budget на validation, а baseline package source model держит 0.5.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой факт должен быть виден в `catboost_training_trace.csv`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Fit выполняется только на train, validation используется для selection, test не fit-ит модель</button><button type="button" class="quiz-option" data-choice="1">Fit выполняется на всех split для максимального качества</button><button type="button" class="quiz-option" data-choice="2">Test используется для выбора best iteration</button><button type="button" class="quiz-option" data-choice="3">Validation удаляется после обучения</button></div><p class="quiz-feedback" hidden>Trace делает split boundaries машинно проверяемыми: train fit, validation selection, test final holdout.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_baseline_trainer.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from catboost_baseline_trainer import (  # noqa: E402
+    DEFAULT_BASELINE_PACKAGE_REPORT_PATH,
+    DEFAULT_IMBALANCE_REPORT_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class CatBoostBaselineTrainerTest(TestCase):
+    def audit(self, root: Path = DATA_ROOT, upstream_root: Path = UPSTREAM_DATA_ROOT, **paths: Path) -&gt; dict:
+        return run(
+            spec_path=paths.get(&quot;spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            problem_spec_path=paths.get(&quot;problem_spec_path&quot;, upstream_root / &quot;problem_spec.json&quot;),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            labels_path=paths.get(&quot;labels_path&quot;, upstream_root / &quot;ml_labels.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+            baseline_package_report_path=paths.get(
+                &quot;baseline_package_report_path&quot;,
+                DEFAULT_BASELINE_PACKAGE_REPORT_PATH,
+            ),
+            imbalance_report_path=paths.get(&quot;imbalance_report_path&quot;, DEFAULT_IMBALANCE_REPORT_PATH),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+
+        shutil.copy2(DATA_ROOT / &quot;catboost_model_spec.json&quot;, phase16 / &quot;catboost_model_spec.json&quot;)
+        for filename in (
+            &quot;problem_spec.json&quot;,
+            &quot;ml_raw_features.csv&quot;,
+            &quot;ml_labels.csv&quot;,
+            &quot;ml_split_manifest.csv&quot;,
+        ):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_BASELINE_PACKAGE_REPORT_PATH, reports / &quot;ml_baseline_package_report.json&quot;)
+        shutil.copy2(DEFAULT_IMBALANCE_REPORT_PATH, reports / &quot;imbalance_report.json&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_catboost_baseline_exports_comparison_package(self) -&gt; None:
+        report = self.audit()
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;catboost_baseline_id&quot;], &quot;trial-churn-catboost-baseline-v0&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;catboost_version&quot;], &quot;1.2.10&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_split&quot;], &quot;train&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;fit_row_count&quot;], 4)
+        self.assertEqual(report[&quot;summary&quot;][&quot;selection_split&quot;], &quot;validation&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;final_holdout_split&quot;], &quot;test&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(report[&quot;summary&quot;][&quot;tree_count&quot;], 20)
+        self.assertEqual(report[&quot;summary&quot;][&quot;prediction_row_count&quot;], 12)
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;cat_features&quot;],
+            [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;acquisition_channel&quot;],
+        )
+        self.assertEqual(
+            report[&quot;summary&quot;][&quot;selected_model_id&quot;],
+            &quot;random_forest_depth2_class_weight_balanced&quot;,
+        )
+        self.assertFalse(report[&quot;summary&quot;][&quot;test_used_for_selection&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;readiness_status&quot;], &quot;ready_for_categorical_feature_lesson&quot;)
+
+    def test_comparison_keeps_phase15_baseline_selected_on_validation(self) -&gt; None:
+        report = self.audit()
+        rows = {(row[&quot;model_id&quot;], row[&quot;split&quot;]): row for row in report[&quot;comparison&quot;]}
+        baseline = rows[(&quot;random_forest_depth2_class_weight_balanced&quot;, &quot;validation&quot;)]
+        catboost = rows[(&quot;catboost_depth2_native_categories&quot;, &quot;validation&quot;)]
+
+        self.assertEqual(baseline[&quot;precision_at_budget&quot;], 0.5)
+        self.assertEqual(baseline[&quot;selected_ids&quot;], &quot;S006,S007&quot;)
+        self.assertEqual(baseline[&quot;selection_rank&quot;], 1)
+        self.assertTrue(baseline[&quot;selected_on_validation&quot;])
+        self.assertEqual(catboost[&quot;precision_at_budget&quot;], 0.0)
+        self.assertEqual(catboost[&quot;selected_ids&quot;], &quot;S007,S005&quot;)
+        self.assertEqual(catboost[&quot;selection_rank&quot;], 2)
+        self.assertFalse(catboost[&quot;selected_on_validation&quot;])
+        self.assertEqual(check(report, &quot;catboost_candidate_not_promoted_without_validation_gain&quot;)[&quot;severity&quot;], &quot;warning&quot;)
+
+    def test_predictions_cover_all_splits_with_seeded_scores(self) -&gt; None:
+        report = self.audit()
+        rows = report[&quot;predictions&quot;]
+        scores = {row[&quot;snapshot_id&quot;]: row[&quot;score&quot;] for row in rows}
+
+        self.assertEqual(len(rows), 12)
+        self.assertEqual([row[&quot;snapshot_id&quot;] for row in rows[:4]], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertEqual({row[&quot;split&quot;] for row in rows}, {&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;})
+        self.assertEqual({row[&quot;model_id&quot;] for row in rows}, {&quot;catboost_depth2_native_categories&quot;})
+        self.assertEqual({row[&quot;trained_on_split&quot;] for row in rows}, {&quot;train&quot;})
+        self.assertEqual(
+            scores,
+            {
+                &quot;S001&quot;: 0.648694,
+                &quot;S002&quot;: 0.351306,
+                &quot;S003&quot;: 0.351306,
+                &quot;S004&quot;: 0.648694,
+                &quot;S005&quot;: 0.351306,
+                &quot;S006&quot;: 0.351306,
+                &quot;S007&quot;: 0.648694,
+                &quot;S009&quot;: 0.648694,
+                &quot;S010&quot;: 0.351306,
+                &quot;S011&quot;: 0.351306,
+                &quot;S012&quot;: 0.648694,
+                &quot;S013&quot;: 0.351306,
+            },
+        )
+        selected_validation = [
+            row[&quot;snapshot_id&quot;]
+            for row in rows
+            if row[&quot;split&quot;] == &quot;validation&quot; and row[&quot;selected_at_budget&quot;] == 1
+        ]
+        self.assertEqual(selected_validation, [&quot;S005&quot;, &quot;S007&quot;])
+
+    def test_training_trace_records_no_test_fit(self) -&gt; None:
+        report = self.audit()
+        train, validation, test = report[&quot;training_trace&quot;]
+
+        self.assertEqual(train[&quot;event&quot;], &quot;Pool(train)&quot;)
+        self.assertTrue(train[&quot;fits_model&quot;])
+        self.assertEqual(train[&quot;snapshot_ids&quot;], &quot;S001,S002,S003,S004&quot;)
+        self.assertFalse(validation[&quot;fits_model&quot;])
+        self.assertTrue(validation[&quot;used_for_selection&quot;])
+        self.assertEqual(validation[&quot;snapshot_ids&quot;], &quot;S005,S006,S007&quot;)
+        self.assertFalse(test[&quot;fits_model&quot;])
+        self.assertFalse(test[&quot;used_for_selection&quot;])
+        self.assertTrue(test[&quot;used_for_final_holdout&quot;])
+        self.assertEqual(test[&quot;snapshot_ids&quot;], &quot;S009,S010,S011,S012,S013&quot;)
+
+    def test_serialized_spec_records_cat_features_baseline_and_no_promotion(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;model&quot;][&quot;class&quot;], &quot;CatBoostClassifier&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;catboost_version&quot;], &quot;1.2.10&quot;)
+        self.assertEqual(serialized[&quot;model&quot;][&quot;feature_count&quot;], 10)
+        self.assertEqual(
+            serialized[&quot;model&quot;][&quot;cat_features&quot;],
+            [&quot;plan_id&quot;, &quot;platform&quot;, &quot;country&quot;, &quot;acquisition_channel&quot;],
+        )
+        self.assertEqual(
+            serialized[&quot;baseline_package&quot;][&quot;package_id&quot;],
+            &quot;trial-churn-ml-baseline-package-v0&quot;,
+        )
+        self.assertEqual(
+            serialized[&quot;selection&quot;][&quot;selected_model_id&quot;],
+            &quot;random_forest_depth2_class_weight_balanced&quot;,
+        )
+        self.assertFalse(serialized[&quot;selection&quot;][&quot;catboost_candidate_promoted&quot;])
+        self.assertFalse(serialized[&quot;selection&quot;][&quot;test_used_for_selection&quot;])
+        self.assertEqual(serialized[&quot;selection&quot;][&quot;catboost_selected_ids_on_validation&quot;], [&quot;S007&quot;, &quot;S005&quot;])
+
+    def test_code_example_writes_report_comparison_predictions_trace_and_serialized_spec(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;model_id&quot;], &quot;catboost_depth2_native_categories&quot;)
+        self.assertEqual(payload[&quot;selected_model_id&quot;], &quot;random_forest_depth2_class_weight_balanced&quot;)
+        self.assertFalse(payload[&quot;test_used_for_selection&quot;])
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_report.json&quot;)[&quot;summary&quot;][&quot;tree_count&quot;], 20)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_comparison.csv&quot;)), 5)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_predictions.csv&quot;)), 12)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_training_trace.csv&quot;)), 3)
+        self.assertEqual(
+            read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;catboost_serialized_spec.json&quot;)[&quot;model&quot;][&quot;class&quot;],
+            &quot;CatBoostClassifier&quot;,
+        )
+
+    def test_invalid_baseline_package_blocks_candidate_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            baseline = read_json(reports / &quot;ml_baseline_package_report.json&quot;)
+            baseline[&quot;valid&quot;] = False
+            write_json(reports / &quot;ml_baseline_package_report.json&quot;, baseline)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                baseline_package_report_path=reports / &quot;ml_baseline_package_report.json&quot;,
+                imbalance_report_path=reports / &quot;imbalance_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        contract = check(report, &quot;baseline_package_is_ready_for_review&quot;)
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertIn(&quot;baseline_package_is_ready_for_review&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_selection_data_must_stay_validation_not_test(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            spec = read_json(phase16 / &quot;catboost_model_spec.json&quot;)
+            spec[&quot;comparison&quot;][&quot;selection_data&quot;] = &quot;test&quot;
+            write_json(phase16 / &quot;catboost_model_spec.json&quot;, spec)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                baseline_package_report_path=reports / &quot;ml_baseline_package_report.json&quot;,
+                imbalance_report_path=reports / &quot;imbalance_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        contract = check(report, &quot;catboost_spec_declares_reproducible_no_test_selection&quot;)
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;observed&quot;][0][&quot;field&quot;], &quot;comparison.selection_data&quot;)
+
+    def test_missing_cat_feature_is_rejected_before_fit(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            spec = read_json(phase16 / &quot;catboost_model_spec.json&quot;)
+            spec[&quot;feature_contract&quot;][&quot;categorical_features&quot;].append(&quot;plan_name_from_future&quot;)
+            write_json(phase16 / &quot;catboost_model_spec.json&quot;, spec)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                baseline_package_report_path=reports / &quot;ml_baseline_package_report.json&quot;,
+                imbalance_report_path=reports / &quot;imbalance_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        contract = check(report, &quot;feature_contract_matches_table&quot;)
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;observed&quot;][0][&quot;missing&quot;], [&quot;plan_name_from_future&quot;])
+
+    def test_target_column_cannot_be_registered_as_cat_feature(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            spec = read_json(phase16 / &quot;catboost_model_spec.json&quot;)
+            spec[&quot;feature_contract&quot;][&quot;categorical_features&quot;].append(&quot;churned_14d&quot;)
+            write_json(phase16 / &quot;catboost_model_spec.json&quot;, spec)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                baseline_package_report_path=reports / &quot;ml_baseline_package_report.json&quot;,
+                imbalance_report_path=reports / &quot;imbalance_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        contract = check(report, &quot;feature_contract_matches_table&quot;)
+        self.assertFalse(contract[&quot;valid&quot;])
+        self.assertEqual(contract[&quot;observed&quot;][0][&quot;field&quot;], &quot;forbidden_columns&quot;)
+
+    def test_cli_fail_on_warning_exits_after_writing_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;outputs&quot;
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--output-dir&quot;, output_dir, &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            report_exists = (output_dir / &quot;catboost_report.json&quot;).exists()
+            predictions_exists = (output_dir / &quot;catboost_predictions.csv&quot;).exists()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertGreater(payload[&quot;warning_count&quot;], 0)
+        self.assertTrue(report_exists)
+        self.assertTrue(predictions_exists)
+
+    def test_missing_problem_spec_returns_structured_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_problem = upstream / &quot;missing_problem_spec.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                problem_spec_path=missing_problem,
+                baseline_package_report_path=reports / &quot;ml_baseline_package_report.json&quot;,
+                imbalance_report_path=reports / &quot;imbalance_report.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+        self.assertEqual(report[&quot;checks&quot;][0][&quot;id&quot;], &quot;input_files_are_present&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_ROOT = LESSON_ROOT / &quot;outputs&quot;
+if str(ARTIFACT_ROOT) not in sys.path:
+    sys.path.insert(0, str(ARTIFACT_ROOT))
+
+from catboost_baseline_trainer import (  # noqa: E402
+    DEFAULT_SPEC_PATH,
+    read_json,
+    run,
+    write_outputs,
+)
+
+
+def main() -&gt; None:
+    result = run()
+    output_spec = read_json(DEFAULT_SPEC_PATH)[&quot;output&quot;]
+    write_outputs(result, ARTIFACT_ROOT, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;catboost_baseline_id&quot;: summary[&quot;catboost_baseline_id&quot;],
+                &quot;model_id&quot;: summary[&quot;model_id&quot;],
+                &quot;fit_row_count&quot;: summary[&quot;fit_row_count&quot;],
+                &quot;cat_features&quot;: summary[&quot;cat_features&quot;],
+                &quot;selected_model_id&quot;: summary[&quot;selected_model_id&quot;],
+                &quot;catboost_validation_precision_at_budget&quot;: summary[
+                    &quot;catboost_validation_precision_at_budget&quot;
+                ],
+                &quot;baseline_validation_precision_at_budget&quot;: summary[
+                    &quot;baseline_validation_precision_at_budget&quot;
+                ],
+                &quot;test_used_for_selection&quot;: summary[&quot;test_used_for_selection&quot;],
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;catboost-baseline-trainer&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/catboost_baseline_trainer.py&quot;,
+  &quot;description&quot;: &quot;Обучает CatBoost-кандидат на churn-risk задаче из фазы 15, сравнивает его с baseline package по validation и пишет no-test-selection audit.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/01-catboost/outputs/catboost_baseline_trainer.py --output-dir phases/16-tabular-ml/01-catboost/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_baseline_trainer.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import numpy as np
+import pandas as pd
+from catboost import CatBoostClassifier, Pool
+from sklearn.metrics import average_precision_score, log_loss, roc_auc_score
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_PROBLEM_SPEC_PATH = UPSTREAM_DATA_ROOT / &quot;problem_spec.json&quot;
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+DEFAULT_BASELINE_PACKAGE_REPORT_PATH = (
+    PHASE_15_ROOT / &quot;15-model-card&quot; / &quot;outputs&quot; / &quot;ml_baseline_package_report.json&quot;
+)
+DEFAULT_IMBALANCE_REPORT_PATH = (
+    PHASE_15_ROOT / &quot;11-imbalanced-data&quot; / &quot;outputs&quot; / &quot;imbalance_report.json&quot;
+)
+
+GENERATED_AT = &quot;2026-07-03T12:00:00+03:00&quot;
+TINY_TRAIN_WARNING_THRESHOLD = 20
+
+
+class CatBoostBaselineError(ValueError):
+    &quot;&quot;&quot;Raised when CatBoost baseline inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise CatBoostBaselineError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def validate_catboost_spec(
+    spec: dict[str, Any],
+    *,
+    problem_spec: dict[str, Any],
+    baseline_package_report: dict[str, Any],
+) -&gt; tuple[list[dict[str, Any]], list[str], list[str]]:
+    checks: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+
+    required_fields = {
+        &quot;catboost_baseline_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;baseline_package_id&quot;,
+        &quot;baseline_package_source_model_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;selection_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;score_type&quot;,
+        &quot;candidate&quot;,
+        &quot;feature_contract&quot;,
+        &quot;comparison&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required_fields - set(spec))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    identity = {
+        &quot;problem_id&quot;: problem_spec.get(&quot;problem_id&quot;),
+        &quot;baseline_package_id&quot;: baseline_package_report.get(&quot;package_id&quot;),
+    }
+    for field, expected in identity.items():
+        if spec.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: spec.get(field), &quot;expected&quot;: expected})
+
+    expected_splits = {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;selection_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+    }
+    for field, expected in expected_splits.items():
+        if spec.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: spec.get(field), &quot;expected&quot;: expected})
+
+    comparison = spec.get(&quot;comparison&quot;) if isinstance(spec.get(&quot;comparison&quot;), dict) else {}
+    expected_comparison = {
+        &quot;primary_metric&quot;: &quot;precision_at_budget&quot;,
+        &quot;selection_data&quot;: &quot;validation&quot;,
+        &quot;test_data_role&quot;: &quot;final_once_only_evaluation&quot;,
+    }
+    for field, expected in expected_comparison.items():
+        observed = comparison.get(field)
+        if observed != expected:
+            errors.append({&quot;field&quot;: f&quot;comparison.{field}&quot;, &quot;observed&quot;: observed, &quot;expected&quot;: expected})
+
+    candidate = spec.get(&quot;candidate&quot;) if isinstance(spec.get(&quot;candidate&quot;), dict) else {}
+    if candidate.get(&quot;kind&quot;) != &quot;catboost_classifier&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.kind&quot;,
+                &quot;observed&quot;: candidate.get(&quot;kind&quot;),
+                &quot;expected&quot;: &quot;catboost_classifier&quot;,
+            }
+        )
+    params = candidate.get(&quot;params&quot;) if isinstance(candidate.get(&quot;params&quot;), dict) else {}
+    if not isinstance(params.get(&quot;iterations&quot;), int) or params.get(&quot;iterations&quot;) &lt; 2:
+        errors.append({&quot;field&quot;: &quot;candidate.params.iterations&quot;, &quot;expected&quot;: &quot;integer &gt;= 2&quot;})
+    if params.get(&quot;depth&quot;) not in {1, 2, 3}:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.params.depth&quot;,
+                &quot;observed&quot;: params.get(&quot;depth&quot;),
+                &quot;expected&quot;: &quot;1, 2 or 3 for this tiny baseline lesson&quot;,
+            }
+        )
+    if params.get(&quot;random_seed&quot;) is None:
+        errors.append({&quot;field&quot;: &quot;candidate.params.random_seed&quot;, &quot;expected&quot;: &quot;required&quot;})
+    if params.get(&quot;allow_writing_files&quot;) is not False:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.params.allow_writing_files&quot;,
+                &quot;observed&quot;: params.get(&quot;allow_writing_files&quot;),
+                &quot;expected&quot;: False,
+            }
+        )
+    if params.get(&quot;verbose&quot;) is not False:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.params.verbose&quot;,
+                &quot;observed&quot;: params.get(&quot;verbose&quot;),
+                &quot;expected&quot;: False,
+            }
+        )
+    if params.get(&quot;thread_count&quot;) != 1:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;candidate.params.thread_count&quot;,
+                &quot;observed&quot;: params.get(&quot;thread_count&quot;),
+                &quot;expected&quot;: 1,
+            }
+        )
+
+    if errors:
+        checks.append(
+            failed(
+                &quot;catboost_spec_declares_reproducible_no_test_selection&quot;,
+                errors,
+                &quot;train fit, validation selection, test-only final holdout&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;catboost_spec_declares_reproducible_no_test_selection&quot;,
+                {
+                    &quot;fit_split&quot;: spec[&quot;fit_split&quot;],
+                    &quot;selection_split&quot;: spec[&quot;selection_split&quot;],
+                    &quot;final_holdout_split&quot;: spec[&quot;final_holdout_split&quot;],
+                    &quot;random_seed&quot;: params.get(&quot;random_seed&quot;),
+                },
+            )
+        )
+
+    contract = spec.get(&quot;feature_contract&quot;) if isinstance(spec.get(&quot;feature_contract&quot;), dict) else {}
+    numeric = contract.get(&quot;numeric_features&quot;)
+    categorical = contract.get(&quot;categorical_features&quot;)
+    if not isinstance(numeric, list) or not numeric:
+        errors.append({&quot;field&quot;: &quot;feature_contract.numeric_features&quot;, &quot;expected&quot;: &quot;non-empty list&quot;})
+        numeric = []
+    if not isinstance(categorical, list) or not categorical:
+        errors.append({&quot;field&quot;: &quot;feature_contract.categorical_features&quot;, &quot;expected&quot;: &quot;non-empty list&quot;})
+        categorical = []
+    return checks, list(numeric), list(categorical)
+
+
+def validate_baseline_package(
+    spec: dict[str, Any],
+    baseline_package_report: dict[str, Any],
+    imbalance_report: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    package_ready = (
+        baseline_package_report.get(&quot;valid&quot;) is True
+        and baseline_package_report.get(&quot;package_id&quot;) == spec.get(&quot;baseline_package_id&quot;)
+        and baseline_package_report.get(&quot;decision_status&quot;) == &quot;review_required_before_production&quot;
+    )
+    if package_ready:
+        checks.append(
+            passed(
+                &quot;baseline_package_is_ready_for_review&quot;,
+                {
+                    &quot;package_id&quot;: baseline_package_report.get(&quot;package_id&quot;),
+                    &quot;decision_status&quot;: baseline_package_report.get(&quot;decision_status&quot;),
+                },
+            )
+        )
+    else:
+        checks.append(
+            failed(
+                &quot;baseline_package_is_ready_for_review&quot;,
+                {
+                    &quot;valid&quot;: baseline_package_report.get(&quot;valid&quot;),
+                    &quot;package_id&quot;: baseline_package_report.get(&quot;package_id&quot;),
+                    &quot;decision_status&quot;: baseline_package_report.get(&quot;decision_status&quot;),
+                },
+                &quot;valid baseline package ready for review&quot;,
+            )
+        )
+
+    selected_model = imbalance_report.get(&quot;summary&quot;, {}).get(&quot;selected_model_id&quot;)
+    if selected_model == spec.get(&quot;baseline_package_source_model_id&quot;):
+        checks.append(passed(&quot;baseline_source_model_matches_phase15_selection&quot;, selected_model))
+    else:
+        checks.append(
+            failed(
+                &quot;baseline_source_model_matches_phase15_selection&quot;,
+                selected_model,
+                spec.get(&quot;baseline_package_source_model_id&quot;),
+            )
+        )
+    return checks
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+
+    for frame_name, frame in {
+        &quot;features&quot;: features,
+        &quot;labels&quot;: labels,
+        &quot;manifest&quot;: manifest,
+    }.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise CatBoostBaselineError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise CatBoostBaselineError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(
+        manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;, &quot;user_id&quot;, &quot;prediction_time&quot;]],
+        on=&quot;snapshot_id&quot;,
+        how=&quot;inner&quot;,
+    )
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def validate_feature_contract(
+    frame: pd.DataFrame,
+    spec: dict[str, Any],
+    numeric_features: list[str],
+    categorical_features: list[str],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    feature_columns = set(frame.columns)
+    missing_numeric = sorted(set(numeric_features) - feature_columns)
+    missing_categorical = sorted(set(categorical_features) - feature_columns)
+    forbidden = set(spec.get(&quot;feature_contract&quot;, {}).get(&quot;forbidden_columns&quot;, []))
+    selected_features = set(numeric_features + categorical_features)
+    forbidden_selected = sorted(selected_features &amp; forbidden)
+    duplicate_features = sorted(
+        feature for feature in selected_features if (numeric_features + categorical_features).count(feature) &gt; 1
+    )
+
+    errors = []
+    if missing_numeric:
+        errors.append({&quot;field&quot;: &quot;numeric_features&quot;, &quot;missing&quot;: missing_numeric})
+    if missing_categorical:
+        errors.append({&quot;field&quot;: &quot;categorical_features&quot;, &quot;missing&quot;: missing_categorical})
+    if forbidden_selected:
+        errors.append({&quot;field&quot;: &quot;forbidden_columns&quot;, &quot;selected&quot;: forbidden_selected})
+    if duplicate_features:
+        errors.append({&quot;field&quot;: &quot;duplicate_features&quot;, &quot;selected&quot;: duplicate_features})
+
+    if errors:
+        checks.append(failed(&quot;feature_contract_matches_table&quot;, errors, &quot;declared features exist and exclude target columns&quot;))
+    else:
+        checks.append(
+            passed(
+                &quot;feature_contract_matches_table&quot;,
+                {
+                    &quot;numeric_feature_count&quot;: len(numeric_features),
+                    &quot;categorical_feature_count&quot;: len(categorical_features),
+                },
+            )
+        )
+
+    if categorical_features and not missing_categorical and not forbidden_selected:
+        checks.append(passed(&quot;cat_features_are_explicit_native_columns&quot;, categorical_features))
+    else:
+        checks.append(
+            failed(
+                &quot;cat_features_are_explicit_native_columns&quot;,
+                categorical_features,
+                &quot;non-empty categorical feature names present in feature table&quot;,
+            )
+        )
+
+    required_splits = {&quot;train&quot;, &quot;validation&quot;, &quot;test&quot;}
+    observed_splits = set(frame[&quot;split&quot;])
+    if required_splits &lt;= observed_splits:
+        checks.append(passed(&quot;target_and_split_join_is_one_to_one&quot;, sorted(observed_splits)))
+    else:
+        checks.append(failed(&quot;target_and_split_join_is_one_to_one&quot;, sorted(observed_splits), sorted(required_splits)))
+    return checks
+
+
+def prepare_features(
+    frame: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    missing_category_token: str,
+) -&gt; pd.DataFrame:
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def selected_ids_at_budget(rows: list[dict[str, Any]], budget: int) -&gt; list[str]:
+    ordered = sorted(rows, key=lambda row: (-float(row[&quot;score&quot;]), str(row[&quot;snapshot_id&quot;])))
+    return [str(row[&quot;snapshot_id&quot;]) for row in ordered[:budget]]
+
+
+def metric_row(
+    *,
+    source: str,
+    model_id: str,
+    model_kind: str,
+    split: str,
+    rows: list[dict[str, Any]],
+    budget: int,
+    selected_on_validation: bool,
+    selection_rank: int,
+    trained_on_split: str,
+) -&gt; dict[str, Any]:
+    y_true = [int(row[&quot;actual_label&quot;]) for row in rows]
+    scores = [float(row[&quot;score&quot;]) for row in rows]
+    selected_ids = selected_ids_at_budget(rows, budget)
+    selected = set(selected_ids)
+
+    tp = sum(1 for row in rows if row[&quot;snapshot_id&quot;] in selected and row[&quot;actual_label&quot;] == 1)
+    fp = sum(1 for row in rows if row[&quot;snapshot_id&quot;] in selected and row[&quot;actual_label&quot;] == 0)
+    fn = sum(1 for row in rows if row[&quot;snapshot_id&quot;] not in selected and row[&quot;actual_label&quot;] == 1)
+    tn = sum(1 for row in rows if row[&quot;snapshot_id&quot;] not in selected and row[&quot;actual_label&quot;] == 0)
+    positive_count = sum(y_true)
+    negative_count = len(y_true) - positive_count
+    predicted_at_half = [1 if score &gt;= 0.5 else 0 for score in scores]
+    accuracy = sum(int(actual == predicted) for actual, predicted in zip(y_true, predicted_at_half, strict=True)) / len(y_true)
+    has_both_classes = len(set(y_true)) == 2
+
+    return {
+        &quot;source&quot;: source,
+        &quot;model_id&quot;: model_id,
+        &quot;model_kind&quot;: model_kind,
+        &quot;split&quot;: split,
+        &quot;row_count&quot;: len(rows),
+        &quot;positive_count&quot;: positive_count,
+        &quot;negative_count&quot;: negative_count,
+        &quot;selection_budget&quot;: budget,
+        &quot;precision_at_budget&quot;: rounded(tp / len(selected_ids)) if selected_ids else None,
+        &quot;recall_at_budget&quot;: rounded(tp / positive_count) if positive_count else None,
+        &quot;average_precision&quot;: rounded(average_precision_score(y_true, scores)) if has_both_classes else None,
+        &quot;roc_auc&quot;: rounded(roc_auc_score(y_true, scores)) if has_both_classes else None,
+        &quot;log_loss&quot;: rounded(log_loss(y_true, scores, labels=[0, 1])),
+        &quot;tp_at_budget&quot;: tp,
+        &quot;fp_at_budget&quot;: fp,
+        &quot;fn_at_budget&quot;: fn,
+        &quot;tn_at_budget&quot;: tn,
+        &quot;error_cost_at_budget&quot;: rounded(fp * 1.0 + fn * 5.0),
+        &quot;accuracy_at_0_5&quot;: rounded(accuracy),
+        &quot;selected_on_validation&quot;: selected_on_validation,
+        &quot;selection_rank&quot;: selection_rank,
+        &quot;selected_ids&quot;: &quot;,&quot;.join(selected_ids),
+        &quot;trained_on_split&quot;: trained_on_split,
+    }
+
+
+def prediction_rows(
+    frame: pd.DataFrame,
+    scores: np.ndarray,
+    *,
+    model_id: str,
+    score_type: str,
+    budget: int,
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for (_, row), score in zip(frame.iterrows(), scores, strict=True):
+        rows.append(
+            {
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;model_id&quot;: model_id,
+                &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+                &quot;split&quot;: row[&quot;split&quot;],
+                &quot;score&quot;: rounded(float(score)),
+                &quot;score_type&quot;: score_type,
+                &quot;actual_label&quot;: int(row[&quot;target&quot;]),
+                &quot;predicted_label_at_0_5&quot;: int(float(score) &gt;= 0.5),
+                &quot;selected_at_budget&quot;: 0,
+                &quot;trained_on_split&quot;: &quot;train&quot;,
+                &quot;generated_at&quot;: GENERATED_AT,
+            }
+        )
+
+    for split in sorted({row[&quot;split&quot;] for row in rows}):
+        split_rows = [row for row in rows if row[&quot;split&quot;] == split]
+        for snapshot_id in selected_ids_at_budget(split_rows, budget):
+            next(row for row in split_rows if row[&quot;snapshot_id&quot;] == snapshot_id)[&quot;selected_at_budget&quot;] = 1
+    return rows
+
+
+def catboost_training_trace(
+    *,
+    train_ids: list[str],
+    validation_ids: list[str],
+    test_ids: list[str],
+    categorical_features: list[str],
+    model: CatBoostClassifier,
+) -&gt; list[dict[str, Any]]:
+    return [
+        {
+            &quot;event&quot;: &quot;Pool(train)&quot;,
+            &quot;split&quot;: &quot;train&quot;,
+            &quot;row_count&quot;: len(train_ids),
+            &quot;snapshot_ids&quot;: &quot;,&quot;.join(train_ids),
+            &quot;cat_features&quot;: &quot;,&quot;.join(categorical_features),
+            &quot;fits_model&quot;: True,
+            &quot;used_for_selection&quot;: False,
+            &quot;used_for_final_holdout&quot;: False,
+            &quot;tree_count&quot;: model.tree_count_,
+            &quot;best_iteration&quot;: model.get_best_iteration(),
+        },
+        {
+            &quot;event&quot;: &quot;predict(validation)&quot;,
+            &quot;split&quot;: &quot;validation&quot;,
+            &quot;row_count&quot;: len(validation_ids),
+            &quot;snapshot_ids&quot;: &quot;,&quot;.join(validation_ids),
+            &quot;cat_features&quot;: &quot;,&quot;.join(categorical_features),
+            &quot;fits_model&quot;: False,
+            &quot;used_for_selection&quot;: True,
+            &quot;used_for_final_holdout&quot;: False,
+            &quot;tree_count&quot;: model.tree_count_,
+            &quot;best_iteration&quot;: model.get_best_iteration(),
+        },
+        {
+            &quot;event&quot;: &quot;predict(test)&quot;,
+            &quot;split&quot;: &quot;test&quot;,
+            &quot;row_count&quot;: len(test_ids),
+            &quot;snapshot_ids&quot;: &quot;,&quot;.join(test_ids),
+            &quot;cat_features&quot;: &quot;,&quot;.join(categorical_features),
+            &quot;fits_model&quot;: False,
+            &quot;used_for_selection&quot;: False,
+            &quot;used_for_final_holdout&quot;: True,
+            &quot;tree_count&quot;: model.tree_count_,
+            &quot;best_iteration&quot;: model.get_best_iteration(),
+        },
+    ]
+
+
+def baseline_rows_from_imbalance(
+    imbalance_report: dict[str, Any],
+    baseline_model_id: str,
+) -&gt; list[dict[str, Any]]:
+    rows = [
+        dict(row)
+        for row in imbalance_report.get(&quot;comparison&quot;, [])
+        if row.get(&quot;model_id&quot;) == baseline_model_id and row.get(&quot;split&quot;) in {&quot;validation&quot;, &quot;test&quot;}
+    ]
+    for row in rows:
+        row[&quot;source&quot;] = &quot;15/11-imbalanced-data&quot;
+        row[&quot;trained_on_split&quot;] = &quot;train&quot;
+        row[&quot;selected_ids&quot;] = row.get(&quot;selected_ids&quot;, &quot;&quot;)
+    return rows
+
+
+def assign_selection(
+    baseline_rows: list[dict[str, Any]],
+    catboost_rows: list[dict[str, Any]],
+    selection_split: str,
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    comparison = baseline_rows + catboost_rows
+    validation_rows = [row for row in comparison if row[&quot;split&quot;] == selection_split]
+    ranked = sorted(
+        validation_rows,
+        key=lambda row: (
+            -float(row[&quot;precision_at_budget&quot;]),
+            float(row[&quot;error_cost_at_budget&quot;]),
+            float(row[&quot;log_loss&quot;]),
+            str(row[&quot;model_id&quot;]),
+        ),
+    )
+    rank_by_model = {row[&quot;model_id&quot;]: index + 1 for index, row in enumerate(ranked)}
+    selected_model_id = ranked[0][&quot;model_id&quot;]
+    for row in comparison:
+        row[&quot;selection_rank&quot;] = rank_by_model.get(row[&quot;model_id&quot;], row.get(&quot;selection_rank&quot;, &quot;&quot;))
+        row[&quot;selected_on_validation&quot;] = row[&quot;model_id&quot;] == selected_model_id
+
+    selected = next(row for row in validation_rows if row[&quot;model_id&quot;] == selected_model_id)
+    selected_source = selected.get(&quot;source&quot;, &quot;&quot;)
+    return comparison, {&quot;selected_model_id&quot;: selected_model_id, &quot;selected_model_source&quot;: selected_source}
+
+
+def build_report(
+    *,
+    spec: dict[str, Any],
+    problem_spec: dict[str, Any],
+    baseline_package_report: dict[str, Any],
+    imbalance_report: dict[str, Any],
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    checks: list[dict[str, Any]],
+) -&gt; dict[str, Any]:
+    params = dict(spec[&quot;candidate&quot;][&quot;params&quot;])
+    model_id = spec[&quot;candidate&quot;][&quot;model_id&quot;]
+    budget = int(problem_spec[&quot;decision_budget&quot;][&quot;max_actions&quot;])
+    train_mask = frame[&quot;split&quot;] == spec[&quot;fit_split&quot;]
+    train_ids = frame.loc[train_mask, &quot;snapshot_id&quot;].tolist()
+    validation_ids = frame.loc[frame[&quot;split&quot;] == spec[&quot;selection_split&quot;], &quot;snapshot_id&quot;].tolist()
+    test_ids = frame.loc[frame[&quot;split&quot;] == spec[&quot;final_holdout_split&quot;], &quot;snapshot_id&quot;].tolist()
+
+    train_classes = sorted(frame.loc[train_mask, &quot;target&quot;].unique().tolist())
+    if train_classes == [0, 1]:
+        checks.append(passed(&quot;fit_split_has_both_classes&quot;, train_classes))
+    else:
+        checks.append(failed(&quot;fit_split_has_both_classes&quot;, train_classes, [0, 1]))
+
+    model = CatBoostClassifier(**params)
+    train_pool = Pool(matrix.loc[train_mask], frame.loc[train_mask, &quot;target&quot;], cat_features=categorical_features)
+    model.fit(train_pool)
+    all_pool = Pool(matrix, cat_features=categorical_features)
+    scores = model.predict_proba(all_pool)[:, 1]
+
+    predictions = prediction_rows(
+        frame,
+        scores,
+        model_id=model_id,
+        score_type=spec[&quot;score_type&quot;],
+        budget=budget,
+    )
+    split_predictions = {
+        split: [row for row in predictions if row[&quot;split&quot;] == split]
+        for split in sorted({row[&quot;split&quot;] for row in predictions})
+    }
+    catboost_metric_rows = [
+        metric_row(
+            source=&quot;16/01-catboost&quot;,
+            model_id=model_id,
+            model_kind=&quot;catboost_classifier&quot;,
+            split=split,
+            rows=rows,
+            budget=budget,
+            selected_on_validation=False,
+            selection_rank=0,
+            trained_on_split=&quot;train&quot;,
+        )
+        for split, rows in split_predictions.items()
+    ]
+
+    baseline_model_id = spec[&quot;comparison&quot;][&quot;baseline_model_id&quot;]
+    baseline_rows = baseline_rows_from_imbalance(imbalance_report, baseline_model_id)
+    comparison, selection = assign_selection(
+        baseline_rows,
+        catboost_metric_rows,
+        selection_split=spec[&quot;selection_split&quot;],
+    )
+
+    trace = catboost_training_trace(
+        train_ids=train_ids,
+        validation_ids=validation_ids,
+        test_ids=test_ids,
+        categorical_features=categorical_features,
+        model=model,
+    )
+
+    checks.append(passed(&quot;only_train_rows_used_for_fit&quot;, train_ids, &quot;train split ids&quot;))
+    checks.append(passed(&quot;validation_is_selection_split&quot;, validation_ids, &quot;validation split ids&quot;))
+    checks.append(
+        passed(
+            &quot;final_holdout_not_used_for_selection&quot;,
+            {
+                &quot;selection_split&quot;: spec[&quot;selection_split&quot;],
+                &quot;final_holdout_split&quot;: spec[&quot;final_holdout_split&quot;],
+                &quot;test_used_for_selection&quot;: False,
+            },
+        )
+    )
+    checks.append(
+        passed(
+            &quot;catboost_fit_is_reproducible&quot;,
+            {
+                &quot;catboost_version&quot;: catboost.__version__,
+                &quot;random_seed&quot;: params.get(&quot;random_seed&quot;),
+                &quot;tree_count&quot;: model.tree_count_,
+                &quot;thread_count&quot;: params.get(&quot;thread_count&quot;),
+            },
+        )
+    )
+
+    if len(train_ids) &lt; TINY_TRAIN_WARNING_THRESHOLD:
+        checks.append(
+            failed(
+                &quot;tiny_catboost_training_sample_expected&quot;,
+                len(train_ids),
+                f&quot;&gt;= {TINY_TRAIN_WARNING_THRESHOLD}&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    baseline_validation = next(
+        row for row in comparison if row[&quot;model_id&quot;] == baseline_model_id and row[&quot;split&quot;] == spec[&quot;selection_split&quot;]
+    )
+    catboost_validation = next(
+        row for row in comparison if row[&quot;model_id&quot;] == model_id and row[&quot;split&quot;] == spec[&quot;selection_split&quot;]
+    )
+    if catboost_validation[&quot;precision_at_budget&quot;] &lt;= baseline_validation[&quot;precision_at_budget&quot;]:
+        checks.append(
+            failed(
+                &quot;catboost_candidate_not_promoted_without_validation_gain&quot;,
+                {
+                    &quot;catboost_validation_precision_at_budget&quot;: catboost_validation[&quot;precision_at_budget&quot;],
+                    &quot;baseline_validation_precision_at_budget&quot;: baseline_validation[&quot;precision_at_budget&quot;],
+                },
+                &quot;candidate needs validation gain before promotion&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;catboost_candidate_not_promoted_without_validation_gain&quot;,
+                catboost_validation[&quot;precision_at_budget&quot;],
+                f&quot;&gt; {baseline_validation[&#x27;precision_at_budget&#x27;]}&quot;,
+            )
+        )
+
+    upstream_warnings = baseline_package_report.get(&quot;summary&quot;, {}).get(&quot;warnings&quot;, [])
+    if upstream_warnings:
+        checks.append(
+            failed(
+                &quot;baseline_package_warnings_propagated_to_phase_16&quot;,
+                upstream_warnings,
+                &quot;phase 16 keeps phase 15 warnings visible&quot;,
+                severity=&quot;warning&quot;,
+            )
+        )
+
+    serialized_spec = {
+        &quot;catboost_baseline_id&quot;: spec[&quot;catboost_baseline_id&quot;],
+        &quot;problem_id&quot;: spec[&quot;problem_id&quot;],
+        &quot;model&quot;: {
+            &quot;class&quot;: &quot;CatBoostClassifier&quot;,
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;model_id&quot;: model_id,
+            &quot;params&quot;: params,
+            &quot;tree_count&quot;: model.tree_count_,
+            &quot;best_iteration&quot;: model.get_best_iteration(),
+            &quot;feature_count&quot;: len(numeric_features) + len(categorical_features),
+            &quot;numeric_features&quot;: numeric_features,
+            &quot;cat_features&quot;: categorical_features,
+        },
+        &quot;baseline_package&quot;: {
+            &quot;package_id&quot;: baseline_package_report.get(&quot;package_id&quot;),
+            &quot;decision_status&quot;: baseline_package_report.get(&quot;decision_status&quot;),
+            &quot;source_model_id&quot;: baseline_package_report.get(&quot;summary&quot;, {}).get(&quot;source_model_id&quot;),
+            &quot;production_ready&quot;: False,
+        },
+        &quot;selection&quot;: {
+            &quot;selection_split&quot;: spec[&quot;selection_split&quot;],
+            &quot;final_holdout_split&quot;: spec[&quot;final_holdout_split&quot;],
+            &quot;selected_model_id&quot;: selection[&quot;selected_model_id&quot;],
+            &quot;selected_model_source&quot;: selection[&quot;selected_model_source&quot;],
+            &quot;catboost_candidate_promoted&quot;: selection[&quot;selected_model_id&quot;] == model_id,
+            &quot;test_used_for_selection&quot;: False,
+            &quot;catboost_selected_ids_on_validation&quot;: catboost_validation[&quot;selected_ids&quot;].split(&quot;,&quot;),
+            &quot;baseline_selected_ids_on_validation&quot;: baseline_validation[&quot;selected_ids&quot;].split(&quot;,&quot;),
+        },
+        &quot;fit_trace&quot;: trace,
+        &quot;output&quot;: spec[&quot;output&quot;],
+    }
+
+    report_valid = not blocking_errors(checks)
+    summary = {
+        &quot;catboost_baseline_id&quot;: spec[&quot;catboost_baseline_id&quot;],
+        &quot;problem_id&quot;: spec[&quot;problem_id&quot;],
+        &quot;catboost_version&quot;: catboost.__version__,
+        &quot;fit_split&quot;: spec[&quot;fit_split&quot;],
+        &quot;fit_row_count&quot;: len(train_ids),
+        &quot;selection_split&quot;: spec[&quot;selection_split&quot;],
+        &quot;validation_row_count&quot;: len(validation_ids),
+        &quot;final_holdout_split&quot;: spec[&quot;final_holdout_split&quot;],
+        &quot;test_row_count&quot;: len(test_ids),
+        &quot;model_id&quot;: model_id,
+        &quot;iterations&quot;: params[&quot;iterations&quot;],
+        &quot;tree_count&quot;: model.tree_count_,
+        &quot;best_iteration&quot;: model.get_best_iteration(),
+        &quot;numeric_features&quot;: numeric_features,
+        &quot;cat_features&quot;: categorical_features,
+        &quot;prediction_row_count&quot;: len(predictions),
+        &quot;baseline_package_id&quot;: baseline_package_report.get(&quot;package_id&quot;),
+        &quot;baseline_decision_status&quot;: baseline_package_report.get(&quot;decision_status&quot;),
+        &quot;baseline_model_id&quot;: baseline_model_id,
+        &quot;selected_model_id&quot;: selection[&quot;selected_model_id&quot;],
+        &quot;selected_model_source&quot;: selection[&quot;selected_model_source&quot;],
+        &quot;catboost_validation_precision_at_budget&quot;: catboost_validation[&quot;precision_at_budget&quot;],
+        &quot;baseline_validation_precision_at_budget&quot;: baseline_validation[&quot;precision_at_budget&quot;],
+        &quot;test_used_for_selection&quot;: False,
+        &quot;blocking_errors&quot;: blocking_errors(checks),
+        &quot;warnings&quot;: warning_ids(checks),
+        &quot;readiness_status&quot;: &quot;ready_for_categorical_feature_lesson&quot; if report_valid else &quot;blocked_by_catboost_contract&quot;,
+        &quot;generated_at&quot;: GENERATED_AT,
+    }
+
+    return {
+        &quot;valid&quot;: report_valid,
+        &quot;catboost_baseline_id&quot;: spec[&quot;catboost_baseline_id&quot;],
+        &quot;problem_id&quot;: spec[&quot;problem_id&quot;],
+        &quot;summary&quot;: summary,
+        &quot;checks&quot;: checks,
+        &quot;comparison&quot;: sorted(comparison, key=lambda row: (str(row[&quot;model_id&quot;]), str(row[&quot;split&quot;]))),
+        &quot;predictions&quot;: predictions,
+        &quot;training_trace&quot;: trace,
+        &quot;serialized_spec&quot;: serialized_spec,
+    }
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable CatBoost baseline inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;catboost_baseline_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_catboost_contract&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;comparison&quot;: [],
+        &quot;predictions&quot;: [],
+        &quot;training_trace&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    spec_path: Path = DEFAULT_SPEC_PATH,
+    problem_spec_path: Path = DEFAULT_PROBLEM_SPEC_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+    baseline_package_report_path: Path = DEFAULT_BASELINE_PACKAGE_REPORT_PATH,
+    imbalance_report_path: Path = DEFAULT_IMBALANCE_REPORT_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;catboost_model_spec&quot;: spec_path,
+        &quot;problem_spec&quot;: problem_spec_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+        &quot;baseline_package_report&quot;: baseline_package_report_path,
+        &quot;imbalance_report&quot;: imbalance_report_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        spec = read_json(spec_path)
+        problem_spec = read_json(problem_spec_path)
+        baseline_package_report = read_json(baseline_package_report_path)
+        imbalance_report = read_json(imbalance_report_path)
+        spec_checks, numeric_features, categorical_features = validate_catboost_spec(
+            spec,
+            problem_spec=problem_spec,
+            baseline_package_report=baseline_package_report,
+        )
+        checks = [file_check, *spec_checks]
+        checks.extend(validate_baseline_package(spec, baseline_package_report, imbalance_report))
+
+        frame = joined_frame(features_path, labels_path, manifest_path)
+        checks.extend(validate_feature_contract(frame, spec, numeric_features, categorical_features))
+        if blocking_errors(checks):
+            return {
+                &quot;valid&quot;: False,
+                &quot;catboost_baseline_id&quot;: spec.get(&quot;catboost_baseline_id&quot;),
+                &quot;problem_id&quot;: spec.get(&quot;problem_id&quot;),
+                &quot;summary&quot;: {
+                    &quot;catboost_baseline_id&quot;: spec.get(&quot;catboost_baseline_id&quot;),
+                    &quot;problem_id&quot;: spec.get(&quot;problem_id&quot;),
+                    &quot;blocking_errors&quot;: blocking_errors(checks),
+                    &quot;warnings&quot;: warning_ids(checks),
+                    &quot;readiness_status&quot;: &quot;blocked_by_catboost_contract&quot;,
+                    &quot;generated_at&quot;: GENERATED_AT,
+                },
+                &quot;checks&quot;: checks,
+                &quot;comparison&quot;: [],
+                &quot;predictions&quot;: [],
+                &quot;training_trace&quot;: [],
+                &quot;serialized_spec&quot;: {},
+            }
+
+        matrix = prepare_features(
+            frame,
+            numeric_features,
+            categorical_features,
+            spec[&quot;feature_contract&quot;].get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;),
+        )
+        return build_report(
+            spec=spec,
+            problem_spec=problem_spec,
+            baseline_package_report=baseline_package_report,
+            imbalance_report=imbalance_report,
+            frame=frame,
+            matrix=matrix,
+            numeric_features=numeric_features,
+            categorical_features=categorical_features,
+            checks=checks,
+        )
+    except (CatBoostBaselineError, OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
+        return failure_report(&quot;catboost_baseline_runtime_error&quot;, str(exc))
+
+
+COMPARISON_FIELDS = [
+    &quot;source&quot;,
+    &quot;model_id&quot;,
+    &quot;model_kind&quot;,
+    &quot;split&quot;,
+    &quot;row_count&quot;,
+    &quot;positive_count&quot;,
+    &quot;negative_count&quot;,
+    &quot;selection_budget&quot;,
+    &quot;precision_at_budget&quot;,
+    &quot;recall_at_budget&quot;,
+    &quot;average_precision&quot;,
+    &quot;roc_auc&quot;,
+    &quot;log_loss&quot;,
+    &quot;tp_at_budget&quot;,
+    &quot;fp_at_budget&quot;,
+    &quot;fn_at_budget&quot;,
+    &quot;tn_at_budget&quot;,
+    &quot;error_cost_at_budget&quot;,
+    &quot;accuracy_at_0_5&quot;,
+    &quot;selected_on_validation&quot;,
+    &quot;selection_rank&quot;,
+    &quot;selected_ids&quot;,
+    &quot;trained_on_split&quot;,
+]
+
+PREDICTION_FIELDS = [
+    &quot;snapshot_id&quot;,
+    &quot;model_id&quot;,
+    &quot;model_kind&quot;,
+    &quot;split&quot;,
+    &quot;score&quot;,
+    &quot;score_type&quot;,
+    &quot;actual_label&quot;,
+    &quot;predicted_label_at_0_5&quot;,
+    &quot;selected_at_budget&quot;,
+    &quot;trained_on_split&quot;,
+    &quot;generated_at&quot;,
+]
+
+TRACE_FIELDS = [
+    &quot;event&quot;,
+    &quot;split&quot;,
+    &quot;row_count&quot;,
+    &quot;snapshot_ids&quot;,
+    &quot;cat_features&quot;,
+    &quot;fits_model&quot;,
+    &quot;used_for_selection&quot;,
+    &quot;used_for_final_holdout&quot;,
+    &quot;tree_count&quot;,
+    &quot;best_iteration&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_spec&quot;})
+    write_csv(output_dir / output_spec[&quot;comparison_file&quot;], result[&quot;comparison&quot;], COMPARISON_FIELDS)
+    write_csv(output_dir / output_spec[&quot;prediction_file&quot;], result[&quot;predictions&quot;], PREDICTION_FIELDS)
+    write_csv(output_dir / output_spec[&quot;training_trace_file&quot;], result[&quot;training_trace&quot;], TRACE_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Train and audit a CatBoost baseline candidate.&quot;)
+    parser.add_argument(&quot;--spec&quot;, type=Path, default=DEFAULT_SPEC_PATH)
+    parser.add_argument(&quot;--problem-spec&quot;, type=Path, default=DEFAULT_PROBLEM_SPEC_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--baseline-package-report&quot;, type=Path, default=DEFAULT_BASELINE_PACKAGE_REPORT_PATH)
+    parser.add_argument(&quot;--imbalance-report&quot;, type=Path, default=DEFAULT_IMBALANCE_REPORT_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        spec_path=args.spec,
+        problem_spec_path=args.problem_spec,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+        baseline_package_report_path=args.baseline_package_report,
+        imbalance_report_path=args.imbalance_report,
+    )
+    output_spec = read_json(args.spec).get(&quot;output&quot;, {}) if args.spec.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;catboost_baseline_id&quot;: summary.get(&quot;catboost_baseline_id&quot;),
+                &quot;model_id&quot;: summary.get(&quot;model_id&quot;),
+                &quot;selected_model_id&quot;: summary.get(&quot;selected_model_id&quot;),
+                &quot;catboost_validation_precision_at_budget&quot;: summary.get(
+                    &quot;catboost_validation_precision_at_budget&quot;
+                ),
+                &quot;baseline_validation_precision_at_budget&quot;: summary.get(
+                    &quot;baseline_validation_precision_at_budget&quot;
+                ),
+                &quot;test_used_for_selection&quot;: summary.get(&quot;test_used_for_selection&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_baseline_trainer.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_comparison.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>source,model_id,model_kind,split,row_count,positive_count,negative_count,selection_budget,precision_at_budget,recall_at_budget,average_precision,roc_auc,log_loss,tp_at_budget,fp_at_budget,fn_at_budget,tn_at_budget,error_cost_at_budget,accuracy_at_0_5,selected_on_validation,selection_rank,selected_ids,trained_on_split
+16/01-catboost,catboost_depth2_native_categories,catboost_classifier,test,5,1,4,2,0.0,0.0,0.2,0.25,0.800776,0,2,1,2,7.0,0.4,False,2,&quot;S009,S012&quot;,train
+16/01-catboost,catboost_depth2_native_categories,catboost_classifier,train,4,2,2,2,1.0,1.0,1.0,1.0,0.432794,2,0,0,2,0.0,1.0,False,2,&quot;S001,S004&quot;,train
+16/01-catboost,catboost_depth2_native_categories,catboost_classifier,validation,3,1,2,2,0.0,0.0,0.333333,0.25,0.841663,0,2,1,0,7.0,0.333333,False,2,&quot;S007,S005&quot;,train
+15/11-imbalanced-data,random_forest_depth2_class_weight_balanced,random_forest_classifier,test,5,1,4,2,0.0,0.0,0.333333,0.5,0.705738,0,2,1,2,7.0,0.6,True,1,&quot;S009,S012&quot;,train
+15/11-imbalanced-data,random_forest_depth2_class_weight_balanced,random_forest_classifier,validation,3,1,2,2,0.5,1.0,0.5,0.5,0.776995,1,1,0,1,1.0,0.666667,True,1,&quot;S006,S007&quot;,train
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_comparison.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_predictions.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,model_id,model_kind,split,score,score_type,actual_label,predicted_label_at_0_5,selected_at_budget,trained_on_split,generated_at
+S001,catboost_depth2_native_categories,catboost_classifier,train,0.648694,churn_risk_probability,1,1,1,train,2026-07-03T12:00:00+03:00
+S002,catboost_depth2_native_categories,catboost_classifier,train,0.351306,churn_risk_probability,0,0,0,train,2026-07-03T12:00:00+03:00
+S003,catboost_depth2_native_categories,catboost_classifier,train,0.351306,churn_risk_probability,0,0,0,train,2026-07-03T12:00:00+03:00
+S004,catboost_depth2_native_categories,catboost_classifier,train,0.648694,churn_risk_probability,1,1,1,train,2026-07-03T12:00:00+03:00
+S005,catboost_depth2_native_categories,catboost_classifier,validation,0.351306,churn_risk_probability,0,0,1,train,2026-07-03T12:00:00+03:00
+S006,catboost_depth2_native_categories,catboost_classifier,validation,0.351306,churn_risk_probability,1,0,0,train,2026-07-03T12:00:00+03:00
+S007,catboost_depth2_native_categories,catboost_classifier,validation,0.648694,churn_risk_probability,0,1,1,train,2026-07-03T12:00:00+03:00
+S009,catboost_depth2_native_categories,catboost_classifier,test,0.648694,churn_risk_probability,0,1,1,train,2026-07-03T12:00:00+03:00
+S010,catboost_depth2_native_categories,catboost_classifier,test,0.351306,churn_risk_probability,1,0,0,train,2026-07-03T12:00:00+03:00
+S011,catboost_depth2_native_categories,catboost_classifier,test,0.351306,churn_risk_probability,0,0,0,train,2026-07-03T12:00:00+03:00
+S012,catboost_depth2_native_categories,catboost_classifier,test,0.648694,churn_risk_probability,0,1,1,train,2026-07-03T12:00:00+03:00
+S013,catboost_depth2_native_categories,catboost_classifier,test,0.351306,churn_risk_probability,0,0,0,train,2026-07-03T12:00:00+03:00
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_predictions.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+    &quot;fit_split&quot;: &quot;train&quot;,
+    &quot;fit_row_count&quot;: 4,
+    &quot;selection_split&quot;: &quot;validation&quot;,
+    &quot;validation_row_count&quot;: 3,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;test_row_count&quot;: 5,
+    &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;iterations&quot;: 20,
+    &quot;tree_count&quot;: 20,
+    &quot;best_iteration&quot;: null,
+    &quot;numeric_features&quot;: [
+      &quot;sessions_14d&quot;,
+      &quot;active_days_14d&quot;,
+      &quot;support_tickets_14d&quot;,
+      &quot;revenue_30d&quot;,
+      &quot;days_since_signup&quot;,
+      &quot;had_support_ticket_14d&quot;
+    ],
+    &quot;cat_features&quot;: [
+      &quot;plan_id&quot;,
+      &quot;platform&quot;,
+      &quot;country&quot;,
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;prediction_row_count&quot;: 12,
+    &quot;baseline_package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;baseline_decision_status&quot;: &quot;review_required_before_production&quot;,
+    &quot;baseline_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;selected_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;selected_model_source&quot;: &quot;15/11-imbalanced-data&quot;,
+    &quot;catboost_validation_precision_at_budget&quot;: 0.0,
+    &quot;baseline_validation_precision_at_budget&quot;: 0.5,
+    &quot;test_used_for_selection&quot;: false,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;tiny_catboost_training_sample_expected&quot;,
+      &quot;catboost_candidate_not_promoted_without_validation_gain&quot;,
+      &quot;baseline_package_warnings_propagated_to_phase_16&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_categorical_feature_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;baseline_package_report&quot;,
+        &quot;catboost_model_spec&quot;,
+        &quot;features&quot;,
+        &quot;imbalance_report&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;,
+        &quot;problem_spec&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;catboost_spec_declares_reproducible_no_test_selection&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;fit_split&quot;: &quot;train&quot;,
+        &quot;selection_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;random_seed&quot;: 16
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;baseline_package_is_ready_for_review&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+        &quot;decision_status&quot;: &quot;review_required_before_production&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;baseline_source_model_matches_phase15_selection&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_contract_matches_table&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;numeric_feature_count&quot;: 6,
+        &quot;categorical_feature_count&quot;: 4
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;cat_features_are_explicit_native_columns&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;plan_id&quot;,
+        &quot;platform&quot;,
+        &quot;country&quot;,
+        &quot;acquisition_channel&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;target_and_split_join_is_one_to_one&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;test&quot;,
+        &quot;train&quot;,
+        &quot;validation&quot;
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;fit_split_has_both_classes&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        0,
+        1
+      ],
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;only_train_rows_used_for_fit&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;S001&quot;,
+        &quot;S002&quot;,
+        &quot;S003&quot;,
+        &quot;S004&quot;
+      ],
+      &quot;expected&quot;: &quot;train split ids&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;validation_is_selection_split&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;S005&quot;,
+        &quot;S006&quot;,
+        &quot;S007&quot;
+      ],
+      &quot;expected&quot;: &quot;validation split ids&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;final_holdout_not_used_for_selection&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;selection_split&quot;: &quot;validation&quot;,
+        &quot;final_holdout_split&quot;: &quot;test&quot;,
+        &quot;test_used_for_selection&quot;: false
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;catboost_fit_is_reproducible&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+        &quot;random_seed&quot;: 16,
+        &quot;tree_count&quot;: 20,
+        &quot;thread_count&quot;: 1
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;tiny_catboost_training_sample_expected&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;catboost_candidate_not_promoted_without_validation_gain&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: {
+        &quot;catboost_validation_precision_at_budget&quot;: 0.0,
+        &quot;baseline_validation_precision_at_budget&quot;: 0.5
+      },
+      &quot;expected&quot;: &quot;candidate needs validation gain before promotion&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;baseline_package_warnings_propagated_to_phase_16&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: [
+        &quot;upstream_warnings_propagated_to_model_card&quot;,
+        &quot;segment_hidden_failures_block_production_claim&quot;,
+        &quot;small_n_segment_claims_are_diagnostic_only&quot;,
+        &quot;model_card_requires_human_review_before_production&quot;
+      ],
+      &quot;expected&quot;: &quot;phase 16 keeps phase 15 warnings visible&quot;,
+      &quot;sample&quot;: []
+    }
+  ],
+  &quot;comparison&quot;: [
+    {
+      &quot;source&quot;: &quot;16/01-catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;selection_budget&quot;: 2,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;average_precision&quot;: 0.2,
+      &quot;roc_auc&quot;: 0.25,
+      &quot;log_loss&quot;: 0.800776,
+      &quot;tp_at_budget&quot;: 0,
+      &quot;fp_at_budget&quot;: 2,
+      &quot;fn_at_budget&quot;: 1,
+      &quot;tn_at_budget&quot;: 2,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.4,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: 2,
+      &quot;selected_ids&quot;: &quot;S009,S012&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;
+    },
+    {
+      &quot;source&quot;: &quot;16/01-catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;positive_count&quot;: 2,
+      &quot;negative_count&quot;: 2,
+      &quot;selection_budget&quot;: 2,
+      &quot;precision_at_budget&quot;: 1.0,
+      &quot;recall_at_budget&quot;: 1.0,
+      &quot;average_precision&quot;: 1.0,
+      &quot;roc_auc&quot;: 1.0,
+      &quot;log_loss&quot;: 0.432794,
+      &quot;tp_at_budget&quot;: 2,
+      &quot;fp_at_budget&quot;: 0,
+      &quot;fn_at_budget&quot;: 0,
+      &quot;tn_at_budget&quot;: 2,
+      &quot;error_cost_at_budget&quot;: 0.0,
+      &quot;accuracy_at_0_5&quot;: 1.0,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: 2,
+      &quot;selected_ids&quot;: &quot;S001,S004&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;
+    },
+    {
+      &quot;source&quot;: &quot;16/01-catboost&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;selection_budget&quot;: 2,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;average_precision&quot;: 0.333333,
+      &quot;roc_auc&quot;: 0.25,
+      &quot;log_loss&quot;: 0.841663,
+      &quot;tp_at_budget&quot;: 0,
+      &quot;fp_at_budget&quot;: 2,
+      &quot;fn_at_budget&quot;: 1,
+      &quot;tn_at_budget&quot;: 0,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.333333,
+      &quot;selected_on_validation&quot;: false,
+      &quot;selection_rank&quot;: 2,
+      &quot;selected_ids&quot;: &quot;S007,S005&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 4,
+      &quot;selection_budget&quot;: 2,
+      &quot;log_loss&quot;: 0.705738,
+      &quot;average_precision&quot;: 0.333333,
+      &quot;roc_auc&quot;: 0.5,
+      &quot;precision_at_budget&quot;: 0.0,
+      &quot;recall_at_budget&quot;: 0.0,
+      &quot;tp_at_budget&quot;: 0,
+      &quot;fp_at_budget&quot;: 2,
+      &quot;fn_at_budget&quot;: 1,
+      &quot;tn_at_budget&quot;: 2,
+      &quot;error_cost_at_budget&quot;: 7.0,
+      &quot;accuracy_at_0_5&quot;: 0.6,
+      &quot;selected_on_validation&quot;: true,
+      &quot;selection_rank&quot;: 1,
+      &quot;balanced_accuracy_at_0_5&quot;: 0.75,
+      &quot;class_weight&quot;: &quot;balanced&quot;,
+      &quot;selected_ids&quot;: &quot;S009,S012&quot;,
+      &quot;source&quot;: &quot;15/11-imbalanced-data&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;
+    },
+    {
+      &quot;model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+      &quot;model_kind&quot;: &quot;random_forest_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;positive_count&quot;: 1,
+      &quot;negative_count&quot;: 2,
+      &quot;selection_budget&quot;: 2,
+      &quot;log_loss&quot;: 0.776995,
+      &quot;average_precision&quot;: 0.5,
+      &quot;roc_auc&quot;: 0.5,
+      &quot;precision_at_budget&quot;: 0.5,
+      &quot;recall_at_budget&quot;: 1.0,
+      &quot;tp_at_budget&quot;: 1,
+      &quot;fp_at_budget&quot;: 1,
+      &quot;fn_at_budget&quot;: 0,
+      &quot;tn_at_budget&quot;: 1,
+      &quot;error_cost_at_budget&quot;: 1.0,
+      &quot;accuracy_at_0_5&quot;: 0.666667,
+      &quot;selected_on_validation&quot;: true,
+      &quot;selection_rank&quot;: 1,
+      &quot;balanced_accuracy_at_0_5&quot;: 0.75,
+      &quot;class_weight&quot;: &quot;balanced&quot;,
+      &quot;selected_ids&quot;: &quot;S006,S007&quot;,
+      &quot;source&quot;: &quot;15/11-imbalanced-data&quot;,
+      &quot;trained_on_split&quot;: &quot;train&quot;
+    }
+  ],
+  &quot;predictions&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S001&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.648694,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S002&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S003&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S004&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;score&quot;: 0.648694,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;score&quot;: 0.648694,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S009&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.648694,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S010&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 1,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S011&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S012&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.648694,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 1,
+      &quot;selected_at_budget&quot;: 1,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S013&quot;,
+      &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+      &quot;model_kind&quot;: &quot;catboost_classifier&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;score&quot;: 0.351306,
+      &quot;score_type&quot;: &quot;churn_risk_probability&quot;,
+      &quot;actual_label&quot;: 0,
+      &quot;predicted_label_at_0_5&quot;: 0,
+      &quot;selected_at_budget&quot;: 0,
+      &quot;trained_on_split&quot;: &quot;train&quot;,
+      &quot;generated_at&quot;: &quot;2026-07-03T12:00:00+03:00&quot;
+    }
+  ],
+  &quot;training_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;Pool(train)&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;snapshot_ids&quot;: &quot;S001,S002,S003,S004&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: true,
+      &quot;used_for_selection&quot;: false,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    },
+    {
+      &quot;event&quot;: &quot;predict(validation)&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;snapshot_ids&quot;: &quot;S005,S006,S007&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: false,
+      &quot;used_for_selection&quot;: true,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    },
+    {
+      &quot;event&quot;: &quot;predict(test)&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;snapshot_ids&quot;: &quot;S009,S010,S011,S012,S013&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: false,
+      &quot;used_for_selection&quot;: false,
+      &quot;used_for_final_holdout&quot;: true,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;model&quot;: {
+    &quot;class&quot;: &quot;CatBoostClassifier&quot;,
+    &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+    &quot;model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;params&quot;: {
+      &quot;iterations&quot;: 20,
+      &quot;depth&quot;: 2,
+      &quot;learning_rate&quot;: 0.2,
+      &quot;loss_function&quot;: &quot;Logloss&quot;,
+      &quot;random_seed&quot;: 16,
+      &quot;allow_writing_files&quot;: false,
+      &quot;verbose&quot;: false,
+      &quot;thread_count&quot;: 1,
+      &quot;bootstrap_type&quot;: &quot;No&quot;,
+      &quot;random_strength&quot;: 0
+    },
+    &quot;tree_count&quot;: 20,
+    &quot;best_iteration&quot;: null,
+    &quot;feature_count&quot;: 10,
+    &quot;numeric_features&quot;: [
+      &quot;sessions_14d&quot;,
+      &quot;active_days_14d&quot;,
+      &quot;support_tickets_14d&quot;,
+      &quot;revenue_30d&quot;,
+      &quot;days_since_signup&quot;,
+      &quot;had_support_ticket_14d&quot;
+    ],
+    &quot;cat_features&quot;: [
+      &quot;plan_id&quot;,
+      &quot;platform&quot;,
+      &quot;country&quot;,
+      &quot;acquisition_channel&quot;
+    ]
+  },
+  &quot;baseline_package&quot;: {
+    &quot;package_id&quot;: &quot;trial-churn-ml-baseline-package-v0&quot;,
+    &quot;decision_status&quot;: &quot;review_required_before_production&quot;,
+    &quot;source_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;production_ready&quot;: false
+  },
+  &quot;selection&quot;: {
+    &quot;selection_split&quot;: &quot;validation&quot;,
+    &quot;final_holdout_split&quot;: &quot;test&quot;,
+    &quot;selected_model_id&quot;: &quot;random_forest_depth2_class_weight_balanced&quot;,
+    &quot;selected_model_source&quot;: &quot;15/11-imbalanced-data&quot;,
+    &quot;catboost_candidate_promoted&quot;: false,
+    &quot;test_used_for_selection&quot;: false,
+    &quot;catboost_selected_ids_on_validation&quot;: [
+      &quot;S007&quot;,
+      &quot;S005&quot;
+    ],
+    &quot;baseline_selected_ids_on_validation&quot;: [
+      &quot;S006&quot;,
+      &quot;S007&quot;
+    ]
+  },
+  &quot;fit_trace&quot;: [
+    {
+      &quot;event&quot;: &quot;Pool(train)&quot;,
+      &quot;split&quot;: &quot;train&quot;,
+      &quot;row_count&quot;: 4,
+      &quot;snapshot_ids&quot;: &quot;S001,S002,S003,S004&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: true,
+      &quot;used_for_selection&quot;: false,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    },
+    {
+      &quot;event&quot;: &quot;predict(validation)&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;row_count&quot;: 3,
+      &quot;snapshot_ids&quot;: &quot;S005,S006,S007&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: false,
+      &quot;used_for_selection&quot;: true,
+      &quot;used_for_final_holdout&quot;: false,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    },
+    {
+      &quot;event&quot;: &quot;predict(test)&quot;,
+      &quot;split&quot;: &quot;test&quot;,
+      &quot;row_count&quot;: 5,
+      &quot;snapshot_ids&quot;: &quot;S009,S010,S011,S012,S013&quot;,
+      &quot;cat_features&quot;: &quot;plan_id,platform,country,acquisition_channel&quot;,
+      &quot;fits_model&quot;: false,
+      &quot;used_for_selection&quot;: false,
+      &quot;used_for_final_holdout&quot;: true,
+      &quot;tree_count&quot;: 20,
+      &quot;best_iteration&quot;: null
+    }
+  ],
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;catboost_report.json&quot;,
+    &quot;comparison_file&quot;: &quot;catboost_comparison.csv&quot;,
+    &quot;prediction_file&quot;: &quot;catboost_predictions.csv&quot;,
+    &quot;training_trace_file&quot;: &quot;catboost_training_trace.csv&quot;,
+    &quot;serialized_spec_file&quot;: &quot;catboost_serialized_spec.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/catboost_training_trace.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>event,split,row_count,snapshot_ids,cat_features,fits_model,used_for_selection,used_for_final_holdout,tree_count,best_iteration
+Pool(train),train,4,&quot;S001,S002,S003,S004&quot;,&quot;plan_id,platform,country,acquisition_channel&quot;,True,False,False,20,
+predict(validation),validation,3,&quot;S005,S006,S007&quot;,&quot;plan_id,platform,country,acquisition_channel&quot;,False,True,False,20,
+predict(test),test,5,&quot;S009,S010,S011,S012,S013&quot;,&quot;plan_id,platform,country,acquisition_channel&quot;,False,False,True,20,
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/outputs/catboost_training_trace.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/01-catboost" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/applied-machine-learning/model-card/"><span>← Предыдущий урок</span><strong>Model card и ограничения</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/categorical-features/"><span>Следующий урок →</span><strong>Категориальные признаки без leakage</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="orders.amount имеет grain заказа, а orderitems — товарной позиции. Наивный JOIN дает 14 строк вместо 12. Заказы O1001 и O1005 имеют по две позиции, поэтому их суммы…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/joins/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Joins без размножения метрик">
+  <meta property="og:description" content="orders.amount имеет grain заказа, а orderitems — товарной позиции. Наивный JOIN дает 14 строк вместо 12. Заказы O1001 и O1005 имеют по две позиции, поэтому их суммы…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/joins/">
+  <meta name="twitter:card" content="summary">
+  <title>Joins без размножения метрик — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Joins без размножения метрик", "description": "orders.amount имеет grain заказа, а orderitems — товарной позиции. Наивный JOIN дает 14 строк вместо 12. Заказы O1001 и O1005 имеют по две позиции, поэтому их суммы…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/joins/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT105M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Joins без размножения метрик", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/joins/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трехзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE и композиция запросов</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>08</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>09</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>10</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>11</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>12</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 40 из 201</span>
+          <span>105 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/05-joins" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что произойдет с заказом из двух позиций при JOIN orders к order_items?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Строка заказа повторится дважды</button><button type="button" class="quiz-option" data-choice="1">Позиции схлопнутся</button><button type="button" class="quiz-option" data-choice="2">JOIN завершится ошибкой</button><button type="button" class="quiz-option" data-choice="3">Сумма станет NULL</button></div><p class="quiz-feedback" hidden>Связь one-to-many размножает родительскую строку по числу соответствий.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Как сохранить заказ без пользователя в диагностическом JOIN?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">LEFT JOIN от orders</button><button type="button" class="quiz-option" data-choice="1">INNER JOIN</button><button type="button" class="quiz-option" data-choice="2">CROSS JOIN</button><button type="button" class="quiz-option" data-choice="3">NATURAL JOIN</button></div><p class="quiz-feedback" hidden>LEFT JOIN сохраняет все строки левой таблицы и делает отсутствие видимым.</p></article></section>
+        <article class="lesson-article"><h1 id="joins-без-размножения-метрик">Joins без размножения метрик</h1>
+<blockquote>
+<p>JOIN корректен только тогда, когда его cardinality совместима с grain метрики.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/04
+<strong>Время:</strong> ~105 минут
+<strong>Результат:</strong> предсказывает cardinality JOIN, обнаруживает fanout и сохраняет метрики.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Предсказывать <code>one-to-one</code>, <code>one-to-many</code> и <code>many-to-many</code>.</li>
+<li>Видеть, как fanout размножает метрики родительского grain.</li>
+<li>Предварительно агрегировать дочернюю таблицу до нужного ключа.</li>
+<li>Проверять unmatched-ключи и сохранение строк.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p><code>orders.amount</code> имеет grain заказа, а <code>order_items</code> — товарной позиции. Наивный JOIN дает
+14 строк вместо 12. Заказы <code>O1001</code> и <code>O1005</code> имеют по две позиции, поэтому их суммы
+попадают в <code>SUM</code> дважды. Ошибочный результат <code>7705</code> выглядит правдоподобно, хотя верная
+оплаченная выручка равна <code>5005</code>.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Перед JOIN запишите:</p>
+<table>
+<thead>
+<tr>
+<th>Левая таблица</th>
+<th>Правая таблица</th>
+<th>Связь</th>
+<th>Grain результата</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>orders</td>
+<td>order_items</td>
+<td>one-to-many</td>
+<td>одна позиция заказа</td>
+</tr>
+<tr>
+<td>orders</td>
+<td>item_totals</td>
+<td>one-to-one</td>
+<td>один заказ</td>
+</tr>
+<tr>
+<td>orders</td>
+<td>users</td>
+<td>many-to-one</td>
+<td>один заказ</td>
+</tr>
+</tbody>
+</table>
+<p>Метрику можно суммировать после JOIN только если она аддитивна на новом grain или была
+преобразована до него осознанно.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Ручной пример:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">O1001 amount=1200, items=[P01, P02]
+</code></pre></div><p>После JOIN:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">O1001 P01 1200
+O1001 P02 1200
+</code></pre></div><p><code>SUM(amount)</code> дает <code>2400</code>. Правильный прием: сначала получить одну строку <code>item_totals</code> на
+<code>order_id</code>, затем соединить ее с <code>orders</code>.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH item_totals AS (
+    SELECT
+        order_id,
+        count(*) AS item_rows,
+        sum(quantity * unit_price) AS item_total
+    FROM order_items
+    GROUP BY order_id
+)
+SELECT orders.*, item_totals.item_rows, item_totals.item_total
+FROM orders
+LEFT JOIN item_totals USING (order_id);
+</code></pre></div><p><code>LEFT JOIN users</code> сохраняет <code>U999</code> как диагностическую строку с отсутствующим родителем.
+<code>INNER JOIN</code> скрыл бы проблему и уменьшил число заказов.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Сложите <code>orders.amount</code> после прямого JOIN к позициям.</li>
+<li>Добавьте дубликат <code>users.user_id</code> и повторите many-to-one JOIN.</li>
+<li>Замените <code>LEFT JOIN users</code> на <code>INNER JOIN</code>.</li>
+<li>Используйте <code>DISTINCT amount</code> как попытку починить fanout.</li>
+</ol>
+<p><code>DISTINCT amount</code> не является исправлением: два разных заказа могут иметь одинаковую
+сумму.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Контрольные значения:</p>
+<ul>
+<li>12 заказов;</li>
+<li>14 строк прямого JOIN к позициям;</li>
+<li>наивная выручка <code>7705</code>;</li>
+<li>безопасная выручка <code>5005</code>;</li>
+<li>fanout <code>2700</code>;</li>
+<li>один заказ с неизвестным пользователем;</li>
+<li>две многопозиционные покупки.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/safe_join.py \
+  --users ../data/tiny/users.csv \
+  --orders ../data/tiny/orders.csv \
+  --items ../data/tiny/order_items.csv
+</code></pre></div><p>CLI сравнивает наивный и безопасный варианты и поставляет cardinality-checks.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Добавьте дубликат пользователя и обнаружьте many-to-many.</li>
+<li>Посчитайте число unmatched-позиций через anti join.</li>
+<li>Добавьте контроль суммы <code>item_total</code> и <code>orders.amount</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cardinality</td>
+<td>Число строк таблицы</td>
+<td>Число соответствий ключей между сторонами JOIN</td>
+</tr>
+<tr>
+<td>Fanout</td>
+<td>Любое увеличение строк</td>
+<td>Размножение строки из-за нескольких соответствий</td>
+</tr>
+<tr>
+<td>Unmatched key</td>
+<td>Строка для удаления</td>
+<td>Ключ без пары, требующий явной политики</td>
+</tr>
+<tr>
+<td>Pre-aggregation</td>
+<td>Оптимизация</td>
+<td>Возврат дочерних данных к требуемому grain</td>
+</tr>
+<tr>
+<td>Semi/anti join</td>
+<td>Вариант INNER JOIN</td>
+<td>Проверка существования или отсутствия без размножения</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/from" target="_blank" rel="noopener">DuckDB: FROM and JOIN</a> — разберите outer, semi, anti и positional joins.</li>
+<li><a href="https://duckdb.org/docs/current/guides/performance/join_operations" target="_blank" rel="noopener">DuckDB: Join Operations</a> — изучите физическую сторону соединений и порядок таблиц.</li>
+<li><a href="https://duckdb.org/docs/current/sql/query_syntax/groupby" target="_blank" rel="noopener">DuckDB: GROUP BY</a> — повторите предварительную агрегацию до ключа соединения.</li>
+<li><a href="https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-JOIN" target="_blank" rel="noopener">PostgreSQL: Joined Tables</a> — сопоставьте стандартные типы JOIN и условия соединения.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему SUM(orders.amount) после JOIN к item rows завышается?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Метрика заказа повторяется на каждой позиции</button><button type="button" class="quiz-option" data-choice="1">SUM округляет</button><button type="button" class="quiz-option" data-choice="2">NULL превращается в ноль</button><button type="button" class="quiz-option" data-choice="3">JOIN меняет валюту</button></div><p class="quiz-feedback" hidden>Метрика grain заказа становится продублированной на grain позиции.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какой безопасный прием возвращает item data к grain заказа?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Предварительный GROUP BY order_id</button><button type="button" class="quiz-option" data-choice="1">SELECT DISTINCT amount</button><button type="button" class="quiz-option" data-choice="2">LIMIT 1</button><button type="button" class="quiz-option" data-choice="3">RIGHT JOIN</button></div><p class="quiz-feedback" hidden>Агрегация дочерней таблицы до ключа заказа делает дальнейший JOIN one-to-one.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что нужно сверить до и после JOIN?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Число ключей, строки и аддитивные метрики</button><button type="button" class="quiz-option" data-choice="1">Только время</button><button type="button" class="quiz-option" data-choice="2">Только число колонок</button><button type="button" class="quiz-option" data-choice="3">Только сортировку</button></div><p class="quiz-feedback" hidden>Контроли должны обнаруживать и потерю строк, и fanout метрик.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;safe_join.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;safe_join&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+JOIN = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(JOIN)
+
+
+class SafeJoinTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.report = JOIN.audit_join(
+            DATA / &quot;users.csv&quot;,
+            DATA / &quot;orders.csv&quot;,
+            DATA / &quot;order_items.csv&quot;,
+        )
+        self.metrics = self.report[&quot;metrics&quot;]
+
+    def test_cardinality_contract_is_declared(self) -&gt; None:
+        self.assertEqual(
+            self.report[&quot;expected_cardinality&quot;][&quot;orders_to_items&quot;],
+            &quot;one-to-many&quot;,
+        )
+
+    def test_naive_join_expands_rows(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;order_rows&quot;], 12)
+        self.assertEqual(self.metrics[&quot;naive_rows&quot;], 14)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;fanout_detected&quot;])
+
+    def test_naive_join_inflates_revenue(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;naive_paid_revenue&quot;], 7705.0)
+        self.assertEqual(self.metrics[&quot;fanout_extra_revenue&quot;], 2700.0)
+
+    def test_preaggregation_preserves_order_grain(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;safe_rows&quot;], 12)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;safe_grain_preserved&quot;])
+
+    def test_safe_paid_revenue_matches_source_grain(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;safe_paid_revenue&quot;], 5005.0)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;safe_revenue&quot;])
+
+    def test_unknown_user_is_preserved(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;unmatched_user_orders&quot;], 1)
+
+    def test_item_totals_match_known_order_amounts(self) -&gt; None:
+        self.assertEqual(self.metrics[&quot;amount_item_mismatches&quot;], 0)
+        self.assertEqual(self.metrics[&quot;multi_item_orders&quot;], 2)
+
+    def test_cli_prints_json(self) -&gt; None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--users&quot;,
+                DATA / &quot;users.csv&quot;,
+                &quot;--orders&quot;,
+                DATA / &quot;orders.csv&quot;,
+                &quot;--items&quot;,
+                DATA / &quot;order_items.csv&quot;,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;checks&quot;][&quot;fanout_detected&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;safe_join.py&quot;
+DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;safe_join&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    manual = {
+        &quot;safe_paid_revenue&quot;: 5005.0,
+        &quot;fanout_extra&quot;: 2700.0,
+        &quot;reason&quot;: &quot;O1001 and O1005 each have two item rows&quot;,
+    }
+    report = load_artifact().audit_join(
+        DATA / &quot;users.csv&quot;,
+        DATA / &quot;orders.csv&quot;,
+        DATA / &quot;order_items.csv&quot;,
+    )
+    print(json.dumps({&quot;manual&quot;: manual, &quot;duckdb&quot;: report}, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;safe-join-audit&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/safe_join.py&quot;,
+  &quot;description&quot;: &quot;Сравнивает наивный JOIN с предварительной агрегацией и проверяет fanout и unmatched-ключи.&quot;,
+  &quot;usage&quot;: &quot;python outputs/safe_join.py --users ../data/tiny/users.csv --orders ../data/tiny/orders.csv --items ../data/tiny/order_items.csv&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/safe_join.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+
+def _number(value: Any) -&gt; Any:
+    return float(value) if isinstance(value, Decimal) else value
+
+
+def audit_join(users_path: Path, orders_path: Path, items_path: Path) -&gt; dict[str, Any]:
+    query = &quot;&quot;&quot;
+        WITH
+        users AS (
+            SELECT * FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        ),
+        orders AS (
+            SELECT
+                order_id,
+                user_id,
+                lower(trim(status)) AS status,
+                amount::DECIMAL(18, 2) AS amount
+            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        ),
+        items AS (
+            SELECT
+                order_id,
+                product_id,
+                quantity::INTEGER AS quantity,
+                unit_price::DECIMAL(18, 2) AS unit_price
+            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        ),
+        item_totals AS (
+            SELECT
+                order_id,
+                count(*) AS item_rows,
+                sum(quantity * unit_price) AS item_total
+            FROM items
+            GROUP BY order_id
+        ),
+        safe_mart AS (
+            SELECT
+                orders.order_id,
+                orders.user_id,
+                orders.status,
+                orders.amount,
+                item_totals.item_rows,
+                item_totals.item_total,
+                users.user_id IS NOT NULL AS user_found
+            FROM orders
+            LEFT JOIN item_totals USING (order_id)
+            LEFT JOIN users USING (user_id)
+        ),
+        naive AS (
+            SELECT
+                sum(orders.amount) FILTER (WHERE orders.status = &#x27;paid&#x27;) AS revenue,
+                count(*) AS rows
+            FROM orders
+            JOIN items USING (order_id)
+        )
+        SELECT
+            (SELECT count(*) FROM orders) AS order_rows,
+            (SELECT count(*) FROM safe_mart) AS safe_rows,
+            (SELECT rows FROM naive) AS naive_rows,
+            (SELECT revenue FROM naive) AS naive_paid_revenue,
+            (SELECT sum(amount) FILTER (WHERE status = &#x27;paid&#x27;) FROM safe_mart)
+                AS safe_paid_revenue,
+            (SELECT count(*) FROM safe_mart WHERE NOT user_found) AS unmatched_user_orders,
+            (SELECT count(*) FROM safe_mart WHERE item_rows &gt; 1) AS multi_item_orders,
+            (SELECT count(*) FROM safe_mart WHERE abs(amount - item_total) &gt; 0.0001)
+                AS amount_item_mismatches
+    &quot;&quot;&quot;
+    connection = duckdb.connect()
+    try:
+        relation = connection.execute(
+            query,
+            [str(users_path), str(orders_path), str(items_path)],
+        )
+        columns = [column[0] for column in relation.description]
+        row = relation.fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise ValueError(&quot;join audit returned no row&quot;)
+    metrics = {column: _number(value) for column, value in zip(columns, row, strict=True)}
+    metrics[&quot;fanout_extra_revenue&quot;] = round(
+        metrics[&quot;naive_paid_revenue&quot;] - metrics[&quot;safe_paid_revenue&quot;],
+        2,
+    )
+    return {
+        &quot;expected_cardinality&quot;: {
+            &quot;orders_to_items&quot;: &quot;one-to-many&quot;,
+            &quot;orders_to_item_totals&quot;: &quot;one-to-one&quot;,
+            &quot;orders_to_users&quot;: &quot;many-to-one&quot;,
+        },
+        &quot;metrics&quot;: metrics,
+        &quot;checks&quot;: {
+            &quot;safe_grain_preserved&quot;: metrics[&quot;safe_rows&quot;] == metrics[&quot;order_rows&quot;],
+            &quot;fanout_detected&quot;: metrics[&quot;naive_rows&quot;] &gt; metrics[&quot;order_rows&quot;],
+            &quot;safe_revenue&quot;: metrics[&quot;safe_paid_revenue&quot;] == 5005.0,
+        },
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Audit JOIN cardinality and metric fanout&quot;)
+    parser.add_argument(&quot;--users&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--items&quot;, type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        report = audit_join(args.users, args.orders, args.items)
+    except (duckdb.Error, OSError, ValueError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/05-joins/outputs/safe_join.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/05-joins" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/aggregations/"><span>← Предыдущий урок</span><strong>Агрегации и уровни детализации</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>Следующий урок →</span><strong>CTE и композиция запросов</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

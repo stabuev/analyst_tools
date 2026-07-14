@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Заказы раскладывают по orderdate/currency. На tiny-наборе получается пять partitions для пяти строк. На production это означает тысячи каталогов и маленьких файлов,…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/partitioning/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Партиционирование наборов данных">
+  <meta property="og:description" content="Заказы раскладывают по orderdate/currency. На tiny-наборе получается пять partitions для пяти строк. На production это означает тысячи каталогов и маленьких файлов,…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/partitioning/">
+  <meta name="twitter:card" content="summary">
+  <title>Партиционирование наборов данных — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Партиционирование наборов данных", "description": "Заказы раскладывают по orderdate/currency. На tiny-наборе получается пять partitions для пяти строк. На production это означает тысячи каталогов и маленьких файлов,…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/partitioning/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Партиционирование наборов данных", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/partitioning/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 05</p><h2>Источники и форматы данных</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/csv/"><span>01</span>CSV и неоднозначность типов</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/excel/"><span>02</span>Excel как источник: листы, диапазоны и формулы</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/json/"><span>03</span>JSON и вложенные структуры</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/http-requests/"><span>04</span>HTTP и Requests</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/pagination-retries/"><span>05</span>Pagination, timeouts и retries</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/html-parsing/"><span>06</span>HTML и Beautiful Soup</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/sqlalchemy/"><span>07</span>Подключение к БД через SQLAlchemy</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/parquet/"><span>08</span>Parquet и колоночное хранение</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/arrow/"><span>09</span>Arrow как контракт обмена таблицами</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sources-and-formats/partitioning/"><span>10</span>Партиционирование наборов данных</a><a class="lesson-sidebar-link" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>11</span>Кеширование и контроль целостности</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 05 · Источники и форматы данных</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 57 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/10-partitioning" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Должен ли каждый столбец становиться partition key?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, ключ выбирают по частым фильтрам и cardinality</button><button type="button" class="quiz-option" data-choice="2">Только числовые</button><button type="button" class="quiz-option" data-choice="3">Только nullable</button></div><p class="quiz-feedback" hidden>Лишние ключи создают каталоги и мелкие файлы без пользы для чтения.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что такое partition pruning?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Удаление строк</button><button type="button" class="quiz-option" data-choice="1">Исключение заведомо ненужных partitions до чтения файлов</button><button type="button" class="quiz-option" data-choice="2">Сжатие</button><button type="button" class="quiz-option" data-choice="3">Сортировка</button></div><p class="quiz-feedback" hidden>Engine использует значения partition keys, чтобы не открывать нерелевантные fragments.</p></article></section>
+        <article class="lesson-article"><h1 id="партиционирование-наборов-данных">Партиционирование наборов данных</h1>
+<blockquote>
+<p>Хороший partition key сокращает чтение; плохой превращает набор данных в каталог мелких файлов.</p>
+</blockquote>
+<p><strong>Тип:</strong> Case<br />
+<strong>Треки:</strong> Core<br />
+<strong>Пререквизиты:</strong> 05/09<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> выбирает ключи партиционирования по паттерну чтения, проверяет pruning и
+избегает мелких файлов и лишних разделов.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Выбирать partition keys по filters и cardinality.</li>
+<li>Сравнивать candidate layouts до записи.</li>
+<li>Проверять pruning по Arrow fragments.</li>
+<li>Измерять small-file risk и checksums файлов.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Заказы раскладывают по <code>order_date/currency</code>. На tiny-наборе получается пять partitions
+для пяти строк. На production это означает тысячи каталогов и маленьких файлов, хотя
+типичный запрос фильтрует месяц и валюту.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Партиционирование выносит значения ключей в layout:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">order_month=2026-05/currency=RUB/part-0.parquet
+</code></pre></div><p>Ключ полезен, если:</p>
+<ul>
+<li>часто присутствует в фильтрах;</li>
+<li>имеет умеренную cardinality;</li>
+<li>создает достаточно крупные файлы;</li>
+<li>понятен всем engines.</li>
+</ul>
+<p>Hive-style layout позволяет восстановить partition columns из пути.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>До записи сравните число уникальных комбинаций:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">daily = {(date, currency) for ...}
+monthly = {(date[:7], currency) for ...}
+</code></pre></div><p>В учебном наборе day/currency дает пять partitions, month/currency — две.</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>PyArrow Dataset пишет Hive-layout:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">ds.write_dataset(
+    table,
+    output,
+    format=&quot;parquet&quot;,
+    partitioning=ds.partitioning(schema, flavor=&quot;hive&quot;),
+)
+</code></pre></div><p>Pruning проверяется до materialization:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">selected = list(dataset.get_fragments(
+    filter=ds.field(&quot;currency&quot;) == &quot;EUR&quot;
+))
+</code></pre></div><div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/dataset_builder.py \
+  --input orders.parquet \
+  --output-dir dataset \
+  --partition-by order_month currency \
+  --filter-currency EUR
+</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Partition по <code>order_id</code>: файл почти на строку.</li>
+<li>Partition по дню на редком наборе.</li>
+<li>Filter по столбцу, которого нет в layout.</li>
+<li>Смешение разных schemas в partitions.</li>
+<li>Повторная запись поверх существующего каталога без policy.</li>
+</ol>
+<h2 id="проверьте-это">Проверьте это</h2>
+<ul>
+<li>выбранный layout содержит две partitions вместо пяти дневных;</li>
+<li>все пять rows читаются как единый dataset;</li>
+<li>EUR filter выбирает один fragment из двух;</li>
+<li>одна tiny-partition отмечена как small file;</li>
+<li>каждый Parquet имеет checksum;</li>
+<li>DuckDB восстанавливает Hive columns и row count.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/dataset_builder.py</code> строит новый dataset только в отсутствующий каталог и
+возвращает layout report: ключи, files, rows, small files, pruning и checksums.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Сравните layouts month и month/currency на sample.</li>
+<li>Добавьте compaction маленьких файлов.</li>
+<li>Проверьте pruning через DuckDB <code>EXPLAIN ANALYZE</code>.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Partition</td>
+<td>Row group</td>
+<td>Логическое разделение dataset, часто отраженное в paths</td>
+</tr>
+<tr>
+<td>Hive layout</td>
+<td>Формат Parquet</td>
+<td>Соглашение <code>key=value</code> для каталогов</td>
+</tr>
+<tr>
+<td>Pruning</td>
+<td>Фильтрация после чтения</td>
+<td>Исключение fragments до чтения</td>
+</tr>
+<tr>
+<td>Small-file problem</td>
+<td>Мало данных</td>
+<td>Overhead множества слишком маленьких файлов</td>
+</tr>
+<tr>
+<td>Cardinality</td>
+<td>Число rows</td>
+<td>Число уникальных значений или комбинаций ключа</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://arrow.apache.org/docs/python/dataset.html" target="_blank" rel="noopener">PyArrow: Datasets</a> — изучите partitioning, discovery, filtering и writing.</li>
+<li><a href="https://arrow.apache.org/docs/python/generated/pyarrow.dataset.HivePartitioning.html" target="_blank" rel="noopener">PyArrow: HivePartitioning</a> — разберите <code>key=value</code> parsing.</li>
+<li><a href="https://duckdb.org/docs/stable/data/partitioning/partitioned_writes.html" target="_blank" rel="noopener">DuckDB: partitioned writes</a> — сравните управление layout из SQL engine.</li>
+<li><a href="https://parquet.apache.org/docs/file-format/configurations/" target="_blank" rel="noopener">Parquet: configurations</a> — свяжите file, row group и page sizing с workload.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Почему partition по дню плох для пяти строк примера?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Дата запрещена</button><button type="button" class="quiz-option" data-choice="1">Создает почти файл на строку</button><button type="button" class="quiz-option" data-choice="2">DuckDB не читает даты</button><button type="button" class="quiz-option" data-choice="3">Убирает schema</button></div><p class="quiz-feedback" hidden>Высокая дробность создает overhead каталогов и маленьких файлов.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Как доказать pruning в Arrow Dataset?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Посмотреть имя root</button><button type="button" class="quiz-option" data-choice="1">Сравнить все fragments и fragments с filter</button><button type="button" class="quiz-option" data-choice="2">Посчитать CSV</button><button type="button" class="quiz-option" data-choice="3">Проверить extension</button></div><p class="quiz-feedback" hidden>Уменьшение выбранных fragments показывает работу partition filter.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Что делать с редкой EUR-partition из одной строки?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Скрыть ее</button><button type="button" class="quiz-option" data-choice="1">Отразить small-file risk и пересмотреть layout на реальном объеме</button><button type="button" class="quiz-option" data-choice="2">Удалить EUR</button><button type="button" class="quiz-option" data-choice="3">Сделать partition по order_id</button></div><p class="quiz-feedback" hidden>Tiny-данные показывают риск, но решение принимается по production cardinality и workload.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pyarrow.dataset as ds
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;dataset_builder.py&quot;
+CONVERTER_PATH = ROOT.parent / &quot;08-parquet&quot; / &quot;outputs&quot; / &quot;parquet_converter.py&quot;
+DATA = ROOT.parent / &quot;data&quot;
+CSV = DATA / &quot;tiny&quot; / &quot;orders_typed.csv&quot;
+SCHEMA = DATA / &quot;parquet_schema.json&quot;
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load {path}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+BUILDER = load_module(&quot;dataset_builder&quot;, ARTIFACT)
+CONVERTER = load_module(&quot;parquet_converter_for_partitioning&quot;, CONVERTER_PATH)
+
+
+class DatasetBuilderTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.directory = TemporaryDirectory()
+        self.root = Path(self.directory.name)
+        self.parquet = self.root / &quot;orders.parquet&quot;
+        self.dataset_path = self.root / &quot;dataset&quot;
+        CONVERTER.convert_csv(CSV, self.parquet, SCHEMA)
+        self.report = BUILDER.build_dataset(self.parquet, self.dataset_path)
+
+    def tearDown(self) -&gt; None:
+        self.directory.cleanup()
+
+    def test_hive_layout_contains_declared_keys(self) -&gt; None:
+        paths = list(self.report[&quot;layout&quot;][&quot;files&quot;])
+        self.assertTrue(all(&quot;order_month=2026-05&quot; in path for path in paths))
+        self.assertTrue(any(&quot;currency=EUR&quot; in path for path in paths))
+
+    def test_all_rows_are_readable(self) -&gt; None:
+        table = ds.dataset(
+            self.dataset_path,
+            format=&quot;parquet&quot;,
+            partitioning=&quot;hive&quot;,
+        ).to_table()
+        self.assertEqual(table.num_rows, 5)
+        self.assertTrue(self.report[&quot;checks&quot;][&quot;all_rows_readable&quot;])
+
+    def test_month_currency_avoids_daily_partition_explosion(self) -&gt; None:
+        self.assertEqual(self.report[&quot;layout&quot;][&quot;chosen_partitions&quot;], 2)
+        self.assertEqual(self.report[&quot;layout&quot;][&quot;daily_candidate_partitions&quot;], 5)
+
+    def test_currency_filter_prunes_fragments(self) -&gt; None:
+        pruning = self.report[&quot;pruning&quot;]
+        self.assertEqual(pruning[&quot;all_fragments&quot;], 2)
+        self.assertEqual(pruning[&quot;selected_fragments&quot;], 1)
+        self.assertIn(&quot;currency=EUR&quot;, pruning[&quot;selected_paths&quot;][0])
+
+    def test_small_files_are_reported_not_hidden(self) -&gt; None:
+        self.assertEqual(len(self.report[&quot;layout&quot;][&quot;small_files&quot;]), 1)
+        self.assertIn(&quot;currency=EUR&quot;, self.report[&quot;layout&quot;][&quot;small_files&quot;][0])
+
+    def test_each_file_has_checksum(self) -&gt; None:
+        self.assertTrue(self.report[&quot;artifacts&quot;])
+        self.assertTrue(
+            all(len(value[&quot;sha256&quot;]) == 64 for value in self.report[&quot;artifacts&quot;].values())
+        )
+
+    def test_unknown_partition_key_is_rejected(self) -&gt; None:
+        with self.assertRaisesRegex(BUILDER.DatasetLayoutError, &quot;unknown partition&quot;):
+            BUILDER.build_dataset(
+                self.parquet,
+                self.root / &quot;bad&quot;,
+                partition_by=(&quot;missing&quot;,),
+            )
+
+    def test_cli_writes_dataset_and_manifest(self) -&gt; None:
+        output = self.root / &quot;cli-dataset&quot;
+        manifest = self.root / &quot;manifest.json&quot;
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                self.parquet,
+                &quot;--output-dir&quot;,
+                output,
+                &quot;--manifest&quot;,
+                manifest,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertTrue(manifest.is_file())
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>records = [
+    {&quot;date&quot;: &quot;2026-05-01&quot;, &quot;currency&quot;: &quot;RUB&quot;},
+    {&quot;date&quot;: &quot;2026-05-02&quot;, &quot;currency&quot;: &quot;RUB&quot;},
+    {&quot;date&quot;: &quot;2026-05-03&quot;, &quot;currency&quot;: &quot;EUR&quot;},
+    {&quot;date&quot;: &quot;2026-05-04&quot;, &quot;currency&quot;: &quot;RUB&quot;},
+    {&quot;date&quot;: &quot;2026-05-05&quot;, &quot;currency&quot;: &quot;RUB&quot;},
+]
+
+daily = {(row[&quot;date&quot;], row[&quot;currency&quot;]) for row in records}
+monthly = {(row[&quot;date&quot;][:7], row[&quot;currency&quot;]) for row in records}
+print(&quot;day/currency partitions:&quot;, len(daily))
+print(&quot;month/currency partitions:&quot;, len(monthly))
+print(&quot;EUR query needs partitions:&quot;, [value for value in monthly if value[1] == &quot;EUR&quot;])
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;partitioned-dataset-builder&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/dataset_builder.py&quot;,
+  &quot;description&quot;: &quot;Строит Hive-partitioned Parquet dataset и выпускает отчет о layout, мелких файлах и pruning.&quot;,
+  &quot;usage&quot;: &quot;python outputs/dataset_builder.py --input orders.parquet --output-dir dataset --partition-by order_month currency --filter-currency EUR&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/dataset_builder.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import sys
+from pathlib import Path
+from typing import Any
+
+import duckdb
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
+import pyarrow.parquet as pq
+
+
+class DatasetLayoutError(ValueError):
+    &quot;&quot;&quot;Raised when a partitioned dataset layout cannot be built.&quot;&quot;&quot;
+
+
+def sha256(path: Path) -&gt; str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def add_derived_columns(table: pa.Table) -&gt; pa.Table:
+    if &quot;ordered_at&quot; not in table.column_names:
+        raise DatasetLayoutError(&quot;input table must contain ordered_at&quot;)
+    months = pc.strftime(table[&quot;ordered_at&quot;], format=&quot;%Y-%m&quot;)
+    dates = pc.strftime(table[&quot;ordered_at&quot;], format=&quot;%Y-%m-%d&quot;)
+    return table.append_column(&quot;order_month&quot;, months).append_column(&quot;order_date&quot;, dates)
+
+
+def file_rows(path: Path) -&gt; int:
+    return pq.ParquetFile(path).metadata.num_rows
+
+
+def build_dataset(
+    input_path: str | Path,
+    output_dir: str | Path,
+    *,
+    partition_by: tuple[str, ...] = (&quot;order_month&quot;, &quot;currency&quot;),
+    filter_currency: str = &quot;EUR&quot;,
+    small_file_rows: int = 2,
+) -&gt; dict[str, Any]:
+    source = Path(input_path)
+    output = Path(output_dir)
+    if not source.is_file():
+        raise DatasetLayoutError(f&quot;input Parquet does not exist: {source}&quot;)
+    if output.exists():
+        raise DatasetLayoutError(f&quot;output directory already exists: {output}&quot;)
+    table = add_derived_columns(pq.read_table(source))
+    missing = [name for name in partition_by if name not in table.column_names]
+    if missing:
+        raise DatasetLayoutError(f&quot;unknown partition columns: {missing}&quot;)
+    if not partition_by:
+        raise DatasetLayoutError(&quot;partition_by must not be empty&quot;)
+
+    partition_schema = pa.schema([table.schema.field(name) for name in partition_by])
+    staging = output.with_name(f&quot;.{output.name}.staging&quot;)
+    shutil.rmtree(staging, ignore_errors=True)
+    try:
+        ds.write_dataset(
+            table,
+            staging,
+            format=&quot;parquet&quot;,
+            partitioning=ds.partitioning(partition_schema, flavor=&quot;hive&quot;),
+            basename_template=&quot;part-{i}.parquet&quot;,
+            existing_data_behavior=&quot;error&quot;,
+        )
+        staging.rename(output)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+
+    files = sorted(output.rglob(&quot;*.parquet&quot;))
+    dataset = ds.dataset(output, format=&quot;parquet&quot;, partitioning=&quot;hive&quot;)
+    all_fragments = list(dataset.get_fragments())
+    selected_fragments = list(dataset.get_fragments(filter=ds.field(&quot;currency&quot;) == filter_currency))
+    rows_by_file = {str(path.relative_to(output)): file_rows(path) for path in files}
+    daily_partitions = len(set(table[&quot;order_date&quot;].to_pylist()))
+    chosen_partitions = len(
+        set(zip(*(table[name].to_pylist() for name in partition_by), strict=True))
+    )
+    pattern = str(output / &quot;**&quot; / &quot;*.parquet&quot;)
+    duckdb_rows = duckdb.sql(
+        &quot;SELECT count(*) FROM read_parquet(?, hive_partitioning=true)&quot;,
+        params=[pattern],
+    ).fetchone()[0]
+    checks = {
+        &quot;all_rows_readable&quot;: duckdb_rows == table.num_rows,
+        &quot;partition_count_reduces_daily_layout&quot;: chosen_partitions &lt; daily_partitions,
+        &quot;filter_prunes_fragments&quot;: len(selected_fragments) &lt; len(all_fragments),
+    }
+    return {
+        &quot;source&quot;: {&quot;path&quot;: str(source), &quot;rows&quot;: table.num_rows, &quot;sha256&quot;: sha256(source)},
+        &quot;layout&quot;: {
+            &quot;partition_by&quot;: list(partition_by),
+            &quot;chosen_partitions&quot;: chosen_partitions,
+            &quot;daily_candidate_partitions&quot;: daily_partitions,
+            &quot;files&quot;: rows_by_file,
+            &quot;small_files&quot;: [name for name, rows in rows_by_file.items() if rows &lt; small_file_rows],
+        },
+        &quot;pruning&quot;: {
+            &quot;filter&quot;: {&quot;currency&quot;: filter_currency},
+            &quot;all_fragments&quot;: len(all_fragments),
+            &quot;selected_fragments&quot;: len(selected_fragments),
+            &quot;selected_paths&quot;: [fragment.path for fragment in selected_fragments],
+        },
+        &quot;artifacts&quot;: {
+            str(path.relative_to(output)): {
+                &quot;bytes&quot;: path.stat().st_size,
+                &quot;sha256&quot;: sha256(path),
+            }
+            for path in files
+        },
+        &quot;checks&quot;: checks,
+        &quot;summary&quot;: {
+            &quot;valid&quot;: all(checks.values()),
+            &quot;rows&quot;: table.num_rows,
+            &quot;file_count&quot;: len(files),
+        },
+    }
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description=&quot;Build a partitioned Parquet dataset&quot;)
+    parser.add_argument(&quot;--input&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--output-dir&quot;, required=True, type=Path)
+    parser.add_argument(
+        &quot;--partition-by&quot;,
+        nargs=&quot;+&quot;,
+        default=[&quot;order_month&quot;, &quot;currency&quot;],
+    )
+    parser.add_argument(&quot;--filter-currency&quot;, default=&quot;EUR&quot;)
+    parser.add_argument(&quot;--manifest&quot;, type=Path)
+    args = parser.parse_args()
+    try:
+        report = build_dataset(
+            args.input,
+            args.output_dir,
+            partition_by=tuple(args.partition_by),
+            filter_currency=args.filter_currency,
+        )
+    except DatasetLayoutError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        raise SystemExit(2) from error
+    content = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;
+    if args.manifest:
+        args.manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.manifest.write_text(content, encoding=&quot;utf-8&quot;)
+    sys.stdout.write(content)
+    if not report[&quot;summary&quot;][&quot;valid&quot;]:
+        raise SystemExit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/10-partitioning/outputs/dataset_builder.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/10-partitioning" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/arrow/"><span>← Предыдущий урок</span><strong>Arrow как контракт обмена таблицами</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/caching-and-checksums/"><span>Следующий урок →</span><strong>Кеширование и контроль целостности</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

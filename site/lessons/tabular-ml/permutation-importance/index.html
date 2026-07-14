@@ -1,0 +1,3473 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 16/04 CatBoost built-in importance показал яркую, но опасную картинку: PredictionValuesChange дал platform = 100, остальные признаки получили 0, а LossFunctionChange…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/permutation-importance/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Permutation importance">
+  <meta property="og:description" content="В 16/04 CatBoost built-in importance показал яркую, но опасную картинку: PredictionValuesChange дал platform = 100, остальные признаки получили 0, а LossFunctionChange…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/permutation-importance/">
+  <meta name="twitter:card" content="summary">
+  <title>Permutation importance — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Permutation importance", "description": "В 16/04 CatBoost built-in importance показал яркую, но опасную картинку: PredictionValuesChange дал platform = 100, остальные признаки получили 0, а LossFunctionChange…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/permutation-importance/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "Permutation importance", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/permutation-importance/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 176 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/05-permutation-importance" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>На каком split корректно считать permutation importance в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">На заранее объявленном validation heldout split, не используя final test для выбора интерпретации</button><button type="button" class="quiz-option" data-choice="1">На train split, потому что модель там обучалась</button><button type="button" class="quiz-option" data-choice="2">На test split, потому что там больше строк</button><button type="button" class="quiz-option" data-choice="3">На объединении train, validation и test, чтобы уменьшить variance</button></div><p class="quiz-feedback" hidden>Permutation importance зависит от scoring data. В уроке validation используется как heldout diagnostic split, а test остается final once-only evaluation.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему policy должен явно объявлять scoring перед permutation importance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Одна и та же модель может иметь разный ranking признаков для разных metrics</button><button type="button" class="quiz-option" data-choice="1">scoring нужен только для красивого названия файла</button><button type="button" class="quiz-option" data-choice="2">Permutation importance всегда считает accuracy</button><button type="button" class="quiz-option" data-choice="3">scoring автоматически делает importance causal</button></div><p class="quiz-feedback" hidden>Permutation importance измеряет изменение выбранного score после shuffle. Без declared metric число нельзя интерпретировать.</p></article></section>
+        <article class="lesson-article"><h1 id="permutation-importance">Permutation importance</h1>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>16/04</code> CatBoost built-in importance показал яркую, но опасную картинку:
+<code>PredictionValuesChange</code> дал <code>platform = 100</code>, остальные признаки получили <code>0</code>, а
+<code>LossFunctionChange</code> для той же <code>platform</code> оказался отрицательным. Если остановиться на
+этом месте, легко рассказать бизнесу слишком сильную историю: &quot;platform главный драйвер
+churn&quot;.</p>
+<p>Permutation importance задает другой вопрос: что случится с заранее объявленным score,
+если на heldout data перемешать один столбец признака и оставить остальные как есть. Это
+model-agnostic diagnostic: он не зависит от внутренней формулы CatBoost importance, но
+зависит от качества модели, выбранного split, scoring и случайных перестановок.</p>
+<p>В этом уроке вы построите evaluator, который считает permutation importance через
+<code>sklearn.inspection.permutation_importance</code>, сохраняет repeat-level deltas и сразу
+показывает warnings для плохой модели, маленькой validation, high-cardinality и
+коррелированных признаков.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Permutation importance работает так:</p>
+<ol>
+<li>Посчитать baseline score модели на heldout split.</li>
+<li>Для каждого признака несколько раз перемешать только этот столбец.</li>
+<li>После каждого shuffle снова посчитать score.</li>
+<li>Записать разницу <code>baseline_score - permuted_score</code>.</li>
+</ol>
+<p>В уроке scoring объявлен как <code>neg_log_loss</code>, поэтому importance удобно читать как
+<code>log_loss increase when feature is permuted</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">importance_delta = permuted_log_loss - baseline_log_loss
+</code></pre></div><p>Положительная delta значит, что shuffle ухудшил log loss. Нулевая delta значит, что
+модель не изменила score на этом split. Отрицательная delta значит, что после shuffle
+log loss стал лучше. Это не делает признак &quot;анти-причиной&quot;; это говорит, что на данном
+heldout split strong positive importance claim не поддержан.</p>
+<p>Нужны четыре защитных слоя:</p>
+<table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Что проверяет</th>
+<th>Почему важно</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Split boundary</td>
+<td><code>heldout_split=validation</code>, <code>final_holdout_split=test</code> не используется</td>
+<td>иначе interpretation подглядывает в финальную проверку</td>
+</tr>
+<tr>
+<td>Scoring contract</td>
+<td><code>neg_log_loss</code>, <code>predict_proba</code>, labels <code>[0, 1]</code></td>
+<td>ranking признаков зависит от metric</td>
+</tr>
+<tr>
+<td>Repeat ledger</td>
+<td>7 shuffle repeats на каждый признак</td>
+<td>mean без разброса выглядит слишком уверенно</td>
+</tr>
+<tr>
+<td>Warning ledger</td>
+<td>high-cardinality, correlated features, tiny heldout, weak score</td>
+<td>permutation importance легко переинтерпретировать</td>
+</tr>
+</tbody>
+</table>
+<p>Коррелированные признаки особенно важны. Если два столбца несут похожий сигнал, модель
+может сохранить score через proxy, когда один столбец перемешан. Тогда individual
+importance будет ниже, чем importance группы признаков.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый policy spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/permutation_importance_policy_spec.json
+</code></pre></div><p>Он фиксирует:</p>
+<ul>
+<li>handoff от <code>16/04</code> built-in importance;</li>
+<li><code>heldout_split=validation</code> и <code>final_holdout_split=test</code>;</li>
+<li>scoring <code>neg_log_loss</code> через <code>predict_proba</code>;</li>
+<li><code>n_repeats=7</code>, <code>random_state=1605</code>, <code>max_samples=1.0</code>;</li>
+<li>точный порядок 10 признаков;</li>
+<li>non-causal interpretation policy;</li>
+<li>warning thresholds для tiny heldout, poor baseline log loss, high-cardinality и
+correlated features.</li>
+</ul>
+<p>Минимальный механизм:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">from sklearn.inspection import permutation_importance
+from sklearn.metrics import log_loss
+
+
+def neg_log_loss_scorer(estimator, X, y):
+    probabilities = estimator.predict_proba(X)[:, 1]
+    return -log_loss(y, probabilities, labels=[0, 1])
+
+
+result = permutation_importance(
+    model,
+    X_validation,
+    y_validation,
+    scoring=neg_log_loss_scorer,
+    n_repeats=7,
+    random_state=1605,
+)
+</code></pre></div><p>Production-артефакт не ограничивается <code>result.importances_mean</code>. Он пишет:</p>
+<ul>
+<li>mean/std и <code>mean +/- 2*std</code> для каждого признака;</li>
+<li>все 70 repeat deltas;</li>
+<li>baseline score и permuted score по каждому repeat;</li>
+<li>warnings, которые не блокируют readiness, но блокируют сильный interpretation claim.</li>
+</ul>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_evaluator.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/05-permutation-importance/code/main.py
+</code></pre></div><p>Ожидаемая сводка:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;heldout_split&quot;: &quot;validation&quot;,
+  &quot;baseline_log_loss&quot;: 0.698394,
+  &quot;repeat_count&quot;: 7,
+  &quot;feature_count&quot;: 10,
+  &quot;importance_row_count&quot;: 10,
+  &quot;repeat_row_count&quot;: 70,
+  &quot;largest_absolute_mean_delta_feature&quot;: &quot;platform&quot;,
+  &quot;warning_count&quot;: 5,
+  &quot;readiness_status&quot;: &quot;ready_for_shap_lesson&quot;
+}
+</code></pre></div><p>После запуска появляются пять файлов:</p>
+<ul>
+<li><code>permutation_importance_report.json</code> - общий отчет, checks, summary и warnings;</li>
+<li><code>permutation_importance.csv</code> - 10 строк feature-level mean/std/uncertainty;</li>
+<li><code>permutation_importance_repeats.csv</code> - 70 строк: 10 признаков на 7 повторов;</li>
+<li><code>permutation_warning_ledger.csv</code> - high-cardinality, correlation, tiny sample, weak
+score и no-positive-signal warnings;</li>
+<li><code>permutation_importance_serialized_spec.json</code> - handoff для <code>16/06</code>.</li>
+</ul>
+<p>В текущем tiny fixture:</p>
+<ul>
+<li>validation содержит только <code>S005</code>, <code>S006</code>, <code>S007</code>;</li>
+<li>test rows <code>S009</code>-<code>S013</code> не используются;</li>
+<li>baseline validation log loss равен <code>0.698394</code>;</li>
+<li><code>platform</code> имеет mean delta <code>-0.011722</code>;</li>
+<li>4 из 7 shuffle repeats для <code>platform</code> улучшают log loss на <code>0.020513</code>;</li>
+<li>ни один признак не имеет <code>mean - 2*std &gt; 0</code>.</li>
+</ul>
+<p>Это отличный учебный результат: built-in importance подсветил <code>platform</code>, а permutation
+importance на heldout scoring не поддержал сильный положительный claim. Следующий шаг -
+сравнить это с SHAP и не скрывать disagreement.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Поставьте в policy:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;heldout_split&quot;: &quot;test&quot;
+</code></pre></div><p>Audit должен заблокировать расчет. Test split остается final once-only evaluation, а не
+местом для выбора интерпретационной истории.</p>
+<p>Теперь уменьшите repeats:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;n_repeats&quot;: 1
+</code></pre></div><p>Policy должна упасть: один shuffle не дает repeat variance и не позволяет построить
+uncertainty band.</p>
+<p>Измените claim на:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;platform causes churn and proves retention effect&quot;
+</code></pre></div><p>Evaluator должен заблокировать policy. Permutation importance объясняет поведение
+модели на выбранном score, а не причинный эффект платформы или удерживающего оффера.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/05-permutation-importance/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>handoff от <code>16/04</code>;</li>
+<li>validation-only heldout scoring без test rows;</li>
+<li>declared <code>neg_log_loss</code> scoring;</li>
+<li>10 feature-level rows и 70 repeat rows;</li>
+<li>отрицательную mean delta для <code>platform</code>;</li>
+<li>uncertainty band <code>mean +/- 2*std</code>;</li>
+<li>high-cardinality warning для <code>acquisition_channel</code>;</li>
+<li>correlated-feature warnings;</li>
+<li>tiny heldout и weak-score warnings;</li>
+<li>блокировку <code>heldout_split=test</code>;</li>
+<li>блокировку <code>n_repeats &lt; 2</code>;</li>
+<li>блокировку positive causal claim;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полного курса после изменения статуса:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока - permutation importance evaluator. Его можно передать в
+<code>16/06</code>, потому что:</p>
+<ul>
+<li>модель совпадает с early-stopping run из <code>16/03</code>;</li>
+<li>built-in importance handoff из <code>16/04</code> валиден;</li>
+<li>validation heldout split явно отделен от final test;</li>
+<li>scoring, repeats и random seed зафиксированы;</li>
+<li>repeat variance сохранена отдельным CSV;</li>
+<li>warnings видны рядом с числами;</li>
+<li>report не содержит positive causal claim;</li>
+<li><code>ready_for_shap_lesson</code> означает, что следующий урок может сравнить global/local SHAP
+с built-in и permutation signals.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Увеличьте <code>n_repeats</code> до <code>21</code> и сравните <code>std_importance</code> для <code>platform</code>.</li>
+<li>Поменяйте scoring на accuracy в копии policy и объясните, почему feature ranking уже
+отвечает на другой вопрос.</li>
+<li>Исключите <code>platform</code> из feature order в копии spec и проверьте, где сломается handoff.</li>
+<li>Сгруппируйте коррелированные numeric features и подумайте, какой group permutation
+check нужен для более честной интерпретации.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Permutation importance</td>
+<td>&quot;Это универсальная важность признака&quot;</td>
+<td>Изменение выбранного score после shuffle одного признака на конкретном data split</td>
+</tr>
+<tr>
+<td>Heldout scoring</td>
+<td>&quot;Можно считать где угодно&quot;</td>
+<td>Score должен считаться на заранее объявленном split, который не подгонял модель под вывод</td>
+</tr>
+<tr>
+<td>Repeat variance</td>
+<td>&quot;Mean достаточно&quot;</td>
+<td>Разброс shuffle deltas показывает стабильность или хрупкость importance</td>
+</tr>
+<tr>
+<td>Negative delta</td>
+<td>&quot;Признак вреден для бизнеса&quot;</td>
+<td>На этом split shuffle улучшил metric; это diagnostic warning, не бизнес-причина</td>
+</tr>
+<tr>
+<td>Correlated-feature masking</td>
+<td>&quot;Нулевая importance значит нет сигнала&quot;</td>
+<td>Коррелированный proxy может сохранить score после shuffle одного признака</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/permutation_importance.html" target="_blank" rel="noopener">scikit-learn: Permutation feature importance</a> - user guide с предупреждениями про плохие модели, correlated features и отличие от impurity-based importance.</li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html" target="_blank" rel="noopener">sklearn.inspection.permutation_importance</a> - параметры <code>scoring</code>, <code>n_repeats</code>, <code>random_state</code>, <code>max_samples</code> и формат <code>importances_mean/std</code>.</li>
+<li><a href="https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter" target="_blank" rel="noopener">scikit-learn: Model evaluation scoring</a> - как устроены scoring strings и callable scorers, от которых зависит смысл importance.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/python-reference_catboostclassifier_predict_proba" target="_blank" rel="noopener">CatBoostClassifier.predict_proba</a> - официальный API вероятностей, которые используются в <code>neg_log_loss</code>.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает отрицательная mean permutation delta для `platform` на tiny validation?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">После shuffle log loss на этих трех validation rows в среднем не ухудшился, поэтому strong positive importance claim запрещен</button><button type="button" class="quiz-option" data-choice="1">`platform` доказанно снижает churn</button><button type="button" class="quiz-option" data-choice="2">CatBoost не умеет работать с categorical features</button><button type="button" class="quiz-option" data-choice="3">Нужно выбрать другой random_state, пока delta не станет положительной</button></div><p class="quiz-feedback" hidden>Для neg_log_loss importance равна log_loss increase. Отрицательное среднее значит, что shuffle улучшил loss на этом tiny split; это warning, а не causal claim.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем evaluator сохраняет `permutation_importance_repeats.csv`, а не только mean importance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы видеть разброс shuffle outcomes и проверять uncertainty band</button><button type="button" class="quiz-option" data-choice="1">Чтобы скрыть baseline score</button><button type="button" class="quiz-option" data-choice="2">Чтобы удалить correlated features из модели</button><button type="button" class="quiz-option" data-choice="3">Чтобы заменить feature-name audit</button></div><p class="quiz-feedback" hidden>Повторы показывают, насколько стабилен delta. Mean без repeat ledger легко превращается в слишком уверенный вывод.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему correlated-feature warning важен для permutation importance?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Если один признак переставлен, модель может использовать коррелированный proxy, и importance будет занижена или замаскирована</button><button type="button" class="quiz-option" data-choice="1">Корреляция делает permutation importance невозможной для всех моделей</button><button type="button" class="quiz-option" data-choice="2">Коррелированные признаки автоматически являются leakage</button><button type="button" class="quiz-option" data-choice="3">Warning доказывает, что top feature является причиной churn</button></div><p class="quiz-feedback" hidden>Permutation importance измеряет падение score при shuffle одного столбца. Коррелированный proxy может удержать score и скрыть реальный вклад группы признаков.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_importance_evaluator.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from permutation_importance_evaluator import (  # noqa: E402
+    DEFAULT_BUILT_IN_REPORT_PATH,
+    DEFAULT_BUILT_IN_SPEC_PATH,
+    DEFAULT_CATEGORICAL_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class PermutationImportanceEvaluatorTest(TestCase):
+    def audit(
+        self,
+        root: Path = DATA_ROOT,
+        upstream_root: Path = UPSTREAM_DATA_ROOT,
+        **paths: Path,
+    ) -&gt; dict:
+        return run(
+            policy_path=paths.get(&quot;policy_path&quot;, root / &quot;permutation_importance_policy_spec.json&quot;),
+            catboost_spec_path=paths.get(&quot;catboost_spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            early_stopping_report_path=paths.get(&quot;early_stopping_report_path&quot;, DEFAULT_EARLY_STOPPING_REPORT_PATH),
+            early_stopping_spec_path=paths.get(&quot;early_stopping_spec_path&quot;, DEFAULT_EARLY_STOPPING_SPEC_PATH),
+            categorical_report_path=paths.get(&quot;categorical_report_path&quot;, DEFAULT_CATEGORICAL_REPORT_PATH),
+            built_in_report_path=paths.get(&quot;built_in_report_path&quot;, DEFAULT_BUILT_IN_REPORT_PATH),
+            built_in_spec_path=paths.get(&quot;built_in_spec_path&quot;, DEFAULT_BUILT_IN_SPEC_PATH),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            labels_path=paths.get(&quot;labels_path&quot;, upstream_root / &quot;ml_labels.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+        for filename in (&quot;permutation_importance_policy_spec.json&quot;, &quot;catboost_model_spec.json&quot;):
+            shutil.copy2(DATA_ROOT / filename, phase16 / filename)
+        for filename in (&quot;ml_raw_features.csv&quot;, &quot;ml_labels.csv&quot;, &quot;ml_split_manifest.csv&quot;):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_REPORT_PATH, reports / &quot;early_stopping_report.json&quot;)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_SPEC_PATH, reports / &quot;early_stopping_serialized_spec.json&quot;)
+        shutil.copy2(DEFAULT_CATEGORICAL_REPORT_PATH, reports / &quot;categorical_feature_report.json&quot;)
+        shutil.copy2(DEFAULT_BUILT_IN_REPORT_PATH, reports / &quot;built_in_importance_report.json&quot;)
+        shutil.copy2(DEFAULT_BUILT_IN_SPEC_PATH, reports / &quot;built_in_importance_serialized_spec.json&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_report_records_heldout_scoring_repeats_and_warnings(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;permutation_importance_audit_id&quot;], &quot;trial-churn-permutation-importance-audit-v0&quot;)
+        self.assertEqual(summary[&quot;early_stopping_model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(summary[&quot;built_in_importance_audit_id&quot;], &quot;trial-churn-built-in-importance-audit-v0&quot;)
+        self.assertEqual(summary[&quot;heldout_split&quot;], &quot;validation&quot;)
+        self.assertEqual(summary[&quot;heldout_row_count&quot;], 3)
+        self.assertEqual(summary[&quot;baseline_log_loss&quot;], 0.698394)
+        self.assertEqual(summary[&quot;scoring&quot;], &quot;neg_log_loss&quot;)
+        self.assertEqual(summary[&quot;repeat_count&quot;], 7)
+        self.assertEqual(summary[&quot;feature_count&quot;], 10)
+        self.assertEqual(summary[&quot;importance_row_count&quot;], 10)
+        self.assertEqual(summary[&quot;repeat_row_count&quot;], 70)
+        self.assertEqual(summary[&quot;warning_ledger_row_count&quot;], 9)
+        self.assertEqual(summary[&quot;largest_absolute_mean_delta_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(summary[&quot;largest_absolute_mean_delta_value&quot;], -0.011722)
+        self.assertEqual(summary[&quot;positive_mean_feature_count&quot;], 0)
+        self.assertEqual(summary[&quot;positive_with_two_std_margin_feature_count&quot;], 0)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_shap_lesson&quot;)
+        self.assertEqual(
+            summary[&quot;warnings&quot;],
+            [
+                &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+                &quot;correlated_features_can_mask_permutation_importance&quot;,
+                &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+                &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+                &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+            ],
+        )
+
+    def test_platform_has_negative_mean_delta_and_repeat_variance(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;feature_name&quot;]: row for row in report[&quot;importance&quot;]}
+        platform = rows[&quot;platform&quot;]
+
+        self.assertEqual(platform[&quot;feature_role&quot;], &quot;categorical&quot;)
+        self.assertEqual(platform[&quot;scoring_name&quot;], &quot;neg_log_loss&quot;)
+        self.assertEqual(platform[&quot;importance_unit&quot;], &quot;log_loss_increase_when_feature_is_permuted&quot;)
+        self.assertEqual(platform[&quot;mean_importance&quot;], -0.011722)
+        self.assertEqual(platform[&quot;std_importance&quot;], 0.010151)
+        self.assertEqual(platform[&quot;two_std_lower&quot;], -0.032024)
+        self.assertEqual(platform[&quot;two_std_upper&quot;], 0.008581)
+        self.assertFalse(platform[&quot;positive_importance_with_two_std_margin&quot;])
+        self.assertEqual(platform[&quot;absolute_mean_importance&quot;], 0.011722)
+        self.assertEqual(platform[&quot;nonzero_repeat_count&quot;], 4)
+        self.assertEqual(platform[&quot;positive_repeat_count&quot;], 0)
+        self.assertEqual(platform[&quot;negative_repeat_count&quot;], 4)
+        self.assertEqual(platform[&quot;direction&quot;], &quot;loss_decrease_when_permuted&quot;)
+        self.assertEqual(platform[&quot;rank_by_absolute_mean&quot;], 1)
+        self.assertTrue(platform[&quot;is_largest_absolute_mean_delta&quot;])
+        self.assertEqual(rows[&quot;sessions_14d&quot;][&quot;mean_importance&quot;], 0.0)
+        self.assertEqual(rows[&quot;acquisition_channel&quot;][&quot;rank_by_absolute_mean&quot;], 10)
+
+    def test_repeat_rows_preserve_baseline_and_platform_deltas(self) -&gt; None:
+        report = self.audit()
+        repeats = [row for row in report[&quot;repeats&quot;] if row[&quot;feature_name&quot;] == &quot;platform&quot;]
+
+        self.assertEqual(len(repeats), 7)
+        self.assertEqual([row[&quot;importance_delta&quot;] for row in repeats], [-0.020513, 0.0, 0.0, -0.020513, 0.0, -0.020513, -0.020513])
+        self.assertTrue(all(row[&quot;baseline_log_loss&quot;] == 0.698394 for row in repeats))
+        self.assertEqual(repeats[0][&quot;permuted_log_loss&quot;], 0.677881)
+        self.assertEqual(repeats[0][&quot;direction&quot;], &quot;loss_decrease_when_permuted&quot;)
+        self.assertEqual(repeats[1][&quot;direction&quot;], &quot;zero&quot;)
+
+    def test_validation_split_is_used_and_test_is_excluded(self) -&gt; None:
+        report = self.audit()
+        heldout = check(report, &quot;heldout_rows_use_validation_and_exclude_final_test&quot;)
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertTrue(heldout[&quot;valid&quot;])
+        self.assertEqual(heldout[&quot;observed&quot;][&quot;snapshot_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertEqual(heldout[&quot;observed&quot;][&quot;final_test_rows_used&quot;], 0)
+        self.assertEqual(serialized[&quot;heldout_summary&quot;][&quot;heldout_snapshot_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertNotIn(&quot;S009&quot;, serialized[&quot;heldout_summary&quot;][&quot;heldout_snapshot_ids&quot;])
+
+    def test_warning_ledger_names_high_cardinality_correlation_tiny_score_and_uncertainty(self) -&gt; None:
+        report = self.audit()
+        rows_by_id = {}
+        for row in report[&quot;warning_ledger&quot;]:
+            rows_by_id.setdefault(row[&quot;warning_id&quot;], []).append(row)
+
+        self.assertEqual(rows_by_id[&quot;high_cardinality_features_flagged_for_permutation_importance&quot;][0][&quot;feature_name&quot;], &quot;acquisition_channel&quot;)
+        self.assertEqual(len(rows_by_id[&quot;correlated_features_can_mask_permutation_importance&quot;]), 5)
+        self.assertEqual(rows_by_id[&quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;][0][&quot;observed&quot;], 3)
+        self.assertEqual(rows_by_id[&quot;poor_or_flat_model_score_limits_permutation_importance&quot;][0][&quot;observed&quot;], 0.698394)
+        self.assertEqual(rows_by_id[&quot;no_positive_permutation_signal_with_uncertainty_margin&quot;][0][&quot;expected&quot;], &quot;&gt;= 1 feature with mean - 2*std &gt; 0&quot;)
+
+    def test_serialized_spec_records_handoff_for_shap(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;built_in_importance_audit_id&quot;], &quot;trial-churn-built-in-importance-audit-v0&quot;)
+        self.assertEqual(serialized[&quot;heldout_summary&quot;][&quot;baseline_log_loss&quot;], 0.698394)
+        self.assertEqual(serialized[&quot;top_summary&quot;][&quot;largest_absolute_mean_delta_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(serialized[&quot;top_summary&quot;][&quot;positive_with_two_std_margin_feature_count&quot;], 0)
+        self.assertEqual(serialized[&quot;warning_summary&quot;][&quot;high_cardinality_features&quot;], [&quot;acquisition_channel&quot;])
+        self.assertEqual(serialized[&quot;warning_summary&quot;][&quot;correlated_pair_count&quot;], 5)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;built_in_readiness_status&quot;], &quot;ready_for_permutation_importance_lesson&quot;)
+
+    def test_code_example_writes_all_permutation_outputs(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;heldout_split&quot;], &quot;validation&quot;)
+        self.assertEqual(payload[&quot;baseline_log_loss&quot;], 0.698394)
+        self.assertEqual(payload[&quot;repeat_count&quot;], 7)
+        self.assertEqual(payload[&quot;feature_count&quot;], 10)
+        self.assertEqual(payload[&quot;repeat_row_count&quot;], 70)
+        self.assertEqual(payload[&quot;largest_absolute_mean_delta_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_importance_report.json&quot;)[&quot;summary&quot;][&quot;warning_ledger_row_count&quot;], 9)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_importance.csv&quot;)), 10)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_importance_repeats.csv&quot;)), 70)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_warning_ledger.csv&quot;)), 9)
+        self.assertEqual(
+            read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;permutation_importance_serialized_spec.json&quot;)[&quot;top_summary&quot;][&quot;largest_absolute_mean_delta_feature&quot;],
+            &quot;platform&quot;,
+        )
+
+    def test_invalid_built_in_report_blocks_handoff(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            built_in_report = read_json(reports / &quot;built_in_importance_report.json&quot;)
+            built_in_report[&quot;summary&quot;][&quot;readiness_status&quot;] = &quot;blocked_by_built_in_importance_policy&quot;
+            write_json(reports / &quot;built_in_importance_report.json&quot;, built_in_report)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;permutation_policy_matches_built_in_importance_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertIn(&quot;permutation_policy_matches_built_in_importance_handoff&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_test_split_as_heldout_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;)
+            policy[&quot;heldout_split&quot;] = &quot;test&quot;
+            write_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertIn(&quot;heldout_split&quot;, {error[&quot;field&quot;] for error in policy_check[&quot;observed&quot;]})
+
+    def test_too_few_repeats_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;)
+            policy[&quot;permutation&quot;][&quot;n_repeats&quot;] = 1
+            write_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;permutation.n_repeats&quot;)
+
+    def test_positive_causal_claim_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;)
+            policy[&quot;interpretation_policy&quot;][&quot;claim&quot;] = &quot;platform causes churn and proves retention effect&quot;
+            write_json(phase16 / &quot;permutation_importance_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;interpretation_policy.claim&quot;)
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;forbidden_terms&quot;], [&quot;causes churn&quot;, &quot;proves retention effect&quot;])
+
+    def test_cli_fail_on_warning_exits_after_writing_outputs(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / &quot;outputs&quot;
+            result = subprocess.run(
+                [sys.executable, ARTIFACT, &quot;--output-dir&quot;, output_dir, &quot;--fail-on-warning&quot;],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            report_exists = (output_dir / &quot;permutation_importance_report.json&quot;).exists()
+            warning_exists = (output_dir / &quot;permutation_warning_ledger.csv&quot;).exists()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;warning_count&quot;], 5)
+        self.assertTrue(report_exists)
+        self.assertTrue(warning_exists)
+
+    def test_missing_policy_returns_structured_failure(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            missing_policy = phase16 / &quot;missing_permutation_importance_policy_spec.json&quot;
+
+            report = self.audit(
+                phase16,
+                upstream,
+                policy_path=missing_policy,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;blocking_errors&quot;], [&quot;input_files_are_present&quot;])
+        self.assertEqual(report[&quot;checks&quot;][0][&quot;id&quot;], &quot;input_files_are_present&quot;)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from permutation_importance_evaluator import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; None:
+    result = run()
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;])
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;permutation_importance_audit_id&quot;: summary[&quot;permutation_importance_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: summary[&quot;early_stopping_model_id&quot;],
+                &quot;heldout_split&quot;: summary[&quot;heldout_split&quot;],
+                &quot;baseline_log_loss&quot;: summary[&quot;baseline_log_loss&quot;],
+                &quot;repeat_count&quot;: summary[&quot;repeat_count&quot;],
+                &quot;feature_count&quot;: summary[&quot;feature_count&quot;],
+                &quot;importance_row_count&quot;: summary[&quot;importance_row_count&quot;],
+                &quot;repeat_row_count&quot;: summary[&quot;repeat_row_count&quot;],
+                &quot;largest_absolute_mean_delta_feature&quot;: summary[&quot;largest_absolute_mean_delta_feature&quot;],
+                &quot;warning_count&quot;: len(summary[&quot;warnings&quot;]),
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;permutation-importance-evaluator&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/permutation_importance_evaluator.py&quot;,
+  &quot;description&quot;: &quot;Считает model-agnostic permutation importance на validation heldout split с declared neg_log_loss scoring, repeat variance, uncertainty bands, no-test-peeking gate и warnings для high-cardinality, correlated features и слабой модели.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_evaluator.py --output-dir phases/16-tabular-ml/05-permutation-importance/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_importance.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_index,feature_name,feature_role,scoring_name,importance_unit,heldout_split,repeat_count,mean_importance,std_importance,two_std_lower,two_std_upper,positive_importance_with_two_std_margin,absolute_mean_importance,nonzero_repeat_count,positive_repeat_count,negative_repeat_count,direction,rank_by_mean,rank_by_absolute_mean,is_largest_absolute_mean_delta
+0,sessions_14d,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,1,2,False
+1,active_days_14d,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,2,3,False
+2,support_tickets_14d,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,3,4,False
+3,revenue_30d,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,4,5,False
+4,days_since_signup,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,5,6,False
+5,had_support_ticket_14d,numeric,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,6,7,False
+6,plan_id,categorical,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,7,8,False
+7,platform,categorical,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,-0.011722,0.010151,-0.032024,0.008581,False,0.011722,4,0,4,loss_decrease_when_permuted,10,1,True
+8,country,categorical,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,8,9,False
+9,acquisition_channel,categorical,neg_log_loss,log_loss_increase_when_feature_is_permuted,validation,7,0.0,0.0,0.0,0.0,False,0.0,0,0,0,zero,9,10,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_importance_evaluator.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+# ruff: noqa: E402
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import numpy as np
+import pandas as pd
+import sklearn
+from catboost import CatBoostClassifier, Pool
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import log_loss
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;permutation_importance_policy_spec.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_CATEGORICAL_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;
+)
+DEFAULT_EARLY_STOPPING_REPORT_PATH = PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;
+DEFAULT_EARLY_STOPPING_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_serialized_spec.json&quot;
+)
+DEFAULT_BUILT_IN_REPORT_PATH = PHASE_16_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance_report.json&quot;
+DEFAULT_BUILT_IN_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance_serialized_spec.json&quot;
+)
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+
+GENERATED_AT = &quot;2026-07-05T12:00:00+03:00&quot;
+
+
+def portable_path(path: Path) -&gt; str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+class PermutationImportanceError(ValueError):
+    &quot;&quot;&quot;Raised when permutation-importance inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise PermutationImportanceError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def expected_feature_order(catboost_spec: dict[str, Any]) -&gt; list[str]:
+    contract = catboost_spec.get(&quot;feature_contract&quot;, {})
+    return list(contract.get(&quot;numeric_features&quot;, [])) + list(contract.get(&quot;categorical_features&quot;, []))
+
+
+def validate_handoff(
+    *,
+    policy: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    early_report: dict[str, Any],
+    early_spec: dict[str, Any],
+    categorical_report: dict[str, Any],
+    built_in_report: dict[str, Any],
+    built_in_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    required = {
+        &quot;permutation_importance_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;source_catboost_model_id&quot;,
+        &quot;early_stopping_model_id&quot;,
+        &quot;early_stopping_audit_id&quot;,
+        &quot;categorical_audit_id&quot;,
+        &quot;built_in_importance_audit_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;heldout_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;scoring&quot;,
+        &quot;permutation&quot;,
+        &quot;feature_name_policy&quot;,
+        &quot;interpretation_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    expected_identity = {
+        &quot;problem_id&quot;: early_spec.get(&quot;problem_id&quot;),
+        &quot;catboost_baseline_id&quot;: early_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;source_catboost_model_id&quot;: early_spec.get(&quot;source_catboost_model_id&quot;),
+        &quot;early_stopping_model_id&quot;: early_spec.get(&quot;early_stopping_model_id&quot;),
+        &quot;early_stopping_audit_id&quot;: early_spec.get(&quot;early_stopping_audit_id&quot;),
+        &quot;categorical_audit_id&quot;: early_spec.get(&quot;categorical_audit_id&quot;),
+        &quot;fit_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;fit_split&quot;),
+        &quot;heldout_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;eval_split&quot;),
+        &quot;final_holdout_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;final_holdout_split&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if policy.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: policy.get(field), &quot;expected&quot;: expected})
+
+    if policy.get(&quot;built_in_importance_audit_id&quot;) != built_in_spec.get(&quot;built_in_importance_audit_id&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;built_in_importance_audit_id&quot;,
+                &quot;observed&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+                &quot;expected&quot;: built_in_spec.get(&quot;built_in_importance_audit_id&quot;),
+            }
+        )
+    if built_in_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;built_in_report.valid&quot;, &quot;observed&quot;: built_in_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_permutation_importance_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;built_in_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_permutation_importance_lesson&quot;,
+            }
+        )
+    if early_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;early_stopping_report.valid&quot;, &quot;observed&quot;: early_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if categorical_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;categorical_report.valid&quot;, &quot;observed&quot;: categorical_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+
+    expected_order = expected_feature_order(catboost_spec)
+    if expected_order != early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;feature_order&quot;,
+                &quot;observed&quot;: expected_order,
+                &quot;expected&quot;: early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []),
+            }
+        )
+    if built_in_spec.get(&quot;feature_order&quot;) != expected_order:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;built_in_feature_order&quot;,
+                &quot;observed&quot;: built_in_spec.get(&quot;feature_order&quot;),
+                &quot;expected&quot;: expected_order,
+            }
+        )
+
+    if errors:
+        return [
+            failed(
+                &quot;permutation_policy_matches_built_in_importance_handoff&quot;,
+                errors,
+                &quot;same CatBoost model, early-stopping run, categorical audit and built-in importance report&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;permutation_policy_matches_built_in_importance_handoff&quot;,
+            {
+                &quot;permutation_importance_audit_id&quot;: policy[&quot;permutation_importance_audit_id&quot;],
+                &quot;built_in_importance_audit_id&quot;: policy[&quot;built_in_importance_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: policy[&quot;early_stopping_model_id&quot;],
+            },
+        )
+    ]
+
+
+def validate_permutation_policy(policy: dict[str, Any], expected_features: list[str]) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    scoring = policy.get(&quot;scoring&quot;, {}) if isinstance(policy.get(&quot;scoring&quot;), dict) else {}
+    permutation = policy.get(&quot;permutation&quot;, {}) if isinstance(policy.get(&quot;permutation&quot;), dict) else {}
+    expected_scoring = {
+        &quot;name&quot;: &quot;neg_log_loss&quot;,
+        &quot;response_method&quot;: &quot;predict_proba&quot;,
+        &quot;greater_is_better&quot;: True,
+        &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+    }
+    for field, expected in expected_scoring.items():
+        if scoring.get(field) != expected:
+            errors.append({&quot;field&quot;: f&quot;scoring.{field}&quot;, &quot;observed&quot;: scoring.get(field), &quot;expected&quot;: expected})
+    if scoring.get(&quot;target_label_order&quot;) != [0, 1]:
+        errors.append({&quot;field&quot;: &quot;scoring.target_label_order&quot;, &quot;observed&quot;: scoring.get(&quot;target_label_order&quot;), &quot;expected&quot;: [0, 1]})
+
+    n_repeats = permutation.get(&quot;n_repeats&quot;)
+    if not isinstance(n_repeats, int) or n_repeats &lt; 2:
+        errors.append({&quot;field&quot;: &quot;permutation.n_repeats&quot;, &quot;observed&quot;: n_repeats, &quot;expected&quot;: &quot;integer &gt;= 2&quot;})
+    if not isinstance(permutation.get(&quot;random_state&quot;), int):
+        errors.append({&quot;field&quot;: &quot;permutation.random_state&quot;, &quot;observed&quot;: permutation.get(&quot;random_state&quot;), &quot;expected&quot;: &quot;integer seed&quot;})
+    if permutation.get(&quot;max_samples&quot;) != 1.0:
+        errors.append({&quot;field&quot;: &quot;permutation.max_samples&quot;, &quot;observed&quot;: permutation.get(&quot;max_samples&quot;), &quot;expected&quot;: 1.0})
+
+    if policy.get(&quot;heldout_split&quot;) != &quot;validation&quot;:
+        errors.append({&quot;field&quot;: &quot;heldout_split&quot;, &quot;observed&quot;: policy.get(&quot;heldout_split&quot;), &quot;expected&quot;: &quot;validation&quot;})
+    if policy.get(&quot;final_holdout_split&quot;) != &quot;test&quot;:
+        errors.append({&quot;field&quot;: &quot;final_holdout_split&quot;, &quot;observed&quot;: policy.get(&quot;final_holdout_split&quot;), &quot;expected&quot;: &quot;test&quot;})
+    if policy.get(&quot;heldout_split&quot;) == policy.get(&quot;final_holdout_split&quot;):
+        errors.append({&quot;field&quot;: &quot;heldout_split&quot;, &quot;observed&quot;: policy.get(&quot;heldout_split&quot;), &quot;expected&quot;: &quot;not final holdout split&quot;})
+
+    observed_order = policy.get(&quot;feature_name_policy&quot;, {}).get(&quot;expected_feature_order&quot;)
+    if observed_order != expected_features:
+        errors.append({&quot;field&quot;: &quot;feature_name_policy.expected_feature_order&quot;, &quot;observed&quot;: observed_order, &quot;expected&quot;: expected_features})
+
+    claim = str(policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;claim&quot;, &quot;&quot;)).lower()
+    forbidden = [
+        term
+        for term in policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;forbidden_positive_claim_terms&quot;, [])
+        if str(term).lower() in claim
+    ]
+    if forbidden:
+        errors.append({&quot;field&quot;: &quot;interpretation_policy.claim&quot;, &quot;forbidden_terms&quot;: sorted(forbidden)})
+
+    limitations = policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;required_limitation_labels&quot;, [])
+    if not isinstance(limitations, list) or len(limitations) &lt; 3:
+        errors.append({&quot;field&quot;: &quot;interpretation_policy.required_limitation_labels&quot;, &quot;observed&quot;: limitations, &quot;expected&quot;: &quot;at least three limitation labels&quot;})
+
+    if errors:
+        return [
+            failed(
+                &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;,
+                errors,
+                &quot;validation heldout split, neg_log_loss scoring, repeats, exact feature order and no positive causal claim&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;,
+            {
+                &quot;heldout_split&quot;: policy[&quot;heldout_split&quot;],
+                &quot;scoring&quot;: scoring[&quot;name&quot;],
+                &quot;n_repeats&quot;: n_repeats,
+                &quot;feature_count&quot;: len(expected_features),
+                &quot;claim&quot;: policy[&quot;interpretation_policy&quot;][&quot;claim&quot;],
+            },
+        )
+    ]
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+    for frame_name, frame in {
+        &quot;features&quot;: features,
+        &quot;labels&quot;: labels,
+        &quot;manifest&quot;: manifest,
+    }.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise PermutationImportanceError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise PermutationImportanceError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(
+        manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;, &quot;user_id&quot;, &quot;prediction_time&quot;]],
+        on=&quot;snapshot_id&quot;,
+        how=&quot;inner&quot;,
+    )
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def prepare_features(
+    frame: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    missing_category_token: str,
+) -&gt; pd.DataFrame:
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def train_model(
+    *,
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    early_spec: dict[str, Any],
+) -&gt; CatBoostClassifier:
+    categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+    train_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;fit_split&quot;]
+    eval_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;eval_split&quot;]
+    model = CatBoostClassifier(**early_spec[&quot;catboost_params&quot;])
+    model.fit(
+        Pool(matrix.loc[train_mask], frame.loc[train_mask, &quot;target&quot;], cat_features=categorical_features),
+        eval_set=Pool(matrix.loc[eval_mask], frame.loc[eval_mask, &quot;target&quot;], cat_features=categorical_features),
+    )
+    return model
+
+
+def neg_log_loss_scorer(estimator: CatBoostClassifier, matrix: pd.DataFrame, target: pd.Series) -&gt; float:
+    probabilities = estimator.predict_proba(matrix)[:, 1]
+    return -float(log_loss(target, probabilities, labels=[0, 1]))
+
+
+def high_cardinality_features(categorical_report: dict[str, Any]) -&gt; set[str]:
+    return {
+        str(row[&quot;feature_name&quot;])
+        for row in categorical_report.get(&quot;inventory&quot;, [])
+        if row.get(&quot;high_cardinality_feature&quot;) is True
+    }
+
+
+def correlated_numeric_pairs(frame: pd.DataFrame, numeric_features: list[str], fit_split: str, threshold: float) -&gt; list[dict[str, Any]]:
+    train = frame.loc[frame[&quot;split&quot;] == fit_split, numeric_features].apply(pd.to_numeric, errors=&quot;coerce&quot;)
+    corr = train.corr().abs()
+    pairs: list[dict[str, Any]] = []
+    for left_index, left in enumerate(numeric_features):
+        for right in numeric_features[left_index + 1 :]:
+            value = corr.loc[left, right]
+            if pd.notna(value) and float(value) &gt;= threshold:
+                pairs.append(
+                    {
+                        &quot;left_feature&quot;: left,
+                        &quot;right_feature&quot;: right,
+                        &quot;abs_correlation&quot;: rounded(float(value)),
+                    }
+                )
+    return pairs
+
+
+def validate_heldout_rows(frame: pd.DataFrame, policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    heldout = frame.loc[frame[&quot;split&quot;] == policy.get(&quot;heldout_split&quot;)]
+    if heldout.empty:
+        return [
+            failed(
+                &quot;heldout_rows_use_validation_and_exclude_final_test&quot;,
+                {&quot;heldout_split&quot;: policy.get(&quot;heldout_split&quot;), &quot;row_count&quot;: 0},
+                &quot;non-empty validation heldout split&quot;,
+            )
+        ]
+    if policy.get(&quot;heldout_split&quot;) == policy.get(&quot;final_holdout_split&quot;):
+        return [
+            failed(
+                &quot;heldout_rows_use_validation_and_exclude_final_test&quot;,
+                {&quot;heldout_split&quot;: policy.get(&quot;heldout_split&quot;), &quot;final_holdout_split&quot;: policy.get(&quot;final_holdout_split&quot;)},
+                &quot;heldout split separate from final test&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;heldout_rows_use_validation_and_exclude_final_test&quot;,
+            {
+                &quot;heldout_split&quot;: policy.get(&quot;heldout_split&quot;),
+                &quot;snapshot_ids&quot;: list(heldout[&quot;snapshot_id&quot;]),
+                &quot;final_test_rows_used&quot;: 0,
+            },
+            &quot;validation rows only&quot;,
+        )
+    ]
+
+
+def compute_permutation_rows(
+    *,
+    policy: dict[str, Any],
+    model: CatBoostClassifier,
+    matrix: pd.DataFrame,
+    frame: pd.DataFrame,
+    expected_features: list[str],
+    categorical_features: list[str],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    heldout_mask = frame[&quot;split&quot;] == policy[&quot;heldout_split&quot;]
+    holdout_matrix = matrix.loc[heldout_mask]
+    holdout_target = frame.loc[heldout_mask, &quot;target&quot;]
+    baseline_score = neg_log_loss_scorer(model, holdout_matrix, holdout_target)
+    baseline_log_loss = -baseline_score
+    permutation_spec = policy[&quot;permutation&quot;]
+    result = permutation_importance(
+        model,
+        holdout_matrix,
+        holdout_target,
+        scoring=neg_log_loss_scorer,
+        n_repeats=int(permutation_spec[&quot;n_repeats&quot;]),
+        random_state=int(permutation_spec[&quot;random_state&quot;]),
+        n_jobs=int(permutation_spec.get(&quot;n_jobs&quot;, 1)),
+        max_samples=float(permutation_spec.get(&quot;max_samples&quot;, 1.0)),
+    )
+
+    importance_rows: list[dict[str, Any]] = []
+    repeat_rows: list[dict[str, Any]] = []
+    for feature_index, feature in enumerate(expected_features):
+        values = [float(value) for value in result.importances[feature_index]]
+        mean_value = float(result.importances_mean[feature_index])
+        std_value = float(result.importances_std[feature_index])
+        lower = mean_value - 2 * std_value
+        upper = mean_value + 2 * std_value
+        role = &quot;categorical&quot; if feature in categorical_features else &quot;numeric&quot;
+        importance_rows.append(
+            {
+                &quot;feature_index&quot;: feature_index,
+                &quot;feature_name&quot;: feature,
+                &quot;feature_role&quot;: role,
+                &quot;scoring_name&quot;: policy[&quot;scoring&quot;][&quot;name&quot;],
+                &quot;importance_unit&quot;: policy[&quot;scoring&quot;][&quot;importance_unit&quot;],
+                &quot;heldout_split&quot;: policy[&quot;heldout_split&quot;],
+                &quot;repeat_count&quot;: len(values),
+                &quot;mean_importance&quot;: rounded(mean_value),
+                &quot;std_importance&quot;: rounded(std_value),
+                &quot;two_std_lower&quot;: rounded(lower),
+                &quot;two_std_upper&quot;: rounded(upper),
+                &quot;positive_importance_with_two_std_margin&quot;: lower &gt; 0,
+                &quot;absolute_mean_importance&quot;: rounded(abs(mean_value)),
+                &quot;nonzero_repeat_count&quot;: sum(not np.isclose(value, 0.0) for value in values),
+                &quot;positive_repeat_count&quot;: sum(value &gt; 0 for value in values),
+                &quot;negative_repeat_count&quot;: sum(value &lt; 0 for value in values),
+                &quot;direction&quot;: &quot;loss_increase&quot; if mean_value &gt; 0 else &quot;loss_decrease_when_permuted&quot; if mean_value &lt; 0 else &quot;zero&quot;,
+                &quot;rank_by_mean&quot;: None,
+                &quot;rank_by_absolute_mean&quot;: None,
+                &quot;is_largest_absolute_mean_delta&quot;: False,
+            }
+        )
+        for repeat_index, delta in enumerate(values, start=1):
+            permuted_score = baseline_score - delta
+            repeat_rows.append(
+                {
+                    &quot;feature_index&quot;: feature_index,
+                    &quot;feature_name&quot;: feature,
+                    &quot;feature_role&quot;: role,
+                    &quot;repeat_index&quot;: repeat_index,
+                    &quot;heldout_split&quot;: policy[&quot;heldout_split&quot;],
+                    &quot;random_state&quot;: int(permutation_spec[&quot;random_state&quot;]),
+                    &quot;baseline_score&quot;: rounded(baseline_score),
+                    &quot;baseline_log_loss&quot;: rounded(baseline_log_loss),
+                    &quot;importance_delta&quot;: rounded(delta),
+                    &quot;permuted_score&quot;: rounded(permuted_score),
+                    &quot;permuted_log_loss&quot;: rounded(-permuted_score),
+                    &quot;direction&quot;: &quot;loss_increase&quot; if delta &gt; 0 else &quot;loss_decrease_when_permuted&quot; if delta &lt; 0 else &quot;zero&quot;,
+                }
+            )
+
+    by_mean = sorted(importance_rows, key=lambda row: (-float(row[&quot;mean_importance&quot;]), int(row[&quot;feature_index&quot;])))
+    for rank, row in enumerate(by_mean, start=1):
+        row[&quot;rank_by_mean&quot;] = rank
+    by_abs = sorted(importance_rows, key=lambda row: (-float(row[&quot;absolute_mean_importance&quot;]), int(row[&quot;feature_index&quot;])))
+    for rank, row in enumerate(by_abs, start=1):
+        row[&quot;rank_by_absolute_mean&quot;] = rank
+        row[&quot;is_largest_absolute_mean_delta&quot;] = rank == 1
+
+    heldout_summary = {
+        &quot;heldout_split&quot;: policy[&quot;heldout_split&quot;],
+        &quot;heldout_row_count&quot;: int(heldout_mask.sum()),
+        &quot;heldout_snapshot_ids&quot;: list(frame.loc[heldout_mask, &quot;snapshot_id&quot;]),
+        &quot;baseline_score&quot;: rounded(baseline_score),
+        &quot;baseline_log_loss&quot;: rounded(baseline_log_loss),
+        &quot;target_positive_count&quot;: int(holdout_target.sum()),
+        &quot;target_negative_count&quot;: int((1 - holdout_target).sum()),
+    }
+    return sorted(importance_rows, key=lambda row: int(row[&quot;feature_index&quot;])), repeat_rows, heldout_summary
+
+
+def summarize_top_features(importance_rows: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    if not importance_rows:
+        return {
+            &quot;top_mean_importance_feature&quot;: None,
+            &quot;largest_absolute_mean_delta_feature&quot;: None,
+            &quot;positive_mean_feature_count&quot;: 0,
+            &quot;positive_with_two_std_margin_feature_count&quot;: 0,
+        }
+    by_mean = sorted(importance_rows, key=lambda row: (int(row[&quot;rank_by_mean&quot;]), int(row[&quot;feature_index&quot;])))
+    by_abs = sorted(importance_rows, key=lambda row: (int(row[&quot;rank_by_absolute_mean&quot;]), int(row[&quot;feature_index&quot;])))
+    return {
+        &quot;top_mean_importance_feature&quot;: by_mean[0][&quot;feature_name&quot;],
+        &quot;top_mean_importance_value&quot;: by_mean[0][&quot;mean_importance&quot;],
+        &quot;largest_absolute_mean_delta_feature&quot;: by_abs[0][&quot;feature_name&quot;],
+        &quot;largest_absolute_mean_delta_value&quot;: by_abs[0][&quot;mean_importance&quot;],
+        &quot;positive_mean_feature_count&quot;: sum(float(row[&quot;mean_importance&quot;]) &gt; 0 for row in importance_rows),
+        &quot;positive_with_two_std_margin_feature_count&quot;: sum(row[&quot;positive_importance_with_two_std_margin&quot;] for row in importance_rows),
+    }
+
+
+def warning_ledger_rows(
+    *,
+    policy: dict[str, Any],
+    importance_rows: list[dict[str, Any]],
+    high_cardinality: set[str],
+    correlated_pairs: list[dict[str, Any]],
+    heldout_summary: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    warning_policy = policy.get(&quot;warning_policy&quot;, {})
+    min_heldout_rows = int(warning_policy.get(&quot;min_heldout_rows_for_stable_importance&quot;, 0))
+    max_log_loss = float(warning_policy.get(&quot;max_baseline_log_loss_for_strong_claim&quot;, 1.0))
+    positive_with_margin = [row for row in importance_rows if row[&quot;positive_importance_with_two_std_margin&quot;]]
+
+    for feature in sorted(high_cardinality):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: feature,
+                &quot;observed&quot;: feature,
+                &quot;expected&quot;: &quot;high-cardinality features interpreted with repeat variance and caution&quot;,
+                &quot;reason&quot;: &quot;Sparse or high-cardinality categories can make permutation deltas noisy on small heldout slices.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    for pair in correlated_pairs:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: f&quot;{pair[&#x27;left_feature&#x27;]}|{pair[&#x27;right_feature&#x27;]}&quot;,
+                &quot;observed&quot;: pair[&quot;abs_correlation&quot;],
+                &quot;expected&quot;: f&quot;abs correlation &lt; {warning_policy.get(&#x27;correlation_threshold&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if int(heldout_summary.get(&quot;heldout_row_count&quot;, 0)) &lt; min_heldout_rows:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: heldout_summary.get(&quot;heldout_row_count&quot;),
+                &quot;expected&quot;: f&quot;&gt;= {min_heldout_rows}&quot;,
+                &quot;reason&quot;: &quot;Permutation importance on three validation rows is a protocol check, not a production interpretation.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if float(heldout_summary.get(&quot;baseline_log_loss&quot;, 0.0)) &gt;= max_log_loss:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: heldout_summary.get(&quot;baseline_log_loss&quot;),
+                &quot;expected&quot;: f&quot;&lt; {max_log_loss}&quot;,
+                &quot;reason&quot;: &quot;Permutation importance is most useful after the model has learned enough signal on the heldout metric.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if warning_policy.get(&quot;require_positive_mean_minus_two_std_for_strong_claim&quot;) and not positive_with_margin:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: 0,
+                &quot;expected&quot;: &quot;&gt;= 1 feature with mean - 2*std &gt; 0&quot;,
+                &quot;reason&quot;: &quot;No feature has a positive permutation delta that clears the two-standard-deviation caution band.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    return rows
+
+
+def warning_checks(warning_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for warning_id in [
+        &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+        &quot;correlated_features_can_mask_permutation_importance&quot;,
+        &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+        &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+        &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+    ]:
+        rows = [row for row in warning_rows if row[&quot;warning_id&quot;] == warning_id]
+        if rows:
+            checks.append(failed(warning_id, len(rows), &quot;0 warnings&quot;, rows[:5], severity=&quot;warning&quot;))
+        else:
+            checks.append(passed(warning_id, 0))
+    return checks
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable permutation importance inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;permutation_importance_audit_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_permutation_importance_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;importance&quot;: [],
+        &quot;repeats&quot;: [],
+        &quot;warning_ledger&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    early_stopping_report_path: Path = DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    early_stopping_spec_path: Path = DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    categorical_report_path: Path = DEFAULT_CATEGORICAL_REPORT_PATH,
+    built_in_report_path: Path = DEFAULT_BUILT_IN_REPORT_PATH,
+    built_in_spec_path: Path = DEFAULT_BUILT_IN_SPEC_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;permutation_importance_policy&quot;: policy_path,
+        &quot;catboost_model_spec&quot;: catboost_spec_path,
+        &quot;early_stopping_report&quot;: early_stopping_report_path,
+        &quot;early_stopping_serialized_spec&quot;: early_stopping_spec_path,
+        &quot;categorical_report&quot;: categorical_report_path,
+        &quot;built_in_importance_report&quot;: built_in_report_path,
+        &quot;built_in_importance_serialized_spec&quot;: built_in_spec_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        policy = read_json(policy_path)
+        catboost_spec = read_json(catboost_spec_path)
+        early_report = read_json(early_stopping_report_path)
+        early_spec = read_json(early_stopping_spec_path)
+        categorical_report = read_json(categorical_report_path)
+        built_in_report = read_json(built_in_report_path)
+        built_in_spec = read_json(built_in_spec_path)
+        frame = joined_frame(features_path, labels_path, manifest_path)
+        numeric_features = list(early_spec.get(&quot;numeric_features&quot;, []))
+        categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+        expected_features = expected_feature_order(catboost_spec)
+
+        checks = [file_check]
+        checks.extend(
+            validate_handoff(
+                policy=policy,
+                catboost_spec=catboost_spec,
+                early_report=early_report,
+                early_spec=early_spec,
+                categorical_report=categorical_report,
+                built_in_report=built_in_report,
+                built_in_spec=built_in_spec,
+            )
+        )
+        checks.extend(validate_permutation_policy(policy, expected_features))
+        checks.extend(validate_heldout_rows(frame, policy))
+
+        importance_rows: list[dict[str, Any]] = []
+        repeat_rows: list[dict[str, Any]] = []
+        warning_rows: list[dict[str, Any]] = []
+        correlated_pairs: list[dict[str, Any]] = []
+        high_cardinality = high_cardinality_features(categorical_report)
+        heldout_summary: dict[str, Any] = {}
+
+        if not blocking_errors(checks):
+            matrix = prepare_features(
+                frame,
+                numeric_features,
+                categorical_features,
+                catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;),
+            )
+            model = train_model(frame=frame, matrix=matrix, early_spec=early_spec)
+            if list(model.feature_names_) != expected_features:
+                checks.append(
+                    failed(
+                        &quot;feature_names_match_training_pool_order&quot;,
+                        list(model.feature_names_),
+                        expected_features,
+                    )
+                )
+            else:
+                checks.append(passed(&quot;feature_names_match_training_pool_order&quot;, {&quot;feature_count&quot;: len(expected_features), &quot;features&quot;: expected_features}))
+            if not blocking_errors(checks):
+                importance_rows, repeat_rows, heldout_summary = compute_permutation_rows(
+                    policy=policy,
+                    model=model,
+                    matrix=matrix,
+                    frame=frame,
+                    expected_features=expected_features,
+                    categorical_features=categorical_features,
+                )
+                checks.append(
+                    passed(
+                        &quot;permutation_rows_cover_all_features_and_repeats&quot;,
+                        {
+                            &quot;feature_count&quot;: len(expected_features),
+                            &quot;repeat_count&quot;: policy[&quot;permutation&quot;][&quot;n_repeats&quot;],
+                            &quot;importance_row_count&quot;: len(importance_rows),
+                            &quot;repeat_row_count&quot;: len(repeat_rows),
+                        },
+                    )
+                )
+                correlated_pairs = correlated_numeric_pairs(
+                    frame,
+                    numeric_features,
+                    policy[&quot;fit_split&quot;],
+                    float(policy.get(&quot;warning_policy&quot;, {}).get(&quot;correlation_threshold&quot;, 1.0)),
+                )
+                warning_rows = warning_ledger_rows(
+                    policy=policy,
+                    importance_rows=importance_rows,
+                    high_cardinality=high_cardinality,
+                    correlated_pairs=correlated_pairs,
+                    heldout_summary=heldout_summary,
+                )
+                checks.extend(warning_checks(warning_rows))
+
+        blocking = blocking_errors(checks)
+        warnings = warning_ids(checks)
+        valid = not blocking
+        top_summary = summarize_top_features(importance_rows)
+        serialized_spec = {
+            &quot;permutation_importance_audit_id&quot;: policy.get(&quot;permutation_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: policy.get(&quot;catboost_baseline_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;categorical_audit_id&quot;: policy.get(&quot;categorical_audit_id&quot;),
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;sklearn_version&quot;: sklearn.__version__,
+            &quot;feature_order&quot;: expected_features,
+            &quot;heldout_summary&quot;: heldout_summary,
+            &quot;scoring&quot;: policy.get(&quot;scoring&quot;, {}),
+            &quot;permutation&quot;: policy.get(&quot;permutation&quot;, {}),
+            &quot;interpretation_policy&quot;: policy.get(&quot;interpretation_policy&quot;, {}),
+            &quot;top_summary&quot;: top_summary,
+            &quot;warning_summary&quot;: {
+                &quot;warning_count&quot;: len(warning_rows),
+                &quot;warning_ids&quot;: warnings,
+                &quot;high_cardinality_features&quot;: sorted(high_cardinality),
+                &quot;correlated_pair_count&quot;: len(correlated_pairs),
+            },
+            &quot;upstream_handoff&quot;: {
+                &quot;built_in_importance_report&quot;: portable_path(built_in_report_path),
+                &quot;built_in_readiness_status&quot;: built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;early_stopping_report&quot;: portable_path(early_stopping_report_path),
+                &quot;early_stopping_model_id&quot;: early_spec.get(&quot;early_stopping_model_id&quot;),
+                &quot;categorical_report&quot;: portable_path(categorical_report_path),
+                &quot;categorical_audit_id&quot;: categorical_report.get(&quot;summary&quot;, {}).get(&quot;categorical_audit_id&quot;),
+            },
+            &quot;output&quot;: policy.get(&quot;output&quot;, {}),
+        }
+        summary = {
+            &quot;permutation_importance_audit_id&quot;: policy.get(&quot;permutation_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;heldout_split&quot;: policy.get(&quot;heldout_split&quot;),
+            &quot;heldout_row_count&quot;: heldout_summary.get(&quot;heldout_row_count&quot;),
+            &quot;baseline_log_loss&quot;: heldout_summary.get(&quot;baseline_log_loss&quot;),
+            &quot;scoring&quot;: policy.get(&quot;scoring&quot;, {}).get(&quot;name&quot;),
+            &quot;repeat_count&quot;: policy.get(&quot;permutation&quot;, {}).get(&quot;n_repeats&quot;),
+            &quot;feature_count&quot;: len(expected_features),
+            &quot;importance_row_count&quot;: len(importance_rows),
+            &quot;repeat_row_count&quot;: len(repeat_rows),
+            &quot;largest_absolute_mean_delta_feature&quot;: top_summary.get(&quot;largest_absolute_mean_delta_feature&quot;),
+            &quot;largest_absolute_mean_delta_value&quot;: top_summary.get(&quot;largest_absolute_mean_delta_value&quot;),
+            &quot;positive_mean_feature_count&quot;: top_summary.get(&quot;positive_mean_feature_count&quot;),
+            &quot;positive_with_two_std_margin_feature_count&quot;: top_summary.get(&quot;positive_with_two_std_margin_feature_count&quot;),
+            &quot;warning_ledger_row_count&quot;: len(warning_rows),
+            &quot;blocking_errors&quot;: blocking,
+            &quot;warnings&quot;: warnings,
+            &quot;readiness_status&quot;: &quot;ready_for_shap_lesson&quot; if valid else &quot;blocked_by_permutation_importance_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        return {
+            &quot;valid&quot;: valid,
+            &quot;permutation_importance_audit_id&quot;: policy.get(&quot;permutation_importance_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;checks&quot;: checks,
+            &quot;importance&quot;: importance_rows,
+            &quot;repeats&quot;: repeat_rows,
+            &quot;warning_ledger&quot;: warning_rows,
+            &quot;serialized_spec&quot;: serialized_spec if valid else {},
+        }
+    except (PermutationImportanceError, OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
+        return failure_report(&quot;permutation_importance_runtime_error&quot;, str(exc))
+
+
+IMPORTANCE_FIELDS = [
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;feature_role&quot;,
+    &quot;scoring_name&quot;,
+    &quot;importance_unit&quot;,
+    &quot;heldout_split&quot;,
+    &quot;repeat_count&quot;,
+    &quot;mean_importance&quot;,
+    &quot;std_importance&quot;,
+    &quot;two_std_lower&quot;,
+    &quot;two_std_upper&quot;,
+    &quot;positive_importance_with_two_std_margin&quot;,
+    &quot;absolute_mean_importance&quot;,
+    &quot;nonzero_repeat_count&quot;,
+    &quot;positive_repeat_count&quot;,
+    &quot;negative_repeat_count&quot;,
+    &quot;direction&quot;,
+    &quot;rank_by_mean&quot;,
+    &quot;rank_by_absolute_mean&quot;,
+    &quot;is_largest_absolute_mean_delta&quot;,
+]
+
+REPEAT_FIELDS = [
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;feature_role&quot;,
+    &quot;repeat_index&quot;,
+    &quot;heldout_split&quot;,
+    &quot;random_state&quot;,
+    &quot;baseline_score&quot;,
+    &quot;baseline_log_loss&quot;,
+    &quot;importance_delta&quot;,
+    &quot;permuted_score&quot;,
+    &quot;permuted_log_loss&quot;,
+    &quot;direction&quot;,
+]
+
+WARNING_FIELDS = [
+    &quot;warning_id&quot;,
+    &quot;severity&quot;,
+    &quot;feature_name&quot;,
+    &quot;observed&quot;,
+    &quot;expected&quot;,
+    &quot;reason&quot;,
+    &quot;blocks_readiness&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_spec&quot;})
+    write_csv(output_dir / output_spec[&quot;importance_file&quot;], result[&quot;importance&quot;], IMPORTANCE_FIELDS)
+    write_csv(output_dir / output_spec[&quot;repeat_file&quot;], result[&quot;repeats&quot;], REPEAT_FIELDS)
+    write_csv(output_dir / output_spec[&quot;warning_ledger_file&quot;], result[&quot;warning_ledger&quot;], WARNING_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Evaluate model-agnostic permutation importance on a declared heldout split.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--early-stopping-report&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_REPORT_PATH)
+    parser.add_argument(&quot;--early-stopping-spec&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_SPEC_PATH)
+    parser.add_argument(&quot;--categorical-report&quot;, type=Path, default=DEFAULT_CATEGORICAL_REPORT_PATH)
+    parser.add_argument(&quot;--built-in-report&quot;, type=Path, default=DEFAULT_BUILT_IN_REPORT_PATH)
+    parser.add_argument(&quot;--built-in-spec&quot;, type=Path, default=DEFAULT_BUILT_IN_SPEC_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        policy_path=args.policy,
+        catboost_spec_path=args.catboost_spec,
+        early_stopping_report_path=args.early_stopping_report,
+        early_stopping_spec_path=args.early_stopping_spec,
+        categorical_report_path=args.categorical_report,
+        built_in_report_path=args.built_in_report,
+        built_in_spec_path=args.built_in_spec,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+    )
+    output_spec = read_json(args.policy).get(&quot;output&quot;, {}) if args.policy.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;permutation_importance_audit_id&quot;: summary.get(&quot;permutation_importance_audit_id&quot;),
+                &quot;early_stopping_model_id&quot;: summary.get(&quot;early_stopping_model_id&quot;),
+                &quot;heldout_split&quot;: summary.get(&quot;heldout_split&quot;),
+                &quot;baseline_log_loss&quot;: summary.get(&quot;baseline_log_loss&quot;),
+                &quot;repeat_count&quot;: summary.get(&quot;repeat_count&quot;),
+                &quot;feature_count&quot;: summary.get(&quot;feature_count&quot;),
+                &quot;importance_row_count&quot;: summary.get(&quot;importance_row_count&quot;),
+                &quot;repeat_row_count&quot;: summary.get(&quot;repeat_row_count&quot;),
+                &quot;largest_absolute_mean_delta_feature&quot;: summary.get(&quot;largest_absolute_mean_delta_feature&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_evaluator.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_importance_repeats.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_index,feature_name,feature_role,repeat_index,heldout_split,random_state,baseline_score,baseline_log_loss,importance_delta,permuted_score,permuted_log_loss,direction
+0,sessions_14d,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+0,sessions_14d,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+1,active_days_14d,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+2,support_tickets_14d,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+3,revenue_30d,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+4,days_since_signup,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+5,had_support_ticket_14d,numeric,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+6,plan_id,categorical,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+7,platform,categorical,1,validation,1605,-0.698394,0.698394,-0.020513,-0.677881,0.677881,loss_decrease_when_permuted
+7,platform,categorical,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+7,platform,categorical,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+7,platform,categorical,4,validation,1605,-0.698394,0.698394,-0.020513,-0.677881,0.677881,loss_decrease_when_permuted
+7,platform,categorical,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+7,platform,categorical,6,validation,1605,-0.698394,0.698394,-0.020513,-0.677881,0.677881,loss_decrease_when_permuted
+7,platform,categorical,7,validation,1605,-0.698394,0.698394,-0.020513,-0.677881,0.677881,loss_decrease_when_permuted
+8,country,categorical,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+8,country,categorical,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,1,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,2,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,3,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,4,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,5,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,6,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+9,acquisition_channel,categorical,7,validation,1605,-0.698394,0.698394,0.0,-0.698394,0.698394,zero
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_repeats.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_importance_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+    &quot;heldout_split&quot;: &quot;validation&quot;,
+    &quot;heldout_row_count&quot;: 3,
+    &quot;baseline_log_loss&quot;: 0.698394,
+    &quot;scoring&quot;: &quot;neg_log_loss&quot;,
+    &quot;repeat_count&quot;: 7,
+    &quot;feature_count&quot;: 10,
+    &quot;importance_row_count&quot;: 10,
+    &quot;repeat_row_count&quot;: 70,
+    &quot;largest_absolute_mean_delta_feature&quot;: &quot;platform&quot;,
+    &quot;largest_absolute_mean_delta_value&quot;: -0.011722,
+    &quot;positive_mean_feature_count&quot;: 0,
+    &quot;positive_with_two_std_margin_feature_count&quot;: 0,
+    &quot;warning_ledger_row_count&quot;: 9,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+      &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+      &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+      &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_shap_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-05T12:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;built_in_importance_report&quot;,
+        &quot;built_in_importance_serialized_spec&quot;,
+        &quot;catboost_model_spec&quot;,
+        &quot;categorical_report&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;early_stopping_serialized_spec&quot;,
+        &quot;features&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;,
+        &quot;permutation_importance_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;permutation_policy_matches_built_in_importance_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+        &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+        &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;permutation_policy_declares_validation_scoring_repeats_and_noncausal_scope&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;heldout_split&quot;: &quot;validation&quot;,
+        &quot;scoring&quot;: &quot;neg_log_loss&quot;,
+        &quot;n_repeats&quot;: 7,
+        &quot;feature_count&quot;: 10,
+        &quot;claim&quot;: &quot;Permutation importance measures how held-out log loss changes when one feature column is shuffled for this trained CatBoost model; it is not evidence of causal impact or production stability.&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;heldout_rows_use_validation_and_exclude_final_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;heldout_split&quot;: &quot;validation&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;final_test_rows_used&quot;: 0
+      },
+      &quot;expected&quot;: &quot;validation rows only&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_names_match_training_pool_order&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 10,
+        &quot;features&quot;: [
+          &quot;sessions_14d&quot;,
+          &quot;active_days_14d&quot;,
+          &quot;support_tickets_14d&quot;,
+          &quot;revenue_30d&quot;,
+          &quot;days_since_signup&quot;,
+          &quot;had_support_ticket_14d&quot;,
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;country&quot;,
+          &quot;acquisition_channel&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;permutation_rows_cover_all_features_and_repeats&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 10,
+        &quot;repeat_count&quot;: 7,
+        &quot;importance_row_count&quot;: 10,
+        &quot;repeat_row_count&quot;: 70
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;observed&quot;: &quot;acquisition_channel&quot;,
+          &quot;expected&quot;: &quot;high-cardinality features interpreted with repeat variance and caution&quot;,
+          &quot;reason&quot;: &quot;Sparse or high-cardinality categories can make permutation deltas noisy on small heldout slices.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+          &quot;observed&quot;: 0.981981,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+          &quot;observed&quot;: 1.0,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+          &quot;observed&quot;: 0.904534,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+          &quot;observed&quot;: 0.866025,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+          &quot;observed&quot;: 0.894427,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 3,
+          &quot;expected&quot;: &quot;&gt;= 20&quot;,
+          &quot;reason&quot;: &quot;Permutation importance on three validation rows is a protocol check, not a production interpretation.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 0.698394,
+          &quot;expected&quot;: &quot;&lt; 0.693147&quot;,
+          &quot;reason&quot;: &quot;Permutation importance is most useful after the model has learned enough signal on the heldout metric.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 0,
+          &quot;expected&quot;: &quot;&gt;= 1 feature with mean - 2*std &gt; 0&quot;,
+          &quot;reason&quot;: &quot;No feature has a positive permutation delta that clears the two-standard-deviation caution band.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;importance&quot;: [
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 1,
+      &quot;rank_by_absolute_mean&quot;: 2,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 2,
+      &quot;rank_by_absolute_mean&quot;: 3,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 3,
+      &quot;rank_by_absolute_mean&quot;: 4,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 4,
+      &quot;rank_by_absolute_mean&quot;: 5,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 5,
+      &quot;rank_by_absolute_mean&quot;: 6,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 6,
+      &quot;rank_by_absolute_mean&quot;: 7,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 7,
+      &quot;rank_by_absolute_mean&quot;: 8,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: -0.011722,
+      &quot;std_importance&quot;: 0.010151,
+      &quot;two_std_lower&quot;: -0.032024,
+      &quot;two_std_upper&quot;: 0.008581,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.011722,
+      &quot;nonzero_repeat_count&quot;: 4,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 4,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;,
+      &quot;rank_by_mean&quot;: 10,
+      &quot;rank_by_absolute_mean&quot;: 1,
+      &quot;is_largest_absolute_mean_delta&quot;: true
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 8,
+      &quot;rank_by_absolute_mean&quot;: 9,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;scoring_name&quot;: &quot;neg_log_loss&quot;,
+      &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;repeat_count&quot;: 7,
+      &quot;mean_importance&quot;: 0.0,
+      &quot;std_importance&quot;: 0.0,
+      &quot;two_std_lower&quot;: 0.0,
+      &quot;two_std_upper&quot;: 0.0,
+      &quot;positive_importance_with_two_std_margin&quot;: false,
+      &quot;absolute_mean_importance&quot;: 0.0,
+      &quot;nonzero_repeat_count&quot;: 0,
+      &quot;positive_repeat_count&quot;: 0,
+      &quot;negative_repeat_count&quot;: 0,
+      &quot;direction&quot;: &quot;zero&quot;,
+      &quot;rank_by_mean&quot;: 9,
+      &quot;rank_by_absolute_mean&quot;: 10,
+      &quot;is_largest_absolute_mean_delta&quot;: false
+    }
+  ],
+  &quot;repeats&quot;: [
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: -0.020513,
+      &quot;permuted_score&quot;: -0.677881,
+      &quot;permuted_log_loss&quot;: 0.677881,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: -0.020513,
+      &quot;permuted_score&quot;: -0.677881,
+      &quot;permuted_log_loss&quot;: 0.677881,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: -0.020513,
+      &quot;permuted_score&quot;: -0.677881,
+      &quot;permuted_log_loss&quot;: 0.677881,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: -0.020513,
+      &quot;permuted_score&quot;: -0.677881,
+      &quot;permuted_log_loss&quot;: 0.677881,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 1,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 2,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 3,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 4,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 5,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 6,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;repeat_index&quot;: 7,
+      &quot;heldout_split&quot;: &quot;validation&quot;,
+      &quot;random_state&quot;: 1605,
+      &quot;baseline_score&quot;: -0.698394,
+      &quot;baseline_log_loss&quot;: 0.698394,
+      &quot;importance_delta&quot;: 0.0,
+      &quot;permuted_score&quot;: -0.698394,
+      &quot;permuted_log_loss&quot;: 0.698394,
+      &quot;direction&quot;: &quot;zero&quot;
+    }
+  ],
+  &quot;warning_ledger&quot;: [
+    {
+      &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;observed&quot;: &quot;acquisition_channel&quot;,
+      &quot;expected&quot;: &quot;high-cardinality features interpreted with repeat variance and caution&quot;,
+      &quot;reason&quot;: &quot;Sparse or high-cardinality categories can make permutation deltas noisy on small heldout slices.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+      &quot;observed&quot;: 0.981981,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+      &quot;observed&quot;: 1.0,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+      &quot;observed&quot;: 0.904534,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+      &quot;observed&quot;: 0.866025,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+      &quot;observed&quot;: 0.894427,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;reason&quot;: &quot;Permutation importance on three validation rows is a protocol check, not a production interpretation.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 0.698394,
+      &quot;expected&quot;: &quot;&lt; 0.693147&quot;,
+      &quot;reason&quot;: &quot;Permutation importance is most useful after the model has learned enough signal on the heldout metric.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 0,
+      &quot;expected&quot;: &quot;&gt;= 1 feature with mean - 2*std &gt; 0&quot;,
+      &quot;reason&quot;: &quot;No feature has a positive permutation delta that clears the two-standard-deviation caution band.&quot;,
+      &quot;blocks_readiness&quot;: false
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_importance_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+  &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+  &quot;sklearn_version&quot;: &quot;1.9.0&quot;,
+  &quot;feature_order&quot;: [
+    &quot;sessions_14d&quot;,
+    &quot;active_days_14d&quot;,
+    &quot;support_tickets_14d&quot;,
+    &quot;revenue_30d&quot;,
+    &quot;days_since_signup&quot;,
+    &quot;had_support_ticket_14d&quot;,
+    &quot;plan_id&quot;,
+    &quot;platform&quot;,
+    &quot;country&quot;,
+    &quot;acquisition_channel&quot;
+  ],
+  &quot;heldout_summary&quot;: {
+    &quot;heldout_split&quot;: &quot;validation&quot;,
+    &quot;heldout_row_count&quot;: 3,
+    &quot;heldout_snapshot_ids&quot;: [
+      &quot;S005&quot;,
+      &quot;S006&quot;,
+      &quot;S007&quot;
+    ],
+    &quot;baseline_score&quot;: -0.698394,
+    &quot;baseline_log_loss&quot;: 0.698394,
+    &quot;target_positive_count&quot;: 1,
+    &quot;target_negative_count&quot;: 2
+  },
+  &quot;scoring&quot;: {
+    &quot;name&quot;: &quot;neg_log_loss&quot;,
+    &quot;response_method&quot;: &quot;predict_proba&quot;,
+    &quot;target_label_order&quot;: [
+      0,
+      1
+    ],
+    &quot;greater_is_better&quot;: true,
+    &quot;importance_unit&quot;: &quot;log_loss_increase_when_feature_is_permuted&quot;
+  },
+  &quot;permutation&quot;: {
+    &quot;n_repeats&quot;: 7,
+    &quot;random_state&quot;: 1605,
+    &quot;n_jobs&quot;: 1,
+    &quot;max_samples&quot;: 1.0,
+    &quot;feature_order_policy&quot;: &quot;use_training_pool_feature_order&quot;
+  },
+  &quot;interpretation_policy&quot;: {
+    &quot;claim&quot;: &quot;Permutation importance measures how held-out log loss changes when one feature column is shuffled for this trained CatBoost model; it is not evidence of causal impact or production stability.&quot;,
+    &quot;forbidden_positive_claim_terms&quot;: [
+      &quot;causes churn&quot;,
+      &quot;caused churn&quot;,
+      &quot;causal driver&quot;,
+      &quot;because of platform&quot;,
+      &quot;proves retention effect&quot;,
+      &quot;production stable&quot;
+    ],
+    &quot;required_limitation_labels&quot;: [
+      &quot;not_causal&quot;,
+      &quot;heldout_split_specific&quot;,
+      &quot;sensitive_to_correlated_features&quot;,
+      &quot;sensitive_to_bad_model_quality&quot;,
+      &quot;repeat_variance_visible&quot;
+    ]
+  },
+  &quot;top_summary&quot;: {
+    &quot;top_mean_importance_feature&quot;: &quot;sessions_14d&quot;,
+    &quot;top_mean_importance_value&quot;: 0.0,
+    &quot;largest_absolute_mean_delta_feature&quot;: &quot;platform&quot;,
+    &quot;largest_absolute_mean_delta_value&quot;: -0.011722,
+    &quot;positive_mean_feature_count&quot;: 0,
+    &quot;positive_with_two_std_margin_feature_count&quot;: 0
+  },
+  &quot;warning_summary&quot;: {
+    &quot;warning_count&quot;: 9,
+    &quot;warning_ids&quot;: [
+      &quot;high_cardinality_features_flagged_for_permutation_importance&quot;,
+      &quot;correlated_features_can_mask_permutation_importance&quot;,
+      &quot;tiny_heldout_sample_makes_permutation_importance_unstable&quot;,
+      &quot;poor_or_flat_model_score_limits_permutation_importance&quot;,
+      &quot;no_positive_permutation_signal_with_uncertainty_margin&quot;
+    ],
+    &quot;high_cardinality_features&quot;: [
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;correlated_pair_count&quot;: 5
+  },
+  &quot;upstream_handoff&quot;: {
+    &quot;built_in_importance_report&quot;: &quot;phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_report.json&quot;,
+    &quot;built_in_readiness_status&quot;: &quot;ready_for_permutation_importance_lesson&quot;,
+    &quot;early_stopping_report&quot;: &quot;phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;categorical_report&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json&quot;,
+    &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;
+  },
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;permutation_importance_report.json&quot;,
+    &quot;importance_file&quot;: &quot;permutation_importance.csv&quot;,
+    &quot;repeat_file&quot;: &quot;permutation_importance_repeats.csv&quot;,
+    &quot;warning_ledger_file&quot;: &quot;permutation_warning_ledger.csv&quot;,
+    &quot;serialized_spec_file&quot;: &quot;permutation_importance_serialized_spec.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/permutation_warning_ledger.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>warning_id,severity,feature_name,observed,expected,reason,blocks_readiness
+high_cardinality_features_flagged_for_permutation_importance,warning,acquisition_channel,acquisition_channel,high-cardinality features interpreted with repeat variance and caution,Sparse or high-cardinality categories can make permutation deltas noisy on small heldout slices.,False
+correlated_features_can_mask_permutation_importance,warning,sessions_14d|active_days_14d,0.981981,abs correlation &lt; 0.8,&quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,False
+correlated_features_can_mask_permutation_importance,warning,sessions_14d|revenue_30d,1.0,abs correlation &lt; 0.8,&quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,False
+correlated_features_can_mask_permutation_importance,warning,support_tickets_14d|had_support_ticket_14d,0.904534,abs correlation &lt; 0.8,&quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,False
+correlated_features_can_mask_permutation_importance,warning,revenue_30d|days_since_signup,0.866025,abs correlation &lt; 0.8,&quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,False
+correlated_features_can_mask_permutation_importance,warning,days_since_signup|had_support_ticket_14d,0.894427,abs correlation &lt; 0.8,&quot;When two features carry similar signal, shuffling one column can leave the model a proxy in the other column.&quot;,False
+tiny_heldout_sample_makes_permutation_importance_unstable,warning,,3,&gt;= 20,&quot;Permutation importance on three validation rows is a protocol check, not a production interpretation.&quot;,False
+poor_or_flat_model_score_limits_permutation_importance,warning,,0.698394,&lt; 0.693147,Permutation importance is most useful after the model has learned enough signal on the heldout metric.,False
+no_positive_permutation_signal_with_uncertainty_margin,warning,,0,&gt;= 1 feature with mean - 2*std &gt; 0,No feature has a positive permutation delta that clears the two-standard-deviation caution band.,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/outputs/permutation_warning_ledger.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/05-permutation-importance" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/feature-importance/"><span>← Предыдущий урок</span><strong>Встроенная важность признаков</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/shap/"><span>Следующий урок →</span><strong>SHAP и ограничения объяснений</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

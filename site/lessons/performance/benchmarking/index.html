@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Команда готовит weekly customer revenue health mart. Прозрачная Python-реализация уже правильно считает выручку по неделям, но на большем extract начинает тормозить.…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/performance/benchmarking/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Корректный benchmarking">
+  <meta property="og:description" content="Команда готовит weekly customer revenue health mart. Прозрачная Python-реализация уже правильно считает выручку по неделям, но на большем extract начинает тормозить.…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/performance/benchmarking/">
+  <meta name="twitter:card" content="summary">
+  <title>Корректный benchmarking — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Корректный benchmarking", "description": "Команда готовит weekly customer revenue health mart. Прозрачная Python-реализация уже правильно считает выручку по неделям, но на большем extract начинает тормозить.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/performance/benchmarking/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 12: Производительность аналитики", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=12"}, {"@type": "ListItem", "position": 3, "name": "Корректный benchmarking", "item": "https://datascience.xyz/courses/analyst-tools/lessons/performance/benchmarking/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 12</p><h2>Производительность аналитики</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link is-active" href="../../../lessons/performance/benchmarking/"><span>01</span>Корректный benchmarking</a><a class="lesson-sidebar-link" href="../../../lessons/performance/profiling/"><span>02</span>CPU и memory profiling</a><a class="lesson-sidebar-link" href="../../../lessons/performance/memory-and-dtypes/"><span>03</span>Память и типы данных</a><a class="lesson-sidebar-link" href="../../../lessons/performance/parquet-pushdown/"><span>04</span>Projection и predicate pushdown</a><a class="lesson-sidebar-link" href="../../../lessons/performance/arrow-memory/"><span>05</span>Arrow memory model</a><a class="lesson-sidebar-link" href="../../../lessons/performance/duckdb-out-of-core/"><span>06</span>DuckDB и данные больше памяти</a><a class="lesson-sidebar-link" href="../../../lessons/performance/polars-expressions/"><span>07</span>Polars expressions</a><a class="lesson-sidebar-link" href="../../../lessons/performance/lazy-execution/"><span>08</span>Lazy execution и оптимизация</a><a class="lesson-sidebar-link" href="../../../lessons/performance/streaming/"><span>09</span>Streaming и пакетная обработка</a><a class="lesson-sidebar-link" href="../../../lessons/performance/interoperability/"><span>10</span>Обмен между pandas, Arrow и Polars</a><a class="lesson-sidebar-link" href="../../../lessons/performance/ibis/"><span>11</span>Ibis как переносимый DataFrame API</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 12 · Производительность аналитики</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 123 из 201</span>
+          <span>75 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/12-performance/01-benchmarking" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что нужно проверить до сравнения времени двух реализаций аналитического pipeline?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что обе реализации возвращают один и тот же результат по объявленному контракту</button><button type="button" class="quiz-option" data-choice="1">Что новая реализация написана на более современной библиотеке</button><button type="button" class="quiz-option" data-choice="2">Что первая реализация запущена раньше второй</button><button type="button" class="quiz-option" data-choice="3">Что размер входа достаточно маленький для ручной проверки</button></div><p class="quiz-feedback" hidden>Без equivalence gate benchmark сравнивает разные расчеты, а не производительность.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему одного запуска недостаточно для решения о производительности?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Один запуск не показывает разброс из-за warm-up, cache, фоновой нагрузки и случайного шума</button><button type="button" class="quiz-option" data-choice="1">Один запуск всегда медленнее медианы</button><button type="button" class="quiz-option" data-choice="2">Один запуск нельзя измерить через time.perf_counter</button><button type="button" class="quiz-option" data-choice="3">Один запуск подходит только для SQL, но не для Python</button></div><p class="quiz-feedback" hidden>Benchmark должен сохранять несколько raw measurements и устойчивую статистику, иначе outlier легко принять за факт.</p></article></section>
+        <article class="lesson-article"><h1 id="корректный-benchmarking">Корректный benchmarking</h1>
+<blockquote>
+<p>Сначала докажите, что сравниваете один и тот же результат, и только потом обсуждайте секунды.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build
+<strong>Треки:</strong> Data, ML
+<strong>Пререквизиты:</strong> <code>07-reliable-analytics/10-quality-gates</code>
+<strong>Время:</strong> ~75 минут
+<strong>Результат:</strong> строит воспроизводимый benchmark harness: фиксирует вход, версии, warm-up,
+повторы, cache policy, equivalence gate и интерпретирует разброс измерений без ложной
+точности.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Зафиксировать benchmark scenario до запуска измерений.</li>
+<li>Отделить подготовку данных от измеряемого участка.</li>
+<li>Проверить эквивалентность результата до тайминга.</li>
+<li>Выполнить warm-up и несколько measured runs.</li>
+<li>Сохранить raw measurements, summary и environment report.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>Команда готовит weekly customer revenue health mart. Прозрачная Python-реализация уже
+правильно считает выручку по неделям, но на большем extract начинает тормозить.
+Появляется кандидат на замену: другой порядок вычислений, другая библиотека или другой
+engine.</p>
+<p>Опасный путь выглядит так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">old.py: 1.40 s
+new.py: 0.45 s
+new is 3x faster
+</code></pre></div><p>Такой вывод еще не говорит почти ничего. Возможно, новая версия:</p>
+<ul>
+<li>читает другой вход;</li>
+<li>пропускает refunds;</li>
+<li>считает не тот grain;</li>
+<li>получила warm cache, а baseline запускался cold;</li>
+<li>измерялась один раз;</li>
+<li>включает setup только в одной ветке;</li>
+<li>быстрее на <code>tiny</code>, но хуже на рабочем размере.</li>
+</ul>
+<p>В performance-фазе число без контракта считается непоставленным результатом.</p>
+<h2 id="концепция">Концепция</h2>
+<p>Benchmark scenario - это договор о том, что именно сравнивается. Минимальный scenario
+фиксирует:</p>
+<ol>
+<li>бизнес-вопрос;</li>
+<li>pipeline и версию логики;</li>
+<li>профиль данных и размер;</li>
+<li>реализации или engines;</li>
+<li>timing scope;</li>
+<li>warm-up и количество measured runs;</li>
+<li>timer;</li>
+<li>cache policy;</li>
+<li>equivalence checks;</li>
+<li>selection rule и ограничения.</li>
+</ol>
+<p>Главная идея простая: benchmark является аналитическим артефактом. У него есть grain,
+контракт результата, проверка качества, сырые наблюдения и ограниченная интерпретация.</p>
+<h3 id="порядок-доверия">Порядок доверия</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scenario -&gt; prepared input -&gt; reference output -&gt; candidate output
+         -&gt; equivalence gate -&gt; warm-up -&gt; repeated measurements
+         -&gt; raw runs -&gt; summary -&gt; ограниченный вывод
+</code></pre></div><p>Если equivalence gate не прошел, измерения не запускаются. Это не техническая придирка:
+быстрая неправильная витрина не является вариантом решения.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>В уроке используется маленький pipeline: из строк заказов собрать недельную выручку.
+Reference-реализация нарочито прозрачная, candidate-реализация написана иначе, но должна
+вернуть тот же нормализованный output.</p>
+<h3 id="шаг-1-сгенерируйте-фиксированный-вход">Шаг 1. Сгенерируйте фиксированный вход</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">lines = generate_order_lines(rows=5_000, seed=42)
+</code></pre></div><p>Seed и размер являются частью scenario. Генерация выполняется до timed section, потому что
+вопрос урока - скорость расчета на уже подготовленных in-memory строках.</p>
+<h3 id="шаг-2-постройте-reference">Шаг 2. Постройте reference</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">reference = reference_weekly_revenue(lines)
+</code></pre></div><p>Reference проверяет grain <code>order_id, line_number</code>, считает <code>paid</code> как положительную
+выручку, <code>refunded</code> как отрицательную часть net revenue и группирует по <code>week_start</code>.</p>
+<h3 id="шаг-3-постройте-candidate">Шаг 3. Постройте candidate</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">candidate = candidate_weekly_revenue(lines)
+</code></pre></div><p>Candidate использует другой порядок: сначала выделяет недели, затем фильтрует строки
+каждой недели. Это не обязательно быстрее. Важно, что harness умеет сравнить две ветки.</p>
+<h3 id="шаг-4-введите-equivalence-gate">Шаг 4. Введите equivalence gate</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">equivalence = compare_outputs(reference, candidate)
+if not equivalence[&quot;passed&quot;]:
+    raise BenchmarkError(&quot;equivalence gate failed before timing&quot;)
+</code></pre></div><p>Сравнение нормализует порядок строк и типы, считает checksum обеих версий и сохраняет
+первые расхождения. Пока gate не зеленый, секундомер молчит.</p>
+<h3 id="шаг-5-измерьте-несколько-повторов">Шаг 5. Измерьте несколько повторов</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">runs = measure_seconds(
+    lambda: candidate_weekly_revenue(lines),
+    implementation=&quot;python_candidate&quot;,
+    repeat=5,
+    warmup=1,
+)
+</code></pre></div><p>Warm-up не попадает в raw runs. Он нужен, чтобы первый measured run меньше зависел от
+ленивой инициализации, кэшей и одноразовых накладных расходов.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите демонстрационный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/01-benchmarking/code/main.py
+</code></pre></div><p>Запустите артефакт как CLI:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/12-performance/01-benchmarking/outputs/benchmark_harness.py \
+  --rows 5000 \
+  --repeat 5 \
+  --seed 42 \
+  --output-dir /tmp/benchmark-package
+</code></pre></div><p>CLI печатает JSON report и, если указан <code>--output-dir</code>, пишет reusable package:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">benchmark-package/
+├── benchmark-plan.json
+├── equivalence/
+│   └── output-checks.json
+├── measurements/
+│   ├── environment.json
+│   ├── raw-runs.csv
+│   └── summary.csv
+└── report.json
+</code></pre></div><p><code>raw-runs.csv</code> хранит каждое измерение отдельно. <code>summary.csv</code> хранит <code>min</code>, <code>median</code>,
+<code>max</code> и <code>mean</code> по реализации. Вывод о speedup берется из summary, но не заменяет raw
+measurements.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="уберите-equivalence-gate">Уберите equivalence gate</h3>
+<p>Если candidate забывает refunds, он может стать быстрее. Это не performance improvement,
+а изменение бизнес-логики. В уроке такая поломка приводит к <code>BenchmarkError</code> до тайминга.</p>
+<h3 id="сравните-разные-timing-scope">Сравните разные timing scope</h3>
+<p>Нечестно измерять baseline вместе с генерацией входа, а candidate - на готовом списке.
+Такой benchmark отвечает на другой вопрос. Scope должен явно сказать, включены ли чтение,
+парсинг, конвертация, расчет и запись.</p>
+<h3 id="сделайте-один-запуск">Сделайте один запуск</h3>
+<p>Один запуск легко ловит cold start, соседний процесс или случайный скачок. Минимум три
+measured runs в этом уроке - технический gate, а не статистическая гарантия.</p>
+<h3 id="оставьте-только-лучшее-время">Оставьте только лучшее время</h3>
+<p>Лучший запуск показывает нижнюю границу в конкретной среде, но скрывает обычное поведение.
+Для аналитического решения обычно полезнее медиана и raw distribution.</p>
+<h3 id="зафиксируйте-speedup-в-unit-test">Зафиксируйте speedup в unit test</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">assert speedup &gt; 2
+</code></pre></div><p>Такой тест зависит от машины. Behavioral tests должны проверять структуру benchmark,
+эквивалентность, наличие raw runs и отсутствие traceback на invalid input.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Точечная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/12-performance/01-benchmarking/tests \
+  -v
+</code></pre></div><p>Что проверяют тесты:</p>
+<ul>
+<li>генерация входа воспроизводима;</li>
+<li>reference и candidate дают одинаковый normalized output;</li>
+<li>duplicate grain блокируется;</li>
+<li>scenario требует equivalence checks и минимум три measured runs;</li>
+<li>broken candidate не доходит до timing;</li>
+<li>report содержит raw runs, summary и environment;</li>
+<li>CLI пишет reusable package;</li>
+<li>invalid input возвращает код ошибки без traceback.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Артефакт урока - <code>outputs/benchmark_harness.py</code>. Его можно использовать вне текста урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">cd phases/12-performance/01-benchmarking
+uv run --locked python outputs/benchmark_harness.py \
+  --rows 20000 \
+  --repeat 7 \
+  --seed 2026 \
+  --output-dir /tmp/weekly-revenue-benchmark
+</code></pre></div><p>Передайте заказчику или коллегам не только <code>speedup</code>, а весь package:</p>
+<ul>
+<li><code>benchmark-plan.json</code> объясняет scenario;</li>
+<li><code>output-checks.json</code> доказывает, что результат совпал;</li>
+<li><code>raw-runs.csv</code> показывает все измерения;</li>
+<li><code>summary.csv</code> показывает устойчивую сводку;</li>
+<li><code>environment.json</code> фиксирует среду;</li>
+<li><code>report.json</code> связывает все вместе.</li>
+</ul>
+<p>Такой артефакт еще не выбирает pandas, DuckDB или Polars. Он задает стандарт доказательства,
+который понадобится всем следующим урокам фазы.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Увеличьте <code>--rows</code> в 10 раз и сравните, как меняется разброс raw runs.</li>
+<li>Напишите broken candidate, который игнорирует <code>refunded</code>, и убедитесь, что timing не
+запускается.</li>
+<li>Добавьте в package отдельный <code>scenario.md</code>, где человеческим языком описан timing
+scope и ограничения вывода.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Benchmark scenario</td>
+<td>«Команда, которая выводит секунды»</td>
+<td>Полный контракт сравнения: вход, scope, повторы, checks, среда и правило вывода</td>
+</tr>
+<tr>
+<td>Timing scope</td>
+<td>«Размер данных»</td>
+<td>Граница работы, которая входит в измеряемый участок</td>
+</tr>
+<tr>
+<td>Equivalence gate</td>
+<td>«Лишняя проверка перед speedup»</td>
+<td>Блокирующая сверка, что implementations возвращают один и тот же результат</td>
+</tr>
+<tr>
+<td>Warm-up</td>
+<td>«Подгонка под лучший результат»</td>
+<td>Неизмеряемый предварительный запуск перед raw measurements</td>
+</tr>
+<tr>
+<td>Raw runs</td>
+<td>«Шум, который можно удалить»</td>
+<td>Все отдельные наблюдения времени, нужные для честной интерпретации</td>
+</tr>
+<tr>
+<td>Median runtime</td>
+<td>«Абсолютная скорость программы»</td>
+<td>Устойчивая сводка конкретного scenario в конкретной среде</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.python.org/3/library/timeit.html" target="_blank" rel="noopener">Python <code>timeit</code></a> — стандартный модуль для повторяемых измерений и важные предупреждения о шуме benchmark.</li>
+<li><a href="https://docs.python.org/3/library/time.html#time.perf_counter" target="_blank" rel="noopener">Python <code>time.perf_counter</code></a> — монотонный высокоточный таймер, который подходит для wall-clock измерений коротких участков.</li>
+<li><a href="https://docs.python.org/3/library/statistics.html#statistics.median" target="_blank" rel="noopener">Python <code>statistics.median</code></a> — медиана как простая устойчивая сводка raw measurements.</li>
+<li><a href="https://pyperf.readthedocs.io/en/latest/" target="_blank" rel="noopener">pyperf documentation</a> — практический инструмент для более строгих Python benchmarks, calibration и metadata.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает timing scope в benchmark report?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Граница работы, которая реально входила в измеряемый участок</button><button type="button" class="quiz-option" data-choice="1">Список всех доступных библиотек в окружении</button><button type="button" class="quiz-option" data-choice="2">Минимальный размер данных, при котором новая реализация быстрее</button><button type="button" class="quiz-option" data-choice="3">Статус готовности урока в curriculum.json</button></div><p class="quiz-feedback" hidden>Timing scope отделяет подготовку входа, чтение, вычисление, конвертацию и запись результата.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Какой вариант cache policy является честным для calculation-only benchmark?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Сгенерировать вход один раз вне timed section, выполнить warm-up и затем измерять только расчет</button><button type="button" class="quiz-option" data-choice="1">Каждый раз генерировать вход только для новой реализации</button><button type="button" class="quiz-option" data-choice="2">Измерять первую реализацию с warm-up, а вторую без warm-up</button><button type="button" class="quiz-option" data-choice="3">Удалить raw runs и оставить только самый быстрый запуск</button></div><p class="quiz-feedback" hidden>Обе реализации должны получать одинаково подготовленный вход и одинаковую политику warm-up.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Как корректно сформулировать вывод по speedup?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">В этом scenario и окружении median runtime candidate ниже, output эквивалентен, но вывод ограничен указанным scope</button><button type="button" class="quiz-option" data-choice="1">Candidate всегда быстрее во всех окружениях, потому что один запуск был быстрее</button><button type="button" class="quiz-option" data-choice="2">Можно выбрать candidate, даже если output contract не совпал</button><button type="button" class="quiz-option" data-choice="3">Нужно тестировать конкретное значение speedup в обычном unit test</button></div><p class="quiz-feedback" hidden>Performance claim должен ссылаться на scenario, окружение, raw measurements, equivalence gate и ограничения.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;benchmark_harness.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;benchmark_harness&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+HARNESS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(HARNESS)
+
+
+class BenchmarkHarnessTest(unittest.TestCase):
+    def test_generation_is_reproducible_and_hashable(self) -&gt; None:
+        first = HARNESS.generate_order_lines(rows=20, seed=42)
+        second = HARNESS.generate_order_lines(rows=20, seed=42)
+        self.assertEqual(first, second)
+        self.assertEqual(HARNESS.stable_json_hash(first), HARNESS.stable_json_hash(second))
+
+    def test_reference_and_candidate_outputs_match(self) -&gt; None:
+        lines = HARNESS.generate_order_lines(rows=120, seed=7)
+        comparison = HARNESS.compare_outputs(
+            HARNESS.reference_weekly_revenue(lines),
+            HARNESS.candidate_weekly_revenue(lines),
+        )
+        self.assertTrue(comparison[&quot;passed&quot;], comparison)
+        self.assertEqual(comparison[&quot;row_count&quot;], 4)
+        self.assertEqual(comparison[&quot;reference_checksum&quot;], comparison[&quot;candidate_checksum&quot;])
+
+    def test_duplicate_grain_is_rejected_by_reference_pipeline(self) -&gt; None:
+        lines = HARNESS.generate_order_lines(rows=5, seed=1)
+        lines.append(dict(lines[0]))
+        with self.assertRaisesRegex(HARNESS.BenchmarkError, &quot;duplicate order line grain&quot;):
+            HARNESS.reference_weekly_revenue(lines)
+
+    def test_scenario_requires_equivalence_and_repeats(self) -&gt; None:
+        scenario = HARNESS.default_scenario(rows=100, repeat=3)
+        scenario[&quot;equivalence_checks&quot;] = []
+        with self.assertRaisesRegex(HARNESS.BenchmarkError, &quot;equivalence&quot;):
+            HARNESS.validate_scenario(scenario)
+
+        scenario = HARNESS.default_scenario(rows=100, repeat=2)
+        with self.assertRaisesRegex(HARNESS.BenchmarkError, &quot;at least 3&quot;):
+            HARNESS.validate_scenario(scenario)
+
+    def test_benchmark_checks_equivalence_before_timing(self) -&gt; None:
+        def broken_candidate(lines: list[dict[str, object]]) -&gt; list[dict[str, object]]:
+            result = HARNESS.candidate_weekly_revenue(lines)
+            result[0][&quot;net_revenue_cents&quot;] += 1
+            return result
+
+        with self.assertRaisesRegex(HARNESS.BenchmarkError, &quot;equivalence gate failed&quot;):
+            HARNESS.run_benchmark(rows=200, repeat=3, seed=42, candidate=broken_candidate)
+
+    def test_benchmark_report_contains_raw_runs_summary_and_environment(self) -&gt; None:
+        report = HARNESS.run_benchmark(rows=1_000, repeat=3, seed=42)
+        self.assertTrue(report[&quot;equivalence&quot;][&quot;passed&quot;])
+        self.assertTrue(report[&quot;input&quot;][&quot;generation_excluded_from_timing&quot;])
+        self.assertEqual(len(report[&quot;measurements&quot;][&quot;raw_runs&quot;]), 6)
+        self.assertEqual(
+            {row[&quot;implementation&quot;] for row in report[&quot;measurements&quot;][&quot;summary&quot;]},
+            {&quot;python_reference&quot;, &quot;python_candidate&quot;},
+        )
+        self.assertIn(&quot;python_version&quot;, report[&quot;environment&quot;])
+        self.assertTrue(report[&quot;decision&quot;][&quot;usable_for_engine_decision&quot;])
+
+    def test_measurement_is_not_single_run_and_uses_warmup(self) -&gt; None:
+        calls = {&quot;count&quot;: 0}
+
+        def function() -&gt; list[dict[str, object]]:
+            calls[&quot;count&quot;] += 1
+            return []
+
+        runs = HARNESS.measure_seconds(
+            function,
+            implementation=&quot;demo&quot;,
+            repeat=3,
+            warmup=2,
+        )
+        self.assertEqual(calls[&quot;count&quot;], 5)
+        self.assertEqual(len(runs), 3)
+        self.assertTrue(all(run[&quot;seconds&quot;] &gt;= 0 for run in runs))
+
+    def test_cli_writes_reusable_package(self) -&gt; None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / &quot;benchmark-package&quot;
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--rows&quot;,
+                    &quot;1000&quot;,
+                    &quot;--repeat&quot;,
+                    &quot;3&quot;,
+                    &quot;--seed&quot;,
+                    &quot;42&quot;,
+                    &quot;--output-dir&quot;,
+                    str(output_dir),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(report[&quot;scenario&quot;][&quot;scale_rows&quot;], 1000)
+            self.assertTrue((output_dir / &quot;benchmark-plan.json&quot;).is_file())
+            self.assertTrue((output_dir / &quot;measurements&quot; / &quot;environment.json&quot;).is_file())
+            self.assertTrue((output_dir / &quot;equivalence&quot; / &quot;output-checks.json&quot;).is_file())
+            with (output_dir / &quot;measurements&quot; / &quot;raw-runs.csv&quot;).open(encoding=&quot;utf-8&quot;) as source:
+                rows = list(csv.DictReader(source))
+            self.assertEqual(len(rows), 6)
+
+    def test_cli_invalid_input_has_no_traceback(self) -&gt; None:
+        result = subprocess.run(
+            [sys.executable, ARTIFACT, &quot;--rows&quot;, &quot;0&quot;],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;benchmark error&quot;, result.stderr)
+        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+
+ARTIFACT = Path(__file__).resolve().parents[1] / &quot;outputs&quot; / &quot;benchmark_harness.py&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;benchmark_harness&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+HARNESS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(HARNESS)
+
+
+if __name__ == &quot;__main__&quot;:
+    report = HARNESS.run_benchmark(rows=2_000, repeat=3, seed=2026)
+    print(
+        {
+            &quot;scenario_id&quot;: report[&quot;scenario&quot;][&quot;scenario_id&quot;],
+            &quot;equivalence_passed&quot;: report[&quot;equivalence&quot;][&quot;passed&quot;],
+            &quot;raw_runs&quot;: len(report[&quot;measurements&quot;][&quot;raw_runs&quot;]),
+            &quot;speedup&quot;: report[&quot;decision&quot;][&quot;speedup_reference_over_candidate&quot;],
+        }
+    )
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;benchmark-harness&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/benchmark_harness.py&quot;,
+  &quot;description&quot;: &quot;Запускает воспроизводимый benchmark scenario с equivalence gate, warm-up, повторами, raw measurements, summary, environment report и reusable package.&quot;,
+  &quot;usage&quot;: &quot;python outputs/benchmark_harness.py --rows 5000 --repeat 5 --seed 42 --output-dir /tmp/benchmark-package&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/benchmark_harness.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import platform
+import random
+import statistics
+import sys
+import time
+from collections.abc import Callable, Iterable
+from pathlib import Path
+from typing import Any
+
+
+class BenchmarkError(ValueError):
+    &quot;&quot;&quot;Raised when a benchmark scenario cannot produce trustworthy evidence.&quot;&quot;&quot;
+
+
+OrderLine = dict[str, Any]
+PipelineResult = list[dict[str, Any]]
+Pipeline = Callable[[list[OrderLine]], PipelineResult]
+
+
+REQUIRED_SCENARIO_FIELDS = {
+    &quot;scenario_id&quot;,
+    &quot;business_question&quot;,
+    &quot;pipeline_name&quot;,
+    &quot;pipeline_version&quot;,
+    &quot;dataset_profile&quot;,
+    &quot;scale_rows&quot;,
+    &quot;engines&quot;,
+    &quot;cache_policy&quot;,
+    &quot;warmup_runs&quot;,
+    &quot;measured_runs&quot;,
+    &quot;timer&quot;,
+    &quot;timing_scope&quot;,
+    &quot;equivalence_checks&quot;,
+    &quot;selection_rule&quot;,
+}
+
+
+def generate_order_lines(rows: int, seed: int) -&gt; list[OrderLine]:
+    if rows &lt;= 0:
+        raise BenchmarkError(&quot;rows must be positive&quot;)
+
+    rng = random.Random(seed)
+    statuses = (&quot;paid&quot;, &quot;paid&quot;, &quot;paid&quot;, &quot;refunded&quot;, &quot;pending&quot;)
+    platforms = (&quot;web&quot;, &quot;ios&quot;, &quot;android&quot;)
+    lines: list[OrderLine] = []
+    for index in range(rows):
+        unit_price_cents = rng.randrange(199, 12_500)
+        quantity = rng.randrange(1, 5)
+        week_number = 1 + index % 4
+        status = statuses[rng.randrange(len(statuses))]
+        lines.append(
+            {
+                &quot;order_id&quot;: f&quot;O{index // 3:06d}&quot;,
+                &quot;line_number&quot;: index % 3 + 1,
+                &quot;user_id&quot;: f&quot;U{rng.randrange(1, max(2, rows // 7)):05d}&quot;,
+                &quot;week_start&quot;: f&quot;2026-W{week_number:02d}&quot;,
+                &quot;platform&quot;: platforms[index % len(platforms)],
+                &quot;status&quot;: status,
+                &quot;unit_price_cents&quot;: unit_price_cents,
+                &quot;quantity&quot;: quantity,
+            }
+        )
+    return lines
+
+
+def reference_weekly_revenue(lines: list[OrderLine]) -&gt; PipelineResult:
+    by_week: dict[str, dict[str, int]] = {}
+    seen_keys: set[tuple[str, int]] = set()
+
+    for row in lines:
+        key = (str(row[&quot;order_id&quot;]), int(row[&quot;line_number&quot;]))
+        if key in seen_keys:
+            raise BenchmarkError(f&quot;duplicate order line grain: {key}&quot;)
+        seen_keys.add(key)
+
+        week = str(row[&quot;week_start&quot;])
+        bucket = by_week.setdefault(
+            week,
+            {
+                &quot;line_count&quot;: 0,
+                &quot;paid_line_count&quot;: 0,
+                &quot;gross_revenue_cents&quot;: 0,
+                &quot;net_revenue_cents&quot;: 0,
+            },
+        )
+        bucket[&quot;line_count&quot;] += 1
+
+        status = str(row[&quot;status&quot;])
+        line_total = int(row[&quot;unit_price_cents&quot;]) * int(row[&quot;quantity&quot;])
+        if status == &quot;paid&quot;:
+            bucket[&quot;paid_line_count&quot;] += 1
+            bucket[&quot;gross_revenue_cents&quot;] += line_total
+            bucket[&quot;net_revenue_cents&quot;] += line_total
+        elif status == &quot;refunded&quot;:
+            bucket[&quot;net_revenue_cents&quot;] -= line_total
+
+    return [{&quot;week_start&quot;: week, **values} for week, values in sorted(by_week.items())]
+
+
+def candidate_weekly_revenue(lines: list[OrderLine]) -&gt; PipelineResult:
+    weeks = sorted({str(row[&quot;week_start&quot;]) for row in lines})
+    result: PipelineResult = []
+    for week in weeks:
+        week_rows = [row for row in lines if row[&quot;week_start&quot;] == week]
+        paid_rows = [row for row in week_rows if row[&quot;status&quot;] == &quot;paid&quot;]
+        refunded_rows = [row for row in week_rows if row[&quot;status&quot;] == &quot;refunded&quot;]
+        gross = sum(int(row[&quot;unit_price_cents&quot;]) * int(row[&quot;quantity&quot;]) for row in paid_rows)
+        refunds = sum(
+            int(row[&quot;unit_price_cents&quot;]) * int(row[&quot;quantity&quot;]) for row in refunded_rows
+        )
+        result.append(
+            {
+                &quot;week_start&quot;: week,
+                &quot;line_count&quot;: len(week_rows),
+                &quot;paid_line_count&quot;: len(paid_rows),
+                &quot;gross_revenue_cents&quot;: gross,
+                &quot;net_revenue_cents&quot;: gross - refunds,
+            }
+        )
+    return result
+
+
+def normalized_result(result: PipelineResult) -&gt; PipelineResult:
+    required = {
+        &quot;week_start&quot;,
+        &quot;line_count&quot;,
+        &quot;paid_line_count&quot;,
+        &quot;gross_revenue_cents&quot;,
+        &quot;net_revenue_cents&quot;,
+    }
+    normalized: PipelineResult = []
+    for row in result:
+        missing = required - set(row)
+        if missing:
+            raise BenchmarkError(f&quot;pipeline result misses columns: {sorted(missing)}&quot;)
+        normalized.append(
+            {
+                &quot;week_start&quot;: str(row[&quot;week_start&quot;]),
+                &quot;line_count&quot;: int(row[&quot;line_count&quot;]),
+                &quot;paid_line_count&quot;: int(row[&quot;paid_line_count&quot;]),
+                &quot;gross_revenue_cents&quot;: int(row[&quot;gross_revenue_cents&quot;]),
+                &quot;net_revenue_cents&quot;: int(row[&quot;net_revenue_cents&quot;]),
+            }
+        )
+    return sorted(normalized, key=lambda row: row[&quot;week_start&quot;])
+
+
+def stable_json_hash(value: Any) -&gt; str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;))
+    return hashlib.sha256(payload.encode(&quot;utf-8&quot;)).hexdigest()
+
+
+def compare_outputs(reference: PipelineResult, candidate: PipelineResult) -&gt; dict[str, Any]:
+    left = normalized_result(reference)
+    right = normalized_result(candidate)
+    mismatches: list[dict[str, Any]] = []
+    for index, (left_row, right_row) in enumerate(zip(left, right, strict=False)):
+        if left_row != right_row:
+            mismatches.append(
+                {&quot;row_index&quot;: index, &quot;reference&quot;: left_row, &quot;candidate&quot;: right_row}
+            )
+    if len(left) != len(right):
+        mismatches.append({&quot;row_count&quot;: {&quot;reference&quot;: len(left), &quot;candidate&quot;: len(right)}})
+
+    return {
+        &quot;passed&quot;: not mismatches,
+        &quot;row_count&quot;: len(left),
+        &quot;reference_checksum&quot;: stable_json_hash(left),
+        &quot;candidate_checksum&quot;: stable_json_hash(right),
+        &quot;mismatches&quot;: mismatches[:5],
+    }
+
+
+def default_scenario(rows: int, repeat: int) -&gt; dict[str, Any]:
+    return {
+        &quot;scenario_id&quot;: &quot;weekly-revenue-benchmark&quot;,
+        &quot;business_question&quot;: (
+            &quot;Can a candidate weekly revenue pipeline replace the transparent reference &quot;
+            &quot;without changing the customer revenue health metric?&quot;
+        ),
+        &quot;pipeline_name&quot;: &quot;weekly_revenue_by_week&quot;,
+        &quot;pipeline_version&quot;: &quot;1.0&quot;,
+        &quot;dataset_profile&quot;: &quot;tiny&quot; if rows &lt;= 10_000 else &quot;sample&quot;,
+        &quot;scale_rows&quot;: rows,
+        &quot;engines&quot;: [&quot;python_reference&quot;, &quot;python_candidate&quot;],
+        &quot;cache_policy&quot;: &quot;Generate input once outside timed section; run warm-up before measurements.&quot;,
+        &quot;warmup_runs&quot;: 1,
+        &quot;measured_runs&quot;: repeat,
+        &quot;timer&quot;: &quot;time.perf_counter&quot;,
+        &quot;timing_scope&quot;: &quot;Prepared in-memory order lines only; data generation and validation excluded.&quot;,
+        &quot;equivalence_checks&quot;: [&quot;equivalence: normalized exact output equality before timing&quot;],
+        &quot;selection_rule&quot;: &quot;Prefer the simpler implementation unless median speedup is material and outputs match.&quot;,
+    }
+
+
+def validate_scenario(scenario: dict[str, Any]) -&gt; None:
+    missing = REQUIRED_SCENARIO_FIELDS - set(scenario)
+    if missing:
+        raise BenchmarkError(f&quot;scenario misses required fields: {sorted(missing)}&quot;)
+    if int(scenario[&quot;measured_runs&quot;]) &lt; 3:
+        raise BenchmarkError(&quot;measured_runs must be at least 3&quot;)
+    if int(scenario[&quot;warmup_runs&quot;]) &lt; 1:
+        raise BenchmarkError(&quot;warmup_runs must be at least 1&quot;)
+    engines = scenario[&quot;engines&quot;]
+    if not isinstance(engines, list) or len(engines) &lt; 2:
+        raise BenchmarkError(&quot;scenario must compare at least two engines or implementations&quot;)
+    if &quot;equivalence&quot; not in &quot; &quot;.join(scenario[&quot;equivalence_checks&quot;]).lower():
+        raise BenchmarkError(&quot;scenario must declare an equivalence check&quot;)
+
+
+def environment_report() -&gt; dict[str, str]:
+    return {
+        &quot;python_version&quot;: platform.python_version(),
+        &quot;python_implementation&quot;: platform.python_implementation(),
+        &quot;platform&quot;: platform.platform(),
+        &quot;machine&quot;: platform.machine(),
+        &quot;processor&quot;: platform.processor() or &quot;unknown&quot;,
+    }
+
+
+def measure_seconds(
+    function: Callable[[], PipelineResult],
+    *,
+    implementation: str,
+    repeat: int,
+    warmup: int = 1,
+) -&gt; list[dict[str, Any]]:
+    if repeat &lt; 3:
+        raise BenchmarkError(&quot;repeat must be at least 3&quot;)
+    for _ in range(warmup):
+        function()
+
+    runs: list[dict[str, Any]] = []
+    for run_id in range(1, repeat + 1):
+        started = time.perf_counter()
+        function()
+        duration = time.perf_counter() - started
+        runs.append(
+            {
+                &quot;implementation&quot;: implementation,
+                &quot;run_id&quot;: run_id,
+                &quot;seconds&quot;: duration,
+            }
+        )
+    return runs
+
+
+def summarize_runs(runs: Iterable[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    grouped: dict[str, list[float]] = {}
+    for run in runs:
+        grouped.setdefault(str(run[&quot;implementation&quot;]), []).append(float(run[&quot;seconds&quot;]))
+
+    summary: list[dict[str, Any]] = []
+    for implementation, durations in sorted(grouped.items()):
+        summary.append(
+            {
+                &quot;implementation&quot;: implementation,
+                &quot;runs&quot;: len(durations),
+                &quot;min_seconds&quot;: min(durations),
+                &quot;median_seconds&quot;: statistics.median(durations),
+                &quot;max_seconds&quot;: max(durations),
+                &quot;mean_seconds&quot;: statistics.fmean(durations),
+            }
+        )
+    return summary
+
+
+def run_benchmark(
+    *,
+    rows: int,
+    repeat: int,
+    seed: int,
+    reference: Pipeline = reference_weekly_revenue,
+    candidate: Pipeline = candidate_weekly_revenue,
+    scenario: dict[str, Any] | None = None,
+) -&gt; dict[str, Any]:
+    scenario = scenario or default_scenario(rows, repeat)
+    validate_scenario(scenario)
+    if int(scenario[&quot;scale_rows&quot;]) != rows:
+        raise BenchmarkError(&quot;scenario scale_rows must match rows&quot;)
+    if int(scenario[&quot;measured_runs&quot;]) != repeat:
+        raise BenchmarkError(&quot;scenario measured_runs must match repeat&quot;)
+
+    lines = generate_order_lines(rows, seed)
+    input_digest = stable_json_hash(lines)
+    reference_result = reference(lines)
+    candidate_result = candidate(lines)
+    equivalence = compare_outputs(reference_result, candidate_result)
+    if not equivalence[&quot;passed&quot;]:
+        raise BenchmarkError(&quot;equivalence gate failed before timing&quot;)
+
+    raw_runs = [
+        *measure_seconds(
+            lambda: reference(lines),
+            implementation=&quot;python_reference&quot;,
+            repeat=repeat,
+            warmup=int(scenario[&quot;warmup_runs&quot;]),
+        ),
+        *measure_seconds(
+            lambda: candidate(lines),
+            implementation=&quot;python_candidate&quot;,
+            repeat=repeat,
+            warmup=int(scenario[&quot;warmup_runs&quot;]),
+        ),
+    ]
+    summary = summarize_runs(raw_runs)
+    summary_by_name = {row[&quot;implementation&quot;]: row for row in summary}
+    reference_median = summary_by_name[&quot;python_reference&quot;][&quot;median_seconds&quot;]
+    candidate_median = summary_by_name[&quot;python_candidate&quot;][&quot;median_seconds&quot;]
+    speedup = reference_median / candidate_median if candidate_median &gt; 0 else None
+
+    return {
+        &quot;scenario&quot;: scenario,
+        &quot;environment&quot;: environment_report(),
+        &quot;input&quot;: {
+            &quot;rows&quot;: rows,
+            &quot;seed&quot;: seed,
+            &quot;checksum&quot;: input_digest,
+            &quot;generation_excluded_from_timing&quot;: True,
+        },
+        &quot;equivalence&quot;: equivalence,
+        &quot;measurements&quot;: {
+            &quot;raw_runs&quot;: raw_runs,
+            &quot;summary&quot;: summary,
+        },
+        &quot;decision&quot;: {
+            &quot;speedup_reference_over_candidate&quot;: speedup,
+            &quot;candidate_is_materially_faster&quot;: bool(speedup is not None and speedup &gt;= 1.2),
+            &quot;usable_for_engine_decision&quot;: equivalence[&quot;passed&quot;] and repeat &gt;= 3,
+        },
+    }
+
+
+def write_json(path: Path, value: Any) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise BenchmarkError(f&quot;cannot write empty CSV: {path}&quot;)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as target:
+        writer = csv.DictWriter(target, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_package(report: dict[str, Any], output_dir: Path) -&gt; None:
+    write_json(output_dir / &quot;benchmark-plan.json&quot;, report[&quot;scenario&quot;])
+    write_json(output_dir / &quot;measurements&quot; / &quot;environment.json&quot;, report[&quot;environment&quot;])
+    write_csv(output_dir / &quot;measurements&quot; / &quot;raw-runs.csv&quot;, report[&quot;measurements&quot;][&quot;raw_runs&quot;])
+    write_csv(output_dir / &quot;measurements&quot; / &quot;summary.csv&quot;, report[&quot;measurements&quot;][&quot;summary&quot;])
+    write_json(output_dir / &quot;equivalence&quot; / &quot;output-checks.json&quot;, report[&quot;equivalence&quot;])
+    write_json(output_dir / &quot;report.json&quot;, report)
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Run a reproducible benchmark scenario.&quot;)
+    parser.add_argument(&quot;--rows&quot;, type=int, default=5_000, help=&quot;number of order lines&quot;)
+    parser.add_argument(&quot;--repeat&quot;, type=int, default=5, help=&quot;measured runs per implementation&quot;)
+    parser.add_argument(&quot;--seed&quot;, type=int, default=42, help=&quot;deterministic input seed&quot;)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, help=&quot;optional directory for benchmark package&quot;)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = parse_args(argv)
+    try:
+        report = run_benchmark(rows=args.rows, repeat=args.repeat, seed=args.seed)
+        if args.output_dir is not None:
+            write_package(report, args.output_dir)
+    except BenchmarkError as error:
+        print(f&quot;benchmark error: {error}&quot;, file=sys.stderr)
+        return 2
+
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/12-performance/01-benchmarking/outputs/benchmark_harness.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/12-performance/01-benchmarking" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/analytics-engineering/dbt-duckdb-project/"><span>← Предыдущий урок</span><strong>Локальный проект с dbt-duckdb</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/performance/profiling/"><span>Следующий урок →</span><strong>CPU и memory profiling</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

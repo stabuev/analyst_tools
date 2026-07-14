@@ -1,0 +1,2004 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="После 11/03 graph уже строится через source() и ref(), но модели все еще выглядят как демонстрационный скелет. Теперь нужно собрать настоящую витрину…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/models/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Модели и materializations">
+  <meta property="og:description" content="После 11/03 graph уже строится через source() и ref(), но модели все еще выглядят как демонстрационный скелет. Теперь нужно собрать настоящую витрину…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/models/">
+  <meta name="twitter:card" content="summary">
+  <title>Модели и materializations — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Модели и materializations", "description": "После 11/03 graph уже строится через source() и ref(), но модели все еще выглядят как демонстрационный скелет. Теперь нужно собрать настоящую витрину…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/models/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 11: Analytics Engineering", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=11"}, {"@type": "ListItem", "position": 3, "name": "Модели и materializations", "item": "https://datascience.xyz/courses/analyst-tools/lessons/analytics-engineering/models/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 11</p><h2>Analytics Engineering</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-layers/"><span>01</span>Слои и контракты аналитических данных</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-project/"><span>02</span>Структура dbt-проекта</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/sources-and-refs/"><span>03</span>Sources, refs и зависимости</a><a class="lesson-sidebar-link is-active" href="../../../lessons/analytics-engineering/models/"><span>04</span>Модели и materializations</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/data-tests/"><span>05</span>Data tests</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/macros/"><span>06</span>Jinja и macros без злоупотребления</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/incremental-models/"><span>07</span>Инкрементальные модели</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/snapshots/"><span>08</span>Snapshots и история изменений</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/documentation-and-lineage/"><span>09</span>Документация и lineage</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/sqlfluff/"><span>10</span>SQLFluff и единый стиль</a><a class="lesson-sidebar-link" href="../../../lessons/analytics-engineering/dbt-duckdb-project/"><span>11</span>Локальный проект с dbt-duckdb</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 11 · Analytics Engineering</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 115 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/11-analytics-engineering/04-models" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что означает materialization модели в dbt?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Стратегию, как результат модели сохраняется или встраивается в warehouse: view, table, ephemeral и другие варианты.</button><button type="button" class="quiz-option" data-choice="1">Тип SQL-диалекта, который будет использовать dbt.</button><button type="button" class="quiz-option" data-choice="2">Правило проверки `not_null` для всех колонок.</button><button type="button" class="quiz-option" data-choice="3">Формат CSV-файла в raw-слое.</button></div><p class="quiz-feedback" hidden>Materialization определяет физическое или логическое представление результата модели: view/table/ephemeral/incremental/materialized_view.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему source-shaped staging model обычно начинают с `view`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Она делает легкие casts/renames, не должна хранить копию raw и должна видеть свежие source rows.</button><button type="button" class="quiz-option" data-choice="1">View всегда быстрее table для любых запросов.</button><button type="button" class="quiz-option" data-choice="2">dbt запрещает делать staging table.</button><button type="button" class="quiz-option" data-choice="3">Только view может использовать `source()`.</button></div><p class="quiz-feedback" hidden>Для легкой нормализации view сохраняет прозрачность raw boundary и не дублирует данные без причины.</p></article></section>
+        <article class="lesson-article"><h1 id="модели-и-materializations">Модели и materializations</h1>
+<blockquote>
+<p>Materialization - это не настройка скорости, а договор о том, где живет результат
+модели, кто его читает и какую цену платит следующий запуск.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build<br />
+<strong>Треки:</strong> Data<br />
+<strong>Пререквизиты:</strong> 11/03 - Sources, refs и зависимости<br />
+<strong>Время:</strong> ~90 минут<br />
+<strong>Результат:</strong> строит staging, intermediate и mart модели, выбирает
+view/table/ephemeral materialization по grain, стоимости и потребителю и сверяет compiled
+SQL с ожидаемой логикой.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<ul>
+<li>Разложить customer revenue mart на staging, intermediate и mart модели.</li>
+<li>Выбрать <code>view</code>, <code>table</code> и <code>ephemeral</code> по роли модели, а не по привычке.</li>
+<li>Объявить materialization policy в <code>properties.yml</code> вместе с grain, consumer и reason.</li>
+<li>Запустить <code>dbt compile</code> и увидеть, как ephemeral-модели встраиваются в compiled SQL.</li>
+<li>Проверить физические relations в DuckDB и сверить mart с независимым контролем.</li>
+</ul>
+<h2 id="проблема">Проблема</h2>
+<p>После <code>11/03</code> graph уже строится через <code>source()</code> и <code>ref()</code>, но модели все еще выглядят
+как демонстрационный скелет. Теперь нужно собрать настоящую витрину
+<code>mart_customer_revenue_health</code>: пользователи, заказы, строки заказов, возвраты,
+подписки, обращения в поддержку и курсы валют.</p>
+<p>Опасность не в том, что SQL не выполнится. Опасность в другом:</p>
+<ul>
+<li>staging можно случайно сделать table и начать хранить вторую копию raw;</li>
+<li>тяжелую финальную витрину можно оставить view, и каждый dashboard будет заново
+исполнять все JOIN и aggregation;</li>
+<li>reusable CTE можно сделать ephemeral, а потом переиспользовать в пяти местах и получить
+нечитаемый compiled SQL;</li>
+<li>materialization можно выбрать устно, но не оставить машинного следа для ревью.</li>
+</ul>
+<p>В этом уроке модель считается готовой только если dbt построил проект, manifest подтвердил
+materializations, DuckDB показал ожидаемые physical relations, а customer mart сошелся с
+независимой ручной сверкой.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="view">View</h3>
+<p><code>view</code> хранит SQL, а не результат. На каждом обращении warehouse выполняет underlying
+query. Это хороший старт для source-shaped staging: casts, renames, нормализация case,
+типизация timestamp, но без бизнес-агрегации.</p>
+<p>В уроке все staging-модели - views:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">stg_users
+stg_events
+stg_orders
+stg_order_items
+stg_subscriptions
+stg_support_tickets
+stg_refunds
+stg_currency_rates
+</code></pre></div><h3 id="table">Table</h3>
+<p><code>table</code> сохраняет результат на момент <code>dbt run</code>. Читать ее быстрее и стабильнее, но новые
+raw rows не появятся в ней сами: нужен следующий запуск. Это нормально для
+consumer-facing mart, если внешний scheduler пересобирает проект по понятному графику.</p>
+<p>В уроке table одна:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">mart_customer_revenue_health
+</code></pre></div><h3 id="ephemeral">Ephemeral</h3>
+<p><code>ephemeral</code> не создает таблицу или view. dbt встраивает SQL такой модели в downstream
+модель как CTE с именем вида <code>__dbt__cte__...</code>.</p>
+<p>В уроке ephemeral только легкие промежуточные шаги с ограниченным fanout:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">int_order_line_revenue
+int_refunds_by_order
+</code></pre></div><p>Их удобно переиспользовать внутри mart, но их не нужно запрашивать напрямую как отдельные
+relations.</p>
+<h3 id="materialization-policy">Materialization policy</h3>
+<p>Выбор хранится в <code>outputs/materialization_project/models/properties.yml</code>:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">models:
+  - name: mart_customer_revenue_health
+    config:
+      materialized: table
+    meta:
+      layer: marts
+      grain: &quot;one active non-deleted user&quot;
+      consumer: &quot;product and finance analysis&quot;
+      materialization_reason: &quot;Published mart is queried by consumers...&quot;
+      cost_note: &quot;Rebuild cost is acceptable...&quot;
+</code></pre></div><p><code>config.materialized</code> говорит dbt, что делать. <code>meta</code> говорит ревьюеру, почему это
+решение допустимо.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-откройте-структуру-проекта">Шаг 1: откройте структуру проекта</h3>
+<p>Файл:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/materialization_project/dbt_project.yml
+</code></pre></div><p>задает стандартные директории и folder defaults:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">models:
+  materialization_project:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+</code></pre></div><p>Это default, а не окончательное решение. Точная политика находится в <code>properties.yml</code> для
+каждой модели.</p>
+<h3 id="шаг-2-прочитайте-staging-models">Шаг 2: прочитайте staging models</h3>
+<p>Staging читает raw только через <code>source()</code>:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">select
+    order_id,
+    user_id,
+    cast(ordered_at as timestamptz) as ordered_at,
+    cast(cast(ordered_at as timestamptz) as date) as order_date,
+    lower(status) as status,
+    upper(currency) as currency,
+    cast(amount as decimal(18, 2)) as amount
+from {{ source(&#x27;raw_app&#x27;, &#x27;orders&#x27;) }}
+</code></pre></div><p>Здесь есть типизация и нормализация, но нет join к order items и нет consumer metric.</p>
+<h3 id="шаг-3-прочитайте-intermediate-models">Шаг 3: прочитайте intermediate models</h3>
+<p><code>int_order_line_revenue</code> - line-level reusable step:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">from {{ ref(&#x27;stg_order_items&#x27;) }} as items
+inner join {{ ref(&#x27;stg_orders&#x27;) }} as orders
+</code></pre></div><p><code>int_support_by_user</code> и <code>int_subscription_latest</code> оставлены views, потому что их полезно
+запрашивать отдельно при диагностике.</p>
+<h3 id="шаг-4-прочитайте-mart">Шаг 4: прочитайте mart</h3>
+<p><code>mart_customer_revenue_health</code> объединяет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">stg_users
+stg_currency_rates
+int_order_line_revenue
+int_refunds_by_order
+int_support_by_user
+int_subscription_latest
+</code></pre></div><p>Grain витрины - один активный неудаленный пользователь. Денежная нормализация переводит
+USD-заказ в RUB через <code>stg_currency_rates</code>, а refund не попадает в <code>paid_revenue_rub</code>.</p>
+<h3 id="шаг-5-запустите-аудитор">Шаг 5: запустите аудитор</h3>
+<p>Из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/materialization_reporter.py \
+  --project outputs/materialization_project \
+  --data-contract ../data/contract.json \
+  --output outputs/materialization_report.json \
+  --run-dbt
+</code></pre></div><p>Аудитор создает временную DuckDB-базу, загружает <code>../data/tiny/*.csv</code> в schema <code>raw</code>,
+запускает <code>dbt parse</code>, <code>dbt compile --select mart_customer_revenue_health</code>, <code>dbt run</code>,
+читает <code>target/manifest.json</code> и проверяет physical relations.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите компактный пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python code/main.py
+</code></pre></div><p>Ожидаемый смысл отчета:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;materializations&quot;: {
+    &quot;ephemeral&quot;: 2,
+    &quot;table&quot;: 1,
+    &quot;view&quot;: 10
+  },
+  &quot;physical_relations&quot;: {
+    &quot;table&quot;: 1,
+    &quot;view&quot;: 10
+  },
+  &quot;mart_rows&quot;: 5
+}
+</code></pre></div><p>Обратите внимание: моделей 13, а физических relations 11. Две ephemeral-модели не
+создаются в DuckDB. Они встраиваются в compiled SQL mart-модели.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="сделайте-staging-table">Сделайте staging table</h3>
+<p>В <code>properties.yml</code> замените для <code>stg_orders</code>:</p>
+<div class="code-block"><span class="code-language">yaml</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-yaml">materialized: table
+</code></pre></div><p>Аудитор должен провалить <code>materializations_match_policy</code>. Staging table может быть
+оправдана в реальном проекте, но тогда нужно изменить policy и объяснить цену хранения
+копии raw-shaped данных.</p>
+<h3 id="уберите-reason">Уберите reason</h3>
+<p>Удалите <code>meta.materialization_reason</code> у mart. SQL все еще может собраться, но ревьюер
+потеряет rationale. Аудитор провалит <code>materialization_decisions_documented</code>.</p>
+<h3 id="расширьте-fanout-ephemeral">Расширьте fanout ephemeral</h3>
+<p>Если <code>int_order_line_revenue</code> начнут читать несколько downstream-моделей, compiled SQL
+начнет дублировать сложный CTE. В таком случае модель лучше сделать view или table.
+Аудитор ловит это через <code>ephemeral_models_have_limited_fanout</code>.</p>
+<h3 id="удалите-курс-валюты-usd">Удалите курс валюты USD</h3>
+<p>Если убрать строку USD из <code>raw_currency_rates.csv</code>, dbt run пройдет: left join не
+является синтаксической ошибкой. Но <code>mart_matches_independent_control</code> провалится, потому
+что пользователь <code>u005</code> потеряет выручку в RUB.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Локальная проверка урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python -m unittest discover -s tests -v
+</code></pre></div><p>Тесты покрывают:</p>
+<ul>
+<li>корректную materialization policy;</li>
+<li>запрет <code>incremental</code> и <code>materialized_view</code> до следующих уроков;</li>
+<li>обязательный reason/consumer/grain в <code>meta</code>;</li>
+<li>сохранение <code>source()</code> только в staging;</li>
+<li>сохранение <code>ref()</code> в downstream-моделях;</li>
+<li>ограниченный fanout ephemeral-моделей;</li>
+<li>live <code>dbt parse/compile/run</code>;</li>
+<li>physical relation count в DuckDB;</li>
+<li>независимую сверку 5 строк customer mart.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Артефакт урока:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/materialization_reporter.py
+</code></pre></div><p>Он применим к учебному dbt-проекту:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">python outputs/materialization_reporter.py \
+  --project outputs/materialization_project \
+  --data-contract ../data/contract.json \
+  --run-dbt
+</code></pre></div><p>Статический committed report:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/materialization_report.json
+</code></pre></div><p>Он фиксирует ожидаемые 13 моделей и materialization policy без временных путей и
+timestamp.</p>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Сделайте <code>int_support_by_user</code> ephemeral и объясните, почему это ухудшает
+inspectability для support-диагностики.</li>
+<li>Добавьте в mart поле <code>net_revenue_rub = paid_revenue_rub - refunded_amount_rub</code> и
+расширьте independent control.</li>
+<li>Сделайте <code>mart_customer_revenue_health</code> view, запустите аудитор и сформулируйте,
+при каком реальном профиле данных это могло бы быть допустимо.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Materialization</td>
+<td>&quot;Опция производительности&quot;</td>
+<td>Стратегия сохранения или встраивания результата dbt-модели</td>
+</tr>
+<tr>
+<td>View</td>
+<td>&quot;Всегда дешевле table&quot;</td>
+<td>Не хранит результат, но может дорого выполняться при каждом чтении</td>
+</tr>
+<tr>
+<td>Table</td>
+<td>&quot;Всегда правильный выбор для надежности&quot;</td>
+<td>Хранит результат <code>dbt run</code>, но требует пересборки для новых данных</td>
+</tr>
+<tr>
+<td>Ephemeral</td>
+<td>&quot;Бесплатная переиспользуемая модель&quot;</td>
+<td>Встраивается как CTE и может раздувать compiled SQL</td>
+</tr>
+<tr>
+<td>Compiled SQL</td>
+<td>&quot;Внутренняя техническая деталь&quot;</td>
+<td>SQL, который реально исполняет warehouse и который нужно уметь ревьюить</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://docs.getdbt.com/docs/build/materializations" target="_blank" rel="noopener">dbt: Materializations</a> - разберите официальные trade-offs <code>view</code>, <code>table</code>, <code>incremental</code>, <code>ephemeral</code> и <code>materialized_view</code>; особенно ограничения ephemeral.</li>
+<li><a href="https://docs.getdbt.com/reference/commands/compile" target="_blank" rel="noopener">dbt: About dbt compile command</a> - посмотрите, где dbt хранит compiled SQL и почему его полезно читать при ревью сложных моделей.</li>
+<li><a href="https://docs.getdbt.com/reference/artifacts/manifest-json" target="_blank" rel="noopener">dbt: Manifest JSON file</a> - изучите, какие node configs и properties попадают в <code>target/manifest.json</code>, и почему аудитор может проверять graph машинно.</li>
+<li><a href="https://docs.getdbt.com/reference/model-configs" target="_blank" rel="noopener">dbt: Model configs</a> - прочитайте, где можно задавать config: в project file, properties file или прямо в SQL-модели.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 4 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Когда `ephemeral` является хорошим выбором?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для легкой переиспользуемой CTE-логики с одним-двумя downstream consumers, которую не нужно запрашивать напрямую.</button><button type="button" class="quiz-option" data-choice="1">Для финальной BI-витрины, которую потребители часто открывают в dashboard.</button><button type="button" class="quiz-option" data-choice="2">Для любой тяжелой модели, чтобы ускорить запросы.</button><button type="button" class="quiz-option" data-choice="3">Для модели, которую нужно документировать как отдельную таблицу для аналитиков.</button></div><p class="quiz-feedback" hidden>Ephemeral не создает relation в warehouse, а встраивается в downstream SQL, поэтому подходит только для небольшого и ограниченно переиспользуемого шага.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему `mart_customer_revenue_health` в уроке материализован как `table`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Это потребительская витрина: ее часто читают люди и BI, поэтому стабильность и скорость чтения важнее полного пересчета на каждый query.</button><button type="button" class="quiz-option" data-choice="1">Потому что таблицы всегда дешевле view при любом объеме данных.</button><button type="button" class="quiz-option" data-choice="2">Потому что table автоматически защищает от неправильных JOIN.</button><button type="button" class="quiz-option" data-choice="3">Потому что dbt docs не показывают view-модели.</button></div><p class="quiz-feedback" hidden>Для mart-слоя materialization выбирается по потребителю и стоимости чтения; корректность все равно проверяется отдельными gate.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Зачем в уроке проверяется compiled SQL для mart-модели?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы увидеть, как ephemeral-модели встроились как `__dbt__cte__...`, и убедиться, что итоговый SQL остается ревьюируемым.</button><button type="button" class="quiz-option" data-choice="1">Чтобы заменить `dbt run` ручным копированием SQL.</button><button type="button" class="quiz-option" data-choice="2">Чтобы dbt автоматически выбрал лучшую materialization.</button><button type="button" class="quiz-option" data-choice="3">Чтобы убрать необходимость в `ref()`.</button></div><p class="quiz-feedback" hidden>`dbt compile` показывает SQL, который реально будет выполнен; это особенно важно для ephemeral и будущих Jinja/macros.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Какой результат должен показать live-аудит materializations в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">10 физических views, 1 физическую table, 2 ephemeral models без relation и 5 строк в customer mart.</button><button type="button" class="quiz-option" data-choice="1">13 физических tables, потому что в проекте 13 моделей.</button><button type="button" class="quiz-option" data-choice="2">2 physical ephemeral tables и 11 views.</button><button type="button" class="quiz-option" data-choice="3">Только один mart, потому что staging/intermediate dbt не строит.</button></div><p class="quiz-feedback" hidden>Ephemeral models не создают relation, staging/intermediate views создаются как views, а финальная витрина создается как table.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;materialization_reporter.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;materialization_project&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+SPEC = importlib.util.spec_from_file_location(&quot;materialization_reporter&quot;, ARTIFACT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
+REPORTER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(REPORTER)
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+def read_yaml(path: Path) -&gt; dict:
+    return yaml.safe_load(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_yaml(path: Path, value: dict) -&gt; None:
+    path.write_text(yaml.safe_dump(value, sort_keys=False), encoding=&quot;utf-8&quot;)
+
+
+def model_spec(properties: dict, name: str) -&gt; dict:
+    return next(item for item in properties[&quot;models&quot;] if item[&quot;name&quot;] == name)
+
+
+class MaterializationReporterTest(unittest.TestCase):
+    def copy_project(self, tmp: str) -&gt; Path:
+        destination = Path(tmp) / &quot;project&quot;
+        shutil.copytree(PROJECT, destination)
+        return destination
+
+    def test_valid_project_declares_materialization_policy(self) -&gt; None:
+        report = REPORTER.validate_project(PROJECT, DATA_CONTRACT, run_dbt=False)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;materialization_counts&quot;], {&quot;ephemeral&quot;: 2, &quot;table&quot;: 1, &quot;view&quot;: 10})
+        self.assertTrue(check(report, &quot;materializations_match_policy&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;materialization_decisions_documented&quot;)[&quot;valid&quot;])
+
+    def test_staging_model_cannot_be_materialized_as_table(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            model_spec(properties, &quot;stg_orders&quot;)[&quot;config&quot;][&quot;materialized&quot;] = &quot;table&quot;
+            write_yaml(properties_path, properties)
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            policy_check = check(report, &quot;materializations_match_policy&quot;)
+            self.assertFalse(policy_check[&quot;valid&quot;])
+            self.assertIn(
+                {&quot;model&quot;: &quot;stg_orders&quot;, &quot;observed&quot;: &quot;table&quot;, &quot;expected&quot;: &quot;view&quot;},
+                policy_check[&quot;sample&quot;],
+            )
+
+    def test_materialization_reason_is_required_for_every_model(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            del model_spec(properties, &quot;mart_customer_revenue_health&quot;)[&quot;meta&quot;][&quot;materialization_reason&quot;]
+            write_yaml(properties_path, properties)
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            docs_check = check(report, &quot;materialization_decisions_documented&quot;)
+            self.assertFalse(docs_check[&quot;valid&quot;])
+            self.assertEqual(docs_check[&quot;sample&quot;][0][&quot;model&quot;], &quot;mart_customer_revenue_health&quot;)
+
+    def test_future_incremental_materialization_is_reserved_for_later_lesson(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            model_spec(properties, &quot;mart_customer_revenue_health&quot;)[&quot;config&quot;][&quot;materialized&quot;] = &quot;incremental&quot;
+            write_yaml(properties_path, properties)
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;materializations_match_policy&quot;)[&quot;valid&quot;])
+            future_check = check(report, &quot;no_future_materializations_in_this_lesson&quot;)
+            self.assertFalse(future_check[&quot;valid&quot;])
+            self.assertEqual(future_check[&quot;sample&quot;], [&quot;mart_customer_revenue_health&quot;])
+
+    def test_staging_direct_raw_reference_is_rejected(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            (project / &quot;models&quot; / &quot;staging&quot; / &quot;stg_orders.sql&quot;).write_text(
+                &quot;select * from raw.raw_orders\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;source_calls_stay_in_staging&quot;)[&quot;valid&quot;])
+            raw_check = check(report, &quot;sql_has_no_direct_raw_references&quot;)
+            self.assertFalse(raw_check[&quot;valid&quot;])
+            self.assertEqual(raw_check[&quot;sample&quot;][0][&quot;raw_identifiers&quot;], [&quot;raw_orders&quot;])
+
+    def test_mart_cannot_read_source_directly(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            (project / &quot;models&quot; / &quot;marts&quot; / &quot;mart_customer_revenue_health.sql&quot;).write_text(
+                &quot;select user_id from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            self.assertFalse(check(report, &quot;source_calls_stay_in_staging&quot;)[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;downstream_models_use_ref&quot;)[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;mart_uses_required_upstream_models&quot;)[&quot;valid&quot;])
+
+    def test_ephemeral_model_cannot_gain_wide_fanout(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            for relative in (
+                &quot;models/intermediate/int_support_by_user.sql&quot;,
+                &quot;models/intermediate/int_subscription_latest.sql&quot;,
+            ):
+                (project / relative).write_text(
+                    &quot;select * from {{ ref(&#x27;int_order_line_revenue&#x27;) }}\n&quot;,
+                    encoding=&quot;utf-8&quot;,
+                )
+            report = REPORTER.validate_project(project, DATA_CONTRACT, run_dbt=False)
+            fanout_check = check(report, &quot;ephemeral_models_have_limited_fanout&quot;)
+            self.assertFalse(fanout_check[&quot;valid&quot;])
+            self.assertEqual(fanout_check[&quot;sample&quot;][0][&quot;model&quot;], &quot;int_order_line_revenue&quot;)
+
+    def test_live_dbt_run_builds_expected_physical_relations_and_mart(self) -&gt; None:
+        report = REPORTER.validate_project(PROJECT, DATA_CONTRACT, run_dbt=True)
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(report[&quot;summary&quot;][&quot;physical_relation_counts&quot;], {&quot;table&quot;: 1, &quot;view&quot;: 10})
+        self.assertEqual(report[&quot;summary&quot;][&quot;mart_row_count&quot;], 5)
+        self.assertTrue(check(report, &quot;compiled_mart_inlines_ephemeral_models&quot;)[&quot;valid&quot;])
+        self.assertTrue(check(report, &quot;mart_matches_independent_control&quot;)[&quot;valid&quot;])
+
+    def test_missing_currency_rate_breaks_live_mart_control(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            data_dir = Path(directory) / &quot;data&quot;
+            shutil.copytree(DATA_CONTRACT.parent / &quot;tiny&quot;, data_dir)
+            rates = (data_dir / &quot;raw_currency_rates.csv&quot;).read_text(encoding=&quot;utf-8&quot;).splitlines()
+            (data_dir / &quot;raw_currency_rates.csv&quot;).write_text(
+                &quot;\n&quot;.join(line for line in rates if not line.startswith(&quot;USD,&quot;)) + &quot;\n&quot;,
+                encoding=&quot;utf-8&quot;,
+            )
+            report = REPORTER.validate_project(project, DATA_CONTRACT, data_dir=data_dir, run_dbt=True)
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertTrue(check(report, &quot;dbt_parse_compile_run_succeed&quot;)[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;mart_matches_independent_control&quot;)[&quot;valid&quot;])
+
+    def test_cli_writes_report_and_returns_nonzero_for_invalid_project(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            project = self.copy_project(directory)
+            output = Path(directory) / &quot;report.json&quot;
+            properties_path = project / &quot;models&quot; / &quot;properties.yml&quot;
+            properties = read_yaml(properties_path)
+            model_spec(properties, &quot;int_order_line_revenue&quot;)[&quot;config&quot;][&quot;materialized&quot;] = &quot;table&quot;
+            write_yaml(properties_path, properties)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    ARTIFACT,
+                    &quot;--project&quot;,
+                    project,
+                    &quot;--data-contract&quot;,
+                    DATA_CONTRACT,
+                    &quot;--output&quot;,
+                    output,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            report = json.loads(output.read_text(encoding=&quot;utf-8&quot;))
+            self.assertFalse(report[&quot;valid&quot;])
+            self.assertFalse(check(report, &quot;materializations_match_policy&quot;)[&quot;valid&quot;])
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;materialization_reporter.py&quot;
+PROJECT = ROOT / &quot;outputs&quot; / &quot;materialization_project&quot;
+DATA_CONTRACT = ROOT.parent / &quot;data&quot; / &quot;contract.json&quot;
+
+
+def load_reporter():
+    spec = importlib.util.spec_from_file_location(&quot;materialization_reporter&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot import {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main() -&gt; None:
+    reporter = load_reporter()
+    report = reporter.validate_project(PROJECT, DATA_CONTRACT, run_dbt=True)
+    summary = report[&quot;summary&quot;]
+    compact = {
+        &quot;valid&quot;: report[&quot;valid&quot;],
+        &quot;models&quot;: summary[&quot;models&quot;],
+        &quot;materializations&quot;: summary[&quot;materialization_counts&quot;],
+        &quot;physical_relations&quot;: summary.get(&quot;physical_relation_counts&quot;, {}),
+        &quot;mart_rows&quot;: summary.get(&quot;mart_row_count&quot;),
+        &quot;checks&quot;: f&quot;{sum(item[&#x27;valid&#x27;] for item in report[&#x27;checks&#x27;])}/{len(report[&#x27;checks&#x27;])}&quot;,
+    }
+    print(json.dumps(compact, ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;dbt-materialization-reporter&quot;,
+  &quot;type&quot;: &quot;tool&quot;,
+  &quot;path&quot;: &quot;outputs/materialization_reporter.py&quot;,
+  &quot;description&quot;: &quot;Проверяет dbt-модели customer revenue mart: materialization policy, source/ref boundaries, physical table/view relations, compiled ephemeral CTE и независимую сверку витрины.&quot;,
+  &quot;usage&quot;: &quot;python outputs/materialization_reporter.py --project outputs/materialization_project --data-contract ../data/contract.json --run-dbt&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/commands.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Materialization project commands
+
+Run from the lesson root:
+
+```bash
+dbt parse --project-dir outputs/materialization_project --profiles-dir outputs/materialization_project
+dbt compile --select &quot;mart_customer_revenue_health&quot; --project-dir outputs/materialization_project --profiles-dir outputs/materialization_project
+dbt run --project-dir outputs/materialization_project --profiles-dir outputs/materialization_project
+python outputs/materialization_reporter.py --project outputs/materialization_project --data-contract ../data/contract.json --run-dbt
+```
+
+The committed report is static and deterministic:
+
+```bash
+python outputs/materialization_reporter.py --output outputs/materialization_report.json
+```
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/commands.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/dbt_project.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>name: materialization_project
+version: &quot;1.0.0&quot;
+config-version: 2
+
+profile: materialization_project
+
+model-paths: [&quot;models&quot;]
+test-paths: [&quot;tests&quot;]
+macro-paths: [&quot;macros&quot;]
+snapshot-paths: [&quot;snapshots&quot;]
+seed-paths: [&quot;seeds&quot;]
+
+target-path: &quot;target&quot;
+clean-targets:
+  - &quot;target&quot;
+  - &quot;dbt_packages&quot;
+
+models:
+  materialization_project:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/dbt_project.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/macros/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/macros/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/intermediate/int_order_line_revenue.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    items.order_id,
+    orders.user_id,
+    orders.order_date,
+    items.line_number,
+    items.product_id,
+    items.quantity,
+    items.unit_price,
+    items.currency,
+    orders.status,
+    cast(items.quantity * items.unit_price as decimal(18, 2)) as line_revenue_native
+from {{ ref(&#x27;stg_order_items&#x27;) }} as items
+inner join {{ ref(&#x27;stg_orders&#x27;) }} as orders
+    on items.order_id = orders.order_id
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/intermediate/int_order_line_revenue.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/intermediate/int_refunds_by_order.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    currency,
+    cast(sum(amount) as decimal(18, 2)) as refund_amount_native,
+    max(refunded_at) as last_refunded_at
+from {{ ref(&#x27;stg_refunds&#x27;) }}
+group by
+    order_id,
+    currency
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/intermediate/int_refunds_by_order.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/intermediate/int_subscription_latest.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with ranked as (
+    select
+        user_id,
+        plan,
+        status,
+        started_at,
+        ended_at,
+        updated_at,
+        row_number() over (
+            partition by user_id
+            order by updated_at desc, subscription_id desc
+        ) as row_number_latest
+    from {{ ref(&#x27;stg_subscriptions&#x27;) }}
+)
+
+select
+    user_id,
+    plan as latest_subscription_plan,
+    status as latest_subscription_status,
+    status = &#x27;active&#x27; as has_active_subscription,
+    started_at as latest_subscription_started_at,
+    ended_at as latest_subscription_ended_at,
+    updated_at as latest_subscription_updated_at
+from ranked
+where row_number_latest = 1
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/intermediate/int_subscription_latest.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/intermediate/int_support_by_user.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    user_id,
+    count(*) as support_ticket_count,
+    sum(case when priority = &#x27;high&#x27; then 1 else 0 end) as high_priority_ticket_count,
+    max(created_at) as last_ticket_at
+from {{ ref(&#x27;stg_support_tickets&#x27;) }}
+group by user_id
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/intermediate/int_support_by_user.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/marts/mart_customer_revenue_health.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>with line_revenue as (
+    select * from {{ ref(&#x27;int_order_line_revenue&#x27;) }}
+),
+
+refunds_by_order as (
+    select * from {{ ref(&#x27;int_refunds_by_order&#x27;) }}
+),
+
+order_revenue as (
+    select
+        lines.order_id,
+        lines.user_id,
+        lines.order_date,
+        lines.status,
+        lines.currency,
+        cast(sum(lines.line_revenue_native) as decimal(18, 2)) as gross_amount_native,
+        cast(coalesce(max(refunds.refund_amount_native), 0) as decimal(18, 2)) as refund_amount_native
+    from line_revenue as lines
+    left join refunds_by_order as refunds
+        on lines.order_id = refunds.order_id
+    group by
+        lines.order_id,
+        lines.user_id,
+        lines.order_date,
+        lines.status,
+        lines.currency
+),
+
+order_revenue_rub as (
+    select
+        orders.order_id,
+        orders.user_id,
+        orders.status,
+        cast(orders.gross_amount_native * rates.rate_to_rub as decimal(18, 2)) as gross_revenue_rub,
+        cast(
+            case
+                when orders.status = &#x27;paid&#x27;
+                    then (orders.gross_amount_native - orders.refund_amount_native) * rates.rate_to_rub
+                else 0
+            end
+            as decimal(18, 2)
+        ) as paid_revenue_rub,
+        cast(orders.refund_amount_native * rates.rate_to_rub as decimal(18, 2)) as refunded_amount_rub
+    from order_revenue as orders
+    left join {{ ref(&#x27;stg_currency_rates&#x27;) }} as rates
+        on orders.currency = rates.currency
+        and orders.order_date = rates.rate_date
+)
+
+select
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan,
+    coalesce(subscriptions.latest_subscription_status, &#x27;none&#x27;) as latest_subscription_status,
+    coalesce(subscriptions.has_active_subscription, false) as has_active_subscription,
+    count(distinct orders.order_id) as order_count,
+    count(distinct case when orders.status = &#x27;paid&#x27; then orders.order_id end) as paid_order_count,
+    cast(coalesce(sum(orders.gross_revenue_rub), 0) as decimal(18, 2)) as gross_revenue_rub,
+    cast(coalesce(sum(orders.paid_revenue_rub), 0) as decimal(18, 2)) as paid_revenue_rub,
+    cast(coalesce(sum(orders.refunded_amount_rub), 0) as decimal(18, 2)) as refunded_amount_rub,
+    coalesce(max(support.support_ticket_count), 0) as support_ticket_count,
+    coalesce(max(support.high_priority_ticket_count), 0) as high_priority_ticket_count,
+    case
+        when coalesce(sum(orders.refunded_amount_rub), 0) &gt; 0
+            or coalesce(max(support.support_ticket_count), 0) &gt; 0
+            then &#x27;needs_attention&#x27;
+        when coalesce(sum(orders.paid_revenue_rub), 0) &gt;= 2000
+            then &#x27;high_value&#x27;
+        when coalesce(sum(orders.paid_revenue_rub), 0) &gt; 0
+            then &#x27;monetized&#x27;
+        else &#x27;no_revenue&#x27;
+    end as revenue_health_segment
+from {{ ref(&#x27;stg_users&#x27;) }} as users
+left join order_revenue_rub as orders
+    on users.user_id = orders.user_id
+left join {{ ref(&#x27;int_subscription_latest&#x27;) }} as subscriptions
+    on users.user_id = subscriptions.user_id
+left join {{ ref(&#x27;int_support_by_user&#x27;) }} as support
+    on users.user_id = support.user_id
+where users.is_deleted = false
+group by
+    users.user_id,
+    users.country,
+    users.platform,
+    users.plan,
+    subscriptions.latest_subscription_status,
+    subscriptions.has_active_subscription
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/marts/mart_customer_revenue_health.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/properties.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+models:
+  - name: stg_users
+    description: &quot;One row per registered user with normalized user attributes.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one registered user&quot;
+      consumer: &quot;intermediate and mart models&quot;
+      materialization_reason: &quot;Light source-shaped projection; freshness should follow raw data on each query.&quot;
+      cost_note: &quot;Low-cost casts and renames, no business aggregation.&quot;
+  - name: stg_events
+    description: &quot;One row per source event with typed timestamps and normalized platform.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one client or server event&quot;
+      consumer: &quot;future behavior models&quot;
+      materialization_reason: &quot;Event staging is a transparent raw boundary, not a stored mart.&quot;
+      cost_note: &quot;Projection only; later incremental event marts handle volume.&quot;
+  - name: stg_orders
+    description: &quot;One row per order with typed amount, status and order date.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one order or marketplace payment&quot;
+      consumer: &quot;intermediate revenue models&quot;
+      materialization_reason: &quot;Keeps order source logic current and inspectable.&quot;
+      cost_note: &quot;Small normalization work before joins.&quot;
+  - name: stg_order_items
+    description: &quot;One row per order line item.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one line item inside an order&quot;
+      consumer: &quot;line revenue intermediate model&quot;
+      materialization_reason: &quot;Line items are source-shaped and should not be stored twice.&quot;
+      cost_note: &quot;Projection and decimal casts only.&quot;
+  - name: stg_subscriptions
+    description: &quot;One row per subscription period.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one subscription period&quot;
+      consumer: &quot;latest subscription status model&quot;
+      materialization_reason: &quot;Subscription state is mutable; snapshots arrive in a later lesson.&quot;
+      cost_note: &quot;Windowing is left to an intermediate view.&quot;
+  - name: stg_support_tickets
+    description: &quot;One row per support ticket.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one support ticket&quot;
+      consumer: &quot;support aggregation by user&quot;
+      materialization_reason: &quot;Ticket source is small and source-shaped.&quot;
+      cost_note: &quot;No aggregation in staging.&quot;
+  - name: stg_refunds
+    description: &quot;One row per refund event for an order.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one refund event for an order&quot;
+      consumer: &quot;refund aggregation intermediate model&quot;
+      materialization_reason: &quot;Refunds stay current and transparent before order-level aggregation.&quot;
+      cost_note: &quot;Projection only.&quot;
+  - name: stg_currency_rates
+    description: &quot;One row per currency and calendar date.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: staging
+      grain: &quot;one currency rate for one calendar date&quot;
+      consumer: &quot;mart currency normalization&quot;
+      materialization_reason: &quot;Small lookup table; view is enough in the local project.&quot;
+      cost_note: &quot;Tiny lookup with date and decimal casts.&quot;
+  - name: int_order_line_revenue
+    description: &quot;Reusable line-level revenue logic joined to order status.&quot;
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: &quot;one order line with order status&quot;
+      consumer: &quot;mart_customer_revenue_health&quot;
+      materialization_reason: &quot;Light reusable CTE used by one downstream mart; keeping it ephemeral avoids extra relations.&quot;
+      cost_note: &quot;Safe while the compiled mart remains readable and fanout is limited.&quot;
+  - name: int_refunds_by_order
+    description: &quot;Order-level refund amount before currency conversion.&quot;
+    config:
+      materialized: ephemeral
+    meta:
+      layer: intermediate
+      grain: &quot;one refunded order&quot;
+      consumer: &quot;mart_customer_revenue_health&quot;
+      materialization_reason: &quot;Small aggregation used by a single mart and easy to inspect as compiled CTE.&quot;
+      cost_note: &quot;Do not make widely shared or debugging-heavy logic ephemeral.&quot;
+  - name: int_support_by_user
+    description: &quot;Support ticket counts and latest ticket timestamp by user.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: &quot;one user with support ticket summary&quot;
+      consumer: &quot;customer revenue health mart and ad-hoc support checks&quot;
+      materialization_reason: &quot;Reusable diagnostic model that analysts may query directly.&quot;
+      cost_note: &quot;Small aggregation, but direct inspectability matters.&quot;
+  - name: int_subscription_latest
+    description: &quot;Latest subscription status by user.&quot;
+    config:
+      materialized: view
+    meta:
+      layer: intermediate
+      grain: &quot;one user with latest subscription state&quot;
+      consumer: &quot;customer revenue health mart&quot;
+      materialization_reason: &quot;Window logic should be inspectable before snapshot history is introduced.&quot;
+      cost_note: &quot;View keeps mutable-state caveat visible.&quot;
+  - name: mart_customer_revenue_health
+    description: &quot;Consumer-facing customer revenue health mart.&quot;
+    config:
+      materialized: table
+    meta:
+      layer: marts
+      grain: &quot;one active non-deleted user&quot;
+      consumer: &quot;product and finance analysis&quot;
+      materialization_reason: &quot;Published mart is queried by consumers and should be fast and stable between runs.&quot;
+      cost_note: &quot;Rebuild cost is acceptable for the tiny local project; incremental comes later.&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/properties.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/sources.yml</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>version: 2
+
+sources:
+  - name: raw_app
+    schema: raw
+    description: &quot;Raw extract for the phase 11 customer revenue mart.&quot;
+    tables:
+      - name: users
+        identifier: raw_users
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: events
+        identifier: raw_events
+        config:
+          loaded_at_field: received_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: orders
+        identifier: raw_orders
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: order_items
+        identifier: raw_order_items
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: subscriptions
+        identifier: raw_subscriptions
+        config:
+          loaded_at_field: updated_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: support_tickets
+        identifier: raw_support_tickets
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: refunds
+        identifier: raw_refunds
+        config:
+          loaded_at_field: refunded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+      - name: currency_rates
+        identifier: raw_currency_rates
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 10000, period: day}
+            error_after: {count: 20000, period: day}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/sources.yml" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_currency_rates.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    upper(currency) as currency,
+    cast(rate_date as date) as rate_date,
+    cast(rate_to_rub as decimal(18, 4)) as rate_to_rub,
+    cast(loaded_at as timestamptz) as loaded_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;currency_rates&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_currency_rates.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_events.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    event_id,
+    user_id,
+    event_name,
+    cast(event_version as integer) as event_version,
+    cast(occurred_at as timestamptz) as occurred_at,
+    cast(received_at as timestamptz) as received_at,
+    lower(platform) as platform,
+    properties_json
+from {{ source(&#x27;raw_app&#x27;, &#x27;events&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_events.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_order_items.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    cast(line_number as integer) as line_number,
+    product_id,
+    cast(quantity as integer) as quantity,
+    cast(unit_price as decimal(18, 2)) as unit_price,
+    upper(currency) as currency,
+    cast(loaded_at as timestamptz) as loaded_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;order_items&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_order_items.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_orders.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    order_id,
+    user_id,
+    cast(ordered_at as timestamptz) as ordered_at,
+    cast(cast(ordered_at as timestamptz) as date) as order_date,
+    lower(status) as status,
+    upper(currency) as currency,
+    cast(amount as decimal(18, 2)) as amount,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;orders&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_orders.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_refunds.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    refund_id,
+    order_id,
+    cast(refunded_at as timestamptz) as refunded_at,
+    upper(currency) as currency,
+    cast(amount as decimal(18, 2)) as amount,
+    reason
+from {{ source(&#x27;raw_app&#x27;, &#x27;refunds&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_refunds.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_subscriptions.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    subscription_id,
+    user_id,
+    lower(plan) as plan,
+    lower(status) as status,
+    cast(started_at as timestamptz) as started_at,
+    cast(nullif(ended_at, &#x27;&#x27;) as timestamptz) as ended_at,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;subscriptions&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_subscriptions.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_support_tickets.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    ticket_id,
+    user_id,
+    cast(created_at as timestamptz) as created_at,
+    lower(topic) as topic,
+    lower(priority) as priority,
+    lower(status) as status
+from {{ source(&#x27;raw_app&#x27;, &#x27;support_tickets&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_support_tickets.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/models/staging/stg_users.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>select
+    user_id,
+    cast(registered_at as timestamptz) as registered_at,
+    country,
+    lower(platform) as platform,
+    acquisition_channel,
+    lower(plan) as plan,
+    cast(is_deleted as boolean) as is_deleted,
+    cast(updated_at as timestamptz) as updated_at
+from {{ source(&#x27;raw_app&#x27;, &#x27;users&#x27;) }}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/models/staging/stg_users.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/profiles.yml.example</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>materialization_project:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: &quot;{{ env_var(&#x27;DBT_DUCKDB_PATH&#x27;, &#x27;materialization.duckdb&#x27;) }}&quot;
+      schema: analytics
+      threads: 4
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/profiles.yml.example" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/seeds/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/seeds/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/snapshots/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/snapshots/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_project/tests/.gitkeep</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_project/tests/.gitkeep" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;summary&quot;: {
+    &quot;project_root&quot;: &quot;outputs/materialization_project&quot;,
+    &quot;models&quot;: [
+      &quot;int_order_line_revenue&quot;,
+      &quot;int_refunds_by_order&quot;,
+      &quot;int_subscription_latest&quot;,
+      &quot;int_support_by_user&quot;,
+      &quot;mart_customer_revenue_health&quot;,
+      &quot;stg_currency_rates&quot;,
+      &quot;stg_events&quot;,
+      &quot;stg_order_items&quot;,
+      &quot;stg_orders&quot;,
+      &quot;stg_refunds&quot;,
+      &quot;stg_subscriptions&quot;,
+      &quot;stg_support_tickets&quot;,
+      &quot;stg_users&quot;
+    ],
+    &quot;materializations&quot;: {
+      &quot;int_order_line_revenue&quot;: &quot;ephemeral&quot;,
+      &quot;int_refunds_by_order&quot;: &quot;ephemeral&quot;,
+      &quot;int_subscription_latest&quot;: &quot;view&quot;,
+      &quot;int_support_by_user&quot;: &quot;view&quot;,
+      &quot;mart_customer_revenue_health&quot;: &quot;table&quot;,
+      &quot;stg_currency_rates&quot;: &quot;view&quot;,
+      &quot;stg_events&quot;: &quot;view&quot;,
+      &quot;stg_order_items&quot;: &quot;view&quot;,
+      &quot;stg_orders&quot;: &quot;view&quot;,
+      &quot;stg_refunds&quot;: &quot;view&quot;,
+      &quot;stg_subscriptions&quot;: &quot;view&quot;,
+      &quot;stg_support_tickets&quot;: &quot;view&quot;,
+      &quot;stg_users&quot;: &quot;view&quot;
+    },
+    &quot;materialization_counts&quot;: {
+      &quot;ephemeral&quot;: 2,
+      &quot;table&quot;: 1,
+      &quot;view&quot;: 10
+    },
+    &quot;data_contract&quot;: &quot;../data/contract.json&quot;,
+    &quot;data_dir&quot;: &quot;../data/tiny&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;project_root_exists&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;outputs/materialization_project&quot;,
+      &quot;expected&quot;: &quot;existing directory&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;required_project_files_exist&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;dbt_project.yml&quot;,
+        &quot;profiles.yml.example&quot;,
+        &quot;commands.md&quot;,
+        &quot;models/sources.yml&quot;,
+        &quot;models/properties.yml&quot;
+      ],
+      &quot;expected&quot;: &quot;required files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;raw_sources_are_declared&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 8,
+      &quot;expected&quot;: &quot;all data contract tables&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;expected_models_exist&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;int_order_line_revenue&quot;,
+        &quot;int_refunds_by_order&quot;,
+        &quot;int_subscription_latest&quot;,
+        &quot;int_support_by_user&quot;,
+        &quot;mart_customer_revenue_health&quot;,
+        &quot;stg_currency_rates&quot;,
+        &quot;stg_events&quot;,
+        &quot;stg_order_items&quot;,
+        &quot;stg_orders&quot;,
+        &quot;stg_refunds&quot;,
+        &quot;stg_subscriptions&quot;,
+        &quot;stg_support_tickets&quot;,
+        &quot;stg_users&quot;
+      ],
+      &quot;expected&quot;: &quot;all expected SQL models&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;materializations_match_policy&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;int_order_line_revenue&quot;: &quot;ephemeral&quot;,
+        &quot;int_refunds_by_order&quot;: &quot;ephemeral&quot;,
+        &quot;int_subscription_latest&quot;: &quot;view&quot;,
+        &quot;int_support_by_user&quot;: &quot;view&quot;,
+        &quot;mart_customer_revenue_health&quot;: &quot;table&quot;,
+        &quot;stg_currency_rates&quot;: &quot;view&quot;,
+        &quot;stg_events&quot;: &quot;view&quot;,
+        &quot;stg_order_items&quot;: &quot;view&quot;,
+        &quot;stg_orders&quot;: &quot;view&quot;,
+        &quot;stg_refunds&quot;: &quot;view&quot;,
+        &quot;stg_subscriptions&quot;: &quot;view&quot;,
+        &quot;stg_support_tickets&quot;: &quot;view&quot;,
+        &quot;stg_users&quot;: &quot;view&quot;
+      },
+      &quot;expected&quot;: &quot;declared materialization per model policy&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;materialization_decisions_documented&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: 13,
+      &quot;expected&quot;: &quot;all decisions documented&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;no_future_materializations_in_this_lesson&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ok&quot;,
+      &quot;expected&quot;: &quot;no incremental/materialized_view&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;source_calls_stay_in_staging&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ok&quot;,
+      &quot;expected&quot;: &quot;staging source boundary&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;downstream_models_use_ref&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ok&quot;,
+      &quot;expected&quot;: &quot;ref() dependencies&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;sql_has_no_direct_raw_references&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: &quot;ok&quot;,
+      &quot;expected&quot;: &quot;no direct raw identifiers&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;mart_uses_required_upstream_models&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;int_order_line_revenue&quot;,
+        &quot;int_refunds_by_order&quot;,
+        &quot;int_subscription_latest&quot;,
+        &quot;int_support_by_user&quot;,
+        &quot;stg_currency_rates&quot;,
+        &quot;stg_users&quot;
+      ],
+      &quot;expected&quot;: &quot;customer mart dependencies&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;ephemeral_models_have_limited_fanout&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;int_order_line_revenue&quot;: [
+          &quot;mart_customer_revenue_health&quot;
+        ],
+        &quot;int_refunds_by_order&quot;: [
+          &quot;mart_customer_revenue_health&quot;
+        ]
+      },
+      &quot;expected&quot;: &quot;one or two downstream consumers&quot;,
+      &quot;sample&quot;: []
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/materialization_reporter.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from collections import Counter
+from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import yaml
+
+
+SOURCE_NAME = &quot;raw_app&quot;
+EXPECTED_MODELS: dict[str, dict[str, Any]] = {
+    &quot;stg_users&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_events&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_orders&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_order_items&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_subscriptions&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_support_tickets&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_refunds&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;stg_currency_rates&quot;: {&quot;layer&quot;: &quot;staging&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;int_order_line_revenue&quot;: {&quot;layer&quot;: &quot;intermediate&quot;, &quot;materialized&quot;: &quot;ephemeral&quot;},
+    &quot;int_refunds_by_order&quot;: {&quot;layer&quot;: &quot;intermediate&quot;, &quot;materialized&quot;: &quot;ephemeral&quot;},
+    &quot;int_support_by_user&quot;: {&quot;layer&quot;: &quot;intermediate&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;int_subscription_latest&quot;: {&quot;layer&quot;: &quot;intermediate&quot;, &quot;materialized&quot;: &quot;view&quot;},
+    &quot;mart_customer_revenue_health&quot;: {&quot;layer&quot;: &quot;marts&quot;, &quot;materialized&quot;: &quot;table&quot;},
+}
+REQUIRED_META_KEYS = {
+    &quot;layer&quot;,
+    &quot;grain&quot;,
+    &quot;consumer&quot;,
+    &quot;materialization_reason&quot;,
+    &quot;cost_note&quot;,
+}
+MART_REQUIRED_REFS = {
+    &quot;stg_users&quot;,
+    &quot;stg_currency_rates&quot;,
+    &quot;int_order_line_revenue&quot;,
+    &quot;int_refunds_by_order&quot;,
+    &quot;int_support_by_user&quot;,
+    &quot;int_subscription_latest&quot;,
+}
+DISALLOWED_IN_THIS_LESSON = {&quot;incremental&quot;, &quot;materialized_view&quot;}
+RAW_IDENTIFIER_RE = re.compile(r&quot;\braw_[a-z0-9_]+\b&quot;, flags=re.IGNORECASE)
+SOURCE_CALL_RE = re.compile(r&quot;\{\{\s*source\(\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]\s*,\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]\s*\)&quot;)
+REF_CALL_RE = re.compile(r&quot;\{\{\s*ref\(\s*[&#x27;\&quot;]([^&#x27;\&quot;]+)[&#x27;\&quot;]&quot;)
+ANSI_RE = re.compile(r&quot;\x1b\[[0-9;]*m&quot;)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None) -&gt; dict[str, Any]:
+    return {&quot;id&quot;: check_id, &quot;valid&quot;: True, &quot;observed&quot;: observed, &quot;expected&quot;: expected, &quot;sample&quot;: []}
+
+
+def failed(
+    check_id: str,
+    observed: Any,
+    expected: Any,
+    sample: list[Any] | None = None,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def read_json(path: Path) -&gt; Any:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def read_yaml(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        value = yaml.safe_load(source)
+    if not isinstance(value, dict):
+        raise ValueError(f&quot;{path} must contain a YAML mapping&quot;)
+    return value
+
+
+def data_contract_tables(data_contract: dict[str, Any]) -&gt; dict[str, dict[str, Any]]:
+    tables = data_contract.get(&quot;tables&quot;)
+    if not isinstance(tables, dict):
+        raise ValueError(&quot;data contract must contain a tables object&quot;)
+    return {str(name): table for name, table in tables.items() if isinstance(table, dict)}
+
+
+def source_table_name(raw_identifier: str) -&gt; str:
+    return raw_identifier.removeprefix(&quot;raw_&quot;)
+
+
+def sql_files(project_root: Path) -&gt; list[Path]:
+    return sorted((project_root / &quot;models&quot;).rglob(&quot;*.sql&quot;))
+
+
+def model_name_from_path(path: Path) -&gt; str:
+    return path.stem
+
+
+def path_layer(project_root: Path, path: Path) -&gt; str:
+    try:
+        relative = path.relative_to(project_root / &quot;models&quot;)
+    except ValueError:
+        return &quot;unknown&quot;
+    return relative.parts[0] if relative.parts else &quot;unknown&quot;
+
+
+def load_model_specs(project_root: Path) -&gt; dict[str, dict[str, Any]]:
+    specs: dict[str, dict[str, Any]] = {}
+    for yaml_path in sorted((project_root / &quot;models&quot;).rglob(&quot;*.yml&quot;)):
+        value = read_yaml(yaml_path)
+        for item in value.get(&quot;models&quot;, []):
+            if isinstance(item, dict) and isinstance(item.get(&quot;name&quot;), str):
+                specs[item[&quot;name&quot;]] = item
+    return specs
+
+
+def load_source_declarations(project_root: Path) -&gt; list[dict[str, Any]]:
+    declarations: list[dict[str, Any]] = []
+    for yaml_path in sorted((project_root / &quot;models&quot;).rglob(&quot;*.yml&quot;)):
+        value = read_yaml(yaml_path)
+        for source in value.get(&quot;sources&quot;, []):
+            if isinstance(source, dict):
+                declarations.append(source)
+    return declarations
+
+
+def collect_sql_usage(project_root: Path, raw_identifiers: set[str]) -&gt; dict[str, dict[str, Any]]:
+    usage: dict[str, dict[str, Any]] = {}
+    for path in sql_files(project_root):
+        text = path.read_text(encoding=&quot;utf-8&quot;)
+        usage[model_name_from_path(path)] = {
+            &quot;path&quot;: str(path.relative_to(project_root)),
+            &quot;layer&quot;: path_layer(project_root, path),
+            &quot;source_calls&quot;: SOURCE_CALL_RE.findall(text),
+            &quot;ref_calls&quot;: REF_CALL_RE.findall(text),
+            &quot;raw_identifiers&quot;: sorted(
+                {identifier for identifier in RAW_IDENTIFIER_RE.findall(text) if identifier in raw_identifiers}
+            ),
+        }
+    return usage
+
+
+def validate_sources(project_root: Path, data_contract: dict[str, Any]) -&gt; dict[str, Any]:
+    tables = data_contract_tables(data_contract)
+    expected_sources = {source_table_name(name): name for name in tables}
+    raw_source = next(
+        (source for source in load_source_declarations(project_root) if source.get(&quot;name&quot;) == SOURCE_NAME),
+        None,
+    )
+    if raw_source is None:
+        return failed(&quot;raw_sources_are_declared&quot;, None, f&quot;source named {SOURCE_NAME}&quot;, [SOURCE_NAME])
+    declared = {
+        table.get(&quot;name&quot;): table.get(&quot;identifier&quot;)
+        for table in raw_source.get(&quot;tables&quot;, [])
+        if isinstance(table, dict)
+    }
+    missing = sorted(set(expected_sources) - set(declared))
+    identifier_errors = [
+        {&quot;source&quot;: source_name, &quot;observed&quot;: declared.get(source_name), &quot;expected&quot;: raw_identifier}
+        for source_name, raw_identifier in sorted(expected_sources.items())
+        if source_name in declared and declared[source_name] != raw_identifier
+    ]
+    if missing or identifier_errors:
+        sample: list[Any] = [{&quot;missing&quot;: item} for item in missing]
+        sample.extend(identifier_errors)
+        return failed(
+            &quot;raw_sources_are_declared&quot;,
+            {&quot;missing&quot;: missing, &quot;identifier_errors&quot;: identifier_errors},
+            &quot;all data contract tables declared as sources&quot;,
+            sample,
+        )
+    return passed(&quot;raw_sources_are_declared&quot;, len(expected_sources), &quot;all data contract tables&quot;)
+
+
+def validate_materialization_specs(
+    specs: dict[str, dict[str, Any]],
+    usage: dict[str, dict[str, Any]],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    missing_models = sorted(set(EXPECTED_MODELS) - set(usage))
+    extra_models = sorted(set(usage) - set(EXPECTED_MODELS))
+    if missing_models or extra_models:
+        checks.append(
+            failed(
+                &quot;expected_models_exist&quot;,
+                {&quot;missing&quot;: missing_models, &quot;extra&quot;: extra_models},
+                sorted(EXPECTED_MODELS),
+                missing_models + extra_models,
+            )
+        )
+    else:
+        checks.append(passed(&quot;expected_models_exist&quot;, sorted(EXPECTED_MODELS), &quot;all expected SQL models&quot;))
+
+    materialization_errors: list[dict[str, Any]] = []
+    meta_errors: list[dict[str, Any]] = []
+    observed_materializations: dict[str, str | None] = {}
+    for model_name, expected in sorted(EXPECTED_MODELS.items()):
+        spec = specs.get(model_name, {})
+        config = spec.get(&quot;config&quot;) if isinstance(spec.get(&quot;config&quot;), dict) else {}
+        materialized = config.get(&quot;materialized&quot;)
+        observed_materializations[model_name] = materialized
+        if materialized != expected[&quot;materialized&quot;]:
+            materialization_errors.append(
+                {
+                    &quot;model&quot;: model_name,
+                    &quot;observed&quot;: materialized,
+                    &quot;expected&quot;: expected[&quot;materialized&quot;],
+                }
+            )
+        meta = spec.get(&quot;meta&quot;) if isinstance(spec.get(&quot;meta&quot;), dict) else {}
+        missing_meta = sorted(REQUIRED_META_KEYS - set(meta))
+        if meta.get(&quot;layer&quot;) != expected[&quot;layer&quot;]:
+            missing_meta.append(&quot;layer_mismatch&quot;)
+        if missing_meta:
+            meta_errors.append({&quot;model&quot;: model_name, &quot;missing_or_wrong_meta&quot;: missing_meta})
+
+    if materialization_errors:
+        checks.append(
+            failed(
+                &quot;materializations_match_policy&quot;,
+                materialization_errors,
+                &quot;declared materialization per model policy&quot;,
+                materialization_errors,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;materializations_match_policy&quot;,
+                dict(sorted(observed_materializations.items())),
+                &quot;declared materialization per model policy&quot;,
+            )
+        )
+    if meta_errors:
+        checks.append(
+            failed(
+                &quot;materialization_decisions_documented&quot;,
+                meta_errors,
+                f&quot;meta keys {sorted(REQUIRED_META_KEYS)} per model&quot;,
+                meta_errors,
+            )
+        )
+    else:
+        checks.append(
+            passed(&quot;materialization_decisions_documented&quot;, len(EXPECTED_MODELS), &quot;all decisions documented&quot;)
+        )
+
+    disallowed = sorted(
+        model_name
+        for model_name, materialized in observed_materializations.items()
+        if materialized in DISALLOWED_IN_THIS_LESSON
+    )
+    if disallowed:
+        checks.append(
+            failed(
+                &quot;no_future_materializations_in_this_lesson&quot;,
+                disallowed,
+                &quot;incremental/materialized_view are reserved for later lessons&quot;,
+                disallowed,
+            )
+        )
+    else:
+        checks.append(
+            passed(&quot;no_future_materializations_in_this_lesson&quot;, &quot;ok&quot;, &quot;no incremental/materialized_view&quot;)
+        )
+    return checks
+
+
+def validate_sql_boundaries(usage: dict[str, dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    staging_errors = sorted(
+        name
+        for name, item in usage.items()
+        if item[&quot;layer&quot;] == &quot;staging&quot; and len(item[&quot;source_calls&quot;]) != 1
+    )
+    non_staging_source_errors = sorted(
+        name for name, item in usage.items() if item[&quot;layer&quot;] != &quot;staging&quot; and item[&quot;source_calls&quot;]
+    )
+    if staging_errors or non_staging_source_errors:
+        checks.append(
+            failed(
+                &quot;source_calls_stay_in_staging&quot;,
+                {&quot;staging_errors&quot;: staging_errors, &quot;non_staging_source_errors&quot;: non_staging_source_errors},
+                &quot;staging reads sources; downstream reads models&quot;,
+                staging_errors + non_staging_source_errors,
+            )
+        )
+    else:
+        checks.append(passed(&quot;source_calls_stay_in_staging&quot;, &quot;ok&quot;, &quot;staging source boundary&quot;))
+
+    downstream_without_ref = sorted(
+        name for name, item in usage.items() if item[&quot;layer&quot;] != &quot;staging&quot; and not item[&quot;ref_calls&quot;]
+    )
+    if downstream_without_ref:
+        checks.append(
+            failed(
+                &quot;downstream_models_use_ref&quot;,
+                downstream_without_ref,
+                &quot;intermediate and mart models use ref()&quot;,
+                downstream_without_ref,
+            )
+        )
+    else:
+        checks.append(passed(&quot;downstream_models_use_ref&quot;, &quot;ok&quot;, &quot;ref() dependencies&quot;))
+
+    raw_mentions = [
+        {&quot;model&quot;: name, &quot;path&quot;: item[&quot;path&quot;], &quot;raw_identifiers&quot;: item[&quot;raw_identifiers&quot;]}
+        for name, item in usage.items()
+        if item[&quot;raw_identifiers&quot;]
+    ]
+    if raw_mentions:
+        checks.append(
+            failed(&quot;sql_has_no_direct_raw_references&quot;, raw_mentions, &quot;use source()/ref()&quot;, raw_mentions)
+        )
+    else:
+        checks.append(passed(&quot;sql_has_no_direct_raw_references&quot;, &quot;ok&quot;, &quot;no direct raw identifiers&quot;))
+
+    mart_refs = set(usage.get(&quot;mart_customer_revenue_health&quot;, {}).get(&quot;ref_calls&quot;, []))
+    missing_mart_refs = sorted(MART_REQUIRED_REFS - mart_refs)
+    if missing_mart_refs:
+        checks.append(
+            failed(
+                &quot;mart_uses_required_upstream_models&quot;,
+                missing_mart_refs,
+                sorted(MART_REQUIRED_REFS),
+                missing_mart_refs,
+            )
+        )
+    else:
+        checks.append(
+            passed(&quot;mart_uses_required_upstream_models&quot;, sorted(mart_refs), &quot;customer mart dependencies&quot;)
+        )
+    return checks
+
+
+def validate_ephemeral_fanout(usage: dict[str, dict[str, Any]]) -&gt; dict[str, Any]:
+    children: dict[str, list[str]] = {name: [] for name, expected in EXPECTED_MODELS.items() if expected[&quot;materialized&quot;] == &quot;ephemeral&quot;}
+    for consumer, item in usage.items():
+        for ref_name in item[&quot;ref_calls&quot;]:
+            if ref_name in children:
+                children[ref_name].append(consumer)
+    fanout_errors = [
+        {&quot;model&quot;: model, &quot;children&quot;: sorted(consumers)}
+        for model, consumers in sorted(children.items())
+        if not consumers or len(set(consumers)) &gt; 2
+    ]
+    if fanout_errors:
+        return failed(
+            &quot;ephemeral_models_have_limited_fanout&quot;,
+            fanout_errors,
+            &quot;ephemeral models used by one or two downstream models&quot;,
+            fanout_errors,
+        )
+    return passed(
+        &quot;ephemeral_models_have_limited_fanout&quot;,
+        {model: sorted(consumers) for model, consumers in sorted(children.items())},
+        &quot;one or two downstream consumers&quot;,
+    )
+
+
+def validate_static_project(project_root: Path, data_contract: dict[str, Any]) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {&quot;project_root&quot;: str(project_root)}
+    if not project_root.is_dir():
+        return [failed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;)], summary
+    checks.append(passed(&quot;project_root_exists&quot;, str(project_root), &quot;existing directory&quot;))
+    required_files = [&quot;dbt_project.yml&quot;, &quot;profiles.yml.example&quot;, &quot;commands.md&quot;, &quot;models/sources.yml&quot;, &quot;models/properties.yml&quot;]
+    missing_files = [path for path in required_files if not (project_root / path).is_file()]
+    if missing_files:
+        checks.append(failed(&quot;required_project_files_exist&quot;, missing_files, required_files, missing_files))
+        return checks, summary
+    checks.append(passed(&quot;required_project_files_exist&quot;, required_files, &quot;required files&quot;))
+
+    tables = data_contract_tables(data_contract)
+    usage = collect_sql_usage(project_root, set(tables))
+    specs = load_model_specs(project_root)
+    materializations = {
+        model: (specs.get(model, {}).get(&quot;config&quot;) or {}).get(&quot;materialized&quot;)
+        for model in sorted(EXPECTED_MODELS)
+    }
+    summary[&quot;models&quot;] = sorted(usage)
+    summary[&quot;materializations&quot;] = materializations
+    summary[&quot;materialization_counts&quot;] = dict(sorted(Counter(materializations.values()).items()))
+
+    checks.append(validate_sources(project_root, data_contract))
+    checks.extend(validate_materialization_specs(specs, usage))
+    checks.extend(validate_sql_boundaries(usage))
+    checks.append(validate_ephemeral_fanout(usage))
+    return checks, summary
+
+
+def safe_identifier(value: str) -&gt; str:
+    if not re.fullmatch(r&quot;[A-Za-z_][A-Za-z0-9_]*&quot;, value):
+        raise ValueError(f&quot;unsafe SQL identifier: {value}&quot;)
+    return value
+
+
+def prepare_duckdb_database(db_path: Path, data_contract: dict[str, Any], data_dir: Path) -&gt; dict[str, int]:
+    import duckdb
+
+    tables = data_contract_tables(data_contract)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(db_path))
+    try:
+        con.execute(&quot;create schema if not exists raw&quot;)
+        row_counts: dict[str, int] = {}
+        for table_name in sorted(tables):
+            safe_table = safe_identifier(table_name)
+            csv_path = data_dir / f&quot;{table_name}.csv&quot;
+            if not csv_path.is_file():
+                raise FileNotFoundError(f&quot;missing source CSV: {csv_path}&quot;)
+            con.execute(
+                f&#x27;create or replace table raw.&quot;{safe_table}&quot; as select * from read_csv_auto(?)&#x27;,
+                [str(csv_path)],
+            )
+            row_counts[table_name] = con.execute(
+                f&#x27;select count(*) from raw.&quot;{safe_table}&quot;&#x27;
+            ).fetchone()[0]
+    finally:
+        con.close()
+    return row_counts
+
+
+def tail(text: str, line_count: int = 8) -&gt; str:
+    lines = ANSI_RE.sub(&quot;&quot;, text).splitlines()
+    return &quot;\n&quot;.join(lines[-line_count:])
+
+
+def run_command(command: list[str], env: dict[str, str]) -&gt; dict[str, Any]:
+    completed = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+    return {
+        &quot;command&quot;: &quot; &quot;.join(command[:2]),
+        &quot;returncode&quot;: completed.returncode,
+        &quot;stdout_tail&quot;: tail(completed.stdout),
+        &quot;stderr_tail&quot;: tail(completed.stderr),
+    }
+
+
+def normalize_relation_type(table_type: str) -&gt; str:
+    lowered = table_type.lower()
+    if &quot;view&quot; in lowered:
+        return &quot;view&quot;
+    if &quot;table&quot; in lowered:
+        return &quot;table&quot;
+    return lowered
+
+
+def inspect_physical_relations(db_path: Path) -&gt; dict[str, str]:
+    import duckdb
+
+    con = duckdb.connect(str(db_path))
+    try:
+        rows = con.execute(
+            &quot;&quot;&quot;
+            select table_name, table_type
+            from information_schema.tables
+            where table_schema = &#x27;analytics&#x27;
+            order by table_name
+            &quot;&quot;&quot;
+        ).fetchall()
+    finally:
+        con.close()
+    return {str(name): normalize_relation_type(str(kind)) for name, kind in rows}
+
+
+def decimal_string(value: Any) -&gt; str:
+    if value is None:
+        return &quot;0.00&quot;
+    return f&quot;{Decimal(str(value)):.2f}&quot;
+
+
+def inspect_mart_rows(db_path: Path) -&gt; list[dict[str, Any]]:
+    import duckdb
+
+    con = duckdb.connect(str(db_path))
+    try:
+        rows = con.execute(
+            &quot;&quot;&quot;
+            select
+                user_id,
+                latest_subscription_status,
+                has_active_subscription,
+                order_count,
+                paid_order_count,
+                gross_revenue_rub,
+                paid_revenue_rub,
+                refunded_amount_rub,
+                support_ticket_count,
+                high_priority_ticket_count,
+                revenue_health_segment
+            from analytics.mart_customer_revenue_health
+            order by user_id
+            &quot;&quot;&quot;
+        ).fetchall()
+    finally:
+        con.close()
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        result.append(
+            {
+                &quot;user_id&quot;: row[0],
+                &quot;latest_subscription_status&quot;: row[1],
+                &quot;has_active_subscription&quot;: bool(row[2]),
+                &quot;order_count&quot;: int(row[3]),
+                &quot;paid_order_count&quot;: int(row[4]),
+                &quot;gross_revenue_rub&quot;: decimal_string(row[5]),
+                &quot;paid_revenue_rub&quot;: decimal_string(row[6]),
+                &quot;refunded_amount_rub&quot;: decimal_string(row[7]),
+                &quot;support_ticket_count&quot;: int(row[8]),
+                &quot;high_priority_ticket_count&quot;: int(row[9]),
+                &quot;revenue_health_segment&quot;: row[10],
+            }
+        )
+    return result
+
+
+def expected_mart_rows() -&gt; list[dict[str, Any]]:
+    return [
+        {
+            &quot;user_id&quot;: &quot;u001&quot;,
+            &quot;latest_subscription_status&quot;: &quot;active&quot;,
+            &quot;has_active_subscription&quot;: True,
+            &quot;order_count&quot;: 1,
+            &quot;paid_order_count&quot;: 1,
+            &quot;gross_revenue_rub&quot;: &quot;1200.00&quot;,
+            &quot;paid_revenue_rub&quot;: &quot;1200.00&quot;,
+            &quot;refunded_amount_rub&quot;: &quot;0.00&quot;,
+            &quot;support_ticket_count&quot;: 0,
+            &quot;high_priority_ticket_count&quot;: 0,
+            &quot;revenue_health_segment&quot;: &quot;monetized&quot;,
+        },
+        {
+            &quot;user_id&quot;: &quot;u002&quot;,
+            &quot;latest_subscription_status&quot;: &quot;active&quot;,
+            &quot;has_active_subscription&quot;: True,
+            &quot;order_count&quot;: 1,
+            &quot;paid_order_count&quot;: 1,
+            &quot;gross_revenue_rub&quot;: &quot;800.00&quot;,
+            &quot;paid_revenue_rub&quot;: &quot;800.00&quot;,
+            &quot;refunded_amount_rub&quot;: &quot;0.00&quot;,
+            &quot;support_ticket_count&quot;: 0,
+            &quot;high_priority_ticket_count&quot;: 0,
+            &quot;revenue_health_segment&quot;: &quot;monetized&quot;,
+        },
+        {
+            &quot;user_id&quot;: &quot;u003&quot;,
+            &quot;latest_subscription_status&quot;: &quot;cancelled&quot;,
+            &quot;has_active_subscription&quot;: False,
+            &quot;order_count&quot;: 1,
+            &quot;paid_order_count&quot;: 0,
+            &quot;gross_revenue_rub&quot;: &quot;1500.00&quot;,
+            &quot;paid_revenue_rub&quot;: &quot;0.00&quot;,
+            &quot;refunded_amount_rub&quot;: &quot;1500.00&quot;,
+            &quot;support_ticket_count&quot;: 1,
+            &quot;high_priority_ticket_count&quot;: 0,
+            &quot;revenue_health_segment&quot;: &quot;needs_attention&quot;,
+        },
+        {
+            &quot;user_id&quot;: &quot;u004&quot;,
+            &quot;latest_subscription_status&quot;: &quot;none&quot;,
+            &quot;has_active_subscription&quot;: False,
+            &quot;order_count&quot;: 0,
+            &quot;paid_order_count&quot;: 0,
+            &quot;gross_revenue_rub&quot;: &quot;0.00&quot;,
+            &quot;paid_revenue_rub&quot;: &quot;0.00&quot;,
+            &quot;refunded_amount_rub&quot;: &quot;0.00&quot;,
+            &quot;support_ticket_count&quot;: 1,
+            &quot;high_priority_ticket_count&quot;: 1,
+            &quot;revenue_health_segment&quot;: &quot;needs_attention&quot;,
+        },
+        {
+            &quot;user_id&quot;: &quot;u005&quot;,
+            &quot;latest_subscription_status&quot;: &quot;active&quot;,
+            &quot;has_active_subscription&quot;: True,
+            &quot;order_count&quot;: 1,
+            &quot;paid_order_count&quot;: 1,
+            &quot;gross_revenue_rub&quot;: &quot;2312.50&quot;,
+            &quot;paid_revenue_rub&quot;: &quot;2312.50&quot;,
+            &quot;refunded_amount_rub&quot;: &quot;0.00&quot;,
+            &quot;support_ticket_count&quot;: 0,
+            &quot;high_priority_ticket_count&quot;: 0,
+            &quot;revenue_health_segment&quot;: &quot;high_value&quot;,
+        },
+    ]
+
+
+def inspect_manifest(manifest_path: Path, relations: dict[str, str], mart_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    manifest = read_json(manifest_path)
+    nodes = {
+        node.get(&quot;name&quot;): node
+        for node in manifest.get(&quot;nodes&quot;, {}).values()
+        if isinstance(node, dict) and node.get(&quot;resource_type&quot;) == &quot;model&quot;
+    }
+    checks: list[dict[str, Any]] = []
+    manifest_errors: list[dict[str, Any]] = []
+    for model_name, expected in sorted(EXPECTED_MODELS.items()):
+        node = nodes.get(model_name)
+        observed = None
+        if isinstance(node, dict):
+            observed = (node.get(&quot;config&quot;) or {}).get(&quot;materialized&quot;)
+        if observed != expected[&quot;materialized&quot;]:
+            manifest_errors.append({&quot;model&quot;: model_name, &quot;observed&quot;: observed, &quot;expected&quot;: expected[&quot;materialized&quot;]})
+    if manifest_errors:
+        checks.append(
+            failed(&quot;manifest_materializations_match_policy&quot;, manifest_errors, &quot;manifest config matches policy&quot;, manifest_errors)
+        )
+    else:
+        checks.append(passed(&quot;manifest_materializations_match_policy&quot;, sorted(EXPECTED_MODELS), &quot;manifest config&quot;))
+
+    relation_errors: list[dict[str, Any]] = []
+    expected_relation_counts: Counter[str] = Counter()
+    for model_name, expected in sorted(EXPECTED_MODELS.items()):
+        materialized = expected[&quot;materialized&quot;]
+        if materialized == &quot;ephemeral&quot;:
+            if model_name in relations:
+                relation_errors.append({&quot;model&quot;: model_name, &quot;observed&quot;: relations[model_name], &quot;expected&quot;: &quot;no relation&quot;})
+            continue
+        expected_relation_counts[materialized] += 1
+        if relations.get(model_name) != materialized:
+            relation_errors.append({&quot;model&quot;: model_name, &quot;observed&quot;: relations.get(model_name), &quot;expected&quot;: materialized})
+    if relation_errors:
+        checks.append(
+            failed(
+                &quot;physical_relations_match_materializations&quot;,
+                relation_errors,
+                &quot;views/tables exist and ephemeral models do not&quot;,
+                relation_errors,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;physical_relations_match_materializations&quot;,
+                dict(sorted(Counter(relations.values()).items())),
+                dict(sorted(expected_relation_counts.items())),
+            )
+        )
+
+    mart_node = nodes.get(&quot;mart_customer_revenue_health&quot;, {})
+    compiled = &quot;&quot;
+    if isinstance(mart_node, dict):
+        compiled = str(mart_node.get(&quot;compiled_code&quot;) or mart_node.get(&quot;compiled_sql&quot;) or &quot;&quot;)
+    missing_ctes = [
+        cte
+        for cte in (&quot;__dbt__cte__int_order_line_revenue&quot;, &quot;__dbt__cte__int_refunds_by_order&quot;)
+        if cte not in compiled
+    ]
+    if missing_ctes:
+        checks.append(
+            failed(&quot;compiled_mart_inlines_ephemeral_models&quot;, missing_ctes, &quot;ephemeral CTE names in compiled SQL&quot;, missing_ctes)
+        )
+    else:
+        checks.append(
+            passed(&quot;compiled_mart_inlines_ephemeral_models&quot;, &quot;ok&quot;, &quot;ephemeral CTE names in compiled SQL&quot;)
+        )
+
+    expected_rows = expected_mart_rows()
+    if mart_rows != expected_rows:
+        checks.append(
+            failed(
+                &quot;mart_matches_independent_control&quot;,
+                mart_rows,
+                expected_rows,
+                [{&quot;observed&quot;: mart_rows, &quot;expected&quot;: expected_rows}],
+            )
+        )
+    else:
+        checks.append(passed(&quot;mart_matches_independent_control&quot;, len(mart_rows), &quot;expected mart rows&quot;))
+    return checks
+
+
+def run_dbt_audit(
+    project_root: Path,
+    data_contract: dict[str, Any],
+    data_dir: Path,
+) -&gt; tuple[list[dict[str, Any]], dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    with TemporaryDirectory() as directory:
+        tmp = Path(directory)
+        project_copy = tmp / &quot;project&quot;
+        profiles_dir = tmp / &quot;profiles&quot;
+        shutil.copytree(project_root, project_copy)
+        profiles_dir.mkdir()
+        shutil.copy(project_copy / &quot;profiles.yml.example&quot;, profiles_dir / &quot;profiles.yml&quot;)
+        db_path = tmp / &quot;materialization.duckdb&quot;
+        row_counts = prepare_duckdb_database(db_path, data_contract, data_dir)
+
+        env = os.environ.copy()
+        env[&quot;DBT_SEND_ANONYMOUS_USAGE_STATS&quot;] = &quot;false&quot;
+        env[&quot;DBT_DUCKDB_PATH&quot;] = str(db_path)
+
+        commands = [
+            run_command(
+                [&quot;dbt&quot;, &quot;parse&quot;, &quot;--project-dir&quot;, str(project_copy), &quot;--profiles-dir&quot;, str(profiles_dir)],
+                env,
+            ),
+            run_command(
+                [
+                    &quot;dbt&quot;,
+                    &quot;compile&quot;,
+                    &quot;--select&quot;,
+                    &quot;mart_customer_revenue_health&quot;,
+                    &quot;--project-dir&quot;,
+                    str(project_copy),
+                    &quot;--profiles-dir&quot;,
+                    str(profiles_dir),
+                ],
+                env,
+            ),
+            run_command(
+                [&quot;dbt&quot;, &quot;run&quot;, &quot;--project-dir&quot;, str(project_copy), &quot;--profiles-dir&quot;, str(profiles_dir)],
+                env,
+            ),
+        ]
+        summary[&quot;loaded_raw_rows&quot;] = row_counts
+        summary[&quot;dbt_commands&quot;] = commands
+        if not all(item[&quot;returncode&quot;] == 0 for item in commands):
+            checks.append(failed(&quot;dbt_parse_compile_run_succeed&quot;, commands, &quot;all dbt commands exit 0&quot;, commands))
+            return checks, summary
+        checks.append(passed(&quot;dbt_parse_compile_run_succeed&quot;, &quot;ok&quot;, &quot;all dbt commands exit 0&quot;))
+        relations = inspect_physical_relations(db_path)
+        mart_rows = inspect_mart_rows(db_path)
+        summary[&quot;physical_relations&quot;] = relations
+        summary[&quot;physical_relation_counts&quot;] = dict(sorted(Counter(relations.values()).items()))
+        summary[&quot;mart_row_count&quot;] = len(mart_rows)
+        checks.extend(inspect_manifest(project_copy / &quot;target&quot; / &quot;manifest.json&quot;, relations, mart_rows))
+    return checks, summary
+
+
+def validate_project(
+    project_root: Path,
+    data_contract_path: Path,
+    data_dir: Path | None = None,
+    run_dbt: bool = False,
+) -&gt; dict[str, Any]:
+    data_contract = read_json(data_contract_path)
+    resolved_data_dir = data_dir or data_contract_path.parent / &quot;tiny&quot;
+    checks, summary = validate_static_project(project_root, data_contract)
+    summary[&quot;data_contract&quot;] = str(data_contract_path)
+    summary[&quot;data_dir&quot;] = str(resolved_data_dir)
+    if run_dbt and all(check[&quot;valid&quot;] for check in checks):
+        live_checks, live_summary = run_dbt_audit(project_root, data_contract, resolved_data_dir)
+        checks.extend(live_checks)
+        summary.update(live_summary)
+    elif run_dbt:
+        checks.append(
+            failed(
+                &quot;dbt_parse_compile_run_succeed&quot;,
+                &quot;skipped because static checks failed&quot;,
+                &quot;all dbt commands exit 0&quot;,
+            )
+        )
+    return {&quot;valid&quot;: all(check[&quot;valid&quot;] for check in checks), &quot;summary&quot;: summary, &quot;checks&quot;: checks}
+
+
+def parse_args() -&gt; argparse.Namespace:
+    lesson_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description=&quot;Audit dbt model materializations and compiled mart logic.&quot;)
+    parser.add_argument(
+        &quot;--project&quot;,
+        type=Path,
+        default=Path(__file__).resolve().parent / &quot;materialization_project&quot;,
+        help=&quot;Path to the dbt project.&quot;,
+    )
+    parser.add_argument(
+        &quot;--data-contract&quot;,
+        type=Path,
+        default=lesson_root.parent / &quot;data&quot; / &quot;contract.json&quot;,
+        help=&quot;Path to the phase data contract.&quot;,
+    )
+    parser.add_argument(&quot;--data-dir&quot;, type=Path, help=&quot;Directory containing raw CSV files.&quot;)
+    parser.add_argument(&quot;--output&quot;, type=Path, help=&quot;Optional path to write report JSON.&quot;)
+    parser.add_argument(&quot;--run-dbt&quot;, action=&quot;store_true&quot;, help=&quot;Run dbt parse, compile and run in a temporary copy.&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; None:
+    args = parse_args()
+    report = validate_project(
+        args.project,
+        args.data_contract,
+        data_dir=args.data_dir,
+        run_dbt=args.run_dbt,
+    )
+    rendered = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.write_text(rendered + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+    print(rendered)
+    if not report[&quot;valid&quot;]:
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/11-analytics-engineering/04-models/outputs/materialization_reporter.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/11-analytics-engineering/04-models" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/analytics-engineering/sources-and-refs/"><span>← Предыдущий урок</span><strong>Sources, refs и зависимости</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/analytics-engineering/data-tests/"><span>Следующий урок →</span><strong>Data tests</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>

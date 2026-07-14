@@ -1,0 +1,3311 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="В 16/04 built-in importance сказал: platform доминирует внутри CatBoost. В 16/05 permutation importance на validation сказал осторожнее: тот же platform дает самый…">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/shap/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="SHAP и ограничения объяснений">
+  <meta property="og:description" content="В 16/04 built-in importance сказал: platform доминирует внутри CatBoost. В 16/05 permutation importance на validation сказал осторожнее: тот же platform дает самый…">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/shap/">
+  <meta name="twitter:card" content="summary">
+  <title>SHAP и ограничения объяснений — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "SHAP и ограничения объяснений", "description": "В 16/04 built-in importance сказал: platform доминирует внутри CatBoost. В 16/05 permutation importance на validation сказал осторожнее: тот же platform дает самый…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/shap/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 16: Табличный ML и интерпретация", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=16"}, {"@type": "ListItem", "position": 3, "name": "SHAP и ограничения объяснений", "item": "https://datascience.xyz/courses/analyst-tools/lessons/tabular-ml/shap/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 16</p><h2>Табличный ML и интерпретация</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/catboost/"><span>01</span>CatBoost как сильный табличный baseline</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/categorical-features/"><span>02</span>Категориальные признаки без leakage</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/early-stopping/"><span>03</span>Early stopping и iteration budget</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/feature-importance/"><span>04</span>Встроенная важность признаков</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/permutation-importance/"><span>05</span>Permutation importance</a><a class="lesson-sidebar-link is-active" href="../../../lessons/tabular-ml/shap/"><span>06</span>SHAP и ограничения объяснений</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/segment-analysis/"><span>07</span>Сегментный анализ сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/cost-sensitive-decisions/"><span>08</span>Порог и стоимость решения для сильной модели</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/optuna/"><span>09</span>Optuna и честный подбор параметров</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/mlflow/"><span>10</span>MLflow для истории экспериментов</a><a class="lesson-sidebar-link" href="../../../lessons/tabular-ml/drift-and-stability/"><span>11</span>Drift, стабильность и interpretation package</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 16 · Табличный ML и интерпретация</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 177 из 201</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/16-tabular-ml/06-shap" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>В каком output space этот урок проверяет additivity SHAP values?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">В raw-margin space CatBoost, сравнивая `expected_value + sum(SHAP)` с `RawFormulaVal`</button><button type="button" class="quiz-option" data-choice="1">В probability space, сравнивая сумму SHAP с `predict_proba`</button><button type="button" class="quiz-option" data-choice="2">В log-loss space, потому что предыдущий урок считал permutation importance</button><button type="button" class="quiz-option" data-choice="3">В любом space, потому что SHAP values всегда одинаковые</button></div><p class="quiz-feedback" hidden>Policy фиксирует `model_output=raw` и `output_space=raw_margin`. Additivity проверяется против CatBoost `RawFormulaVal`.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему reporter явно пишет `external_background_data_passed=false`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для CatBoost categorical splits TreeExplainer в этом режиме использует `tree_path_dependent` background без внешнего masker</button><button type="button" class="quiz-option" data-choice="1">Потому что background не влияет на SHAP вообще никогда</button><button type="button" class="quiz-option" data-choice="2">Потому что train rows нельзя даже записывать в отчет</button><button type="button" class="quiz-option" data-choice="3">Потому что probability output автоматически заменяет background</button></div><p class="quiz-feedback" hidden>С native categorical splits SHAP требует path-dependent mode без external background data. Reporter все равно записывает train rows как reference для baseline.</p></article></section>
+        <article class="lesson-article"><h1 id="shap-и-ограничения-объяснений">SHAP и ограничения объяснений</h1>
+<h2 id="проблема">Проблема</h2>
+<p>В <code>16/04</code> built-in importance сказал: <code>platform</code> доминирует внутри CatBoost. В
+<code>16/05</code> permutation importance на validation сказал осторожнее: тот же <code>platform</code> дает
+самый большой абсолютный delta, но mean delta отрицательный, а strong positive claim
+не поддержан.</p>
+<p>Теперь хочется открыть модель локально: почему конкретная строка получила такой score?
+Tree SHAP отвечает на этот вопрос через decomposition prediction:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw_prediction = expected_value + sum(shap_value_i)
+</code></pre></div><p>Но SHAP легко переинтерпретировать. Он объясняет поведение обученной модели в выбранном
+output space, а не причину churn, не справедливость решения и не стабильность в
+production. В этом уроке вы построите reporter, который считает global/local Tree SHAP
+для CatBoost и рядом сохраняет ограничения: background mode, raw output space,
+additivity check, local examples, disagreement с built-in/permutation и warning ledger.</p>
+<h2 id="концепция">Концепция</h2>
+<p>SHAP values раскладывают prediction на вклады признаков. В tree models это удобно:
+<code>TreeExplainer</code> использует структуру деревьев и возвращает вклад каждого feature в
+выбранном output space.</p>
+<p>В этом уроке output space - <code>raw_margin</code>, то есть <code>RawFormulaVal</code> CatBoost. Это важно:</p>
+<table>
+<thead>
+<tr>
+<th>Решение</th>
+<th>Что значит</th>
+<th>Почему так</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>model_output=&quot;raw&quot;</code></td>
+<td>SHAP values складываются в raw margin</td>
+<td>additivity можно проверить напрямую</td>
+</tr>
+<tr>
+<td><code>feature_perturbation=&quot;tree_path_dependent&quot;</code></td>
+<td>background берется из path counts дерева</td>
+<td>CatBoost categorical splits не поддерживают external background data в <code>TreeExplainer</code></td>
+</tr>
+<tr>
+<td><code>external_background_data_passed=false</code></td>
+<td>мы не передаем train dataframe как masker</td>
+<td>это осознанный constraint, а не забытый параметр</td>
+</tr>
+<tr>
+<td><code>background_split=&quot;train&quot;</code></td>
+<td>train rows записаны как reference</td>
+<td>в отчете видно, какая обучающая база соответствует path-dependent baseline</td>
+</tr>
+</tbody>
+</table>
+<p>Почему не probability? Для Tree SHAP probability output требует другой режим
+зависимости признаков. С CatBoost native categorical splits в этом tiny уроке честнее
+объяснять raw margin, а probability показывать рядом только как prediction context.</p>
+<p>Защитные слои reporter:</p>
+<table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Что проверяет</th>
+<th>Что блокирует</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Handoff</td>
+<td><code>16/05</code> готов к SHAP, модель и feature order совпадают</td>
+<td>объяснение не той модели</td>
+</tr>
+<tr>
+<td>Background audit</td>
+<td>path-dependent mode зафиксирован, train reference не смешан с test</td>
+<td>неявный baseline</td>
+</tr>
+<tr>
+<td>Output contract</td>
+<td><code>raw_margin</code>, <code>RawFormulaVal</code>, tolerance <code>1e-9</code></td>
+<td>некорректная additivity</td>
+</tr>
+<tr>
+<td>Local rows</td>
+<td>только <code>S005</code>, <code>S006</code>, <code>S007</code> из validation</td>
+<td>подглядывание в final test</td>
+</tr>
+<tr>
+<td>Disagreement table</td>
+<td>built-in, permutation и SHAP сравниваются явно</td>
+<td>красивая, но однобокая история</td>
+</tr>
+<tr>
+<td>Limitation warnings</td>
+<td>tiny sample, one tree, weak score, high-cardinality, correlation</td>
+<td>сильные бизнес-выводы</td>
+</tr>
+</tbody>
+</table>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Новый policy spec:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/data/tiny/shap_explanation_policy_spec.json
+</code></pre></div><p>Он фиксирует:</p>
+<ul>
+<li>handoff от <code>16/05</code> permutation importance;</li>
+<li><code>explain_split=validation</code> и <code>final_holdout_split=test</code>;</li>
+<li><code>TreeExplainer</code>, <code>model_output=raw</code>, <code>output_space=raw_margin</code>;</li>
+<li><code>feature_perturbation=tree_path_dependent</code>;</li>
+<li>path-dependent background mode и train-row reference;</li>
+<li>additivity tolerance <code>1e-9</code>;</li>
+<li>local rows <code>S005</code>, <code>S006</code>, <code>S007</code>;</li>
+<li>global aggregation <code>mean_abs_shap</code>;</li>
+<li>non-causal, non-fairness, non-production-stability interpretation policy;</li>
+<li>warning thresholds для tiny background, tiny explanation sample, one-tree model,
+weak validation score, high-cardinality и correlated features.</li>
+</ul>
+<p>Минимальный механизм:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">import shap
+from catboost import Pool
+
+
+explainer = shap.TreeExplainer(
+    model,
+    feature_perturbation=&quot;tree_path_dependent&quot;,
+    model_output=&quot;raw&quot;,
+)
+values = explainer.shap_values(Pool(X_validation, cat_features=cat_features))
+expected_value = explainer.expected_value
+raw_prediction = model.predict(
+    Pool(X_validation, cat_features=cat_features),
+    prediction_type=&quot;RawFormulaVal&quot;,
+)
+</code></pre></div><p>Reporter делает из этого production-shaped artifact:</p>
+<ul>
+<li><code>shap_global_summary.csv</code> - feature-level <code>mean_abs_shap</code>, signs и rank;</li>
+<li><code>shap_local_explanations.csv</code> - top local contributions для declared rows;</li>
+<li><code>shap_additivity_audit.csv</code> - row-level reconstruction raw margin;</li>
+<li><code>explanation_disagreement.csv</code> - comparison с built-in и permutation;</li>
+<li><code>shap_warning_ledger.csv</code> - limitations рядом с числами;</li>
+<li><code>shap_explanation_serialized_spec.json</code> - handoff для <code>16/07</code>.</li>
+</ul>
+<p>Основной артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/16-tabular-ml/06-shap/outputs/shap_explanation_reporter.py
+</code></pre></div><h2 id="используйте-это">Используйте это</h2>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/16-tabular-ml/06-shap/code/main.py
+</code></pre></div><p>Ожидаемая сводка:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;audit_valid&quot;: true,
+  &quot;shap_explanation_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;explain_split&quot;: &quot;validation&quot;,
+  &quot;background_row_count&quot;: 4,
+  &quot;explain_row_count&quot;: 3,
+  &quot;output_space&quot;: &quot;raw_margin&quot;,
+  &quot;expected_value&quot;: 0.0,
+  &quot;additivity_max_abs_error&quot;: 0.0,
+  &quot;top_mean_abs_shap_feature&quot;: &quot;platform&quot;,
+  &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+  &quot;warning_count&quot;: 8,
+  &quot;readiness_status&quot;: &quot;ready_for_segment_analysis_lesson&quot;
+}
+</code></pre></div><p>В tiny fixture:</p>
+<ul>
+<li>background reference содержит train rows <code>S001</code>-<code>S004</code>;</li>
+<li>объяснение строится только для validation rows <code>S005</code>, <code>S006</code>, <code>S007</code>;</li>
+<li><code>expected_value = 0.0</code>;</li>
+<li>raw predictions: <code>[-0.030769, -0.030769, 0.030769]</code>;</li>
+<li><code>platform</code> единственный ненулевой SHAP feature;</li>
+<li><code>mean_abs_shap(platform) = 0.030769</code>;</li>
+<li>local signs смешанные: <code>ios</code> и <code>web</code> дают отрицательный вклад, <code>android</code> -
+положительный;</li>
+<li>additivity error равен <code>0.0</code> для всех трех rows.</li>
+</ul>
+<p>Disagreement table важнее, чем top feature:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Top feature</th>
+<th>Direction / meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CatBoost <code>PredictionValuesChange</code></td>
+<td><code>platform</code></td>
+<td>positive internal prediction-change signal</td>
+</tr>
+<tr>
+<td>CatBoost <code>LossFunctionChange</code></td>
+<td><code>platform</code></td>
+<td>negative validation loss-function change</td>
+</tr>
+<tr>
+<td>Permutation importance</td>
+<td><code>platform</code></td>
+<td>loss decreased when permuted on tiny validation</td>
+</tr>
+<tr>
+<td>Tree SHAP <code>mean_abs</code></td>
+<td><code>platform</code></td>
+<td>mixed local signs in raw-margin space</td>
+</tr>
+</tbody>
+</table>
+<p>Все методы указывают на <code>platform</code>, но смысл сигнала разный. Поэтому корректный вывод:
+модель действительно использует split по <code>platform</code>, но этот факт не доказывает
+положительную бизнес-важность платформы и не объясняет причинность churn.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<p>Поменяйте output space:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;model_output&quot;: &quot;probability&quot;,
+&quot;output_space&quot;: &quot;probability&quot;
+</code></pre></div><p>Policy должна упасть. В этом уроке additivity contract задан для raw margin, а
+probability values нельзя смешивать с raw <code>RawFormulaVal</code>.</p>
+<p>Теперь добавьте test-row в local explanations:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;snapshot_ids&quot;: [&quot;S005&quot;, &quot;S009&quot;]
+</code></pre></div><p>Audit должен заблокировать расчет. Final test не используется для выбора и упаковки
+интерпретационной истории.</p>
+<p>Измените claim:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">&quot;claim&quot;: &quot;platform causes churn and fairness certified production stable&quot;
+</code></pre></div><p>Reporter должен заблокировать policy. SHAP объясняет модельный score, а не causal
+effect, fairness guarantee или production-stability guarantee.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите тесты урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s phases/16-tabular-ml/06-shap/tests
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>handoff от <code>16/05</code>;</li>
+<li>path-dependent background reference на train rows;</li>
+<li>validation-only explanation без final test;</li>
+<li>raw-margin output contract;</li>
+<li>feature order из CatBoost training pool;</li>
+<li>10 global SHAP rows;</li>
+<li>local explanations для <code>S005</code>, <code>S006</code>, <code>S007</code>;</li>
+<li>additivity reconstruction для raw margin;</li>
+<li>disagreement table для built-in, permutation и SHAP;</li>
+<li>warnings про high-cardinality, correlation, tiny sample, one tree, weak score,
+raw margin и CatBoost background constraint;</li>
+<li>блокировку probability output;</li>
+<li>блокировку local row из test;</li>
+<li>блокировку causal/fairness/production-stability claim;</li>
+<li>CLI <code>--fail-on-warning</code>.</li>
+</ul>
+<p>Для полного курса после изменения статуса:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python scripts/validate_course.py
+uv run --locked python scripts/render_curriculum.py --check
+uv run --locked python scripts/render_outputs.py --check
+uv run --locked python scripts/render_site.py --check
+uv run --locked python -m unittest discover -s tests
+uv run --locked python scripts/run_lesson_tests.py
+</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Готовый результат урока - SHAP explanation reporter. Его можно передать в <code>16/07</code>,
+потому что:</p>
+<ul>
+<li>модель совпадает с early-stopping run из <code>16/03</code>;</li>
+<li>permutation handoff из <code>16/05</code> валиден;</li>
+<li>background mode записан явно;</li>
+<li>output space не смешивает raw margin и probability;</li>
+<li>additivity check проходит;</li>
+<li>local examples сохранены рядом с feature values;</li>
+<li>global summary показывает, где есть ненулевой вклад;</li>
+<li>disagreement с built-in и permutation не скрыт;</li>
+<li>limitations сохранены как machine-readable warning ledger;</li>
+<li><code>ready_for_segment_analysis_lesson</code> означает, что следующий урок может смотреть
+segment-level behavior сильной модели, не превращая SHAP в causal proof.</li>
+</ul>
+<h2 id="упражнения">Упражнения</h2>
+<ol>
+<li>Включите <code>include_zero_contributions=true</code> в копии policy и сравните читаемость
+local explanations.</li>
+<li>Добавьте local row из test split и объясните, почему auditor блокирует такой отчет.</li>
+<li>Увеличьте модель в копии early-stopping spec и проверьте, исчезает ли one-tree
+warning.</li>
+<li>Сравните <code>mean_abs_shap</code> с permutation <code>mean_importance</code> и сформулируйте, почему
+эти числа не обязаны иметь одинаковый знак.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространенное заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SHAP value</td>
+<td>&quot;Причина решения&quot;</td>
+<td>Вклад признака в prediction обученной модели в выбранном output space</td>
+</tr>
+<tr>
+<td>Expected value</td>
+<td>&quot;Средняя вероятность churn&quot;</td>
+<td>Baseline в том output space, где считается SHAP; здесь raw margin</td>
+</tr>
+<tr>
+<td>Additivity</td>
+<td>&quot;Красивое свойство графика&quot;</td>
+<td>Проверка, что <code>expected_value + sum(SHAP)</code> восстанавливает model raw prediction</td>
+</tr>
+<tr>
+<td>Background</td>
+<td>&quot;Любой train dataframe&quot;</td>
+<td>Для CatBoost categorical splits здесь используется tree-path-dependent baseline</td>
+</tr>
+<tr>
+<td>Global SHAP</td>
+<td>&quot;Общая бизнес-важность&quot;</td>
+<td>Aggregation local contributions на выбранном split, не causal effect</td>
+</tr>
+<tr>
+<td>Disagreement table</td>
+<td>&quot;Лишний отчет&quot;</td>
+<td>Защита от скрытия конфликтующих смыслов разных explanation methods</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://shap.readthedocs.io/en/stable/generated/shap.TreeExplainer.html" target="_blank" rel="noopener">SHAP TreeExplainer API</a> - параметры <code>model_output</code>, <code>feature_perturbation</code>, background behavior и additivity contract.</li>
+<li><a href="https://shap.readthedocs.io/en/stable/example_notebooks/tabular_examples/tree_based_models/Catboost%20tutorial.html" target="_blank" rel="noopener">SHAP CatBoost tutorial</a> - пример применения SHAP к CatBoost-модели.</li>
+<li><a href="https://catboost.ai/docs/en/concepts/fstr" target="_blank" rel="noopener">CatBoost: feature importance and SHAP values</a> - документация CatBoost по feature importance и SHAP value формату.</li>
+<li><a href="https://arxiv.org/abs/1705.07874" target="_blank" rel="noopener">Lundberg and Lee, 2017: A Unified Approach to Interpreting Model Predictions</a> - первичная статья про SHAP как additive feature attribution.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что доказывает additivity check в `shap_additivity_audit.csv`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что SHAP decomposition точно восстанавливает raw prediction модели для проверяемых rows</button><button type="button" class="quiz-option" data-choice="1">Что SHAP values являются causal effects</button><button type="button" class="quiz-option" data-choice="2">Что модель хорошо калибрована</button><button type="button" class="quiz-option" data-choice="3">Что `platform` стабилен в production</button></div><p class="quiz-feedback" hidden>Additivity - техническая проверка decomposition в выбранном output space. Она не доказывает причинность, качество калибровки или production stability.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Зачем lesson сохраняет `explanation_disagreement.csv`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы явно показать, что built-in, permutation и SHAP могут указывать на один feature, но иметь разный смысл и знак</button><button type="button" class="quiz-option" data-choice="1">Чтобы выбрать один метод и удалить остальные отчеты</button><button type="button" class="quiz-option" data-choice="2">Чтобы доказать, что `PredictionValuesChange=100` является бизнес-эффектом</button><button type="button" class="quiz-option" data-choice="3">Чтобы заменить additivity audit</button></div><p class="quiz-feedback" hidden>В tiny fixture все методы указывают на `platform`, но signals конфликтуют: internal positive, validation negative, permutation negative и SHAP mixed local signs.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Какой вывод корректен после этого SHAP-отчета?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Модель использует `platform` в raw-margin decision rule на validation rows, но это не causal, fairness или production-stability proof</button><button type="button" class="quiz-option" data-choice="1">`platform` вызывает churn</button><button type="button" class="quiz-option" data-choice="2">SHAP сертифицирует модель как fair</button><button type="button" class="quiz-option" data-choice="3">Если mean_abs_shap высокий, permutation importance обязана быть положительной</button></div><p class="quiz-feedback" hidden>Tree SHAP объясняет поведение конкретной обученной модели. Warning ledger специально запрещает сильные causal/fairness/production claims.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import csv
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+DATA_ROOT = PHASE_ROOT / &quot;data&quot; / &quot;tiny&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+ARTIFACT = LESSON_ROOT / &quot;outputs&quot; / &quot;shap_explanation_reporter.py&quot;
+CODE = LESSON_ROOT / &quot;code&quot; / &quot;main.py&quot;
+
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from shap_explanation_reporter import (  # noqa: E402
+    DEFAULT_BUILT_IN_REPORT_PATH,
+    DEFAULT_BUILT_IN_SPEC_PATH,
+    DEFAULT_CATEGORICAL_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    DEFAULT_PERMUTATION_REPORT_PATH,
+    DEFAULT_PERMUTATION_SPEC_PATH,
+    run,
+)
+
+
+def read_json(path: Path) -&gt; dict:
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value: dict) -&gt; None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def read_csv(path: Path) -&gt; list[dict[str, str]]:
+    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
+        return list(csv.DictReader(source))
+
+
+def check(report: dict, check_id: str) -&gt; dict:
+    return next(item for item in report[&quot;checks&quot;] if item[&quot;id&quot;] == check_id)
+
+
+class ShapExplanationReporterTest(TestCase):
+    def audit(
+        self,
+        root: Path = DATA_ROOT,
+        upstream_root: Path = UPSTREAM_DATA_ROOT,
+        **paths: Path,
+    ) -&gt; dict:
+        return run(
+            policy_path=paths.get(&quot;policy_path&quot;, root / &quot;shap_explanation_policy_spec.json&quot;),
+            catboost_spec_path=paths.get(&quot;catboost_spec_path&quot;, root / &quot;catboost_model_spec.json&quot;),
+            early_stopping_report_path=paths.get(&quot;early_stopping_report_path&quot;, DEFAULT_EARLY_STOPPING_REPORT_PATH),
+            early_stopping_spec_path=paths.get(&quot;early_stopping_spec_path&quot;, DEFAULT_EARLY_STOPPING_SPEC_PATH),
+            categorical_report_path=paths.get(&quot;categorical_report_path&quot;, DEFAULT_CATEGORICAL_REPORT_PATH),
+            built_in_report_path=paths.get(&quot;built_in_report_path&quot;, DEFAULT_BUILT_IN_REPORT_PATH),
+            built_in_spec_path=paths.get(&quot;built_in_spec_path&quot;, DEFAULT_BUILT_IN_SPEC_PATH),
+            permutation_report_path=paths.get(&quot;permutation_report_path&quot;, DEFAULT_PERMUTATION_REPORT_PATH),
+            permutation_spec_path=paths.get(&quot;permutation_spec_path&quot;, DEFAULT_PERMUTATION_SPEC_PATH),
+            features_path=paths.get(&quot;features_path&quot;, upstream_root / &quot;ml_raw_features.csv&quot;),
+            labels_path=paths.get(&quot;labels_path&quot;, upstream_root / &quot;ml_labels.csv&quot;),
+            manifest_path=paths.get(&quot;manifest_path&quot;, upstream_root / &quot;ml_split_manifest.csv&quot;),
+        )
+
+    def copy_inputs(self, directory: Path) -&gt; tuple[Path, Path, Path]:
+        phase16 = directory / &quot;phase16&quot;
+        upstream = directory / &quot;upstream&quot;
+        reports = directory / &quot;reports&quot;
+        phase16.mkdir()
+        upstream.mkdir()
+        reports.mkdir()
+        for filename in (&quot;shap_explanation_policy_spec.json&quot;, &quot;catboost_model_spec.json&quot;):
+            shutil.copy2(DATA_ROOT / filename, phase16 / filename)
+        for filename in (&quot;ml_raw_features.csv&quot;, &quot;ml_labels.csv&quot;, &quot;ml_split_manifest.csv&quot;):
+            shutil.copy2(UPSTREAM_DATA_ROOT / filename, upstream / filename)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_REPORT_PATH, reports / &quot;early_stopping_report.json&quot;)
+        shutil.copy2(DEFAULT_EARLY_STOPPING_SPEC_PATH, reports / &quot;early_stopping_serialized_spec.json&quot;)
+        shutil.copy2(DEFAULT_CATEGORICAL_REPORT_PATH, reports / &quot;categorical_feature_report.json&quot;)
+        shutil.copy2(DEFAULT_BUILT_IN_REPORT_PATH, reports / &quot;built_in_importance_report.json&quot;)
+        shutil.copy2(DEFAULT_BUILT_IN_SPEC_PATH, reports / &quot;built_in_importance_serialized_spec.json&quot;)
+        shutil.copy2(DEFAULT_PERMUTATION_REPORT_PATH, reports / &quot;permutation_importance_report.json&quot;)
+        shutil.copy2(DEFAULT_PERMUTATION_SPEC_PATH, reports / &quot;permutation_importance_serialized_spec.json&quot;)
+        return phase16, upstream, reports
+
+    def test_valid_report_records_background_output_additivity_and_warnings(self) -&gt; None:
+        report = self.audit()
+        summary = report[&quot;summary&quot;]
+
+        self.assertTrue(report[&quot;valid&quot;])
+        self.assertEqual(summary[&quot;shap_explanation_audit_id&quot;], &quot;trial-churn-shap-explanation-audit-v0&quot;)
+        self.assertEqual(summary[&quot;early_stopping_model_id&quot;], &quot;catboost_depth2_native_categories_es_logloss&quot;)
+        self.assertEqual(summary[&quot;permutation_importance_audit_id&quot;], &quot;trial-churn-permutation-importance-audit-v0&quot;)
+        self.assertEqual(summary[&quot;background_split&quot;], &quot;train&quot;)
+        self.assertEqual(summary[&quot;background_row_count&quot;], 4)
+        self.assertEqual(summary[&quot;explain_split&quot;], &quot;validation&quot;)
+        self.assertEqual(summary[&quot;explain_row_count&quot;], 3)
+        self.assertEqual(summary[&quot;output_space&quot;], &quot;raw_margin&quot;)
+        self.assertEqual(summary[&quot;expected_value&quot;], 0.0)
+        self.assertEqual(summary[&quot;additivity_max_abs_error&quot;], 0.0)
+        self.assertEqual(summary[&quot;additivity_passed_row_count&quot;], 3)
+        self.assertEqual(summary[&quot;global_summary_row_count&quot;], 10)
+        self.assertEqual(summary[&quot;local_explanation_row_count&quot;], 3)
+        self.assertEqual(summary[&quot;top_mean_abs_shap_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(summary[&quot;top_mean_abs_shap_value&quot;], 0.030769)
+        self.assertEqual(summary[&quot;top_contribution_direction&quot;], &quot;mixed&quot;)
+        self.assertEqual(summary[&quot;disagreement_row_count&quot;], 4)
+        self.assertEqual(summary[&quot;warning_ledger_row_count&quot;], 12)
+        self.assertEqual(summary[&quot;readiness_status&quot;], &quot;ready_for_segment_analysis_lesson&quot;)
+        self.assertEqual(
+            summary[&quot;warnings&quot;],
+            [
+                &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+                &quot;correlated_features_can_share_shap_attribution&quot;,
+                &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+                &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+                &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+                &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+                &quot;raw_margin_output_is_not_probability&quot;,
+                &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+            ],
+        )
+
+    def test_global_summary_ranks_platform_and_keeps_zero_features(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;feature_name&quot;]: row for row in report[&quot;global_summary&quot;]}
+        platform = rows[&quot;platform&quot;]
+
+        self.assertEqual(platform[&quot;feature_role&quot;], &quot;categorical&quot;)
+        self.assertEqual(platform[&quot;output_space&quot;], &quot;raw_margin&quot;)
+        self.assertEqual(platform[&quot;mean_abs_shap&quot;], 0.030769)
+        self.assertEqual(platform[&quot;mean_shap_value&quot;], -0.010256)
+        self.assertEqual(platform[&quot;std_shap_value&quot;], 0.02901)
+        self.assertEqual(platform[&quot;positive_row_count&quot;], 1)
+        self.assertEqual(platform[&quot;negative_row_count&quot;], 2)
+        self.assertEqual(platform[&quot;nonzero_row_count&quot;], 3)
+        self.assertEqual(platform[&quot;rank_by_mean_abs_shap&quot;], 1)
+        self.assertTrue(platform[&quot;is_top_mean_abs_shap_feature&quot;])
+        self.assertEqual(platform[&quot;contribution_direction&quot;], &quot;mixed&quot;)
+        self.assertEqual(rows[&quot;sessions_14d&quot;][&quot;rank_by_mean_abs_shap&quot;], 2)
+        self.assertEqual(rows[&quot;acquisition_channel&quot;][&quot;rank_by_mean_abs_shap&quot;], 10)
+        self.assertEqual(rows[&quot;acquisition_channel&quot;][&quot;mean_abs_shap&quot;], 0.0)
+
+    def test_local_explanations_show_raw_margin_contributions_for_declared_rows(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;snapshot_id&quot;]: row for row in report[&quot;local_explanations&quot;]}
+
+        self.assertEqual(set(rows), {&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;})
+        self.assertEqual(rows[&quot;S005&quot;][&quot;feature_name&quot;], &quot;platform&quot;)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;feature_value&quot;], &quot;ios&quot;)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;raw_prediction&quot;], -0.030769)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;predicted_probability&quot;], 0.492308)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;shap_value&quot;], -0.030769)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;contribution_direction&quot;], &quot;negative&quot;)
+        self.assertEqual(rows[&quot;S006&quot;][&quot;feature_value&quot;], &quot;web&quot;)
+        self.assertEqual(rows[&quot;S006&quot;][&quot;target&quot;], 1)
+        self.assertEqual(rows[&quot;S007&quot;][&quot;feature_value&quot;], &quot;android&quot;)
+        self.assertEqual(rows[&quot;S007&quot;][&quot;predicted_probability&quot;], 0.507692)
+        self.assertEqual(rows[&quot;S007&quot;][&quot;shap_value&quot;], 0.030769)
+        self.assertEqual(rows[&quot;S007&quot;][&quot;contribution_direction&quot;], &quot;positive&quot;)
+
+    def test_additivity_audit_reconstructs_raw_formula_values(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;snapshot_id&quot;]: row for row in report[&quot;additivity_audit&quot;]}
+
+        self.assertEqual(set(rows), {&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;})
+        self.assertTrue(all(row[&quot;passes_additivity&quot;] for row in rows.values()))
+        self.assertEqual(rows[&quot;S005&quot;][&quot;expected_value&quot;], 0.0)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;shap_sum&quot;], -0.030769)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;model_raw_prediction&quot;], -0.030769)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;reconstructed_raw_prediction&quot;], -0.030769)
+        self.assertEqual(rows[&quot;S005&quot;][&quot;absolute_error&quot;], 0.0)
+        self.assertEqual(rows[&quot;S007&quot;][&quot;shap_sum&quot;], 0.030769)
+
+    def test_background_and_explain_rows_exclude_final_test(self) -&gt; None:
+        report = self.audit()
+        background = check(report, &quot;background_reference_uses_train_and_excludes_test&quot;)
+        explain = check(report, &quot;explain_rows_use_validation_and_exclude_final_test&quot;)
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertTrue(background[&quot;valid&quot;])
+        self.assertEqual(background[&quot;observed&quot;][&quot;snapshot_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertFalse(background[&quot;observed&quot;][&quot;external_background_data_passed&quot;])
+        self.assertTrue(explain[&quot;valid&quot;])
+        self.assertEqual(explain[&quot;observed&quot;][&quot;snapshot_ids&quot;], [&quot;S005&quot;, &quot;S006&quot;, &quot;S007&quot;])
+        self.assertEqual(explain[&quot;observed&quot;][&quot;final_test_rows_used&quot;], 0)
+        self.assertNotIn(&quot;S009&quot;, serialized[&quot;explanation_summary&quot;][&quot;snapshot_ids&quot;])
+
+    def test_disagreement_table_does_not_hide_conflicting_method_meanings(self) -&gt; None:
+        report = self.audit()
+        rows = {row[&quot;method&quot;]: row for row in report[&quot;disagreement&quot;]}
+
+        self.assertEqual(set(rows), {&quot;CatBoost PredictionValuesChange&quot;, &quot;CatBoost LossFunctionChange&quot;, &quot;Permutation importance&quot;, &quot;Tree SHAP mean_abs&quot;})
+        self.assertTrue(all(row[&quot;top_feature_name&quot;] == &quot;platform&quot; for row in rows.values()))
+        self.assertTrue(all(row[&quot;disagreement_status&quot;] == &quot;same_top_feature_conflicting_direction_or_scope&quot; for row in rows.values()))
+        self.assertEqual(rows[&quot;CatBoost PredictionValuesChange&quot;][&quot;raw_value&quot;], 100.0)
+        self.assertEqual(rows[&quot;CatBoost PredictionValuesChange&quot;][&quot;direction&quot;], &quot;positive&quot;)
+        self.assertEqual(rows[&quot;CatBoost LossFunctionChange&quot;][&quot;raw_value&quot;], -0.005247)
+        self.assertEqual(rows[&quot;CatBoost LossFunctionChange&quot;][&quot;direction&quot;], &quot;negative&quot;)
+        self.assertEqual(rows[&quot;Permutation importance&quot;][&quot;raw_value&quot;], -0.011722)
+        self.assertEqual(rows[&quot;Permutation importance&quot;][&quot;direction&quot;], &quot;loss_decrease_when_permuted&quot;)
+        self.assertEqual(rows[&quot;Tree SHAP mean_abs&quot;][&quot;raw_value&quot;], 0.030769)
+        self.assertEqual(rows[&quot;Tree SHAP mean_abs&quot;][&quot;direction&quot;], &quot;mixed&quot;)
+
+    def test_warning_ledger_names_high_cardinality_correlation_tiny_score_raw_and_background_limits(self) -&gt; None:
+        report = self.audit()
+        rows_by_id = {}
+        for row in report[&quot;warning_ledger&quot;]:
+            rows_by_id.setdefault(row[&quot;warning_id&quot;], []).append(row)
+
+        self.assertEqual(rows_by_id[&quot;high_cardinality_features_flagged_for_shap_explanations&quot;][0][&quot;feature_name&quot;], &quot;acquisition_channel&quot;)
+        self.assertEqual(len(rows_by_id[&quot;correlated_features_can_share_shap_attribution&quot;]), 5)
+        self.assertEqual(rows_by_id[&quot;tiny_background_reference_makes_shap_baseline_unstable&quot;][0][&quot;observed&quot;], 4)
+        self.assertEqual(rows_by_id[&quot;tiny_explanation_sample_makes_global_shap_unstable&quot;][0][&quot;observed&quot;], 3)
+        self.assertEqual(rows_by_id[&quot;tiny_tree_count_makes_shap_explanations_unstable&quot;][0][&quot;observed&quot;], 1)
+        self.assertEqual(rows_by_id[&quot;poor_or_flat_model_score_limits_shap_claims&quot;][0][&quot;observed&quot;], 0.698394)
+        self.assertEqual(rows_by_id[&quot;raw_margin_output_is_not_probability&quot;][0][&quot;observed&quot;], &quot;raw_margin&quot;)
+        self.assertEqual(
+            rows_by_id[&quot;tree_path_dependent_background_required_for_catboost_categories&quot;][0][&quot;observed&quot;],
+            &quot;catboost_tree_path_dependent_training_path_counts&quot;,
+        )
+
+    def test_serialized_spec_records_handoff_for_segment_analysis(self) -&gt; None:
+        report = self.audit()
+        serialized = report[&quot;serialized_spec&quot;]
+
+        self.assertEqual(serialized[&quot;shap_version&quot;], &quot;0.51.0&quot;)
+        self.assertEqual(serialized[&quot;explainer&quot;][&quot;feature_perturbation&quot;], &quot;tree_path_dependent&quot;)
+        self.assertFalse(serialized[&quot;explainer&quot;][&quot;external_background_data_passed&quot;])
+        self.assertEqual(serialized[&quot;background_summary&quot;][&quot;snapshot_ids&quot;], [&quot;S001&quot;, &quot;S002&quot;, &quot;S003&quot;, &quot;S004&quot;])
+        self.assertEqual(serialized[&quot;explanation_summary&quot;][&quot;raw_predictions&quot;], [-0.030769, -0.030769, 0.030769])
+        self.assertEqual(serialized[&quot;additivity_summary&quot;][&quot;passed_row_count&quot;], 3)
+        self.assertEqual(serialized[&quot;top_summary&quot;][&quot;top_mean_abs_shap_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(serialized[&quot;disagreement_summary&quot;][&quot;disagreement_status&quot;], &quot;same_top_feature_conflicting_direction_or_scope&quot;)
+        self.assertEqual(serialized[&quot;upstream_handoff&quot;][&quot;permutation_readiness_status&quot;], &quot;ready_for_shap_lesson&quot;)
+
+    def test_code_example_writes_all_shap_outputs(self) -&gt; None:
+        result = subprocess.run([sys.executable, CODE], check=True, capture_output=True, text=True)
+        payload = json.loads(result.stdout)
+
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;explain_split&quot;], &quot;validation&quot;)
+        self.assertEqual(payload[&quot;background_row_count&quot;], 4)
+        self.assertEqual(payload[&quot;explain_row_count&quot;], 3)
+        self.assertEqual(payload[&quot;output_space&quot;], &quot;raw_margin&quot;)
+        self.assertEqual(payload[&quot;additivity_max_abs_error&quot;], 0.0)
+        self.assertEqual(payload[&quot;top_mean_abs_shap_feature&quot;], &quot;platform&quot;)
+        self.assertEqual(payload[&quot;warning_count&quot;], 8)
+        self.assertEqual(payload[&quot;readiness_status&quot;], &quot;ready_for_segment_analysis_lesson&quot;)
+        self.assertEqual(read_json(LESSON_ROOT / &quot;outputs&quot; / &quot;shap_explanation_report.json&quot;)[&quot;summary&quot;][&quot;warning_ledger_row_count&quot;], 12)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;shap_global_summary.csv&quot;)), 10)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;shap_local_explanations.csv&quot;)), 3)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;shap_additivity_audit.csv&quot;)), 3)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;explanation_disagreement.csv&quot;)), 4)
+        self.assertEqual(len(read_csv(LESSON_ROOT / &quot;outputs&quot; / &quot;shap_warning_ledger.csv&quot;)), 12)
+
+    def test_fail_on_warning_returns_two_without_blocking_report(self) -&gt; None:
+        result = subprocess.run([sys.executable, ARTIFACT, &quot;--fail-on-warning&quot;], check=False, capture_output=True, text=True)
+
+        self.assertEqual(result.returncode, 2)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload[&quot;audit_valid&quot;])
+        self.assertEqual(payload[&quot;warning_count&quot;], 8)
+
+    def test_invalid_permutation_handoff_blocks_report(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            permutation_report = read_json(reports / &quot;permutation_importance_report.json&quot;)
+            permutation_report[&quot;summary&quot;][&quot;readiness_status&quot;] = &quot;blocked_by_permutation_importance_policy&quot;
+            write_json(reports / &quot;permutation_importance_report.json&quot;, permutation_report)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+                permutation_report_path=reports / &quot;permutation_importance_report.json&quot;,
+                permutation_spec_path=reports / &quot;permutation_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        handoff = check(report, &quot;shap_policy_matches_permutation_handoff&quot;)
+        self.assertFalse(handoff[&quot;valid&quot;])
+        self.assertIn(&quot;shap_policy_matches_permutation_handoff&quot;, report[&quot;summary&quot;][&quot;blocking_errors&quot;])
+
+    def test_probability_output_space_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;)
+            policy[&quot;explainer&quot;][&quot;model_output&quot;] = &quot;probability&quot;
+            policy[&quot;explainer&quot;][&quot;output_space&quot;] = &quot;probability&quot;
+            write_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+                permutation_report_path=reports / &quot;permutation_importance_report.json&quot;,
+                permutation_spec_path=reports / &quot;permutation_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;shap_policy_declares_background_output_additivity_and_limits&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertIn(&quot;explainer.output_space&quot;, {error[&quot;field&quot;] for error in policy_check[&quot;observed&quot;]})
+
+    def test_local_snapshot_outside_validation_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;)
+            policy[&quot;local_explanations&quot;][&quot;snapshot_ids&quot;] = [&quot;S005&quot;, &quot;S009&quot;]
+            write_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+                permutation_report_path=reports / &quot;permutation_importance_report.json&quot;,
+                permutation_spec_path=reports / &quot;permutation_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        explain = check(report, &quot;explain_rows_use_validation_and_exclude_final_test&quot;)
+        self.assertFalse(explain[&quot;valid&quot;])
+        self.assertEqual(explain[&quot;observed&quot;][&quot;unknown_local_snapshot_ids&quot;], [&quot;S009&quot;])
+
+    def test_positive_causal_or_fairness_claim_blocks_policy(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            phase16, upstream, reports = self.copy_inputs(Path(directory))
+            policy = read_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;)
+            policy[&quot;interpretation_policy&quot;][&quot;claim&quot;] = &quot;platform causes churn and fairness certified production stable&quot;
+            write_json(phase16 / &quot;shap_explanation_policy_spec.json&quot;, policy)
+
+            report = self.audit(
+                phase16,
+                upstream,
+                early_stopping_report_path=reports / &quot;early_stopping_report.json&quot;,
+                early_stopping_spec_path=reports / &quot;early_stopping_serialized_spec.json&quot;,
+                categorical_report_path=reports / &quot;categorical_feature_report.json&quot;,
+                built_in_report_path=reports / &quot;built_in_importance_report.json&quot;,
+                built_in_spec_path=reports / &quot;built_in_importance_serialized_spec.json&quot;,
+                permutation_report_path=reports / &quot;permutation_importance_report.json&quot;,
+                permutation_spec_path=reports / &quot;permutation_importance_serialized_spec.json&quot;,
+            )
+
+        self.assertFalse(report[&quot;valid&quot;])
+        policy_check = check(report, &quot;shap_policy_declares_background_output_additivity_and_limits&quot;)
+        self.assertFalse(policy_check[&quot;valid&quot;])
+        self.assertEqual(policy_check[&quot;observed&quot;][0][&quot;field&quot;], &quot;interpretation_policy.claim&quot;)
+        self.assertEqual(
+            policy_check[&quot;observed&quot;][0][&quot;forbidden_terms&quot;],
+            [&quot;causes churn&quot;, &quot;fairness certified&quot;, &quot;production stable&quot;],
+        )
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LESSON_ROOT / &quot;outputs&quot;))
+
+from shap_explanation_reporter import DEFAULT_POLICY_PATH, read_json, run, write_outputs  # noqa: E402
+
+
+def main() -&gt; int:
+    result = run()
+    output_spec = read_json(DEFAULT_POLICY_PATH)[&quot;output&quot;]
+    write_outputs(result, LESSON_ROOT / &quot;outputs&quot;, output_spec)
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;shap_explanation_audit_id&quot;: summary[&quot;shap_explanation_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: summary[&quot;early_stopping_model_id&quot;],
+                &quot;explain_split&quot;: summary[&quot;explain_split&quot;],
+                &quot;background_row_count&quot;: summary[&quot;background_row_count&quot;],
+                &quot;explain_row_count&quot;: summary[&quot;explain_row_count&quot;],
+                &quot;output_space&quot;: summary[&quot;output_space&quot;],
+                &quot;expected_value&quot;: summary[&quot;expected_value&quot;],
+                &quot;additivity_max_abs_error&quot;: summary[&quot;additivity_max_abs_error&quot;],
+                &quot;top_mean_abs_shap_feature&quot;: summary[&quot;top_mean_abs_shap_feature&quot;],
+                &quot;disagreement_status&quot;: summary[&quot;disagreement_status&quot;],
+                &quot;warning_count&quot;: len(summary[&quot;warnings&quot;]),
+                &quot;readiness_status&quot;: summary[&quot;readiness_status&quot;],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if result[&quot;valid&quot;] else 1
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;shap-explanation-reporter&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;path&quot;: &quot;outputs/shap_explanation_reporter.py&quot;,
+  &quot;description&quot;: &quot;Строит Tree SHAP explanations для CatBoost в raw-margin space: фиксирует path-dependent background, проверяет additivity, пишет local/global summaries, disagreement table и limitation warnings.&quot;,
+  &quot;usage&quot;: &quot;python phases/16-tabular-ml/06-shap/outputs/shap_explanation_reporter.py --output-dir phases/16-tabular-ml/06-shap/outputs&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/explanation_disagreement.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>method,source_audit_id,top_feature_name,rank_basis,raw_value,direction,output_space,split,disagreement_status,disagreement_note
+CatBoost PredictionValuesChange,trial-churn-built-in-importance-audit-v0,platform,normalized_absolute_importance,100.0,positive,model_internal_prediction_change,model_structure,same_top_feature_conflicting_direction_or_scope,&quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+CatBoost LossFunctionChange,trial-churn-built-in-importance-audit-v0,platform,normalized_absolute_importance,-0.005247,negative,validation_loss_delta_when_feature_is_removed,validation,same_top_feature_conflicting_direction_or_scope,&quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+Permutation importance,trial-churn-permutation-importance-audit-v0,platform,largest_absolute_mean_delta,-0.011722,loss_decrease_when_permuted,validation_neg_log_loss_delta,validation,same_top_feature_conflicting_direction_or_scope,&quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+Tree SHAP mean_abs,trial-churn-shap-explanation-audit-v0,platform,mean_abs_shap,0.030769,mixed,raw_margin,validation,same_top_feature_conflicting_direction_or_scope,&quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/explanation_disagreement.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_additivity_audit.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,user_id,split,output_space,expected_value,shap_sum,model_raw_prediction,reconstructed_raw_prediction,absolute_error,tolerance,passes_additivity,predicted_probability,target
+S005,U005,validation,raw_margin,0.0,-0.030769,-0.030769,-0.030769,0.0,0.0,True,0.492308,0
+S006,U006,validation,raw_margin,0.0,-0.030769,-0.030769,-0.030769,0.0,0.0,True,0.492308,1
+S007,U007,validation,raw_margin,0.0,0.030769,0.030769,0.030769,0.0,0.0,True,0.507692,0
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_additivity_audit.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_explanation_report.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;valid&quot;: true,
+  &quot;shap_explanation_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;summary&quot;: {
+    &quot;shap_explanation_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+    &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+    &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+    &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+    &quot;background_split&quot;: &quot;train&quot;,
+    &quot;background_row_count&quot;: 4,
+    &quot;explain_split&quot;: &quot;validation&quot;,
+    &quot;explain_row_count&quot;: 3,
+    &quot;output_space&quot;: &quot;raw_margin&quot;,
+    &quot;expected_value&quot;: 0.0,
+    &quot;additivity_max_abs_error&quot;: 0.0,
+    &quot;additivity_passed_row_count&quot;: 3,
+    &quot;global_summary_row_count&quot;: 10,
+    &quot;local_explanation_row_count&quot;: 3,
+    &quot;top_mean_abs_shap_feature&quot;: &quot;platform&quot;,
+    &quot;top_mean_abs_shap_value&quot;: 0.030769,
+    &quot;top_contribution_direction&quot;: &quot;mixed&quot;,
+    &quot;disagreement_row_count&quot;: 4,
+    &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+    &quot;warning_ledger_row_count&quot;: 12,
+    &quot;blocking_errors&quot;: [],
+    &quot;warnings&quot;: [
+      &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+      &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+      &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+      &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+      &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+      &quot;raw_margin_output_is_not_probability&quot;,
+      &quot;tree_path_dependent_background_required_for_catboost_categories&quot;
+    ],
+    &quot;readiness_status&quot;: &quot;ready_for_segment_analysis_lesson&quot;,
+    &quot;generated_at&quot;: &quot;2026-07-05T12:00:00+03:00&quot;
+  },
+  &quot;checks&quot;: [
+    {
+      &quot;id&quot;: &quot;input_files_are_present&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: [
+        &quot;built_in_importance_report&quot;,
+        &quot;built_in_importance_serialized_spec&quot;,
+        &quot;catboost_model_spec&quot;,
+        &quot;categorical_report&quot;,
+        &quot;early_stopping_report&quot;,
+        &quot;early_stopping_serialized_spec&quot;,
+        &quot;features&quot;,
+        &quot;labels&quot;,
+        &quot;manifest&quot;,
+        &quot;permutation_importance_report&quot;,
+        &quot;permutation_importance_serialized_spec&quot;,
+        &quot;shap_explanation_policy&quot;
+      ],
+      &quot;expected&quot;: &quot;all required input files&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;shap_policy_matches_permutation_handoff&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;shap_explanation_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+        &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+        &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;shap_policy_declares_background_output_additivity_and_limits&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;explainer&quot;: &quot;shap.TreeExplainer&quot;,
+        &quot;output_space&quot;: &quot;raw_margin&quot;,
+        &quot;feature_perturbation&quot;: &quot;tree_path_dependent&quot;,
+        &quot;background_split&quot;: &quot;train&quot;,
+        &quot;local_snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;background_reference_uses_train_and_excludes_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;background_split&quot;: &quot;train&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S001&quot;,
+          &quot;S002&quot;,
+          &quot;S003&quot;,
+          &quot;S004&quot;
+        ],
+        &quot;final_test_rows_used&quot;: 0,
+        &quot;external_background_data_passed&quot;: false
+      },
+      &quot;expected&quot;: &quot;train rows recorded as path-dependent background reference&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;explain_rows_use_validation_and_exclude_final_test&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;explain_split&quot;: &quot;validation&quot;,
+        &quot;snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;local_snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;final_test_rows_used&quot;: 0
+      },
+      &quot;expected&quot;: &quot;validation rows only&quot;,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;feature_names_match_training_pool_order&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 10,
+        &quot;features&quot;: [
+          &quot;sessions_14d&quot;,
+          &quot;active_days_14d&quot;,
+          &quot;support_tickets_14d&quot;,
+          &quot;revenue_30d&quot;,
+          &quot;days_since_signup&quot;,
+          &quot;had_support_ticket_14d&quot;,
+          &quot;plan_id&quot;,
+          &quot;platform&quot;,
+          &quot;country&quot;,
+          &quot;acquisition_channel&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;shap_global_summary_covers_all_features&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;feature_count&quot;: 10,
+        &quot;row_count&quot;: 10
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;shap_local_explanations_cover_declared_rows&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;snapshot_ids&quot;: [
+          &quot;S005&quot;,
+          &quot;S006&quot;,
+          &quot;S007&quot;
+        ],
+        &quot;row_count&quot;: 3
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;shap_additivity_reconstructs_raw_margin&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;row_count&quot;: 3,
+        &quot;max_absolute_error&quot;: 0.0
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;explanation_disagreement_table_covers_built_in_permutation_and_shap&quot;,
+      &quot;severity&quot;: &quot;error&quot;,
+      &quot;valid&quot;: true,
+      &quot;observed&quot;: {
+        &quot;method_count&quot;: 4,
+        &quot;top_features&quot;: [
+          &quot;platform&quot;
+        ]
+      },
+      &quot;expected&quot;: null,
+      &quot;sample&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+          &quot;observed&quot;: &quot;acquisition_channel&quot;,
+          &quot;expected&quot;: &quot;high-cardinality categorical features interpreted with caution&quot;,
+          &quot;reason&quot;: &quot;Sparse categories can make local categorical split explanations brittle on tiny samples.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 5,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+          &quot;observed&quot;: 0.981981,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+          &quot;observed&quot;: 1.0,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+          &quot;observed&quot;: 0.904534,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+          &quot;observed&quot;: 0.866025,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+          &quot;blocks_readiness&quot;: false
+        },
+        {
+          &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+          &quot;observed&quot;: 0.894427,
+          &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+          &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 4,
+          &quot;expected&quot;: &quot;&gt;= 20&quot;,
+          &quot;reason&quot;: &quot;The path-dependent SHAP baseline is documented, but four train rows are not enough for a strong explanation claim.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 3,
+          &quot;expected&quot;: &quot;&gt;= 20&quot;,
+          &quot;reason&quot;: &quot;Mean absolute SHAP on three validation rows is a protocol check, not a production global explanation.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 1,
+          &quot;expected&quot;: &quot;&gt;= 10&quot;,
+          &quot;reason&quot;: &quot;A one-tree CatBoost model is useful for testing SHAP mechanics, not for stable interpretation.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: 0.698394,
+          &quot;expected&quot;: &quot;&lt; 0.693147&quot;,
+          &quot;reason&quot;: &quot;Explaining a weak model explains its weak decision rule; it does not create a reliable business story.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;raw_margin_output_is_not_probability&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;raw_margin_output_is_not_probability&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: &quot;raw_margin&quot;,
+          &quot;expected&quot;: &quot;probability only after link transformation&quot;,
+          &quot;reason&quot;: &quot;Additivity is checked in raw-margin space; local SHAP values are not probability-point changes.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;valid&quot;: false,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;0 warnings&quot;,
+      &quot;sample&quot;: [
+        {
+          &quot;warning_id&quot;: &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+          &quot;severity&quot;: &quot;warning&quot;,
+          &quot;feature_name&quot;: &quot;&quot;,
+          &quot;observed&quot;: &quot;catboost_tree_path_dependent_training_path_counts&quot;,
+          &quot;expected&quot;: &quot;documented background mode, no external background data&quot;,
+          &quot;reason&quot;: &quot;SHAP TreeExplainer cannot use external background data with CatBoost categorical splits; the path-dependent mode must be explicit.&quot;,
+          &quot;blocks_readiness&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;global_summary&quot;: [
+    {
+      &quot;feature_index&quot;: 0,
+      &quot;feature_name&quot;: &quot;sessions_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 2,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 1,
+      &quot;feature_name&quot;: &quot;active_days_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 3,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 2,
+      &quot;feature_name&quot;: &quot;support_tickets_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 4,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 3,
+      &quot;feature_name&quot;: &quot;revenue_30d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 5,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 4,
+      &quot;feature_name&quot;: &quot;days_since_signup&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 6,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 5,
+      &quot;feature_name&quot;: &quot;had_support_ticket_14d&quot;,
+      &quot;feature_role&quot;: &quot;numeric&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 7,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 6,
+      &quot;feature_name&quot;: &quot;plan_id&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 8,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.030769,
+      &quot;mean_shap_value&quot;: -0.010256,
+      &quot;std_shap_value&quot;: 0.02901,
+      &quot;positive_row_count&quot;: 1,
+      &quot;negative_row_count&quot;: 2,
+      &quot;nonzero_row_count&quot;: 3,
+      &quot;rank_by_mean_abs_shap&quot;: 1,
+      &quot;is_top_mean_abs_shap_feature&quot;: true,
+      &quot;contribution_direction&quot;: &quot;mixed&quot;
+    },
+    {
+      &quot;feature_index&quot;: 8,
+      &quot;feature_name&quot;: &quot;country&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 9,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    },
+    {
+      &quot;feature_index&quot;: 9,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;explain_split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;mean_abs_shap&quot;: 0.0,
+      &quot;mean_shap_value&quot;: 0.0,
+      &quot;std_shap_value&quot;: 0.0,
+      &quot;positive_row_count&quot;: 0,
+      &quot;negative_row_count&quot;: 0,
+      &quot;nonzero_row_count&quot;: 0,
+      &quot;rank_by_mean_abs_shap&quot;: 10,
+      &quot;is_top_mean_abs_shap_feature&quot;: false,
+      &quot;contribution_direction&quot;: &quot;zero&quot;
+    }
+  ],
+  &quot;local_explanations&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;user_id&quot;: &quot;U005&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;target&quot;: 0,
+      &quot;raw_prediction&quot;: -0.030769,
+      &quot;predicted_probability&quot;: 0.492308,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: -0.030769,
+      &quot;reconstructed_raw_prediction&quot;: -0.030769,
+      &quot;additivity_abs_error&quot;: 0.0,
+      &quot;top_rank&quot;: 1,
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;feature_value&quot;: &quot;ios&quot;,
+      &quot;shap_value&quot;: -0.030769,
+      &quot;absolute_shap_value&quot;: 0.030769,
+      &quot;contribution_direction&quot;: &quot;negative&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;user_id&quot;: &quot;U006&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;target&quot;: 1,
+      &quot;raw_prediction&quot;: -0.030769,
+      &quot;predicted_probability&quot;: 0.492308,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: -0.030769,
+      &quot;reconstructed_raw_prediction&quot;: -0.030769,
+      &quot;additivity_abs_error&quot;: 0.0,
+      &quot;top_rank&quot;: 1,
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;feature_value&quot;: &quot;web&quot;,
+      &quot;shap_value&quot;: -0.030769,
+      &quot;absolute_shap_value&quot;: 0.030769,
+      &quot;contribution_direction&quot;: &quot;negative&quot;
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;user_id&quot;: &quot;U007&quot;,
+      &quot;prediction_time&quot;: &quot;2026-05-17T09:00:00+03:00&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;target&quot;: 0,
+      &quot;raw_prediction&quot;: 0.030769,
+      &quot;predicted_probability&quot;: 0.507692,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: 0.030769,
+      &quot;reconstructed_raw_prediction&quot;: 0.030769,
+      &quot;additivity_abs_error&quot;: 0.0,
+      &quot;top_rank&quot;: 1,
+      &quot;feature_index&quot;: 7,
+      &quot;feature_name&quot;: &quot;platform&quot;,
+      &quot;feature_role&quot;: &quot;categorical&quot;,
+      &quot;feature_value&quot;: &quot;android&quot;,
+      &quot;shap_value&quot;: 0.030769,
+      &quot;absolute_shap_value&quot;: 0.030769,
+      &quot;contribution_direction&quot;: &quot;positive&quot;
+    }
+  ],
+  &quot;additivity_audit&quot;: [
+    {
+      &quot;snapshot_id&quot;: &quot;S005&quot;,
+      &quot;user_id&quot;: &quot;U005&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: -0.030769,
+      &quot;model_raw_prediction&quot;: -0.030769,
+      &quot;reconstructed_raw_prediction&quot;: -0.030769,
+      &quot;absolute_error&quot;: 0.0,
+      &quot;tolerance&quot;: 1e-09,
+      &quot;passes_additivity&quot;: true,
+      &quot;predicted_probability&quot;: 0.492308,
+      &quot;target&quot;: 0
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S006&quot;,
+      &quot;user_id&quot;: &quot;U006&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: -0.030769,
+      &quot;model_raw_prediction&quot;: -0.030769,
+      &quot;reconstructed_raw_prediction&quot;: -0.030769,
+      &quot;absolute_error&quot;: 0.0,
+      &quot;tolerance&quot;: 1e-09,
+      &quot;passes_additivity&quot;: true,
+      &quot;predicted_probability&quot;: 0.492308,
+      &quot;target&quot;: 1
+    },
+    {
+      &quot;snapshot_id&quot;: &quot;S007&quot;,
+      &quot;user_id&quot;: &quot;U007&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;expected_value&quot;: 0.0,
+      &quot;shap_sum&quot;: 0.030769,
+      &quot;model_raw_prediction&quot;: 0.030769,
+      &quot;reconstructed_raw_prediction&quot;: 0.030769,
+      &quot;absolute_error&quot;: 0.0,
+      &quot;tolerance&quot;: 1e-09,
+      &quot;passes_additivity&quot;: true,
+      &quot;predicted_probability&quot;: 0.507692,
+      &quot;target&quot;: 0
+    }
+  ],
+  &quot;disagreement&quot;: [
+    {
+      &quot;method&quot;: &quot;CatBoost PredictionValuesChange&quot;,
+      &quot;source_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+      &quot;top_feature_name&quot;: &quot;platform&quot;,
+      &quot;rank_basis&quot;: &quot;normalized_absolute_importance&quot;,
+      &quot;raw_value&quot;: 100.0,
+      &quot;direction&quot;: &quot;positive&quot;,
+      &quot;output_space&quot;: &quot;model_internal_prediction_change&quot;,
+      &quot;split&quot;: &quot;model_structure&quot;,
+      &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+      &quot;disagreement_note&quot;: &quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+    },
+    {
+      &quot;method&quot;: &quot;CatBoost LossFunctionChange&quot;,
+      &quot;source_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+      &quot;top_feature_name&quot;: &quot;platform&quot;,
+      &quot;rank_basis&quot;: &quot;normalized_absolute_importance&quot;,
+      &quot;raw_value&quot;: -0.005247,
+      &quot;direction&quot;: &quot;negative&quot;,
+      &quot;output_space&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+      &quot;disagreement_note&quot;: &quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+    },
+    {
+      &quot;method&quot;: &quot;Permutation importance&quot;,
+      &quot;source_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+      &quot;top_feature_name&quot;: &quot;platform&quot;,
+      &quot;rank_basis&quot;: &quot;largest_absolute_mean_delta&quot;,
+      &quot;raw_value&quot;: -0.011722,
+      &quot;direction&quot;: &quot;loss_decrease_when_permuted&quot;,
+      &quot;output_space&quot;: &quot;validation_neg_log_loss_delta&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+      &quot;disagreement_note&quot;: &quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+    },
+    {
+      &quot;method&quot;: &quot;Tree SHAP mean_abs&quot;,
+      &quot;source_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+      &quot;top_feature_name&quot;: &quot;platform&quot;,
+      &quot;rank_basis&quot;: &quot;mean_abs_shap&quot;,
+      &quot;raw_value&quot;: 0.030769,
+      &quot;direction&quot;: &quot;mixed&quot;,
+      &quot;output_space&quot;: &quot;raw_margin&quot;,
+      &quot;split&quot;: &quot;validation&quot;,
+      &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+      &quot;disagreement_note&quot;: &quot;All methods point at platform, but PredictionValuesChange is internal-positive, LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+    }
+  ],
+  &quot;warning_ledger&quot;: [
+    {
+      &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;acquisition_channel&quot;,
+      &quot;observed&quot;: &quot;acquisition_channel&quot;,
+      &quot;expected&quot;: &quot;high-cardinality categorical features interpreted with caution&quot;,
+      &quot;reason&quot;: &quot;Sparse categories can make local categorical split explanations brittle on tiny samples.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|active_days_14d&quot;,
+      &quot;observed&quot;: 0.981981,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;sessions_14d|revenue_30d&quot;,
+      &quot;observed&quot;: 1.0,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;support_tickets_14d|had_support_ticket_14d&quot;,
+      &quot;observed&quot;: 0.904534,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;revenue_30d|days_since_signup&quot;,
+      &quot;observed&quot;: 0.866025,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;days_since_signup|had_support_ticket_14d&quot;,
+      &quot;observed&quot;: 0.894427,
+      &quot;expected&quot;: &quot;abs correlation &lt; 0.8&quot;,
+      &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 4,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;reason&quot;: &quot;The path-dependent SHAP baseline is documented, but four train rows are not enough for a strong explanation claim.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 3,
+      &quot;expected&quot;: &quot;&gt;= 20&quot;,
+      &quot;reason&quot;: &quot;Mean absolute SHAP on three validation rows is a protocol check, not a production global explanation.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 1,
+      &quot;expected&quot;: &quot;&gt;= 10&quot;,
+      &quot;reason&quot;: &quot;A one-tree CatBoost model is useful for testing SHAP mechanics, not for stable interpretation.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: 0.698394,
+      &quot;expected&quot;: &quot;&lt; 0.693147&quot;,
+      &quot;reason&quot;: &quot;Explaining a weak model explains its weak decision rule; it does not create a reliable business story.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;raw_margin_output_is_not_probability&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: &quot;raw_margin&quot;,
+      &quot;expected&quot;: &quot;probability only after link transformation&quot;,
+      &quot;reason&quot;: &quot;Additivity is checked in raw-margin space; local SHAP values are not probability-point changes.&quot;,
+      &quot;blocks_readiness&quot;: false
+    },
+    {
+      &quot;warning_id&quot;: &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;feature_name&quot;: &quot;&quot;,
+      &quot;observed&quot;: &quot;catboost_tree_path_dependent_training_path_counts&quot;,
+      &quot;expected&quot;: &quot;documented background mode, no external background data&quot;,
+      &quot;reason&quot;: &quot;SHAP TreeExplainer cannot use external background data with CatBoost categorical splits; the path-dependent mode must be explicit.&quot;,
+      &quot;blocks_readiness&quot;: false
+    }
+  ]
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_explanation_report.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_explanation_reporter.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+import catboost
+import numpy as np
+import pandas as pd
+import shap
+from catboost import CatBoostClassifier, Pool
+
+
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
+PHASE_15_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;15-applied-machine-learning&quot;
+PHASE_16_ROOT = REPO_ROOT / &quot;phases&quot; / &quot;16-tabular-ml&quot;
+UPSTREAM_DATA_ROOT = PHASE_15_ROOT / &quot;data&quot; / &quot;tiny&quot;
+DATA_ROOT = PHASE_16_ROOT / &quot;data&quot; / &quot;tiny&quot;
+
+DEFAULT_POLICY_PATH = DATA_ROOT / &quot;shap_explanation_policy_spec.json&quot;
+DEFAULT_CATBOOST_SPEC_PATH = DATA_ROOT / &quot;catboost_model_spec.json&quot;
+DEFAULT_CATEGORICAL_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;02-categorical-features&quot; / &quot;outputs&quot; / &quot;categorical_feature_report.json&quot;
+)
+DEFAULT_EARLY_STOPPING_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_report.json&quot;
+)
+DEFAULT_EARLY_STOPPING_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;03-early-stopping&quot; / &quot;outputs&quot; / &quot;early_stopping_serialized_spec.json&quot;
+)
+DEFAULT_BUILT_IN_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance_report.json&quot;
+)
+DEFAULT_BUILT_IN_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;04-feature-importance&quot; / &quot;outputs&quot; / &quot;built_in_importance_serialized_spec.json&quot;
+)
+DEFAULT_PERMUTATION_REPORT_PATH = (
+    PHASE_16_ROOT / &quot;05-permutation-importance&quot; / &quot;outputs&quot; / &quot;permutation_importance_report.json&quot;
+)
+DEFAULT_PERMUTATION_SPEC_PATH = (
+    PHASE_16_ROOT / &quot;05-permutation-importance&quot; / &quot;outputs&quot; / &quot;permutation_importance_serialized_spec.json&quot;
+)
+DEFAULT_FEATURES_PATH = UPSTREAM_DATA_ROOT / &quot;ml_raw_features.csv&quot;
+DEFAULT_LABELS_PATH = UPSTREAM_DATA_ROOT / &quot;ml_labels.csv&quot;
+DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / &quot;ml_split_manifest.csv&quot;
+
+GENERATED_AT = &quot;2026-07-05T12:00:00+03:00&quot;
+
+
+def portable_path(path: Path) -&gt; str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+class ShapExplanationError(ValueError):
+    &quot;&quot;&quot;Raised when SHAP explanation inputs cannot be parsed.&quot;&quot;&quot;
+
+
+def read_json(path: Path) -&gt; dict[str, Any]:
+    with path.open(encoding=&quot;utf-8&quot;) as source:
+        return json.load(source)
+
+
+def write_json(path: Path, value: dict[str, Any]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(json_ready(value), ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator=&quot;\n&quot;)
+        writer.writeheader()
+        writer.writerows([{field: csv_ready(row.get(field)) for field in fieldnames} for row in rows])
+
+
+def json_ready(value: Any) -&gt; Any:
+    if isinstance(value, dict):
+        return {str(key): json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_ready(item) for item in value]
+    if isinstance(value, tuple):
+        return [json_ready(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
+def csv_ready(value: Any) -&gt; str:
+    if value is None:
+        return &quot;&quot;
+    if isinstance(value, bool):
+        return &quot;True&quot; if value else &quot;False&quot;
+    if isinstance(value, float):
+        return str(rounded(value))
+    if isinstance(value, list):
+        return &quot;,&quot;.join(str(item) for item in value)
+    return str(value)
+
+
+def rounded(value: float | None, digits: int = 6) -&gt; float | None:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def passed(check_id: str, observed: Any = None, expected: Any = None, sample: Any = None) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;valid&quot;: True,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def failed(
+    check_id: str,
+    observed: Any = None,
+    expected: Any = None,
+    sample: Any = None,
+    *,
+    severity: str = &quot;error&quot;,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;id&quot;: check_id,
+        &quot;severity&quot;: severity,
+        &quot;valid&quot;: False,
+        &quot;observed&quot;: observed,
+        &quot;expected&quot;: expected,
+        &quot;sample&quot;: sample or [],
+    }
+
+
+def warning_ids(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;warning&quot; and not check[&quot;valid&quot;]]
+
+
+def blocking_errors(checks: list[dict[str, Any]]) -&gt; list[str]:
+    return [check[&quot;id&quot;] for check in checks if check[&quot;severity&quot;] == &quot;error&quot; and not check[&quot;valid&quot;]]
+
+
+def bool_label(value: Any) -&gt; int:
+    if isinstance(value, bool):
+        return int(value)
+    text = str(value).strip().lower()
+    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;}:
+        return 1
+    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;}:
+        return 0
+    raise ShapExplanationError(f&quot;Cannot parse boolean label: {value!r}&quot;)
+
+
+def validate_required_files(paths: dict[str, Path]) -&gt; dict[str, Any]:
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        return failed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;, missing)
+    return passed(&quot;input_files_are_present&quot;, sorted(paths), &quot;all required input files&quot;)
+
+
+def expected_feature_order(catboost_spec: dict[str, Any]) -&gt; list[str]:
+    contract = catboost_spec.get(&quot;feature_contract&quot;, {})
+    return list(contract.get(&quot;numeric_features&quot;, [])) + list(contract.get(&quot;categorical_features&quot;, []))
+
+
+def validate_handoff(
+    *,
+    policy: dict[str, Any],
+    catboost_spec: dict[str, Any],
+    early_report: dict[str, Any],
+    early_spec: dict[str, Any],
+    categorical_report: dict[str, Any],
+    built_in_report: dict[str, Any],
+    built_in_spec: dict[str, Any],
+    permutation_report: dict[str, Any],
+    permutation_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    required = {
+        &quot;shap_explanation_audit_id&quot;,
+        &quot;problem_id&quot;,
+        &quot;catboost_baseline_id&quot;,
+        &quot;source_catboost_model_id&quot;,
+        &quot;early_stopping_model_id&quot;,
+        &quot;early_stopping_audit_id&quot;,
+        &quot;categorical_audit_id&quot;,
+        &quot;built_in_importance_audit_id&quot;,
+        &quot;permutation_importance_audit_id&quot;,
+        &quot;fit_split&quot;,
+        &quot;explain_split&quot;,
+        &quot;final_holdout_split&quot;,
+        &quot;explainer&quot;,
+        &quot;additivity&quot;,
+        &quot;local_explanations&quot;,
+        &quot;global_summary&quot;,
+        &quot;feature_name_policy&quot;,
+        &quot;interpretation_policy&quot;,
+        &quot;warning_policy&quot;,
+        &quot;output&quot;,
+    }
+    missing = sorted(required - set(policy))
+    if missing:
+        errors.append({&quot;field&quot;: &quot;root&quot;, &quot;missing&quot;: missing})
+
+    expected_identity = {
+        &quot;problem_id&quot;: permutation_spec.get(&quot;problem_id&quot;),
+        &quot;catboost_baseline_id&quot;: permutation_spec.get(&quot;catboost_baseline_id&quot;),
+        &quot;source_catboost_model_id&quot;: permutation_spec.get(&quot;source_catboost_model_id&quot;),
+        &quot;early_stopping_model_id&quot;: permutation_spec.get(&quot;early_stopping_model_id&quot;),
+        &quot;early_stopping_audit_id&quot;: permutation_spec.get(&quot;early_stopping_audit_id&quot;),
+        &quot;categorical_audit_id&quot;: permutation_spec.get(&quot;categorical_audit_id&quot;),
+        &quot;built_in_importance_audit_id&quot;: permutation_spec.get(&quot;built_in_importance_audit_id&quot;),
+        &quot;permutation_importance_audit_id&quot;: permutation_spec.get(&quot;permutation_importance_audit_id&quot;),
+        &quot;fit_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;fit_split&quot;),
+        &quot;explain_split&quot;: permutation_spec.get(&quot;heldout_summary&quot;, {}).get(&quot;heldout_split&quot;),
+        &quot;final_holdout_split&quot;: early_spec.get(&quot;fit_summary&quot;, {}).get(&quot;final_holdout_split&quot;),
+    }
+    for field, expected in expected_identity.items():
+        if policy.get(field) != expected:
+            errors.append({&quot;field&quot;: field, &quot;observed&quot;: policy.get(field), &quot;expected&quot;: expected})
+
+    if early_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;early_stopping_report.valid&quot;, &quot;observed&quot;: early_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if categorical_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;categorical_report.valid&quot;, &quot;observed&quot;: categorical_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if built_in_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;built_in_report.valid&quot;, &quot;observed&quot;: built_in_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+    if permutation_report.get(&quot;valid&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;permutation_report.valid&quot;, &quot;observed&quot;: permutation_report.get(&quot;valid&quot;), &quot;expected&quot;: True})
+
+    if built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_permutation_importance_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;built_in_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_permutation_importance_lesson&quot;,
+            }
+        )
+    if permutation_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;) != &quot;ready_for_shap_lesson&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;permutation_report.summary.readiness_status&quot;,
+                &quot;observed&quot;: permutation_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;expected&quot;: &quot;ready_for_shap_lesson&quot;,
+            }
+        )
+
+    expected_order = expected_feature_order(catboost_spec)
+    if expected_order != early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;feature_order&quot;,
+                &quot;observed&quot;: expected_order,
+                &quot;expected&quot;: early_spec.get(&quot;numeric_features&quot;, []) + early_spec.get(&quot;cat_features&quot;, []),
+            }
+        )
+    for source_name, source_order in {
+        &quot;built_in_feature_order&quot;: built_in_spec.get(&quot;feature_order&quot;),
+        &quot;permutation_feature_order&quot;: permutation_spec.get(&quot;feature_order&quot;),
+    }.items():
+        if source_order != expected_order:
+            errors.append({&quot;field&quot;: source_name, &quot;observed&quot;: source_order, &quot;expected&quot;: expected_order})
+
+    if errors:
+        return [
+            failed(
+                &quot;shap_policy_matches_permutation_handoff&quot;,
+                errors,
+                &quot;same CatBoost model, early-stopping run, built-in importance and permutation handoff&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;shap_policy_matches_permutation_handoff&quot;,
+            {
+                &quot;shap_explanation_audit_id&quot;: policy[&quot;shap_explanation_audit_id&quot;],
+                &quot;permutation_importance_audit_id&quot;: policy[&quot;permutation_importance_audit_id&quot;],
+                &quot;early_stopping_model_id&quot;: policy[&quot;early_stopping_model_id&quot;],
+            },
+        )
+    ]
+
+
+def validate_shap_policy(policy: dict[str, Any], expected_features: list[str]) -&gt; list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    explainer = policy.get(&quot;explainer&quot;, {}) if isinstance(policy.get(&quot;explainer&quot;), dict) else {}
+    additivity = policy.get(&quot;additivity&quot;, {}) if isinstance(policy.get(&quot;additivity&quot;), dict) else {}
+    local = policy.get(&quot;local_explanations&quot;, {}) if isinstance(policy.get(&quot;local_explanations&quot;), dict) else {}
+    global_summary = policy.get(&quot;global_summary&quot;, {}) if isinstance(policy.get(&quot;global_summary&quot;), dict) else {}
+
+    expected_explainer = {
+        &quot;library&quot;: &quot;shap&quot;,
+        &quot;class&quot;: &quot;TreeExplainer&quot;,
+        &quot;model_output&quot;: &quot;raw&quot;,
+        &quot;output_space&quot;: &quot;raw_margin&quot;,
+        &quot;feature_perturbation&quot;: &quot;tree_path_dependent&quot;,
+        &quot;background_split&quot;: &quot;train&quot;,
+        &quot;external_background_data_passed&quot;: False,
+    }
+    for field, expected in expected_explainer.items():
+        if explainer.get(field) != expected:
+            errors.append({&quot;field&quot;: f&quot;explainer.{field}&quot;, &quot;observed&quot;: explainer.get(field), &quot;expected&quot;: expected})
+
+    if policy.get(&quot;explain_split&quot;) != &quot;validation&quot;:
+        errors.append({&quot;field&quot;: &quot;explain_split&quot;, &quot;observed&quot;: policy.get(&quot;explain_split&quot;), &quot;expected&quot;: &quot;validation&quot;})
+    if policy.get(&quot;final_holdout_split&quot;) != &quot;test&quot;:
+        errors.append({&quot;field&quot;: &quot;final_holdout_split&quot;, &quot;observed&quot;: policy.get(&quot;final_holdout_split&quot;), &quot;expected&quot;: &quot;test&quot;})
+    if policy.get(&quot;explain_split&quot;) == policy.get(&quot;final_holdout_split&quot;):
+        errors.append({&quot;field&quot;: &quot;explain_split&quot;, &quot;observed&quot;: policy.get(&quot;explain_split&quot;), &quot;expected&quot;: &quot;not final holdout split&quot;})
+
+    if additivity.get(&quot;enabled&quot;) is not True:
+        errors.append({&quot;field&quot;: &quot;additivity.enabled&quot;, &quot;observed&quot;: additivity.get(&quot;enabled&quot;), &quot;expected&quot;: True})
+    if additivity.get(&quot;target_prediction_type&quot;) != &quot;RawFormulaVal&quot;:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;additivity.target_prediction_type&quot;,
+                &quot;observed&quot;: additivity.get(&quot;target_prediction_type&quot;),
+                &quot;expected&quot;: &quot;RawFormulaVal&quot;,
+            }
+        )
+    tolerance = additivity.get(&quot;absolute_error_tolerance&quot;)
+    if not isinstance(tolerance, int | float) or float(tolerance) &gt; 1e-6:
+        errors.append(
+            {
+                &quot;field&quot;: &quot;additivity.absolute_error_tolerance&quot;,
+                &quot;observed&quot;: tolerance,
+                &quot;expected&quot;: &quot;numeric &lt;= 1e-6&quot;,
+            }
+        )
+
+    if not isinstance(local.get(&quot;snapshot_ids&quot;), list) or not local.get(&quot;snapshot_ids&quot;):
+        errors.append({&quot;field&quot;: &quot;local_explanations.snapshot_ids&quot;, &quot;observed&quot;: local.get(&quot;snapshot_ids&quot;), &quot;expected&quot;: &quot;non-empty list&quot;})
+    if not isinstance(local.get(&quot;top_k_features&quot;), int) or int(local.get(&quot;top_k_features&quot;, 0)) &lt; 1:
+        errors.append({&quot;field&quot;: &quot;local_explanations.top_k_features&quot;, &quot;observed&quot;: local.get(&quot;top_k_features&quot;), &quot;expected&quot;: &quot;integer &gt;= 1&quot;})
+    if global_summary.get(&quot;aggregation_split&quot;) != policy.get(&quot;explain_split&quot;):
+        errors.append(
+            {
+                &quot;field&quot;: &quot;global_summary.aggregation_split&quot;,
+                &quot;observed&quot;: global_summary.get(&quot;aggregation_split&quot;),
+                &quot;expected&quot;: policy.get(&quot;explain_split&quot;),
+            }
+        )
+    if global_summary.get(&quot;metric&quot;) != &quot;mean_abs_shap&quot;:
+        errors.append({&quot;field&quot;: &quot;global_summary.metric&quot;, &quot;observed&quot;: global_summary.get(&quot;metric&quot;), &quot;expected&quot;: &quot;mean_abs_shap&quot;})
+
+    observed_order = policy.get(&quot;feature_name_policy&quot;, {}).get(&quot;expected_feature_order&quot;)
+    if observed_order != expected_features:
+        errors.append({&quot;field&quot;: &quot;feature_name_policy.expected_feature_order&quot;, &quot;observed&quot;: observed_order, &quot;expected&quot;: expected_features})
+
+    claim = str(policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;claim&quot;, &quot;&quot;)).lower()
+    forbidden = [
+        term
+        for term in policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;forbidden_positive_claim_terms&quot;, [])
+        if str(term).lower() in claim
+    ]
+    if forbidden:
+        errors.append({&quot;field&quot;: &quot;interpretation_policy.claim&quot;, &quot;forbidden_terms&quot;: sorted(forbidden)})
+
+    limitations = policy.get(&quot;interpretation_policy&quot;, {}).get(&quot;required_limitation_labels&quot;, [])
+    if not isinstance(limitations, list) or len(limitations) &lt; 5:
+        errors.append({&quot;field&quot;: &quot;interpretation_policy.required_limitation_labels&quot;, &quot;observed&quot;: limitations, &quot;expected&quot;: &quot;at least five limitation labels&quot;})
+
+    if errors:
+        return [
+            failed(
+                &quot;shap_policy_declares_background_output_additivity_and_limits&quot;,
+                errors,
+                &quot;TreeExplainer raw-margin SHAP with tree-path background, local rows, additivity tolerance and non-causal limits&quot;,
+            )
+        ]
+    return [
+        passed(
+            &quot;shap_policy_declares_background_output_additivity_and_limits&quot;,
+            {
+                &quot;explainer&quot;: f&quot;{explainer[&#x27;library&#x27;]}.{explainer[&#x27;class&#x27;]}&quot;,
+                &quot;output_space&quot;: explainer[&quot;output_space&quot;],
+                &quot;feature_perturbation&quot;: explainer[&quot;feature_perturbation&quot;],
+                &quot;background_split&quot;: explainer[&quot;background_split&quot;],
+                &quot;local_snapshot_ids&quot;: local[&quot;snapshot_ids&quot;],
+            },
+        )
+    ]
+
+
+def joined_frame(features_path: Path, labels_path: Path, manifest_path: Path) -&gt; pd.DataFrame:
+    features = pd.read_csv(features_path)
+    labels = pd.read_csv(labels_path)
+    manifest = pd.read_csv(manifest_path)
+    for frame_name, frame in {
+        &quot;features&quot;: features,
+        &quot;labels&quot;: labels,
+        &quot;manifest&quot;: manifest,
+    }.items():
+        if &quot;snapshot_id&quot; not in frame.columns:
+            raise ShapExplanationError(f&quot;{frame_name} table misses snapshot_id&quot;)
+        if frame[&quot;snapshot_id&quot;].duplicated().any():
+            raise ShapExplanationError(f&quot;{frame_name} table contains duplicate snapshot_id&quot;)
+
+    frame = features.merge(labels[[&quot;snapshot_id&quot;, &quot;churned_14d&quot;]], on=&quot;snapshot_id&quot;, how=&quot;left&quot;)
+    frame = frame.merge(
+        manifest[[&quot;snapshot_id&quot;, &quot;split&quot;, &quot;split_order&quot;, &quot;user_id&quot;, &quot;prediction_time&quot;]],
+        on=&quot;snapshot_id&quot;,
+        how=&quot;inner&quot;,
+    )
+    frame[&quot;target&quot;] = frame[&quot;churned_14d&quot;].map(bool_label)
+    return frame.sort_values([&quot;split_order&quot;, &quot;snapshot_id&quot;]).reset_index(drop=True)
+
+
+def prepare_features(
+    frame: pd.DataFrame,
+    numeric_features: list[str],
+    categorical_features: list[str],
+    missing_category_token: str,
+) -&gt; pd.DataFrame:
+    matrix = frame[numeric_features + categorical_features].copy()
+    for column in numeric_features:
+        matrix[column] = pd.to_numeric(matrix[column], errors=&quot;coerce&quot;)
+    for column in categorical_features:
+        matrix[column] = matrix[column].fillna(missing_category_token).replace(&quot;&quot;, missing_category_token).astype(str)
+    return matrix
+
+
+def train_model(
+    *,
+    frame: pd.DataFrame,
+    matrix: pd.DataFrame,
+    early_spec: dict[str, Any],
+) -&gt; CatBoostClassifier:
+    categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+    train_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;fit_split&quot;]
+    eval_mask = frame[&quot;split&quot;] == early_spec[&quot;fit_summary&quot;][&quot;eval_split&quot;]
+    model = CatBoostClassifier(**early_spec[&quot;catboost_params&quot;])
+    model.fit(
+        Pool(matrix.loc[train_mask], frame.loc[train_mask, &quot;target&quot;], cat_features=categorical_features),
+        eval_set=Pool(matrix.loc[eval_mask], frame.loc[eval_mask, &quot;target&quot;], cat_features=categorical_features),
+    )
+    return model
+
+
+def high_cardinality_features(categorical_report: dict[str, Any]) -&gt; set[str]:
+    return {
+        str(row[&quot;feature_name&quot;])
+        for row in categorical_report.get(&quot;inventory&quot;, [])
+        if row.get(&quot;high_cardinality_feature&quot;) is True
+    }
+
+
+def correlated_numeric_pairs(frame: pd.DataFrame, numeric_features: list[str], fit_split: str, threshold: float) -&gt; list[dict[str, Any]]:
+    train = frame.loc[frame[&quot;split&quot;] == fit_split, numeric_features].apply(pd.to_numeric, errors=&quot;coerce&quot;)
+    corr = train.corr().abs()
+    pairs: list[dict[str, Any]] = []
+    for left_index, left in enumerate(numeric_features):
+        for right in numeric_features[left_index + 1 :]:
+            value = corr.loc[left, right]
+            if pd.notna(value) and float(value) &gt;= threshold:
+                pairs.append(
+                    {
+                        &quot;left_feature&quot;: left,
+                        &quot;right_feature&quot;: right,
+                        &quot;abs_correlation&quot;: rounded(float(value)),
+                    }
+                )
+    return pairs
+
+
+def split_summary(frame: pd.DataFrame, split: str) -&gt; dict[str, Any]:
+    split_frame = frame.loc[frame[&quot;split&quot;] == split]
+    return {
+        &quot;split&quot;: split,
+        &quot;row_count&quot;: int(len(split_frame)),
+        &quot;snapshot_ids&quot;: list(split_frame[&quot;snapshot_id&quot;]),
+        &quot;target_positive_count&quot;: int(split_frame[&quot;target&quot;].sum()),
+        &quot;target_negative_count&quot;: int((1 - split_frame[&quot;target&quot;]).sum()),
+    }
+
+
+def validate_background_and_explain_rows(frame: pd.DataFrame, policy: dict[str, Any]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    background_split = policy.get(&quot;explainer&quot;, {}).get(&quot;background_split&quot;)
+    explain_split = policy.get(&quot;explain_split&quot;)
+    final_split = policy.get(&quot;final_holdout_split&quot;)
+    background = frame.loc[frame[&quot;split&quot;] == background_split]
+    explain = frame.loc[frame[&quot;split&quot;] == explain_split]
+    local_ids = set(policy.get(&quot;local_explanations&quot;, {}).get(&quot;snapshot_ids&quot;, []))
+    explain_ids = set(explain[&quot;snapshot_id&quot;])
+
+    if background.empty or background_split == final_split:
+        checks.append(
+            failed(
+                &quot;background_reference_uses_train_and_excludes_test&quot;,
+                {&quot;background_split&quot;: background_split, &quot;row_count&quot;: len(background), &quot;final_holdout_split&quot;: final_split},
+                &quot;non-empty train background reference, no final test rows&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;background_reference_uses_train_and_excludes_test&quot;,
+                {
+                    &quot;background_split&quot;: background_split,
+                    &quot;snapshot_ids&quot;: list(background[&quot;snapshot_id&quot;]),
+                    &quot;final_test_rows_used&quot;: 0,
+                    &quot;external_background_data_passed&quot;: policy.get(&quot;explainer&quot;, {}).get(&quot;external_background_data_passed&quot;),
+                },
+                &quot;train rows recorded as path-dependent background reference&quot;,
+            )
+        )
+
+    if explain.empty or explain_split == final_split:
+        checks.append(
+            failed(
+                &quot;explain_rows_use_validation_and_exclude_final_test&quot;,
+                {&quot;explain_split&quot;: explain_split, &quot;row_count&quot;: len(explain), &quot;final_holdout_split&quot;: final_split},
+                &quot;non-empty validation explanation split, no final test rows&quot;,
+            )
+        )
+    elif local_ids - explain_ids:
+        checks.append(
+            failed(
+                &quot;explain_rows_use_validation_and_exclude_final_test&quot;,
+                {&quot;unknown_local_snapshot_ids&quot;: sorted(local_ids - explain_ids), &quot;explain_snapshot_ids&quot;: sorted(explain_ids)},
+                &quot;local explanation rows must be inside validation split&quot;,
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;explain_rows_use_validation_and_exclude_final_test&quot;,
+                {
+                    &quot;explain_split&quot;: explain_split,
+                    &quot;snapshot_ids&quot;: list(explain[&quot;snapshot_id&quot;]),
+                    &quot;local_snapshot_ids&quot;: policy.get(&quot;local_explanations&quot;, {}).get(&quot;snapshot_ids&quot;, []),
+                    &quot;final_test_rows_used&quot;: 0,
+                },
+                &quot;validation rows only&quot;,
+            )
+        )
+    return checks
+
+
+def scalar_expected_value(value: Any) -&gt; float:
+    array = np.asarray(value, dtype=float)
+    if array.size != 1:
+        raise ShapExplanationError(f&quot;Expected scalar SHAP expected_value, got shape {array.shape}&quot;)
+    return float(array.reshape(-1)[0])
+
+
+def shap_value_matrix(values: Any) -&gt; np.ndarray:
+    if isinstance(values, list):
+        if len(values) == 1:
+            values = values[0]
+        elif len(values) == 2:
+            values = values[1]
+        else:
+            raise ShapExplanationError(f&quot;Unsupported multiclass SHAP output with {len(values)} arrays&quot;)
+    matrix = np.asarray(values, dtype=float)
+    if matrix.ndim != 2:
+        raise ShapExplanationError(f&quot;Expected 2-D SHAP matrix, got shape {matrix.shape}&quot;)
+    return matrix
+
+
+def compute_shap_outputs(
+    *,
+    policy: dict[str, Any],
+    model: CatBoostClassifier,
+    matrix: pd.DataFrame,
+    frame: pd.DataFrame,
+    expected_features: list[str],
+    categorical_features: list[str],
+) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    explain_mask = frame[&quot;split&quot;] == policy[&quot;explain_split&quot;]
+    explain_frame = frame.loc[explain_mask].reset_index(drop=True)
+    explain_matrix = matrix.loc[explain_mask].reset_index(drop=True)
+    explain_pool = Pool(explain_matrix, cat_features=categorical_features)
+
+    explainer = shap.TreeExplainer(
+        model,
+        feature_perturbation=policy[&quot;explainer&quot;][&quot;feature_perturbation&quot;],
+        model_output=policy[&quot;explainer&quot;][&quot;model_output&quot;],
+    )
+    values = shap_value_matrix(explainer.shap_values(explain_pool))
+    expected_value = scalar_expected_value(explainer.expected_value)
+    raw_predictions = np.asarray(model.predict(explain_pool, prediction_type=&quot;RawFormulaVal&quot;), dtype=float)
+    probabilities = np.asarray(model.predict_proba(explain_matrix)[:, 1], dtype=float)
+
+    shap_sums = values.sum(axis=1)
+    reconstructed = expected_value + shap_sums
+    absolute_errors = np.abs(reconstructed - raw_predictions)
+    tolerance = float(policy[&quot;additivity&quot;][&quot;absolute_error_tolerance&quot;])
+
+    additivity_rows: list[dict[str, Any]] = []
+    for row_index, row in explain_frame.iterrows():
+        additivity_rows.append(
+            {
+                &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                &quot;user_id&quot;: row[&quot;user_id&quot;],
+                &quot;split&quot;: row[&quot;split&quot;],
+                &quot;output_space&quot;: policy[&quot;explainer&quot;][&quot;output_space&quot;],
+                &quot;expected_value&quot;: rounded(expected_value),
+                &quot;shap_sum&quot;: rounded(float(shap_sums[row_index])),
+                &quot;model_raw_prediction&quot;: rounded(float(raw_predictions[row_index])),
+                &quot;reconstructed_raw_prediction&quot;: rounded(float(reconstructed[row_index])),
+                &quot;absolute_error&quot;: rounded(float(absolute_errors[row_index]), 12),
+                &quot;tolerance&quot;: tolerance,
+                &quot;passes_additivity&quot;: bool(float(absolute_errors[row_index]) &lt;= tolerance),
+                &quot;predicted_probability&quot;: rounded(float(probabilities[row_index])),
+                &quot;target&quot;: int(row[&quot;target&quot;]),
+            }
+        )
+
+    global_rows: list[dict[str, Any]] = []
+    categorical_set = set(categorical_features)
+    for feature_index, feature in enumerate(expected_features):
+        column = values[:, feature_index]
+        positive_count = int(np.sum(column &gt; 0))
+        negative_count = int(np.sum(column &lt; 0))
+        if positive_count and negative_count:
+            direction = &quot;mixed&quot;
+        elif positive_count:
+            direction = &quot;positive&quot;
+        elif negative_count:
+            direction = &quot;negative&quot;
+        else:
+            direction = &quot;zero&quot;
+        global_rows.append(
+            {
+                &quot;feature_index&quot;: feature_index,
+                &quot;feature_name&quot;: feature,
+                &quot;feature_role&quot;: &quot;categorical&quot; if feature in categorical_set else &quot;numeric&quot;,
+                &quot;explain_split&quot;: policy[&quot;explain_split&quot;],
+                &quot;output_space&quot;: policy[&quot;explainer&quot;][&quot;output_space&quot;],
+                &quot;mean_abs_shap&quot;: rounded(float(np.abs(column).mean())),
+                &quot;mean_shap_value&quot;: rounded(float(column.mean())),
+                &quot;std_shap_value&quot;: rounded(float(column.std(ddof=0))),
+                &quot;positive_row_count&quot;: positive_count,
+                &quot;negative_row_count&quot;: negative_count,
+                &quot;nonzero_row_count&quot;: int(np.sum(~np.isclose(column, 0.0))),
+                &quot;rank_by_mean_abs_shap&quot;: None,
+                &quot;is_top_mean_abs_shap_feature&quot;: False,
+                &quot;contribution_direction&quot;: direction,
+            }
+        )
+
+    for rank, row in enumerate(
+        sorted(global_rows, key=lambda item: (-float(item[&quot;mean_abs_shap&quot;]), int(item[&quot;feature_index&quot;]))),
+        start=1,
+    ):
+        row[&quot;rank_by_mean_abs_shap&quot;] = rank
+        row[&quot;is_top_mean_abs_shap_feature&quot;] = rank == 1
+
+    local_rows: list[dict[str, Any]] = []
+    local_ids = set(policy[&quot;local_explanations&quot;][&quot;snapshot_ids&quot;])
+    top_k = int(policy[&quot;local_explanations&quot;][&quot;top_k_features&quot;])
+    include_zero = bool(policy[&quot;local_explanations&quot;].get(&quot;include_zero_contributions&quot;, False))
+    for row_index, row in explain_frame.iterrows():
+        if row[&quot;snapshot_id&quot;] not in local_ids:
+            continue
+        contributions = []
+        for feature_index, feature in enumerate(expected_features):
+            shap_value = float(values[row_index, feature_index])
+            if include_zero or not np.isclose(shap_value, 0.0):
+                contributions.append((feature_index, feature, shap_value))
+        contributions = sorted(contributions, key=lambda item: (-abs(item[2]), item[0]))[:top_k]
+        for rank, (feature_index, feature, shap_value) in enumerate(contributions, start=1):
+            local_rows.append(
+                {
+                    &quot;snapshot_id&quot;: row[&quot;snapshot_id&quot;],
+                    &quot;user_id&quot;: row[&quot;user_id&quot;],
+                    &quot;prediction_time&quot;: row[&quot;prediction_time&quot;],
+                    &quot;split&quot;: row[&quot;split&quot;],
+                    &quot;target&quot;: int(row[&quot;target&quot;]),
+                    &quot;raw_prediction&quot;: rounded(float(raw_predictions[row_index])),
+                    &quot;predicted_probability&quot;: rounded(float(probabilities[row_index])),
+                    &quot;expected_value&quot;: rounded(expected_value),
+                    &quot;shap_sum&quot;: rounded(float(shap_sums[row_index])),
+                    &quot;reconstructed_raw_prediction&quot;: rounded(float(reconstructed[row_index])),
+                    &quot;additivity_abs_error&quot;: rounded(float(absolute_errors[row_index]), 12),
+                    &quot;top_rank&quot;: rank,
+                    &quot;feature_index&quot;: feature_index,
+                    &quot;feature_name&quot;: feature,
+                    &quot;feature_role&quot;: &quot;categorical&quot; if feature in categorical_set else &quot;numeric&quot;,
+                    &quot;feature_value&quot;: explain_matrix.loc[row_index, feature],
+                    &quot;shap_value&quot;: rounded(shap_value),
+                    &quot;absolute_shap_value&quot;: rounded(abs(shap_value)),
+                    &quot;contribution_direction&quot;: &quot;positive&quot; if shap_value &gt; 0 else &quot;negative&quot; if shap_value &lt; 0 else &quot;zero&quot;,
+                }
+            )
+
+    additivity_summary = {
+        &quot;expected_value&quot;: rounded(expected_value),
+        &quot;max_absolute_error&quot;: rounded(float(absolute_errors.max()) if len(absolute_errors) else None, 12),
+        &quot;passed_row_count&quot;: sum(row[&quot;passes_additivity&quot;] for row in additivity_rows),
+        &quot;failed_row_count&quot;: sum(not row[&quot;passes_additivity&quot;] for row in additivity_rows),
+        &quot;tolerance&quot;: tolerance,
+    }
+    explanation_summary = split_summary(frame, policy[&quot;explain_split&quot;])
+    explanation_summary.update(
+        {
+            &quot;output_space&quot;: policy[&quot;explainer&quot;][&quot;output_space&quot;],
+            &quot;raw_predictions&quot;: [rounded(float(value)) for value in raw_predictions],
+            &quot;predicted_probabilities&quot;: [rounded(float(value)) for value in probabilities],
+        }
+    )
+    return global_rows, local_rows, additivity_rows, additivity_summary, explanation_summary
+
+
+def summarize_top_features(global_rows: list[dict[str, Any]], local_rows: list[dict[str, Any]]) -&gt; dict[str, Any]:
+    if not global_rows:
+        return {
+            &quot;top_mean_abs_shap_feature&quot;: None,
+            &quot;top_mean_abs_shap_value&quot;: None,
+            &quot;positive_local_contribution_count&quot;: 0,
+            &quot;negative_local_contribution_count&quot;: 0,
+        }
+    top = sorted(global_rows, key=lambda row: (int(row[&quot;rank_by_mean_abs_shap&quot;]), int(row[&quot;feature_index&quot;])))[0]
+    return {
+        &quot;top_mean_abs_shap_feature&quot;: top[&quot;feature_name&quot;],
+        &quot;top_mean_abs_shap_value&quot;: top[&quot;mean_abs_shap&quot;],
+        &quot;top_mean_shap_value&quot;: top[&quot;mean_shap_value&quot;],
+        &quot;top_contribution_direction&quot;: top[&quot;contribution_direction&quot;],
+        &quot;positive_local_contribution_count&quot;: sum(row[&quot;contribution_direction&quot;] == &quot;positive&quot; for row in local_rows),
+        &quot;negative_local_contribution_count&quot;: sum(row[&quot;contribution_direction&quot;] == &quot;negative&quot; for row in local_rows),
+        &quot;nonzero_global_feature_count&quot;: sum(float(row[&quot;mean_abs_shap&quot;]) &gt; 0 for row in global_rows),
+    }
+
+
+def top_built_in_feature(built_in_spec: dict[str, Any], method: str) -&gt; dict[str, Any]:
+    return dict(built_in_spec.get(&quot;top_features_by_method&quot;, {}).get(method, {}))
+
+
+def top_permutation_feature(permutation_spec: dict[str, Any], permutation_report: dict[str, Any]) -&gt; dict[str, Any]:
+    feature = permutation_spec.get(&quot;top_summary&quot;, {}).get(&quot;largest_absolute_mean_delta_feature&quot;)
+    for row in permutation_report.get(&quot;importance&quot;, []):
+        if row.get(&quot;feature_name&quot;) == feature:
+            return dict(row)
+    return {}
+
+
+def disagreement_rows(
+    *,
+    global_rows: list[dict[str, Any]],
+    built_in_spec: dict[str, Any],
+    permutation_spec: dict[str, Any],
+    permutation_report: dict[str, Any],
+    policy: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    shap_top = sorted(global_rows, key=lambda row: (int(row[&quot;rank_by_mean_abs_shap&quot;]), int(row[&quot;feature_index&quot;])))[0]
+    prediction_top = top_built_in_feature(built_in_spec, &quot;PredictionValuesChange&quot;)
+    loss_top = top_built_in_feature(built_in_spec, &quot;LossFunctionChange&quot;)
+    permutation_top = top_permutation_feature(permutation_spec, permutation_report)
+    top_features = {
+        prediction_top.get(&quot;feature_name&quot;),
+        loss_top.get(&quot;feature_name&quot;),
+        permutation_top.get(&quot;feature_name&quot;),
+        shap_top.get(&quot;feature_name&quot;),
+    }
+    same_top_feature = len({feature for feature in top_features if feature}) == 1
+    disagreement_status = (
+        &quot;same_top_feature_conflicting_direction_or_scope&quot;
+        if same_top_feature
+        else &quot;different_top_features_across_methods&quot;
+    )
+    note = (
+        &quot;All methods point at platform, but PredictionValuesChange is internal-positive, &quot;
+        &quot;LossFunctionChange and permutation are negative on validation, and SHAP has mixed local signs.&quot;
+    )
+    rows = [
+        {
+            &quot;method&quot;: &quot;CatBoost PredictionValuesChange&quot;,
+            &quot;source_audit_id&quot;: policy[&quot;built_in_importance_audit_id&quot;],
+            &quot;top_feature_name&quot;: prediction_top.get(&quot;feature_name&quot;),
+            &quot;rank_basis&quot;: &quot;normalized_absolute_importance&quot;,
+            &quot;raw_value&quot;: prediction_top.get(&quot;raw_importance&quot;),
+            &quot;direction&quot;: &quot;positive&quot;,
+            &quot;output_space&quot;: &quot;model_internal_prediction_change&quot;,
+            &quot;split&quot;: &quot;model_structure&quot;,
+            &quot;disagreement_status&quot;: disagreement_status,
+            &quot;disagreement_note&quot;: note,
+        },
+        {
+            &quot;method&quot;: &quot;CatBoost LossFunctionChange&quot;,
+            &quot;source_audit_id&quot;: policy[&quot;built_in_importance_audit_id&quot;],
+            &quot;top_feature_name&quot;: loss_top.get(&quot;feature_name&quot;),
+            &quot;rank_basis&quot;: &quot;normalized_absolute_importance&quot;,
+            &quot;raw_value&quot;: loss_top.get(&quot;raw_importance&quot;),
+            &quot;direction&quot;: &quot;negative&quot;,
+            &quot;output_space&quot;: &quot;validation_loss_delta_when_feature_is_removed&quot;,
+            &quot;split&quot;: &quot;validation&quot;,
+            &quot;disagreement_status&quot;: disagreement_status,
+            &quot;disagreement_note&quot;: note,
+        },
+        {
+            &quot;method&quot;: &quot;Permutation importance&quot;,
+            &quot;source_audit_id&quot;: policy[&quot;permutation_importance_audit_id&quot;],
+            &quot;top_feature_name&quot;: permutation_top.get(&quot;feature_name&quot;),
+            &quot;rank_basis&quot;: &quot;largest_absolute_mean_delta&quot;,
+            &quot;raw_value&quot;: permutation_top.get(&quot;mean_importance&quot;),
+            &quot;direction&quot;: permutation_top.get(&quot;direction&quot;),
+            &quot;output_space&quot;: &quot;validation_neg_log_loss_delta&quot;,
+            &quot;split&quot;: policy[&quot;explain_split&quot;],
+            &quot;disagreement_status&quot;: disagreement_status,
+            &quot;disagreement_note&quot;: note,
+        },
+        {
+            &quot;method&quot;: &quot;Tree SHAP mean_abs&quot;,
+            &quot;source_audit_id&quot;: policy[&quot;shap_explanation_audit_id&quot;],
+            &quot;top_feature_name&quot;: shap_top.get(&quot;feature_name&quot;),
+            &quot;rank_basis&quot;: &quot;mean_abs_shap&quot;,
+            &quot;raw_value&quot;: shap_top.get(&quot;mean_abs_shap&quot;),
+            &quot;direction&quot;: shap_top.get(&quot;contribution_direction&quot;),
+            &quot;output_space&quot;: policy[&quot;explainer&quot;][&quot;output_space&quot;],
+            &quot;split&quot;: policy[&quot;explain_split&quot;],
+            &quot;disagreement_status&quot;: disagreement_status,
+            &quot;disagreement_note&quot;: note,
+        },
+    ]
+    return rows
+
+
+def validate_shap_results(
+    *,
+    global_rows: list[dict[str, Any]],
+    local_rows: list[dict[str, Any]],
+    additivity_rows: list[dict[str, Any]],
+    disagreement: list[dict[str, Any]],
+    expected_features: list[str],
+    policy: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    if len(global_rows) != len(expected_features):
+        checks.append(failed(&quot;shap_global_summary_covers_all_features&quot;, len(global_rows), len(expected_features)))
+    else:
+        checks.append(
+            passed(
+                &quot;shap_global_summary_covers_all_features&quot;,
+                {&quot;feature_count&quot;: len(expected_features), &quot;row_count&quot;: len(global_rows)},
+            )
+        )
+
+    expected_local_ids = set(policy.get(&quot;local_explanations&quot;, {}).get(&quot;snapshot_ids&quot;, []))
+    observed_local_ids = {row[&quot;snapshot_id&quot;] for row in local_rows}
+    if observed_local_ids != expected_local_ids:
+        checks.append(
+            failed(
+                &quot;shap_local_explanations_cover_declared_rows&quot;,
+                sorted(observed_local_ids),
+                sorted(expected_local_ids),
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;shap_local_explanations_cover_declared_rows&quot;,
+                {&quot;snapshot_ids&quot;: sorted(observed_local_ids), &quot;row_count&quot;: len(local_rows)},
+            )
+        )
+
+    failing_additivity = [row for row in additivity_rows if not row[&quot;passes_additivity&quot;]]
+    if failing_additivity:
+        checks.append(
+            failed(
+                &quot;shap_additivity_reconstructs_raw_margin&quot;,
+                len(failing_additivity),
+                &quot;0 rows over tolerance&quot;,
+                failing_additivity[:5],
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;shap_additivity_reconstructs_raw_margin&quot;,
+                {
+                    &quot;row_count&quot;: len(additivity_rows),
+                    &quot;max_absolute_error&quot;: max((row[&quot;absolute_error&quot;] for row in additivity_rows), default=0.0),
+                },
+            )
+        )
+
+    expected_methods = {
+        &quot;CatBoost PredictionValuesChange&quot;,
+        &quot;CatBoost LossFunctionChange&quot;,
+        &quot;Permutation importance&quot;,
+        &quot;Tree SHAP mean_abs&quot;,
+    }
+    observed_methods = {row[&quot;method&quot;] for row in disagreement}
+    if observed_methods != expected_methods:
+        checks.append(
+            failed(
+                &quot;explanation_disagreement_table_covers_built_in_permutation_and_shap&quot;,
+                sorted(observed_methods),
+                sorted(expected_methods),
+            )
+        )
+    else:
+        checks.append(
+            passed(
+                &quot;explanation_disagreement_table_covers_built_in_permutation_and_shap&quot;,
+                {&quot;method_count&quot;: len(observed_methods), &quot;top_features&quot;: sorted({row[&quot;top_feature_name&quot;] for row in disagreement})},
+            )
+        )
+    return checks
+
+
+def warning_ledger_rows(
+    *,
+    policy: dict[str, Any],
+    high_cardinality: set[str],
+    correlated_pairs: list[dict[str, Any]],
+    background_summary: dict[str, Any],
+    explanation_summary: dict[str, Any],
+    built_in_spec: dict[str, Any],
+    permutation_spec: dict[str, Any],
+) -&gt; list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    warning_policy = policy.get(&quot;warning_policy&quot;, {})
+
+    for feature in sorted(high_cardinality):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: feature,
+                &quot;observed&quot;: feature,
+                &quot;expected&quot;: &quot;high-cardinality categorical features interpreted with caution&quot;,
+                &quot;reason&quot;: &quot;Sparse categories can make local categorical split explanations brittle on tiny samples.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    for pair in correlated_pairs:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;correlated_features_can_share_shap_attribution&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: f&quot;{pair[&#x27;left_feature&#x27;]}|{pair[&#x27;right_feature&#x27;]}&quot;,
+                &quot;observed&quot;: pair[&quot;abs_correlation&quot;],
+                &quot;expected&quot;: f&quot;abs correlation &lt; {warning_policy.get(&#x27;correlation_threshold&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if int(background_summary.get(&quot;row_count&quot;, 0)) &lt; int(warning_policy.get(&quot;min_background_rows_for_stable_explanations&quot;, 0)):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: background_summary.get(&quot;row_count&quot;),
+                &quot;expected&quot;: f&quot;&gt;= {warning_policy.get(&#x27;min_background_rows_for_stable_explanations&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;The path-dependent SHAP baseline is documented, but four train rows are not enough for a strong explanation claim.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if int(explanation_summary.get(&quot;row_count&quot;, 0)) &lt; int(warning_policy.get(&quot;min_explanation_rows_for_global_summary&quot;, 0)):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: explanation_summary.get(&quot;row_count&quot;),
+                &quot;expected&quot;: f&quot;&gt;= {warning_policy.get(&#x27;min_explanation_rows_for_global_summary&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;Mean absolute SHAP on three validation rows is a protocol check, not a production global explanation.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    tree_count = built_in_spec.get(&quot;tree_count_summary&quot;, {}).get(&quot;tree_count&quot;)
+    if int(tree_count or 0) &lt; int(warning_policy.get(&quot;min_tree_count_for_stable_explanations&quot;, 0)):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: tree_count,
+                &quot;expected&quot;: f&quot;&gt;= {warning_policy.get(&#x27;min_tree_count_for_stable_explanations&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;A one-tree CatBoost model is useful for testing SHAP mechanics, not for stable interpretation.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    baseline_log_loss = permutation_spec.get(&quot;heldout_summary&quot;, {}).get(&quot;baseline_log_loss&quot;)
+    if float(baseline_log_loss or 0.0) &gt;= float(warning_policy.get(&quot;max_baseline_log_loss_for_strong_claim&quot;, 1.0)):
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: baseline_log_loss,
+                &quot;expected&quot;: f&quot;&lt; {warning_policy.get(&#x27;max_baseline_log_loss_for_strong_claim&#x27;)}&quot;,
+                &quot;reason&quot;: &quot;Explaining a weak model explains its weak decision rule; it does not create a reliable business story.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if warning_policy.get(&quot;flag_non_probability_output&quot;) and policy.get(&quot;explainer&quot;, {}).get(&quot;output_space&quot;) == &quot;raw_margin&quot;:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;raw_margin_output_is_not_probability&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: &quot;raw_margin&quot;,
+                &quot;expected&quot;: &quot;probability only after link transformation&quot;,
+                &quot;reason&quot;: &quot;Additivity is checked in raw-margin space; local SHAP values are not probability-point changes.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    if policy.get(&quot;explainer&quot;, {}).get(&quot;background_mode&quot;) == &quot;catboost_tree_path_dependent_training_path_counts&quot;:
+        rows.append(
+            {
+                &quot;warning_id&quot;: &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+                &quot;severity&quot;: &quot;warning&quot;,
+                &quot;feature_name&quot;: &quot;&quot;,
+                &quot;observed&quot;: policy.get(&quot;explainer&quot;, {}).get(&quot;background_mode&quot;),
+                &quot;expected&quot;: &quot;documented background mode, no external background data&quot;,
+                &quot;reason&quot;: &quot;SHAP TreeExplainer cannot use external background data with CatBoost categorical splits; the path-dependent mode must be explicit.&quot;,
+                &quot;blocks_readiness&quot;: False,
+            }
+        )
+
+    return rows
+
+
+def warning_checks(warning_rows: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for warning_id in [
+        &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+        &quot;correlated_features_can_share_shap_attribution&quot;,
+        &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+        &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+        &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+        &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+        &quot;raw_margin_output_is_not_probability&quot;,
+        &quot;tree_path_dependent_background_required_for_catboost_categories&quot;,
+    ]:
+        rows = [row for row in warning_rows if row[&quot;warning_id&quot;] == warning_id]
+        if rows:
+            checks.append(failed(warning_id, len(rows), &quot;0 warnings&quot;, rows[:5], severity=&quot;warning&quot;))
+        else:
+            checks.append(passed(warning_id, 0))
+    return checks
+
+
+def failure_report(error_id: str, message: str) -&gt; dict[str, Any]:
+    check = failed(error_id, message, &quot;loadable SHAP explanation inputs&quot;)
+    return {
+        &quot;valid&quot;: False,
+        &quot;shap_explanation_audit_id&quot;: None,
+        &quot;problem_id&quot;: None,
+        &quot;summary&quot;: {
+            &quot;blocking_errors&quot;: [error_id],
+            &quot;warnings&quot;: [],
+            &quot;readiness_status&quot;: &quot;blocked_by_shap_explanation_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        },
+        &quot;checks&quot;: [check],
+        &quot;global_summary&quot;: [],
+        &quot;local_explanations&quot;: [],
+        &quot;additivity_audit&quot;: [],
+        &quot;disagreement&quot;: [],
+        &quot;warning_ledger&quot;: [],
+        &quot;serialized_spec&quot;: {},
+    }
+
+
+def run(
+    *,
+    policy_path: Path = DEFAULT_POLICY_PATH,
+    catboost_spec_path: Path = DEFAULT_CATBOOST_SPEC_PATH,
+    early_stopping_report_path: Path = DEFAULT_EARLY_STOPPING_REPORT_PATH,
+    early_stopping_spec_path: Path = DEFAULT_EARLY_STOPPING_SPEC_PATH,
+    categorical_report_path: Path = DEFAULT_CATEGORICAL_REPORT_PATH,
+    built_in_report_path: Path = DEFAULT_BUILT_IN_REPORT_PATH,
+    built_in_spec_path: Path = DEFAULT_BUILT_IN_SPEC_PATH,
+    permutation_report_path: Path = DEFAULT_PERMUTATION_REPORT_PATH,
+    permutation_spec_path: Path = DEFAULT_PERMUTATION_SPEC_PATH,
+    features_path: Path = DEFAULT_FEATURES_PATH,
+    labels_path: Path = DEFAULT_LABELS_PATH,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
+) -&gt; dict[str, Any]:
+    input_paths = {
+        &quot;shap_explanation_policy&quot;: policy_path,
+        &quot;catboost_model_spec&quot;: catboost_spec_path,
+        &quot;early_stopping_report&quot;: early_stopping_report_path,
+        &quot;early_stopping_serialized_spec&quot;: early_stopping_spec_path,
+        &quot;categorical_report&quot;: categorical_report_path,
+        &quot;built_in_importance_report&quot;: built_in_report_path,
+        &quot;built_in_importance_serialized_spec&quot;: built_in_spec_path,
+        &quot;permutation_importance_report&quot;: permutation_report_path,
+        &quot;permutation_importance_serialized_spec&quot;: permutation_spec_path,
+        &quot;features&quot;: features_path,
+        &quot;labels&quot;: labels_path,
+        &quot;manifest&quot;: manifest_path,
+    }
+    file_check = validate_required_files(input_paths)
+    if not file_check[&quot;valid&quot;]:
+        return failure_report(file_check[&quot;id&quot;], &quot;, &quot;.join(file_check[&quot;sample&quot;]))
+
+    try:
+        policy = read_json(policy_path)
+        catboost_spec = read_json(catboost_spec_path)
+        early_report = read_json(early_stopping_report_path)
+        early_spec = read_json(early_stopping_spec_path)
+        categorical_report = read_json(categorical_report_path)
+        built_in_report = read_json(built_in_report_path)
+        built_in_spec = read_json(built_in_spec_path)
+        permutation_report = read_json(permutation_report_path)
+        permutation_spec = read_json(permutation_spec_path)
+        frame = joined_frame(features_path, labels_path, manifest_path)
+        numeric_features = list(early_spec.get(&quot;numeric_features&quot;, []))
+        categorical_features = list(early_spec.get(&quot;cat_features&quot;, []))
+        expected_features = expected_feature_order(catboost_spec)
+
+        checks = [file_check]
+        checks.extend(
+            validate_handoff(
+                policy=policy,
+                catboost_spec=catboost_spec,
+                early_report=early_report,
+                early_spec=early_spec,
+                categorical_report=categorical_report,
+                built_in_report=built_in_report,
+                built_in_spec=built_in_spec,
+                permutation_report=permutation_report,
+                permutation_spec=permutation_spec,
+            )
+        )
+        checks.extend(validate_shap_policy(policy, expected_features))
+        checks.extend(validate_background_and_explain_rows(frame, policy))
+
+        global_rows: list[dict[str, Any]] = []
+        local_rows: list[dict[str, Any]] = []
+        additivity_rows: list[dict[str, Any]] = []
+        disagreement: list[dict[str, Any]] = []
+        warning_rows: list[dict[str, Any]] = []
+        high_cardinality = high_cardinality_features(categorical_report)
+        correlated_pairs: list[dict[str, Any]] = []
+        background_summary = split_summary(frame, policy.get(&quot;explainer&quot;, {}).get(&quot;background_split&quot;, &quot;&quot;))
+        explanation_summary: dict[str, Any] = {}
+        additivity_summary: dict[str, Any] = {}
+
+        if not blocking_errors(checks):
+            matrix = prepare_features(
+                frame,
+                numeric_features,
+                categorical_features,
+                catboost_spec.get(&quot;feature_contract&quot;, {}).get(&quot;missing_category_token&quot;, &quot;__MISSING__&quot;),
+            )
+            model = train_model(frame=frame, matrix=matrix, early_spec=early_spec)
+            if list(model.feature_names_) != expected_features:
+                checks.append(failed(&quot;feature_names_match_training_pool_order&quot;, list(model.feature_names_), expected_features))
+            else:
+                checks.append(passed(&quot;feature_names_match_training_pool_order&quot;, {&quot;feature_count&quot;: len(expected_features), &quot;features&quot;: expected_features}))
+            if not blocking_errors(checks):
+                global_rows, local_rows, additivity_rows, additivity_summary, explanation_summary = compute_shap_outputs(
+                    policy=policy,
+                    model=model,
+                    matrix=matrix,
+                    frame=frame,
+                    expected_features=expected_features,
+                    categorical_features=categorical_features,
+                )
+                disagreement = disagreement_rows(
+                    global_rows=global_rows,
+                    built_in_spec=built_in_spec,
+                    permutation_spec=permutation_spec,
+                    permutation_report=permutation_report,
+                    policy=policy,
+                )
+                checks.extend(
+                    validate_shap_results(
+                        global_rows=global_rows,
+                        local_rows=local_rows,
+                        additivity_rows=additivity_rows,
+                        disagreement=disagreement,
+                        expected_features=expected_features,
+                        policy=policy,
+                    )
+                )
+                correlated_pairs = correlated_numeric_pairs(
+                    frame,
+                    numeric_features,
+                    policy[&quot;fit_split&quot;],
+                    float(policy.get(&quot;warning_policy&quot;, {}).get(&quot;correlation_threshold&quot;, 1.0)),
+                )
+                warning_rows = warning_ledger_rows(
+                    policy=policy,
+                    high_cardinality=high_cardinality,
+                    correlated_pairs=correlated_pairs,
+                    background_summary=background_summary,
+                    explanation_summary=explanation_summary,
+                    built_in_spec=built_in_spec,
+                    permutation_spec=permutation_spec,
+                )
+                checks.extend(warning_checks(warning_rows))
+
+        blocking = blocking_errors(checks)
+        warnings = warning_ids(checks)
+        valid = not blocking
+        top_summary = summarize_top_features(global_rows, local_rows)
+        disagreement_status = disagreement[0][&quot;disagreement_status&quot;] if disagreement else None
+        serialized_spec = {
+            &quot;shap_explanation_audit_id&quot;: policy.get(&quot;shap_explanation_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;catboost_baseline_id&quot;: policy.get(&quot;catboost_baseline_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;early_stopping_audit_id&quot;: policy.get(&quot;early_stopping_audit_id&quot;),
+            &quot;categorical_audit_id&quot;: policy.get(&quot;categorical_audit_id&quot;),
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;permutation_importance_audit_id&quot;: policy.get(&quot;permutation_importance_audit_id&quot;),
+            &quot;catboost_version&quot;: catboost.__version__,
+            &quot;shap_version&quot;: shap.__version__,
+            &quot;feature_order&quot;: expected_features,
+            &quot;explainer&quot;: policy.get(&quot;explainer&quot;, {}),
+            &quot;background_summary&quot;: background_summary,
+            &quot;explanation_summary&quot;: explanation_summary,
+            &quot;additivity_summary&quot;: additivity_summary,
+            &quot;global_summary_policy&quot;: policy.get(&quot;global_summary&quot;, {}),
+            &quot;local_explanation_policy&quot;: policy.get(&quot;local_explanations&quot;, {}),
+            &quot;interpretation_policy&quot;: policy.get(&quot;interpretation_policy&quot;, {}),
+            &quot;top_summary&quot;: top_summary,
+            &quot;disagreement_summary&quot;: {
+                &quot;row_count&quot;: len(disagreement),
+                &quot;disagreement_status&quot;: disagreement_status,
+                &quot;methods&quot;: [row[&quot;method&quot;] for row in disagreement],
+                &quot;top_features&quot;: sorted({row[&quot;top_feature_name&quot;] for row in disagreement if row.get(&quot;top_feature_name&quot;)}),
+            },
+            &quot;warning_summary&quot;: {
+                &quot;warning_count&quot;: len(warning_rows),
+                &quot;warning_ids&quot;: warnings,
+                &quot;high_cardinality_features&quot;: sorted(high_cardinality),
+                &quot;correlated_pair_count&quot;: len(correlated_pairs),
+            },
+            &quot;upstream_handoff&quot;: {
+                &quot;built_in_importance_report&quot;: portable_path(built_in_report_path),
+                &quot;built_in_readiness_status&quot;: built_in_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;permutation_importance_report&quot;: portable_path(permutation_report_path),
+                &quot;permutation_readiness_status&quot;: permutation_report.get(&quot;summary&quot;, {}).get(&quot;readiness_status&quot;),
+                &quot;early_stopping_report&quot;: portable_path(early_stopping_report_path),
+                &quot;early_stopping_model_id&quot;: early_spec.get(&quot;early_stopping_model_id&quot;),
+                &quot;categorical_report&quot;: portable_path(categorical_report_path),
+                &quot;categorical_audit_id&quot;: categorical_report.get(&quot;summary&quot;, {}).get(&quot;categorical_audit_id&quot;),
+            },
+            &quot;output&quot;: policy.get(&quot;output&quot;, {}),
+        }
+        summary = {
+            &quot;shap_explanation_audit_id&quot;: policy.get(&quot;shap_explanation_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;source_catboost_model_id&quot;: policy.get(&quot;source_catboost_model_id&quot;),
+            &quot;early_stopping_model_id&quot;: policy.get(&quot;early_stopping_model_id&quot;),
+            &quot;built_in_importance_audit_id&quot;: policy.get(&quot;built_in_importance_audit_id&quot;),
+            &quot;permutation_importance_audit_id&quot;: policy.get(&quot;permutation_importance_audit_id&quot;),
+            &quot;background_split&quot;: policy.get(&quot;explainer&quot;, {}).get(&quot;background_split&quot;),
+            &quot;background_row_count&quot;: background_summary.get(&quot;row_count&quot;),
+            &quot;explain_split&quot;: policy.get(&quot;explain_split&quot;),
+            &quot;explain_row_count&quot;: explanation_summary.get(&quot;row_count&quot;),
+            &quot;output_space&quot;: policy.get(&quot;explainer&quot;, {}).get(&quot;output_space&quot;),
+            &quot;expected_value&quot;: additivity_summary.get(&quot;expected_value&quot;),
+            &quot;additivity_max_abs_error&quot;: additivity_summary.get(&quot;max_absolute_error&quot;),
+            &quot;additivity_passed_row_count&quot;: additivity_summary.get(&quot;passed_row_count&quot;),
+            &quot;global_summary_row_count&quot;: len(global_rows),
+            &quot;local_explanation_row_count&quot;: len(local_rows),
+            &quot;top_mean_abs_shap_feature&quot;: top_summary.get(&quot;top_mean_abs_shap_feature&quot;),
+            &quot;top_mean_abs_shap_value&quot;: top_summary.get(&quot;top_mean_abs_shap_value&quot;),
+            &quot;top_contribution_direction&quot;: top_summary.get(&quot;top_contribution_direction&quot;),
+            &quot;disagreement_row_count&quot;: len(disagreement),
+            &quot;disagreement_status&quot;: disagreement_status,
+            &quot;warning_ledger_row_count&quot;: len(warning_rows),
+            &quot;blocking_errors&quot;: blocking,
+            &quot;warnings&quot;: warnings,
+            &quot;readiness_status&quot;: &quot;ready_for_segment_analysis_lesson&quot; if valid else &quot;blocked_by_shap_explanation_policy&quot;,
+            &quot;generated_at&quot;: GENERATED_AT,
+        }
+        return {
+            &quot;valid&quot;: valid,
+            &quot;shap_explanation_audit_id&quot;: policy.get(&quot;shap_explanation_audit_id&quot;),
+            &quot;problem_id&quot;: policy.get(&quot;problem_id&quot;),
+            &quot;summary&quot;: summary,
+            &quot;checks&quot;: checks,
+            &quot;global_summary&quot;: global_rows,
+            &quot;local_explanations&quot;: local_rows,
+            &quot;additivity_audit&quot;: additivity_rows,
+            &quot;disagreement&quot;: disagreement,
+            &quot;warning_ledger&quot;: warning_rows,
+            &quot;serialized_spec&quot;: serialized_spec if valid else {},
+        }
+    except (ShapExplanationError, OSError, json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+        return failure_report(&quot;shap_explanation_runtime_error&quot;, str(exc))
+
+
+GLOBAL_SUMMARY_FIELDS = [
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;feature_role&quot;,
+    &quot;explain_split&quot;,
+    &quot;output_space&quot;,
+    &quot;mean_abs_shap&quot;,
+    &quot;mean_shap_value&quot;,
+    &quot;std_shap_value&quot;,
+    &quot;positive_row_count&quot;,
+    &quot;negative_row_count&quot;,
+    &quot;nonzero_row_count&quot;,
+    &quot;rank_by_mean_abs_shap&quot;,
+    &quot;is_top_mean_abs_shap_feature&quot;,
+    &quot;contribution_direction&quot;,
+]
+
+LOCAL_EXPLANATION_FIELDS = [
+    &quot;snapshot_id&quot;,
+    &quot;user_id&quot;,
+    &quot;prediction_time&quot;,
+    &quot;split&quot;,
+    &quot;target&quot;,
+    &quot;raw_prediction&quot;,
+    &quot;predicted_probability&quot;,
+    &quot;expected_value&quot;,
+    &quot;shap_sum&quot;,
+    &quot;reconstructed_raw_prediction&quot;,
+    &quot;additivity_abs_error&quot;,
+    &quot;top_rank&quot;,
+    &quot;feature_index&quot;,
+    &quot;feature_name&quot;,
+    &quot;feature_role&quot;,
+    &quot;feature_value&quot;,
+    &quot;shap_value&quot;,
+    &quot;absolute_shap_value&quot;,
+    &quot;contribution_direction&quot;,
+]
+
+ADDITIVITY_FIELDS = [
+    &quot;snapshot_id&quot;,
+    &quot;user_id&quot;,
+    &quot;split&quot;,
+    &quot;output_space&quot;,
+    &quot;expected_value&quot;,
+    &quot;shap_sum&quot;,
+    &quot;model_raw_prediction&quot;,
+    &quot;reconstructed_raw_prediction&quot;,
+    &quot;absolute_error&quot;,
+    &quot;tolerance&quot;,
+    &quot;passes_additivity&quot;,
+    &quot;predicted_probability&quot;,
+    &quot;target&quot;,
+]
+
+DISAGREEMENT_FIELDS = [
+    &quot;method&quot;,
+    &quot;source_audit_id&quot;,
+    &quot;top_feature_name&quot;,
+    &quot;rank_basis&quot;,
+    &quot;raw_value&quot;,
+    &quot;direction&quot;,
+    &quot;output_space&quot;,
+    &quot;split&quot;,
+    &quot;disagreement_status&quot;,
+    &quot;disagreement_note&quot;,
+]
+
+WARNING_FIELDS = [
+    &quot;warning_id&quot;,
+    &quot;severity&quot;,
+    &quot;feature_name&quot;,
+    &quot;observed&quot;,
+    &quot;expected&quot;,
+    &quot;reason&quot;,
+    &quot;blocks_readiness&quot;,
+]
+
+
+def write_outputs(result: dict[str, Any], output_dir: Path, output_spec: dict[str, str]) -&gt; None:
+    write_json(output_dir / output_spec[&quot;report_file&quot;], {k: v for k, v in result.items() if k != &quot;serialized_spec&quot;})
+    write_csv(output_dir / output_spec[&quot;global_summary_file&quot;], result[&quot;global_summary&quot;], GLOBAL_SUMMARY_FIELDS)
+    write_csv(output_dir / output_spec[&quot;local_explanations_file&quot;], result[&quot;local_explanations&quot;], LOCAL_EXPLANATION_FIELDS)
+    write_csv(output_dir / output_spec[&quot;additivity_audit_file&quot;], result[&quot;additivity_audit&quot;], ADDITIVITY_FIELDS)
+    write_csv(output_dir / output_spec[&quot;disagreement_file&quot;], result[&quot;disagreement&quot;], DISAGREEMENT_FIELDS)
+    write_csv(output_dir / output_spec[&quot;warning_ledger_file&quot;], result[&quot;warning_ledger&quot;], WARNING_FIELDS)
+    write_json(output_dir / output_spec[&quot;serialized_spec_file&quot;], result[&quot;serialized_spec&quot;])
+
+
+def parse_args() -&gt; argparse.Namespace:
+    parser = argparse.ArgumentParser(description=&quot;Build Tree SHAP explanations for the CatBoost validation split.&quot;)
+    parser.add_argument(&quot;--policy&quot;, type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(&quot;--catboost-spec&quot;, type=Path, default=DEFAULT_CATBOOST_SPEC_PATH)
+    parser.add_argument(&quot;--early-stopping-report&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_REPORT_PATH)
+    parser.add_argument(&quot;--early-stopping-spec&quot;, type=Path, default=DEFAULT_EARLY_STOPPING_SPEC_PATH)
+    parser.add_argument(&quot;--categorical-report&quot;, type=Path, default=DEFAULT_CATEGORICAL_REPORT_PATH)
+    parser.add_argument(&quot;--built-in-report&quot;, type=Path, default=DEFAULT_BUILT_IN_REPORT_PATH)
+    parser.add_argument(&quot;--built-in-spec&quot;, type=Path, default=DEFAULT_BUILT_IN_SPEC_PATH)
+    parser.add_argument(&quot;--permutation-report&quot;, type=Path, default=DEFAULT_PERMUTATION_REPORT_PATH)
+    parser.add_argument(&quot;--permutation-spec&quot;, type=Path, default=DEFAULT_PERMUTATION_SPEC_PATH)
+    parser.add_argument(&quot;--features&quot;, type=Path, default=DEFAULT_FEATURES_PATH)
+    parser.add_argument(&quot;--labels&quot;, type=Path, default=DEFAULT_LABELS_PATH)
+    parser.add_argument(&quot;--manifest&quot;, type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(&quot;--output-dir&quot;, type=Path, default=LESSON_ROOT / &quot;outputs&quot;)
+    parser.add_argument(&quot;--fail-on-warning&quot;, action=&quot;store_true&quot;)
+    return parser.parse_args()
+
+
+def main() -&gt; int:
+    args = parse_args()
+    result = run(
+        policy_path=args.policy,
+        catboost_spec_path=args.catboost_spec,
+        early_stopping_report_path=args.early_stopping_report,
+        early_stopping_spec_path=args.early_stopping_spec,
+        categorical_report_path=args.categorical_report,
+        built_in_report_path=args.built_in_report,
+        built_in_spec_path=args.built_in_spec,
+        permutation_report_path=args.permutation_report,
+        permutation_spec_path=args.permutation_spec,
+        features_path=args.features,
+        labels_path=args.labels,
+        manifest_path=args.manifest,
+    )
+    output_spec = read_json(args.policy).get(&quot;output&quot;, {}) if args.policy.is_file() else {}
+    if output_spec:
+        write_outputs(result, args.output_dir, output_spec)
+
+    summary = result[&quot;summary&quot;]
+    print(
+        json.dumps(
+            {
+                &quot;audit_valid&quot;: result[&quot;valid&quot;],
+                &quot;shap_explanation_audit_id&quot;: summary.get(&quot;shap_explanation_audit_id&quot;),
+                &quot;early_stopping_model_id&quot;: summary.get(&quot;early_stopping_model_id&quot;),
+                &quot;explain_split&quot;: summary.get(&quot;explain_split&quot;),
+                &quot;background_row_count&quot;: summary.get(&quot;background_row_count&quot;),
+                &quot;explain_row_count&quot;: summary.get(&quot;explain_row_count&quot;),
+                &quot;output_space&quot;: summary.get(&quot;output_space&quot;),
+                &quot;expected_value&quot;: summary.get(&quot;expected_value&quot;),
+                &quot;additivity_max_abs_error&quot;: summary.get(&quot;additivity_max_abs_error&quot;),
+                &quot;top_mean_abs_shap_feature&quot;: summary.get(&quot;top_mean_abs_shap_feature&quot;),
+                &quot;disagreement_status&quot;: summary.get(&quot;disagreement_status&quot;),
+                &quot;warning_count&quot;: len(summary.get(&quot;warnings&quot;, [])),
+                &quot;readiness_status&quot;: summary.get(&quot;readiness_status&quot;),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result[&quot;valid&quot;]:
+        return 1
+    if args.fail_on_warning and summary.get(&quot;warnings&quot;):
+        return 2
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    raise SystemExit(main())
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_explanation_reporter.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_explanation_serialized_spec.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;shap_explanation_audit_id&quot;: &quot;trial-churn-shap-explanation-audit-v0&quot;,
+  &quot;problem_id&quot;: &quot;trial-churn-risk-7d-before-end&quot;,
+  &quot;catboost_baseline_id&quot;: &quot;trial-churn-catboost-baseline-v0&quot;,
+  &quot;source_catboost_model_id&quot;: &quot;catboost_depth2_native_categories&quot;,
+  &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+  &quot;early_stopping_audit_id&quot;: &quot;trial-churn-early-stopping-audit-v0&quot;,
+  &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;,
+  &quot;built_in_importance_audit_id&quot;: &quot;trial-churn-built-in-importance-audit-v0&quot;,
+  &quot;permutation_importance_audit_id&quot;: &quot;trial-churn-permutation-importance-audit-v0&quot;,
+  &quot;catboost_version&quot;: &quot;1.2.10&quot;,
+  &quot;shap_version&quot;: &quot;0.51.0&quot;,
+  &quot;feature_order&quot;: [
+    &quot;sessions_14d&quot;,
+    &quot;active_days_14d&quot;,
+    &quot;support_tickets_14d&quot;,
+    &quot;revenue_30d&quot;,
+    &quot;days_since_signup&quot;,
+    &quot;had_support_ticket_14d&quot;,
+    &quot;plan_id&quot;,
+    &quot;platform&quot;,
+    &quot;country&quot;,
+    &quot;acquisition_channel&quot;
+  ],
+  &quot;explainer&quot;: {
+    &quot;library&quot;: &quot;shap&quot;,
+    &quot;class&quot;: &quot;TreeExplainer&quot;,
+    &quot;model_output&quot;: &quot;raw&quot;,
+    &quot;output_space&quot;: &quot;raw_margin&quot;,
+    &quot;feature_perturbation&quot;: &quot;tree_path_dependent&quot;,
+    &quot;background_mode&quot;: &quot;catboost_tree_path_dependent_training_path_counts&quot;,
+    &quot;external_background_data_passed&quot;: false,
+    &quot;background_split&quot;: &quot;train&quot;,
+    &quot;background_sample_policy&quot;: &quot;all_train_rows_recorded_as_reference; CatBoost categorical splits require no external background data for TreeExplainer&quot;,
+    &quot;background_random_state&quot;: 1606
+  },
+  &quot;background_summary&quot;: {
+    &quot;split&quot;: &quot;train&quot;,
+    &quot;row_count&quot;: 4,
+    &quot;snapshot_ids&quot;: [
+      &quot;S001&quot;,
+      &quot;S002&quot;,
+      &quot;S003&quot;,
+      &quot;S004&quot;
+    ],
+    &quot;target_positive_count&quot;: 2,
+    &quot;target_negative_count&quot;: 2
+  },
+  &quot;explanation_summary&quot;: {
+    &quot;split&quot;: &quot;validation&quot;,
+    &quot;row_count&quot;: 3,
+    &quot;snapshot_ids&quot;: [
+      &quot;S005&quot;,
+      &quot;S006&quot;,
+      &quot;S007&quot;
+    ],
+    &quot;target_positive_count&quot;: 1,
+    &quot;target_negative_count&quot;: 2,
+    &quot;output_space&quot;: &quot;raw_margin&quot;,
+    &quot;raw_predictions&quot;: [
+      -0.030769,
+      -0.030769,
+      0.030769
+    ],
+    &quot;predicted_probabilities&quot;: [
+      0.492308,
+      0.492308,
+      0.507692
+    ]
+  },
+  &quot;additivity_summary&quot;: {
+    &quot;expected_value&quot;: 0.0,
+    &quot;max_absolute_error&quot;: 0.0,
+    &quot;passed_row_count&quot;: 3,
+    &quot;failed_row_count&quot;: 0,
+    &quot;tolerance&quot;: 1e-09
+  },
+  &quot;global_summary_policy&quot;: {
+    &quot;aggregation_split&quot;: &quot;validation&quot;,
+    &quot;metric&quot;: &quot;mean_abs_shap&quot;,
+    &quot;rank_tie_breaker&quot;: &quot;feature_order&quot;
+  },
+  &quot;local_explanation_policy&quot;: {
+    &quot;snapshot_ids&quot;: [
+      &quot;S005&quot;,
+      &quot;S006&quot;,
+      &quot;S007&quot;
+    ],
+    &quot;top_k_features&quot;: 3,
+    &quot;include_zero_contributions&quot;: false
+  },
+  &quot;interpretation_policy&quot;: {
+    &quot;claim&quot;: &quot;Tree SHAP decomposes this CatBoost model&#x27;s raw margin prediction on the validation rows into feature contributions; it is not causal evidence, not a fairness audit and not proof of production stability.&quot;,
+    &quot;forbidden_positive_claim_terms&quot;: [
+      &quot;causes churn&quot;,
+      &quot;caused churn&quot;,
+      &quot;causal driver&quot;,
+      &quot;because of platform&quot;,
+      &quot;proves retention effect&quot;,
+      &quot;fairness certified&quot;,
+      &quot;production stable&quot;
+    ],
+    &quot;required_limitation_labels&quot;: [
+      &quot;not_causal&quot;,
+      &quot;raw_margin_not_probability&quot;,
+      &quot;tree_path_dependent_background&quot;,
+      &quot;heldout_split_specific&quot;,
+      &quot;sensitive_to_correlated_features&quot;,
+      &quot;sensitive_to_bad_model_quality&quot;,
+      &quot;not_fairness_audit&quot;
+    ]
+  },
+  &quot;top_summary&quot;: {
+    &quot;top_mean_abs_shap_feature&quot;: &quot;platform&quot;,
+    &quot;top_mean_abs_shap_value&quot;: 0.030769,
+    &quot;top_mean_shap_value&quot;: -0.010256,
+    &quot;top_contribution_direction&quot;: &quot;mixed&quot;,
+    &quot;positive_local_contribution_count&quot;: 1,
+    &quot;negative_local_contribution_count&quot;: 2,
+    &quot;nonzero_global_feature_count&quot;: 1
+  },
+  &quot;disagreement_summary&quot;: {
+    &quot;row_count&quot;: 4,
+    &quot;disagreement_status&quot;: &quot;same_top_feature_conflicting_direction_or_scope&quot;,
+    &quot;methods&quot;: [
+      &quot;CatBoost PredictionValuesChange&quot;,
+      &quot;CatBoost LossFunctionChange&quot;,
+      &quot;Permutation importance&quot;,
+      &quot;Tree SHAP mean_abs&quot;
+    ],
+    &quot;top_features&quot;: [
+      &quot;platform&quot;
+    ]
+  },
+  &quot;warning_summary&quot;: {
+    &quot;warning_count&quot;: 12,
+    &quot;warning_ids&quot;: [
+      &quot;high_cardinality_features_flagged_for_shap_explanations&quot;,
+      &quot;correlated_features_can_share_shap_attribution&quot;,
+      &quot;tiny_background_reference_makes_shap_baseline_unstable&quot;,
+      &quot;tiny_explanation_sample_makes_global_shap_unstable&quot;,
+      &quot;tiny_tree_count_makes_shap_explanations_unstable&quot;,
+      &quot;poor_or_flat_model_score_limits_shap_claims&quot;,
+      &quot;raw_margin_output_is_not_probability&quot;,
+      &quot;tree_path_dependent_background_required_for_catboost_categories&quot;
+    ],
+    &quot;high_cardinality_features&quot;: [
+      &quot;acquisition_channel&quot;
+    ],
+    &quot;correlated_pair_count&quot;: 5
+  },
+  &quot;upstream_handoff&quot;: {
+    &quot;built_in_importance_report&quot;: &quot;phases/16-tabular-ml/04-feature-importance/outputs/built_in_importance_report.json&quot;,
+    &quot;built_in_readiness_status&quot;: &quot;ready_for_permutation_importance_lesson&quot;,
+    &quot;permutation_importance_report&quot;: &quot;phases/16-tabular-ml/05-permutation-importance/outputs/permutation_importance_report.json&quot;,
+    &quot;permutation_readiness_status&quot;: &quot;ready_for_shap_lesson&quot;,
+    &quot;early_stopping_report&quot;: &quot;phases/16-tabular-ml/03-early-stopping/outputs/early_stopping_report.json&quot;,
+    &quot;early_stopping_model_id&quot;: &quot;catboost_depth2_native_categories_es_logloss&quot;,
+    &quot;categorical_report&quot;: &quot;phases/16-tabular-ml/02-categorical-features/outputs/categorical_feature_report.json&quot;,
+    &quot;categorical_audit_id&quot;: &quot;trial-churn-categorical-feature-audit-v0&quot;
+  },
+  &quot;output&quot;: {
+    &quot;report_file&quot;: &quot;shap_explanation_report.json&quot;,
+    &quot;global_summary_file&quot;: &quot;shap_global_summary.csv&quot;,
+    &quot;local_explanations_file&quot;: &quot;shap_local_explanations.csv&quot;,
+    &quot;additivity_audit_file&quot;: &quot;shap_additivity_audit.csv&quot;,
+    &quot;disagreement_file&quot;: &quot;explanation_disagreement.csv&quot;,
+    &quot;warning_ledger_file&quot;: &quot;shap_warning_ledger.csv&quot;,
+    &quot;serialized_spec_file&quot;: &quot;shap_explanation_serialized_spec.json&quot;
+  }
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_explanation_serialized_spec.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_global_summary.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>feature_index,feature_name,feature_role,explain_split,output_space,mean_abs_shap,mean_shap_value,std_shap_value,positive_row_count,negative_row_count,nonzero_row_count,rank_by_mean_abs_shap,is_top_mean_abs_shap_feature,contribution_direction
+0,sessions_14d,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,2,False,zero
+1,active_days_14d,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,3,False,zero
+2,support_tickets_14d,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,4,False,zero
+3,revenue_30d,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,5,False,zero
+4,days_since_signup,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,6,False,zero
+5,had_support_ticket_14d,numeric,validation,raw_margin,0.0,0.0,0.0,0,0,0,7,False,zero
+6,plan_id,categorical,validation,raw_margin,0.0,0.0,0.0,0,0,0,8,False,zero
+7,platform,categorical,validation,raw_margin,0.030769,-0.010256,0.02901,1,2,3,1,True,mixed
+8,country,categorical,validation,raw_margin,0.0,0.0,0.0,0,0,0,9,False,zero
+9,acquisition_channel,categorical,validation,raw_margin,0.0,0.0,0.0,0,0,0,10,False,zero
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_global_summary.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_local_explanations.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>snapshot_id,user_id,prediction_time,split,target,raw_prediction,predicted_probability,expected_value,shap_sum,reconstructed_raw_prediction,additivity_abs_error,top_rank,feature_index,feature_name,feature_role,feature_value,shap_value,absolute_shap_value,contribution_direction
+S005,U005,2026-05-17T09:00:00+03:00,validation,0,-0.030769,0.492308,0.0,-0.030769,-0.030769,0.0,1,7,platform,categorical,ios,-0.030769,0.030769,negative
+S006,U006,2026-05-17T09:00:00+03:00,validation,1,-0.030769,0.492308,0.0,-0.030769,-0.030769,0.0,1,7,platform,categorical,web,-0.030769,0.030769,negative
+S007,U007,2026-05-17T09:00:00+03:00,validation,0,0.030769,0.507692,0.0,0.030769,0.030769,0.0,1,7,platform,categorical,android,0.030769,0.030769,positive
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_local_explanations.csv" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/shap_warning_ledger.csv</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>warning_id,severity,feature_name,observed,expected,reason,blocks_readiness
+high_cardinality_features_flagged_for_shap_explanations,warning,acquisition_channel,acquisition_channel,high-cardinality categorical features interpreted with caution,Sparse categories can make local categorical split explanations brittle on tiny samples.,False
+correlated_features_can_share_shap_attribution,warning,sessions_14d|active_days_14d,0.981981,abs correlation &lt; 0.8,Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.,False
+correlated_features_can_share_shap_attribution,warning,sessions_14d|revenue_30d,1.0,abs correlation &lt; 0.8,Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.,False
+correlated_features_can_share_shap_attribution,warning,support_tickets_14d|had_support_ticket_14d,0.904534,abs correlation &lt; 0.8,Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.,False
+correlated_features_can_share_shap_attribution,warning,revenue_30d|days_since_signup,0.866025,abs correlation &lt; 0.8,Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.,False
+correlated_features_can_share_shap_attribution,warning,days_since_signup|had_support_ticket_14d,0.894427,abs correlation &lt; 0.8,Tree SHAP explains this tree path; correlated features can still split or hide underlying signal.,False
+tiny_background_reference_makes_shap_baseline_unstable,warning,,4,&gt;= 20,&quot;The path-dependent SHAP baseline is documented, but four train rows are not enough for a strong explanation claim.&quot;,False
+tiny_explanation_sample_makes_global_shap_unstable,warning,,3,&gt;= 20,&quot;Mean absolute SHAP on three validation rows is a protocol check, not a production global explanation.&quot;,False
+tiny_tree_count_makes_shap_explanations_unstable,warning,,1,&gt;= 10,&quot;A one-tree CatBoost model is useful for testing SHAP mechanics, not for stable interpretation.&quot;,False
+poor_or_flat_model_score_limits_shap_claims,warning,,0.698394,&lt; 0.693147,Explaining a weak model explains its weak decision rule; it does not create a reliable business story.,False
+raw_margin_output_is_not_probability,warning,,raw_margin,probability only after link transformation,Additivity is checked in raw-margin space; local SHAP values are not probability-point changes.,False
+tree_path_dependent_background_required_for_catboost_categories,warning,,catboost_tree_path_dependent_training_path_counts,&quot;documented background mode, no external background data&quot;,SHAP TreeExplainer cannot use external background data with CatBoost categorical splits; the path-dependent mode must be explicit.,False
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/outputs/shap_warning_ledger.csv" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/06-shap" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/tabular-ml/permutation-importance/"><span>← Предыдущий урок</span><strong>Permutation importance</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/tabular-ml/segment-analysis/"><span>Следующий урок →</span><strong>Сегментный анализ сильной модели</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>
