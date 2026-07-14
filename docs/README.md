@@ -35,6 +35,15 @@
 - [`phase-15-design.md`](phase-15-design.md) — ML problem framing, split protocol,
   preprocessing pipelines, baselines, calibration, leakage, error analysis и итоговый
   model card package.
+- [`phase-16-design.md`](phase-16-design.md) — CatBoost baseline, categorical leakage,
+  early stopping, importance, SHAP, Optuna/MLflow ledger, drift и итоговый
+  tabular-ml-interpretation package.
+- [`phase-17-design.md`](phase-17-design.md) — decision memo, stakeholder workbook,
+  Quarto HTML/PDF/DOCX reports, Plotly/Streamlit delivery, CLI/schedule, optional
+  FastAPI/Docker и итоговый stakeholder delivery package.
+- [`phase-18-design.md`](phase-18-design.md) — capstone routes, stage contracts, data and
+  baseline gates, independent verification, peer review, defense rubric и итоговый
+  capstone portfolio package.
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — текущий handoff, открытые вопросы и следующий
   содержательный шаг.
 

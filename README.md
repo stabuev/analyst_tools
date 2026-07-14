@@ -158,66 +158,21 @@ python3 -m http.server 8000 --directory site
 
 ## Текущий статус
 
-Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Полностью
-завершены фазы `0-14` и уроки `15/01`–`15/11`: 167 уроков от входной диагностики до
-продуктовых экспериментов, analytics engineering, воспроизводимого multi-engine benchmark
-package и причинного анализа. Фаза `13` «Причинный анализ» завершена как 11 уроков на 15,5 часа: causal
-question/estimand, DAG/identification, backdoor adjustment, bad controls, g-formula,
-matching, IPW/AIPW, DiD, RDD/IV, sensitivity/falsification и интеграционный `13/11`
-causal-study-package с DoWhy-compatible workflow trace, EconML scope audit, checksum
-manifest и финальной claim policy, которая блокирует single strong causal claim при
-невыполненных assumptions. Фаза `14` «Временные ряды» спроектирована как 12 уроков на
-15,75 часа: временной индекс, resampling, leakage-free rolling features, temporal leakage
-audit, seasonal baseline, decomposition, ETS/ARIMA, rolling backtesting, forecast metrics,
-prediction intervals и итоговый time-series forecast package; уроки `14/01`–`14/12`
-завершены как time-index auditor, resampling pipeline, leakage-safe window feature
-builder, seasonality profiler, temporal leakage auditor, baseline forecaster,
-STL decomposition reporter, statsmodels forecast runner, rolling-origin backtester
-и forecast metric evaluator с metric slices, suitability audit, MASE denominators
-и weighted-MASE leaderboard policy, prediction interval calibrator с empirical coverage
-report, calibration audit и uncertainty statements, а также финальный time-series
-forecast packager с anomaly flags, decision report и checksum manifest.
-Фаза `15` «Прикладное машинное обучение» спроектирована как 15 уроков на 19,5 часа:
-ML problem framing, split protocol, metrics/cost policy, preprocessing, scikit-learn
-Pipeline и ColumnTransformer, baselines, trees/ensembles, cross-validation, imbalance,
-calibration, leakage audit, segment error analysis и итоговый model card package.
-Урок `15/01` завершен как ML problem spec validator с deterministic tiny churn-risk
-profile, readiness report и no-causal-claim boundary; `15/02` завершен как ML split
-auditor с group/time split manifest, label-horizon checks и validation/test role
-boundary; `15/03` завершен как classification metric evaluator с candidate score table,
-validation-only threshold sweep, cost table, PR-oriented metrics и no-test-peeking gate;
-`15/04` завершен как preprocessing contract checker с raw feature table,
-train-fitted imputation/encoding/scaling state, transformed feature matrix,
-unknown-category bucket audit и no-fit-before-split gate.
-`15/05` завершен как scikit-learn Pipeline runner с единым fit/transform/predict
-объектом, `pipeline_spec.json`, validation/test prediction report, serialized spec,
-fit trace, unknown-category bucket audit и no-external-preprocessed-matrix gate.
-`15/06` завершен как ColumnTransformer auditor с `column_transformer_spec.json`,
-numeric/categorical/binary routes, routing table, transformed feature schema,
-validation/test predictions, serialized route state и no-silent-dropped-columns gate.
-`15/07` завершен как linear baseline trainer с `linear_baseline_spec.json`,
-dummy/logistic sklearn `Pipeline` comparison, validation-only selection, coefficient
-table, intercept/regularization report и warning, когда logistic baseline не бьет
-dummy на tiny validation.
-`15/08` завершен как tree diagnostic trainer с `tree_diagnostic_spec.json`,
-depth-limited `DecisionTreeClassifier`, upstream linear-baseline handoff,
-train-validation overfit report, readable rule export, node report и warning, когда
-дерево хуже выбранного `dummy_prior` на validation.
-`15/09` завершен как tree ensemble comparator с `tree_ensemble_spec.json`,
-`RandomForestClassifier` внутри `Pipeline(ColumnTransformer, estimator)`, comparison
-dummy/logistic/tree/ensemble, validation-only selection, seed stability report,
-MDI/permutation feature-importance warnings, validation slice metrics и small-n warnings.
-`15/10` завершен как cross-validation planner с `cv_plan_spec.json`,
-`ml_cv_fold_manifest.csv`, predeclared group/time-aware folds, no-test-peeking audit,
-scoring alignment, fold-level score report, validation-only predictions,
-serialized fit trace и warnings для tiny CV sample.
-`15/11` завершен как imbalance policy evaluator с `imbalance_policy_spec.json`,
-class distribution report, always-negative accuracy trap, `class_weight="balanced"`
-candidate, validation-only selection, threshold/budget report, predictions,
-serialized fit trace и warnings для tiny imbalance sample.
-Следующий шаг — разработка урока `15/12` «Калибровка вероятностей».
+Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Завершены все
+фазы `00-18`: 201 из 201 уроков. Готовы общее ядро, продуктовая
+аналитика и эксперименты, analytics engineering, performance, causal analysis, time
+series, прикладной и табличный ML, а также доставка результата через memo, workbook,
+reproducible report, приложение, CLI/schedule и handoff package.
+
+Последняя фаза `18` «Капстоун-проекты» завершена как семь stage-gated уроков на
+44 часа. Готовы `18/01` с capstone brief validator, `18/02` с data contract auditor,
+`18/03` с decision-relevant baseline и `18/04` с route adapter, frozen config, evidence
+ledger и воспроизводимой сборкой, `18/05` - с clean-room rerun, shadow calculation,
+negative fixtures и sensitivity, а `18/06` - с evidence-based findings, author responses,
+changed-scope reruns и re-review gate, а `18/07` - с defense brief, live rerun,
+challenge questions, blocker-first rubric и финальным portfolio package.
 Точная готовность указана в
-[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения — в
+[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), заметные изменения - в
 [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Участие в проекте

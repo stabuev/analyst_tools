@@ -1,0 +1,113 @@
+{
+  "segment_analysis_audit_id": "trial-churn-strong-model-segment-audit-v0",
+  "problem_id": "trial-churn-risk-7d-before-end",
+  "baseline_package_id": "trial-churn-ml-baseline-package-v0",
+  "baseline_model_id": "random_forest_depth2_class_weight_balanced",
+  "catboost_baseline_id": "trial-churn-catboost-baseline-v0",
+  "source_catboost_model_id": "catboost_depth2_native_categories",
+  "early_stopping_model_id": "catboost_depth2_native_categories_es_logloss",
+  "early_stopping_audit_id": "trial-churn-early-stopping-audit-v0",
+  "shap_explanation_audit_id": "trial-churn-shap-explanation-audit-v0",
+  "analysis_split": "validation",
+  "final_holdout_split": "test",
+  "selection_policy": {
+    "selection_unit": "snapshot_id",
+    "budget_count": 2,
+    "baseline_selection_source": "phase15_imbalance_predictions.selected_at_budget",
+    "candidate_selection_source": "early_stopped_catboost_score_top_k_on_analysis_split",
+    "candidate_tie_breaker": ["score_desc", "split_order_asc", "snapshot_id_asc"],
+    "test_used_for_segment_analysis": false
+  },
+  "slice_policy": {
+    "required_dimensions": ["segment_id", "platform", "country"],
+    "business_dimensions": ["plan_id", "acquisition_channel"],
+    "derived_dimensions": ["business_cohort", "score_band"],
+    "business_cohort_formula": "plan_id + ':' + country",
+    "forbid_training_split_slice_claims": true,
+    "forbid_final_holdout_slice_claims": true,
+    "forbid_dropping_small_slices": true
+  },
+  "score_band_policy": {
+    "source": "model_score",
+    "interval_policy": "lower_inclusive_upper_exclusive_except_last",
+    "membership_policy": "computed_per_model_score",
+    "bands": [
+      {"band_id": "low", "lower": 0.0, "upper": 0.3},
+      {"band_id": "medium", "lower": 0.3, "upper": 0.5},
+      {"band_id": "high", "lower": 0.5, "upper": 1.0}
+    ]
+  },
+  "metric_policy": {
+    "primary_decision_rule": "rank_top_k_within_analysis_batch",
+    "metrics": [
+      "precision",
+      "recall",
+      "false_positive_rate",
+      "false_negative_rate",
+      "error_rate",
+      "selection_rate",
+      "brier_score"
+    ],
+    "confusion_terms": ["tp", "fp", "tn", "fn"]
+  },
+  "small_n_policy": {
+    "min_rows_per_slice": 3,
+    "min_positive_count_for_recall_claim": 2,
+    "action": "warn_not_hide",
+    "forbid_dropping_small_slices": true
+  },
+  "delta_policy": {
+    "baseline_name": "baseline",
+    "candidate_name": "catboost",
+    "worse_if_error_rate_delta_above": 0.0,
+    "worse_if_precision_delta_below": -0.01,
+    "worse_if_recall_delta_below": -0.01,
+    "hidden_failure_min_rows": 1,
+    "critical_dimensions": [
+      "segment_id",
+      "platform",
+      "country",
+      "plan_id",
+      "acquisition_channel",
+      "business_cohort",
+      "score_band"
+    ]
+  },
+  "interpretation_policy": {
+    "claim": "This report compares the phase-15 baseline and the early-stopped CatBoost candidate on the validation split. It is a segment diagnostic for model selection and decision design, not a final test result, causal proof, fairness certification or production stability claim.",
+    "forbidden_positive_claim_terms": [
+      "catboost is better in production",
+      "proves retention effect",
+      "causal driver",
+      "fairness certified",
+      "test confirmed",
+      "safe to ship"
+    ],
+    "required_limitation_labels": [
+      "validation_only",
+      "test_split_excluded",
+      "small_n_slices_visible",
+      "score_bands_model_specific",
+      "not_causal",
+      "not_fairness_audit"
+    ]
+  },
+  "warning_policy": {
+    "require_small_n_table": true,
+    "require_hidden_failure_table": true,
+    "require_candidate_not_promoted_warning": true,
+    "require_score_band_shift_warning": true,
+    "aggregate_metric_not_enough_for_segment_readiness": true
+  },
+  "output": {
+    "report_file": "strong_model_segment_report.json",
+    "confusion_row_file": "strong_model_confusion_rows.csv",
+    "slice_metric_file": "strong_model_slice_metrics.csv",
+    "delta_file": "strong_model_segment_deltas.csv",
+    "small_n_warning_file": "strong_model_small_n_warnings.csv",
+    "hidden_failure_file": "strong_model_hidden_failure_slices.csv",
+    "score_band_shift_file": "strong_model_score_band_shifts.csv",
+    "audit_file": "strong_model_segment_policy_audit.csv",
+    "serialized_spec_file": "strong_model_segment_serialized_spec.json"
+  }
+}

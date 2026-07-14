@@ -388,57 +388,57 @@ flowchart LR
 - **Треки:** ml
 - **Пререквизиты:** Фаза 15
 - **Время:** ~12-16 часов
-- **Итоговый артефакт:** Модель и интерпретационный отчет
+- **Итоговый артефакт:** Tabular ML interpretation package
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | CatBoost как сильный табличный baseline | planned |
-| 02 | Категориальные признаки без leakage | planned |
-| 03 | Early stopping | planned |
-| 04 | Встроенная важность признаков | planned |
-| 05 | Permutation importance | planned |
-| 06 | SHAP и ограничения объяснений | planned |
-| 07 | Сегментный анализ модели | planned |
-| 08 | Порог и стоимость решения | planned |
-| 09 | Optuna и честный подбор параметров | planned |
-| 10 | MLflow для истории экспериментов | planned |
-| 11 | Drift и стабильность | planned |
+| 01 | [CatBoost как сильный табличный baseline](phases/16-tabular-ml/01-catboost) | complete |
+| 02 | [Категориальные признаки без leakage](phases/16-tabular-ml/02-categorical-features) | complete |
+| 03 | [Early stopping и iteration budget](phases/16-tabular-ml/03-early-stopping) | complete |
+| 04 | [Встроенная важность признаков](phases/16-tabular-ml/04-feature-importance) | complete |
+| 05 | [Permutation importance](phases/16-tabular-ml/05-permutation-importance) | complete |
+| 06 | [SHAP и ограничения объяснений](phases/16-tabular-ml/06-shap) | complete |
+| 07 | [Сегментный анализ сильной модели](phases/16-tabular-ml/07-segment-analysis) | complete |
+| 08 | [Порог и стоимость решения для сильной модели](phases/16-tabular-ml/08-cost-sensitive-decisions) | complete |
+| 09 | [Optuna и честный подбор параметров](phases/16-tabular-ml/09-optuna) | complete |
+| 10 | [MLflow для истории экспериментов](phases/16-tabular-ml/10-mlflow) | complete |
+| 11 | [Drift, стабильность и interpretation package](phases/16-tabular-ml/11-drift-and-stability) | complete |
 
 ## Фаза 17: Доставка аналитического результата
 
 - **Треки:** delivery
 - **Пререквизиты:** Фаза 07
 - **Время:** ~12-18 часов
-- **Итоговый артефакт:** Аналитический продукт для заказчика
+- **Итоговый артефакт:** Stakeholder delivery package
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Аналитическая записка | planned |
-| 02 | Excel и XlsxWriter | planned |
-| 03 | Воспроизводимые отчеты с Quarto | planned |
-| 04 | HTML, PDF и DOCX | planned |
-| 05 | Интерактивный отчет Plotly | planned |
-| 06 | Приложение на Streamlit | planned |
-| 07 | Кеширование и состояние приложения | planned |
-| 08 | CLI для повторяемого запуска | planned |
-| 09 | Запуски по расписанию | planned |
-| 10 | FastAPI как факультативный интерфейс | planned |
-| 11 | Docker как факультативная упаковка | planned |
-| 12 | Handoff, документация и сопровождение | planned |
+| 01 | [Аналитическая записка для решения](phases/17-delivery/01-analytical-memo) | complete |
+| 02 | [Excel и XlsxWriter для stakeholder workbook](phases/17-delivery/02-excel-xlsxwriter) | complete |
+| 03 | [Воспроизводимые отчеты с Quarto](phases/17-delivery/03-quarto) | complete |
+| 04 | [HTML, PDF и DOCX как delivery formats](phases/17-delivery/04-document-formats) | complete |
+| 05 | [Интерактивный отчет Plotly](phases/17-delivery/05-interactive-plotly) | complete |
+| 06 | [Приложение на Streamlit](phases/17-delivery/06-streamlit) | complete |
+| 07 | [Кеширование, состояние и свежесть приложения](phases/17-delivery/07-caching-and-state) | complete |
+| 08 | [CLI для повторяемого запуска](phases/17-delivery/08-cli) | complete |
+| 09 | [Запуски по расписанию и freshness report](phases/17-delivery/09-scheduled-runs) | complete |
+| 10 | [FastAPI как факультативный интерфейс](phases/17-delivery/10-fastapi) | complete |
+| 11 | [Docker как факультативная упаковка](phases/17-delivery/11-docker) | complete |
+| 12 | [Handoff, документация и сопровождение](phases/17-delivery/12-handoff) | complete |
 
 ## Фаза 18: Капстоун-проекты
 
 - **Треки:** core, product, data, decision, ml, delivery
 - **Пререквизиты:** Фаза 17
 - **Время:** ~30-50 часов
-- **Итоговый артефакт:** Завершенный портфельный проект
+- **Итоговый артефакт:** Capstone portfolio package
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | Выбор и ограничение задачи | planned |
-| 02 | Контракт и аудит данных | planned |
-| 03 | Baseline результата | planned |
-| 04 | Реализация проекта | planned |
-| 05 | Проверки и независимая валидация | planned |
-| 06 | Peer review | planned |
-| 07 | Защита решения | planned |
+| 01 | [Выбор и ограничение задачи](phases/18-capstones/01-problem-selection) | complete |
+| 02 | [Контракт и аудит данных](phases/18-capstones/02-data-contract) | complete |
+| 03 | [Baseline результата](phases/18-capstones/03-baseline) | complete |
+| 04 | [Реализация проекта](phases/18-capstones/04-implementation) | complete |
+| 05 | [Проверки и независимая валидация](phases/18-capstones/05-verification) | complete |
+| 06 | [Peer review](phases/18-capstones/06-peer-review) | complete |
+| 07 | [Защита решения](phases/18-capstones/07-defense) | complete |

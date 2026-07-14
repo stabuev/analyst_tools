@@ -104,12 +104,12 @@ window.COURSE_DATA = {
         {
           "number": 17,
           "title": "Доставка аналитического результата",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 18,
           "title": "Капстоун-проекты",
-          "status": "planned"
+          "status": "complete"
         }
       ]
     },
@@ -200,12 +200,12 @@ window.COURSE_DATA = {
         {
           "number": 17,
           "title": "Доставка аналитического результата",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 18,
           "title": "Капстоун-проекты",
-          "status": "planned"
+          "status": "complete"
         }
       ]
     },
@@ -284,12 +284,12 @@ window.COURSE_DATA = {
         {
           "number": 17,
           "title": "Доставка аналитического результата",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 18,
           "title": "Капстоун-проекты",
-          "status": "planned"
+          "status": "complete"
         }
       ]
     },
@@ -375,17 +375,17 @@ window.COURSE_DATA = {
         {
           "number": 16,
           "title": "Табличный ML и интерпретация",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 17,
           "title": "Доставка аналитического результата",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 18,
           "title": "Капстоун-проекты",
-          "status": "planned"
+          "status": "complete"
         }
       ]
     },
@@ -501,17 +501,17 @@ window.COURSE_DATA = {
         {
           "number": 16,
           "title": "Табличный ML и интерпретация",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 17,
           "title": "Доставка аналитического результата",
-          "status": "planned"
+          "status": "complete"
         },
         {
           "number": 18,
           "title": "Капстоун-проекты",
-          "status": "planned"
+          "status": "complete"
         }
       ]
     }
@@ -3829,197 +3829,202 @@ window.COURSE_DATA = {
         "min": 12,
         "max": 16
       },
-      "artifact": "Модель и интерпретационный отчет",
-      "completion": "Студент улучшает baseline, объясняет локальные и глобальные факторы и проверяет стабильность на сегментах.",
-      "status": "planned",
+      "artifact": "Tabular ML interpretation package",
+      "completion": "Студент улучшает baseline сильной табличной моделью, объясняет локальные и глобальные факторы, ведет журнал экспериментов и проверяет стабильность на сегментах.",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml",
       "lessons": [
         {
           "number": 1,
           "slug": "catboost",
           "title": "CatBoost как сильный табличный baseline",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Обучает CatBoost-кандидат на той же ML-постановке, split roles и metric policy, сравнивая его с baseline package без test-driven selection.",
+          "artifact": "CatBoost baseline trainer с model comparison, training trace и no-test-selection audit",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/01-catboost",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/01-catboost",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/01-catboost/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "categorical-features",
           "title": "Категориальные признаки без leakage",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Передает categorical features в CatBoost через явный contract, проверяя high-cardinality levels, unknown categories, missing semantics и availability до prediction time.",
+          "artifact": "Categorical feature auditor с category inventory, leakage checks и unknown-category policy",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/02-categorical-features",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/02-categorical-features",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/02-categorical-features/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "early-stopping",
-          "title": "Early stopping",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Early stopping и iteration budget",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Использует validation-only eval_set, overfitting detector, best iteration и learning trace как воспроизводимый training-control protocol.",
+          "artifact": "Early stopping auditor с eval_set lineage, best-iteration trace и tree-count report",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/03-early-stopping",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/03-early-stopping",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/03-early-stopping/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "feature-importance",
           "title": "Встроенная важность признаков",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает CatBoost built-in feature importance, различает model-internal diagnostic и причинный вывод, отмечая high-cardinality и correlated-feature warnings.",
+          "artifact": "Built-in importance reporter с method labels, feature-name audit и interpretation warnings",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/04-feature-importance",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/04-feature-importance",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/04-feature-importance/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "permutation-importance",
           "title": "Permutation importance",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Считает model-agnostic permutation importance на held-out data с declared scoring, repeats, uncertainty bands и предупреждениями про плохую модель и коррелированные признаки.",
+          "artifact": "Permutation importance evaluator с held-out scoring, repeat variance и correlated-feature audit",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/05-permutation-importance",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/05-permutation-importance",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/05-permutation-importance/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "shap",
           "title": "SHAP и ограничения объяснений",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Строит Tree SHAP explanations для CatBoost, фиксируя background sample, output space, additivity check, local examples и границы интерпретации.",
+          "artifact": "SHAP explanation reporter с local/global summaries, additivity audit и explanation-limitations section",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/06-shap",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/06-shap",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/06-shap/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "segment-analysis",
-          "title": "Сегментный анализ модели",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Сегментный анализ сильной модели",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Сравнивает baseline и CatBoost по segment, score band и business cohort, показывая где сильная модель улучшает, ухудшает или скрывает ошибки.",
+          "artifact": "Strong-model segment analyzer с baseline deltas, small-n warnings и hidden-failure slices",
+          "type": "case",
           "tracks": [
             "ml"
           ],
           "path": "phases/16-tabular-ml/07-segment-analysis",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/07-segment-analysis",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/07-segment-analysis/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "cost-sensitive-decisions",
-          "title": "Порог и стоимость решения",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Порог и стоимость решения для сильной модели",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проверяет, меняет ли CatBoost бизнес-решение: threshold, top-k budget, FP/FN cost, calibration handoff и no-causal-effect boundary.",
+          "artifact": "Cost-sensitive decision evaluator с threshold comparison, budget impact и decision-status gate",
+          "type": "case",
           "tracks": [
-            "ml"
+            "ml",
+            "decision"
           ],
           "path": "phases/16-tabular-ml/08-cost-sensitive-decisions",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/08-cost-sensitive-decisions",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/08-cost-sensitive-decisions/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "optuna",
           "title": "Optuna и честный подбор параметров",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Запускает fixed-budget Optuna study с заранее объявленным search space, validation-only objective, seed policy и полным trial ledger.",
+          "artifact": "Optuna tuning auditor с search-space spec, trial ledger, best-trial trace и no-test-objective check",
+          "type": "case",
           "tracks": [
-            "ml"
+            "ml",
+            "delivery",
+            "decision"
           ],
           "path": "phases/16-tabular-ml/09-optuna",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/09-optuna",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/09-optuna/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "mlflow",
           "title": "MLflow для истории экспериментов",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Логирует локальные MLflow runs с params, metrics, artifacts, model metadata и upstream package id, превращая эксперименты в проверяемый ledger.",
+          "artifact": "MLflow experiment ledger exporter с run table, artifact inventory и reproducibility checks",
+          "type": "build",
           "tracks": [
-            "ml"
+            "ml",
+            "delivery"
           ],
           "path": "phases/16-tabular-ml/10-mlflow",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/10-mlflow",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/10-mlflow/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "drift-and-stability",
-          "title": "Drift и стабильность",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Drift, стабильность и interpretation package",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает tabular ML interpretation package: CatBoost candidate, comparison, explanations, experiment ledger, drift/stability diagnostics, decision report и checksum manifest.",
+          "artifact": "Tabular ML interpretation package с drift/stability audit, interpretation report и manifest",
+          "type": "case",
           "tracks": [
-            "ml"
+            "ml",
+            "delivery"
           ],
           "path": "phases/16-tabular-ml/11-drift-and-stability",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/16-tabular-ml/11-drift-and-stability",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/16-tabular-ml/11-drift-and-stability/docs/ru.md"
         }
       ]
     },
@@ -4027,7 +4032,7 @@ window.COURSE_DATA = {
       "number": 17,
       "slug": "delivery",
       "title": "Доставка аналитического результата",
-      "summary": "Передавайте результат в форме, которой действительно воспользуется заказчик.",
+      "summary": "Превращайте проверенный анализ в воспроизводимый продукт для решения заказчика.",
       "tracks": [
         "delivery"
       ],
@@ -4038,214 +4043,214 @@ window.COURSE_DATA = {
         "min": 12,
         "max": 18
       },
-      "artifact": "Аналитический продукт для заказчика",
-      "completion": "Результат воспроизводится по инструкции, содержит методологию и ограничения и доступен в подходящем потребителю формате.",
-      "status": "planned",
+      "artifact": "Stakeholder delivery package",
+      "completion": "Студент поставляет результат в нескольких форматах, пересобирает его одной командой, показывает свежесть, ограничения, owner и понятный handoff.",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery",
       "lessons": [
         {
           "number": 1,
           "slug": "analytical-memo",
-          "title": "Аналитическая записка",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Аналитическая записка для решения",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Пишет короткий decision memo: вопрос, варианты решения, рекомендация, evidence, ограничения и следующий шаг без расширения исходного claim.",
+          "artifact": "Decision memo builder с claim-evidence matrix и no-overclaim audit",
+          "type": "learn",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/01-analytical-memo",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/01-analytical-memo",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/01-analytical-memo/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "excel-xlsxwriter",
-          "title": "Excel и XlsxWriter",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Excel и XlsxWriter для stakeholder workbook",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Собирает XLSX workbook для заказчика с summary, таблицами, словарем данных, проверками, formatting и сверкой totals с исходными артефактами.",
+          "artifact": "Stakeholder workbook builder с workbook audit, formulas check и data dictionary",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/02-excel-xlsxwriter",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/02-excel-xlsxwriter",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/02-excel-xlsxwriter/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "quarto",
           "title": "Воспроизводимые отчеты с Quarto",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Переводит анализ в executable Quarto report, где код, таблицы, графики, assumptions и limitations пересобираются из clean inputs одной командой.",
+          "artifact": "Quarto report package с render manifest, source links и rebuild check",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/03-quarto",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/03-quarto",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/03-quarto/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "document-formats",
-          "title": "HTML, PDF и DOCX",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "HTML, PDF и DOCX как delivery formats",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Выпускает HTML, PDF и DOCX версии отчета, проверяя ссылки, figures, layout-sensitive warnings, embedded resources и форматные ограничения.",
+          "artifact": "Multi-format report renderer с HTML/PDF/DOCX outputs и format QA report",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/04-document-formats",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/04-document-formats",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/04-document-formats/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "interactive-plotly",
           "title": "Интерактивный отчет Plotly",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Добавляет интерактивное Plotly-приложение к отчету: hover context, filters, source table links, sensitive-field redaction и static fallback.",
+          "artifact": "Plotly interactive appendix с figure spec, HTML export и fallback images",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/05-interactive-plotly",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/05-interactive-plotly",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/05-interactive-plotly/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "streamlit",
           "title": "Приложение на Streamlit",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Собирает Streamlit-приложение поверх проверенных артефактов: фильтры, decision views, warnings, download actions и app contract без скрытого ad-hoc пересчета.",
+          "artifact": "Streamlit stakeholder app с app contract, filters audit и download bundle",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/06-streamlit",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/06-streamlit",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/06-streamlit/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "caching-and-state",
-          "title": "Кеширование и состояние приложения",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Кеширование, состояние и свежесть приложения",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Разделяет data cache, resource cache и session state, задает TTL/freshness policy и тестирует инвалидацию по checksum входов.",
+          "artifact": "Streamlit cache/state auditor с freshness panel, TTL policy и stale-output checks",
+          "type": "case",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/07-caching-and-state",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/07-caching-and-state",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/07-caching-and-state/docs/ru.md"
         },
         {
           "number": 8,
           "slug": "cli",
           "title": "CLI для повторяемого запуска",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Оформляет delivery pipeline как CLI с явными input/output paths, `--check`, manifest, атомарной публикацией и различимыми exit codes.",
+          "artifact": "Delivery CLI с check mode, publish manifest и exit-code policy",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/08-cli",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/08-cli",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/08-cli/docs/ru.md"
         },
         {
           "number": 9,
           "slug": "scheduled-runs",
-          "title": "Запуски по расписанию",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "title": "Запуски по расписанию и freshness report",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Проектирует scheduled refresh: cron metadata, timezone/UTC assumptions, last-success marker, run history, freshness report и failure visibility.",
+          "artifact": "Scheduled delivery workflow с run history, freshness report и failure notification mock",
+          "type": "case",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/09-scheduled-runs",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/09-scheduled-runs",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/09-scheduled-runs/docs/ru.md"
         },
         {
           "number": 10,
           "slug": "fastapi",
           "title": "FastAPI как факультативный интерфейс",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Добавляет optional read-only API к поставленному результату, фиксируя Pydantic request/response schemas, OpenAPI contract и CLI fallback.",
+          "artifact": "FastAPI delivery endpoint с OpenAPI schema, contract tests и read-only boundary",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/10-fastapi",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/10-fastapi",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/10-fastapi/docs/ru.md"
         },
         {
           "number": 11,
           "slug": "docker",
           "title": "Docker как факультативная упаковка",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "Упаковывает CLI/app/API в локальный контейнер, проверяя minimal build context, `.dockerignore`, no-secret policy и equivalence с локальным запуском.",
+          "artifact": "Docker packaging audit с Dockerfile, context report и container run manifest",
+          "type": "build",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/11-docker",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/11-docker",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/11-docker/docs/ru.md"
         },
         {
           "number": 12,
           "slug": "handoff",
           "title": "Handoff, документация и сопровождение",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 105,
+          "outcome": "Собирает stakeholder delivery package: memo, workbook, report, interactive appendix, app, CLI/schedule, optional API/container, runbook, support policy и checksum manifest.",
+          "artifact": "Stakeholder delivery package с handoff runbook, support policy, decision status и manifest",
+          "type": "case",
           "tracks": [
             "delivery"
           ],
           "path": "phases/17-delivery/12-handoff",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/17-delivery/12-handoff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/17-delivery/12-handoff/docs/ru.md"
         }
       ]
     },
@@ -4269,20 +4274,20 @@ window.COURSE_DATA = {
         "min": 30,
         "max": 50
       },
-      "artifact": "Завершенный портфельный проект",
-      "completion": "Проект проходит воспроизводимый запуск, автоматические проверки, методологическое ревью и защиту решения.",
-      "status": "planned",
+      "artifact": "Capstone portfolio package",
+      "completion": "Студент ограничивает задачу, фиксирует контракт данных и baseline, реализует проект выбранного маршрута, проходит независимую валидацию, peer review и защищает решение по общей rubric.",
+      "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones",
       "lessons": [
         {
           "number": 1,
           "slug": "problem-selection",
           "title": "Выбор и ограничение задачи",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 240,
+          "outcome": "Выбирает capstone-маршрут, формулирует решение и claim type, ограничивает scope и non-goals, проверяет маршрутные пререквизиты и составляет milestone/risk plan.",
+          "artifact": "Capstone brief validator с route readiness, scope audit, risk register и milestone plan",
+          "type": "learn",
           "tracks": [
             "core",
             "product",
@@ -4292,19 +4297,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/01-problem-selection",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/01-problem-selection",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/01-problem-selection/docs/ru.md"
         },
         {
           "number": 2,
           "slug": "data-contract",
           "title": "Контракт и аудит данных",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 360,
+          "outcome": "Фиксирует dataset manifest, grain, keys, lineage, временные границы, license/privacy policy и маршрутные leakage/quality checks до реализации метода.",
+          "artifact": "Capstone data contract auditor с dataset manifest, grain/key audit, source policy и checksum inventory",
+          "type": "case",
           "tracks": [
             "core",
             "product",
@@ -4314,19 +4319,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/02-data-contract",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/02-data-contract",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/02-data-contract/docs/ru.md"
         },
         {
           "number": 3,
           "slug": "baseline",
           "title": "Baseline результата",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 300,
+          "outcome": "Строит простейший decision-relevant baseline выбранного маршрута, выполняет ручную сверку и фиксирует критерий, по которому сложная реализация должна дать практическое улучшение.",
+          "artifact": "Capstone baseline gate с manual cross-check, acceptance metric и complexity budget",
+          "type": "case",
           "tracks": [
             "core",
             "product",
@@ -4336,19 +4341,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/03-baseline",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/03-baseline",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/03-baseline/docs/ru.md"
         },
         {
           "number": 4,
           "slug": "implementation",
           "title": "Реализация проекта",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 720,
+          "outcome": "Реализует маршрутный analytical workflow поверх зафиксированных brief, data contract и baseline, сохраняя config, run trace, evidence links и воспроизводимую команду сборки.",
+          "artifact": "Capstone implementation package с route adapter, evidence ledger, run manifest и reproducible build command",
+          "type": "build",
           "tracks": [
             "core",
             "product",
@@ -4358,19 +4363,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/04-implementation",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/04-implementation",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/04-implementation/docs/ru.md"
         },
         {
           "number": 5,
           "slug": "verification",
           "title": "Проверки и независимая валидация",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 420,
+          "outcome": "Проверяет проект в чистом окружении, независимо пересчитывает ключевой результат, запускает behavioral и negative tests, sensitivity checks и аудит claim-evidence traceability.",
+          "artifact": "Independent verification harness с clean-room rerun, shadow calculation, failure fixtures и verification report",
+          "type": "case",
           "tracks": [
             "core",
             "product",
@@ -4380,19 +4385,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/05-verification",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/05-verification",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/05-verification/docs/ru.md"
         },
         {
           "number": 6,
           "slug": "peer-review",
           "title": "Peer review",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 300,
+          "outcome": "Проводит evidence-based review чужого проекта, классифицирует blockers и improvements, а как автор ведет response ledger и повторно подтверждает исправленные claims и checksums.",
+          "artifact": "Capstone peer-review kit с review rubric, finding ledger, author responses и re-review gate",
+          "type": "case",
           "tracks": [
             "core",
             "product",
@@ -4402,19 +4407,19 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/06-peer-review",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/06-peer-review",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/06-peer-review/docs/ru.md"
         },
         {
           "number": 7,
           "slug": "defense",
           "title": "Защита решения",
-          "status": "planned",
-          "time_minutes": null,
-          "outcome": "",
-          "artifact": "",
-          "type": "",
+          "status": "complete",
+          "time_minutes": 300,
+          "outcome": "Собирает portfolio-ready capstone package, демонстрирует решение и воспроизводимый запуск, отвечает на challenge questions и получает итоговый статус по blockers и общей rubric.",
+          "artifact": "Capstone portfolio package с defense brief, demo script, review closure, decision report и checksum manifest",
+          "type": "case",
           "tracks": [
             "core",
             "product",
@@ -4424,9 +4429,9 @@ window.COURSE_DATA = {
             "delivery"
           ],
           "path": "phases/18-capstones/07-defense",
-          "available": false,
-          "url": null,
-          "docs_url": null
+          "available": true,
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/18-capstones/07-defense",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/18-capstones/07-defense/docs/ru.md"
         }
       ]
     }
@@ -4464,7 +4469,7 @@ window.COURSE_DATA = {
   "stats": {
     "phases": 19,
     "lessons": 201,
-    "complete_lessons": 171,
+    "complete_lessons": 201,
     "hours": {
       "min": 238,
       "max": 326

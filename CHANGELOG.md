@@ -9,6 +9,19 @@
 
 ### Добавлено
 
+- Фаза 18 «Капстоун-проекты»: семь stage-gated уроков от problem brief и data contract
+  до baseline, route implementation, independent verification, peer review и защиты;
+  итоговый `capstone-portfolio-package` связывает шесть immutable stages, live rerun,
+  challenge questions, blocker-first rubric, provenance и SHA-256 manifest. Курс
+  завершен полностью: 19 фаз и 201 из 201 уроков.
+- Фаза 17 «Доставка аналитического результата»: 12 уроков с decision memo,
+  stakeholder workbook, Quarto HTML/PDF/DOCX, Plotly и Streamlit, cache/state audit,
+  CLI и scheduled workflow, optional FastAPI/Docker и итоговым stakeholder handoff
+  package.
+- Фаза 16 «Табличный ML и интерпретация»: 11 уроков с CatBoost, аудитом категориальных
+  признаков, early stopping, built-in/permutation/SHAP interpretation, segment и
+  cost-sensitive gates, Optuna, MLflow ledger и итоговым interpretation/stability
+  package.
 - Урок `13/11` «Causal workflow и границы автоматизации» с
   `causal_workflow_spec.json`, `causal_study_package.json`,
   `checksum_manifest.json`, CLI `causal_study_package_builder.py`, интеграцией 15
