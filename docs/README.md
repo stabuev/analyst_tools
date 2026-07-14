@@ -6,11 +6,21 @@
 ## Навигация
 
 - [`course-design.md`](course-design.md) — педагогические принципы и критерии готовности.
+- [`getting-started.md`](getting-started.md) — установка, поддерживаемые окружения и первый
+  запуск курса.
+- [`pre-course-preparation.md`](pre-course-preparation.md) — точечное повторение Python,
+  SQL и статистики после входной диагностики.
+- [`capstone-independent-review.md`](capstone-independent-review.md) — peer/agent workflow
+  для обязательного независимого ревью capstone.
 - [`data-universe.md`](data-universe.md) — общая предметная область и учебные данные.
 - [`research-baseline.md`](research-baseline.md) — критика исходного исследования и
   принятые изменения программы.
 - [`phase-06-design.md`](phase-06-design.md) — границы EDA-фазы, роли библиотек, общий
   набор данных и интеграционный проект.
+- [`phase-03-learning-guide.md`](phase-03-learning-guide.md) — сквозной pandas pipeline,
+  ожидаемые промежуточные результаты и самопроверка для коротких уроков фазы 03.
+- [`phase-07-learning-guide.md`](phase-07-learning-guide.md) — постепенная цепочка от
+  инварианта и unit test до quality gate и атомарной публикации.
 - [`phase-07-design.md`](phase-07-design.md) — архитектура reliability-фазы, матрица
   дефектов, контракты инструментов и интеграционный quality gate.
 - [`phase-08-design.md`](phase-08-design.md) — границы продуктовой аналитики, модель

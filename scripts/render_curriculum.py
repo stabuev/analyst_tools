@@ -99,9 +99,23 @@ def render_phase_readme(phase: dict[str, Any]) -> str:
         f"- **Время:** ~{phase['hours']['min']}-{phase['hours']['max']} часов",
         f"- **Итоговый артефакт:** {phase['artifact']}",
         "",
-        "## Уроки",
-        "",
     ]
+    learning_guide = ROOT / "docs" / f"phase-{phase['number']:02d}-learning-guide.md"
+    if learning_guide.is_file():
+        lines.extend(
+            [
+                "## Учебный путеводитель",
+                "",
+                (
+                    f"Перед уроками откройте [пошаговый путеводитель фазы]"
+                    f"(../../docs/phase-{phase['number']:02d}-learning-guide.md). "
+                    "Он связывает короткие уроки в один сквозной пример, показывает "
+                    "ожидаемые промежуточные результаты и точки самопроверки."
+                ),
+                "",
+            ]
+        )
+    lines.extend(["## Уроки", ""])
     detailed = all(
         {"time_minutes", "outcome", "artifact"} <= set(lesson) for lesson in phase["lessons"]
     )
@@ -128,6 +142,25 @@ def render_phase_readme(phase: dict[str, Any]) -> str:
             lines.append(f"| {index:02d} | {title} | {lesson['status']} |")
     lines.extend(
         [
+            "",
+            "## Как проходить фазу",
+            "",
+            "1. Ответьте на входные вопросы до чтения reference implementation.",
+            "2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.",
+            "3. Запустите пример, один failure mode и тесты урока.",
+            "4. Выполните хотя бы одно упражнение, которое меняет данные или правило.",
+            "5. После фазы пройдите перемешанную самопроверку:",
+            "",
+            "```bash",
+            (
+                "uv run --locked python scripts/run_quiz.py "
+                f"--phase {phase['number']} --stage post --limit 8"
+            ),
+            "```",
+            "",
+            "Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. "
+            "Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать "
+            "хотя бы одну поломку.",
             "",
             "## Критерий завершения",
             "",

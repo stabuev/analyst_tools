@@ -25,6 +25,20 @@
 | 10 | [SQLFluff и единый стиль](10-sqlfluff) | 60 мин | Настраивает SQLFluff для DuckDB/dbt SQL, выбирает templater под CI или быстрый feedback, исключает generated artifacts и отличает style violations от semantic test failures. | SQLFluff configuration и lint report для dbt-проекта | complete |
 | 11 | [Локальный проект с dbt-duckdb](11-dbt-duckdb-project) | 120 мин | Собирает локальный dbt-duckdb проект: sources, staging/intermediate/mart models, tests, macros, incremental model, snapshot, docs, lineage, SQLFluff report, run artifacts и checksum manifest. | Воспроизводимый analytics-mart-dbt package для customer revenue health mart | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 11 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 dbt-проект строит витрину, проверяет источники и ключи и публикует документацию lineage.

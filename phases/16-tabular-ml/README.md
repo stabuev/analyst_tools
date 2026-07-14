@@ -25,6 +25,20 @@
 | 10 | [MLflow для истории экспериментов](10-mlflow) | 75 мин | Логирует локальные MLflow runs с params, metrics, artifacts, model metadata и upstream package id, превращая эксперименты в проверяемый ledger. | MLflow experiment ledger exporter с run table, artifact inventory и reproducibility checks | complete |
 | 11 | [Drift, стабильность и interpretation package](11-drift-and-stability) | 105 мин | Собирает tabular ML interpretation package: CatBoost candidate, comparison, explanations, experiment ledger, drift/stability diagnostics, decision report и checksum manifest. | Tabular ML interpretation package с drift/stability audit, interpretation report и manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 16 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент улучшает baseline сильной табличной моделью, объясняет локальные и глобальные факторы, ведет журнал экспериментов и проверяет стабильность на сегментах.

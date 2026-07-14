@@ -21,6 +21,20 @@
 | 06 | [Peer review](06-peer-review) | 300 мин | Проводит evidence-based review чужого проекта, классифицирует blockers и improvements, а как автор ведет response ledger и повторно подтверждает исправленные claims и checksums. | Capstone peer-review kit с review rubric, finding ledger, author responses и re-review gate | complete |
 | 07 | [Защита решения](07-defense) | 300 мин | Собирает portfolio-ready capstone package, демонстрирует решение и воспроизводимый запуск, отвечает на challenge questions и получает итоговый статус по blockers и общей rubric. | Capstone portfolio package с defense brief, demo script, review closure, decision report и checksum manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 18 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент ограничивает задачу, фиксирует контракт данных и baseline, реализует проект выбранного маршрута, проходит независимую валидацию, peer review и защищает решение по общей rubric.

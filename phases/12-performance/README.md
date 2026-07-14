@@ -25,6 +25,20 @@
 | 10 | [Обмен между pandas, Arrow и Polars](10-interoperability) | 75 мин | Передает таблицу между pandas, PyArrow, DuckDB и Polars, проверяет schema/null/timezone/category semantics, фиксирует копии и выбирает минимально дорогую границу обмена. | Interoperability matrix и conversion audit | complete |
 | 11 | [Ibis как переносимый DataFrame API](11-ibis) | 120 мин | Выражает один performance pipeline переносимым Ibis API, сравнивает backend-specific планы и измерения с pandas, DuckDB и Polars и оформляет решение о движке с ограничениями. | Multi-engine benchmark package с Ibis portability audit | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 12 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент воспроизводимо измеряет время и память и обосновывает выбор pandas, DuckDB или Polars.

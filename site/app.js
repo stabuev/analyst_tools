@@ -53,7 +53,8 @@
       actions =
         '<a class="text-link" href="' + lesson.url + '" target="_blank" rel="noopener">GitHub</a>' +
         '<button class="progress-toggle' + (done ? " is-done" : "") +
-        '" type="button" data-progress-path="' + lesson.path + '">' +
+        '" type="button" title="Ручная отметка после практики, поломки и итогового квиза"' +
+        ' data-progress-path="' + lesson.path + '">' +
         (done ? "Пройдено" : "Отметить") + "</button>";
     }
     return (

@@ -44,13 +44,19 @@ Score each technical answer:
 
 The role question is not scored.
 
-Map the weakest prerequisite, not the total score, to the entry point:
+Map the weakest prerequisite, not the total score, to the entry point. The course does not
+teach Python or SQL from zero; use `docs/pre-course-preparation.md` when the baseline is
+not met:
 
-- Weak Python, terminal, or Git: Phase 00.
+- Weak Python functions or collections: preparation guide, then repeat Phase 00 diagnostic.
+- Weak basic SQL (`SELECT`, `GROUP BY`, `JOIN`): preparation guide, then repeat Phase 00
+  diagnostic.
+- Python and SQL are sound but terminal or Git is weak: Phase 00.
 - Workflow is sound but arrays are weak: Phase 02.
 - Arrays are sound but DataFrame grain and joins are weak: Phase 03.
 - pandas is sound but SQL is weak: Phase 04.
 - Core skills are sound but tests and contracts are weak: Phase 07.
+- Core is sound but sampling and uncertainty are weak: Phase 09.
 - Core is complete: recommend a specialization using the routes in `README.md`.
 
 Do not recommend skipping a phase when the learner cannot explain its central failure mode.
@@ -64,6 +70,7 @@ Return:
 3. Evidence from the diagnostic, including two strengths and up to three gaps.
 4. Estimated hours from `curriculum.json`.
 5. A compact ordered phase list.
+6. When preparation is required, exact sections from `docs/pre-course-preparation.md` and
+   the criterion for retrying the diagnostic.
 
 State that the result is a placement recommendation, not a certification.
-

@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter
-from typing import Sequence
-
+from collections.abc import Sequence
 
 ROUTE_ORDER = (
     "Базовый аналитик",
     "Продуктовый аналитик",
+    "Аналитик временных рядов",
     "Analytics Engineer",
     "ML-аналитик",
 )
@@ -16,6 +16,7 @@ ROUTE_ORDER = (
 ANSWER_TO_ROUTE = {
     "basic": "Базовый аналитик",
     "product": "Продуктовый аналитик",
+    "forecast": "Аналитик временных рядов",
     "data": "Analytics Engineer",
     "ml": "ML-аналитик",
 }
@@ -28,6 +29,10 @@ ROUTE_INFO = {
     "Продуктовый аналитик": {
         "path": "00-10 -> 13 -> 17 -> 18",
         "focus": "метрики, эксперименты и причинные продуктовые решения",
+    },
+    "Аналитик временных рядов": {
+        "path": "00-09 -> 14 -> 17 -> 18",
+        "focus": "временные метрики, backtesting, интервалы прогноза и anomaly policy",
     },
     "Analytics Engineer": {
         "path": "00-07 -> 11-12 -> 17 -> 18",
@@ -50,6 +55,7 @@ QUESTIONS = (
 OPTION_LABELS = {
     "basic": "отчет, расчет или понятная рекомендация",
     "product": "метрика, эксперимент или исследование поведения",
+    "forecast": "временной прогноз, backtesting или мониторинг аномалий",
     "data": "витрина, контракт, lineage или тест данных",
     "ml": "прогноз, pipeline или model card",
 }
@@ -111,7 +117,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Recommend an Analyst Tools course route")
     parser.add_argument(
         "--answers",
-        help="Five comma-separated answers: basic, product, data, or ml",
+        help="Five comma-separated answers: basic, product, forecast, data, or ml",
     )
     parser.add_argument("--json", action="store_true", help="Print machine-readable output")
     return parser.parse_args()

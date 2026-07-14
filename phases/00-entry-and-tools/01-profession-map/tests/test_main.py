@@ -25,6 +25,11 @@ class RouteAdvisorTest(TestCase):
         self.assertEqual(result["recommended"], "Analytics Engineer")
         self.assertEqual(result["scores"]["Analytics Engineer"], 5)
 
+    def test_forecast_answers_recommend_time_series_route(self) -> None:
+        result = self.advisor.build_recommendation(["forecast"] * 5)
+        self.assertEqual(result["recommended"], "Аналитик временных рядов")
+        self.assertEqual(result["path"], "00-09 -> 14 -> 17 -> 18")
+
     def test_tie_is_visible(self) -> None:
         result = self.advisor.build_recommendation(
             ["product", "data", "product", "data", "basic"]

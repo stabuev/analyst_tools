@@ -2,15 +2,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from html import escape
 from pathlib import Path
 from typing import Any
 
 from course_model import ROOT, lesson_dir_name, load_curriculum, phase_dir_name
 
-
 REPOSITORY_URL = "https://github.com/stabuev/analyst_tools"
 BRANCH = "main"
-SITE_DATA_PATH = ROOT / "site" / "data.js"
+SITE_URL = "https://stabuev.github.io/analyst_tools/"
+INDEXED_PAGES = ("", "catalog.html", "routes.html", "glossary.html")
+STATUS_LABELS = {
+    "complete": "Готов",
+    "in-progress": "В работе",
+    "designed": "Спроектирован",
+    "draft": "Черновик",
+    "planned": "Запланирован",
+}
 
 
 def parse_glossary(path: Path) -> list[dict[str, str]]:
@@ -169,14 +178,133 @@ def render_site_data(data: dict[str, Any]) -> str:
     )
 
 
-def write_site_data(root: Path = ROOT) -> None:
-    output = root / "site" / "data.js"
-    output.parent.mkdir(exist_ok=True)
-    curriculum = load_curriculum(root / "curriculum.json")
-    output.write_text(
-        render_site_data(build_site_data(curriculum, root)),
-        encoding="utf-8",
+def phase_number(number: int) -> str:
+    return f"{number:02d}"
+
+
+def render_catalog_rows(data: dict[str, Any]) -> str:
+    rows: list[str] = []
+    for phase in data["phases"]:
+        for lesson in phase["lessons"]:
+            link = lesson["docs_url"] or lesson["url"]
+            title = escape(lesson["title"])
+            if link:
+                title = (
+                    f'<a href="{escape(link, quote=True)}" target="_blank" '
+                    f'rel="noopener">{title}</a>'
+                )
+            source = "—"
+            if lesson["url"]:
+                source = (
+                    f'<a class="text-link" href="{escape(lesson["url"], quote=True)}" '
+                    'target="_blank" rel="noopener">Исходники</a>'
+                )
+            rows.append(
+                "        <tr>"
+                f'<td><span class="phase-chip">{phase_number(phase["number"])}</span></td>'
+                f'<td class="catalog-title">{title}<small>{escape(lesson["outcome"])}</small></td>'
+                f'<td>{lesson["time_minutes"] or "—"}</td>'
+                f'<td>{escape(", ".join(lesson["tracks"]))}</td>'
+                f'<td><span class="status-badge status-{lesson["status"]}">'
+                f'{STATUS_LABELS.get(lesson["status"], lesson["status"])}</span></td>'
+                f"<td>{source}</td>"
+                "</tr>"
+            )
+    return "\n".join(rows)
+
+
+def render_route_cards(data: dict[str, Any]) -> str:
+    cards: list[str] = []
+    for route in data["routes"]:
+        phases: list[str] = []
+        for index, phase in enumerate(route["phases"]):
+            phases.append(
+                f'<a class="route-phase status-{phase["status"]}" '
+                f'href="index.html#phase-{phase_number(phase["number"])}">'
+                f'<span>{phase_number(phase["number"])}</span>'
+                f'<strong>{escape(phase["title"])}</strong></a>'
+            )
+            if index < len(route["phases"]) - 1:
+                phases.append('<span class="route-arrow">→</span>')
+        cards.append(
+            '      <article class="route-detail">'
+            '<div class="route-detail-head"><div><p class="eyebrow">'
+            f'Профессиональный маршрут</p><h2>{escape(route["name"])}</h2></div>'
+            f'<div class="route-detail-hours">{route["hours"]["min"]}–'
+            f'{route["hours"]["max"]}<small>часов</small></div></div>'
+            f'<p class="route-path">{escape(route["path"])}</p>'
+            f'<div class="route-sequence">{"".join(phases)}</div></article>'
+        )
+    return "\n".join(cards)
+
+
+def render_glossary_cards(data: dict[str, Any]) -> str:
+    return "\n".join(
+        '      <article class="term-card">'
+        f'<h2>{escape(item["term"])}</h2><p>{escape(item["definition"])}</p></article>'
+        for item in data["glossary"]
     )
+
+
+def replace_generated_block(content: str, name: str, rendered: str) -> str:
+    start = f"<!-- GENERATED:{name}:start -->"
+    end = f"<!-- GENERATED:{name}:end -->"
+    pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
+    replacement = f"{start}\n{rendered}\n{end}"
+    updated, count = pattern.subn(replacement, content)
+    if count != 1:
+        raise ValueError(f"Expected one generated {name} block, found {count}.")
+    return updated
+
+
+def render_sitemap() -> str:
+    urls = "\n".join(
+        f"  <url><loc>{escape(SITE_URL + page)}</loc></url>" for page in INDEXED_PAGES
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{urls}\n"
+        "</urlset>\n"
+    )
+
+
+def render_robots() -> str:
+    return f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}sitemap.xml\n"
+
+
+def build_site_outputs(
+    curriculum: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[Path, str]:
+    data = build_site_data(curriculum, root)
+    site_root = root / "site"
+    outputs = {
+        site_root / "data.js": render_site_data(data),
+        site_root / "sitemap.xml": render_sitemap(),
+        site_root / "robots.txt": render_robots(),
+    }
+    renderers = {
+        "catalog.html": ("catalog", render_catalog_rows),
+        "routes.html": ("routes", render_route_cards),
+        "glossary.html": ("glossary", render_glossary_cards),
+    }
+    for filename, (name, renderer) in renderers.items():
+        path = site_root / filename
+        outputs[path] = replace_generated_block(
+            path.read_text(encoding="utf-8"),
+            name,
+            renderer(data),
+        )
+    return outputs
+
+
+def write_site_data(root: Path = ROOT) -> None:
+    for output, content in build_site_outputs(
+        load_curriculum(root / "curriculum.json"), root
+    ).items():
+        output.parent.mkdir(exist_ok=True)
+        output.write_text(content, encoding="utf-8")
 
 
 def main() -> None:
@@ -184,15 +312,20 @@ def main() -> None:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
-    expected = render_site_data(build_site_data(load_curriculum()))
+    expected = build_site_outputs(load_curriculum())
     if args.check:
-        if not SITE_DATA_PATH.is_file() or SITE_DATA_PATH.read_text(encoding="utf-8") != expected:
-            raise SystemExit("site/data.js is stale.")
-        print("Site data is up to date.")
+        stale = [
+            path.relative_to(ROOT)
+            for path, content in expected.items()
+            if not path.is_file() or path.read_text(encoding="utf-8") != content
+        ]
+        if stale:
+            raise SystemExit(f"Generated site files are stale: {stale}")
+        print("Site data and SEO files are up to date.")
         return
 
     write_site_data()
-    print("Rendered site/data.js.")
+    print("Rendered site data, static content and SEO files.")
 
 
 if __name__ == "__main__":

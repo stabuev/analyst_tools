@@ -62,7 +62,17 @@ def audit_review(review: dict[str, Any]) -> dict[str, Any]:
         baseline_ok = axes.get("baseline") == 0
     rate_domain_ok = True
     if axes.get("y_label") == "Доля пользователей":
-        rate_domain_ok = y_domain == [0, 1]
+        focused_rate_domain = (
+            review.get("chart_type") in {"line", "point"}
+            and isinstance(y_domain, list)
+            and len(y_domain) == 2
+            and all(isinstance(value, (int, float)) for value in y_domain)
+            and 0 <= y_domain[0] < y_domain[1] <= 1
+            and axes.get("domain_policy") == "focused"
+            and axes.get("full_domain_reference") is True
+            and text(axes.get("scale_note"), 12)
+        )
+        rate_domain_ok = y_domain == [0, 1] or focused_rate_domain
     uncertainty_ok = True
     if review.get("estimate"):
         uncertainty_ok = (
@@ -94,7 +104,12 @@ def audit_review(review: dict[str, Any]) -> dict[str, Any]:
             "Both axes have semantic labels.",
         ),
         check("baseline", baseline_ok, "Bar charts start from zero."),
-        check("rate-domain", rate_domain_ok, "Rate axis uses the full [0, 1] domain."),
+        check(
+            "rate-domain",
+            rate_domain_ok,
+            "Rate axis is full [0, 1] or a disclosed focused line/point scale "
+            "with a full-domain reference.",
+        ),
         check(
             "palette",
             color.get("palette_type") in PALETTE_TYPES

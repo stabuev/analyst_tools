@@ -25,6 +25,20 @@
 | 10 | [Аномалии продуктовых метрик](10-anomalies) | 75 мин | Классифицирует скачки продуктовых метрик как data_quality, composition, calendar_effect или product_signal, пропуская product_signal только после freshness, duplicate, late-arrival и tracking completeness gates. | CLI-детектор аномалий с anomaly spec, quality gates и anomalies.json | complete |
 | 11 | [Бизнес-вывод и рекомендация](11-business-conclusion) | 105 мин | Собирает артефакты продуктовой фазы в проверяемое исследование проблемы: brief, metric/tracking contracts, metric tables, audits, figures, report, recommendation и checksum manifest. | Воспроизводимый product-problem-investigation package с recommendation и manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 8 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент строит согласованную систему метрик и формулирует решение с guardrail-метриками и ограничениями.

@@ -43,6 +43,23 @@ class VisualReviewTest(unittest.TestCase):
         report = REVIEW.audit_review(value)
         self.assertIn("rate-domain", report["failure_ids"])
 
+    def test_focused_line_rate_scale_requires_disclosure_and_reference(self) -> None:
+        value = deepcopy(REVIEW.EXAMPLE_REVIEW)
+        value["axes"].update(
+            {
+                "y_domain": [0.55, 0.8],
+                "domain_policy": "focused",
+                "full_domain_reference": True,
+                "scale_note": "Focused scale; full 0-1 context is shown in the overview panel.",
+            }
+        )
+        report = REVIEW.audit_review(value)
+        self.assertNotIn("rate-domain", report["failure_ids"])
+
+        value["axes"]["full_domain_reference"] = False
+        report = REVIEW.audit_review(value)
+        self.assertIn("rate-domain", report["failure_ids"])
+
     def test_estimate_requires_interval_semantics_and_n(self) -> None:
         value = deepcopy(REVIEW.EXAMPLE_REVIEW)
         value["uncertainty"]["semantics"] = ""

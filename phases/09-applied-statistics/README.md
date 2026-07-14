@@ -24,6 +24,20 @@
 | 09 | [Диагностика регрессии](09-regression-diagnostics) | 75 мин | Проверяет residual patterns, heteroscedasticity, leverage, influence, multicollinearity, non-linearity и specification risks, превращая diagnostics в machine-readable flags и ограничения отчета. | Regression diagnostics checker с JSON-report и diagnostic figures | complete |
 | 10 | [Робастные и непараметрические методы](10-robust-methods) | 105 мин | Собирает statistical evidence package: sampling audit, distribution cards, estimates, intervals, bootstrap, correlation audit, OLS diagnostics, robust/nonparametric sensitivity checks, report и checksum manifest. | Воспроизводимый statistical-evidence-report package с assumptions, limitations и manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 9 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент выбирает оценку под процесс генерации данных, строит интервал и проверяет предпосылки модели.

@@ -98,6 +98,11 @@ self-review -> independent review -> findings
 - SHA-256 именно того verification manifest, который он видел;
 - время начала review после завершения self-review.
 
+Для самостоятельного прохождения используйте пошаговую инструкцию
+[`../../../../docs/capstone-independent-review.md`](../../../../docs/capstone-independent-review.md).
+Она описывает обмен с learner peer и clean-context workflow для `independent_agent`,
+включая готовый review prompt и минимальный handoff reviewer-а.
+
 Автоматический precheck может найти несоответствие. Но автор или тот же precheck не должен
 самостоятельно превратить свое finding в независимое approval.
 

@@ -26,6 +26,20 @@
 | 11 | [Интервалы прогноза](11-prediction-intervals) | 75 мин | Строит residual, bootstrap и model-based prediction intervals, проверяет empirical coverage по backtests, различает confidence и prediction intervals и блокирует точечный forecast без uncertainty statement. | Prediction interval calibrator с residual/bootstrap/model-based intervals, coverage report, calibration audit и interval forecast table | complete |
 | 12 | [Аномалии временных рядов и forecast package](12-time-series-anomalies) | 90 мин | Собирает интегрированный time-series forecast package: upstream quality gates, metric leaderboard, prediction intervals, anomaly policy, decision report и checksum manifest. | Time-series forecast packager с anomaly flags, quality gate summary, decision report и checksum manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 14 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент фиксирует частоту и forecast horizon, сравнивает модели с сезонным baseline, использует rolling-origin backtesting, показывает интервалы прогноза и отделяет прогнозную аномалию от дефекта данных или календарного эффекта.

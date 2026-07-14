@@ -25,6 +25,20 @@
 | 10 | [Сегменты и неоднородные эффекты](10-heterogeneous-effects) | 75 мин | Анализирует predeclared segment effects, interaction checks, minimum cell sizes и guardrail differences, помечает exploratory findings и не выдает post-hoc subgroup lift за подтвержденный общий эффект. | Segment effect auditor с heterogeneity report и exploratory flags | complete |
 | 11 | [Протокол решения и коммуникация](11-decision-protocol) | 105 мин | Собирает experiment-decision package: protocol, assignment audit, A/A/SRM, power, primary effect, bootstrap/CUPED checks, multiple-testing policy, peeking audit, segment report, guardrails, decision и checksum manifest. | Воспроизводимый experiment-decision-package с launch/hold/rollback/iterate decision | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 10 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент проверяет назначение, рассчитывает эффект и неопределенность и принимает решение по заранее заданному правилу.

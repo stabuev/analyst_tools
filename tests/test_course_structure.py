@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from course_model import load_curriculum  # noqa: E402
 from render_curriculum import render_phase_readme, render_roadmap  # noqa: E402
 from render_outputs import build_output_index, render_output_index  # noqa: E402
-from render_site import build_site_data, render_site_data  # noqa: E402
+from render_site import SITE_URL, build_site_data, build_site_outputs  # noqa: E402
 from scaffold_lesson import scaffold  # noqa: E402
 from validate_course import (  # noqa: E402
     validate_complete_lesson,
@@ -61,9 +61,9 @@ class CourseStructureTest(TestCase):
         expected = render_output_index(build_output_index(load_curriculum(), ROOT))
         self.assertEqual((ROOT / "outputs" / "index.json").read_text(encoding="utf-8"), expected)
 
-    def test_site_data_is_up_to_date(self) -> None:
-        expected = render_site_data(build_site_data(load_curriculum(), ROOT))
-        self.assertEqual((ROOT / "site" / "data.js").read_text(encoding="utf-8"), expected)
+    def test_generated_site_files_are_up_to_date(self) -> None:
+        for path, expected in build_site_outputs(load_curriculum(), ROOT).items():
+            self.assertEqual(path.read_text(encoding="utf-8"), expected, path.name)
 
     def test_completed_lessons_have_github_links_on_site(self) -> None:
         data = build_site_data(load_curriculum(), ROOT)
@@ -85,11 +85,78 @@ class CourseStructureTest(TestCase):
             "site/catalog.html",
             "site/routes.html",
             "site/glossary.html",
+            "site/404.html",
+            "site/favicon.svg",
+            "site/robots.txt",
+            "site/sitemap.xml",
             "site/style.css",
             "site/common.js",
             "site/app.js",
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
+
+    def test_site_has_indexable_static_content(self) -> None:
+        data = build_site_data(load_curriculum(), ROOT)
+        catalog = (ROOT / "site" / "catalog.html").read_text(encoding="utf-8")
+        routes = (ROOT / "site" / "routes.html").read_text(encoding="utf-8")
+        glossary = (ROOT / "site" / "glossary.html").read_text(encoding="utf-8")
+        self.assertEqual(catalog.count('<tr><td><span class="phase-chip">'), 201)
+        self.assertEqual(routes.count('<article class="route-detail">'), len(data["routes"]))
+        self.assertEqual(
+            glossary.count('<article class="term-card">'),
+            len(data["glossary"]),
+        )
+
+    def test_indexed_pages_have_unique_search_metadata(self) -> None:
+        pages = {
+            "index.html": SITE_URL,
+            "catalog.html": SITE_URL + "catalog.html",
+            "routes.html": SITE_URL + "routes.html",
+            "glossary.html": SITE_URL + "glossary.html",
+        }
+        titles: set[str] = set()
+        descriptions: set[str] = set()
+        for filename, canonical in pages.items():
+            html = (ROOT / "site" / filename).read_text(encoding="utf-8")
+            title = re.search(r"<title>([^<]+)</title>", html)
+            description = re.search(
+                r'<meta name="description" content="([^"]+)">', html
+            )
+            self.assertIsNotNone(title, filename)
+            self.assertIsNotNone(description, filename)
+            self.assertIn(f'<link rel="canonical" href="{canonical}">', html)
+            self.assertIn('<meta name="robots" content="index, follow', html)
+            self.assertIn('<meta property="og:title"', html)
+            self.assertIn(f'<meta property="og:url" content="{canonical}">', html)
+            self.assertEqual(html.count("<h1>"), 1, filename)
+            titles.add(title.group(1))
+            descriptions.add(description.group(1))
+        self.assertEqual(len(titles), len(pages))
+        self.assertEqual(len(descriptions), len(pages))
+
+    def test_homepage_structured_data_is_valid_json_ld(self) -> None:
+        html = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
+        match = re.search(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        payload = json.loads(match.group(1))
+        graph = payload["@graph"]
+        self.assertEqual({item["@type"] for item in graph}, {"WebSite", "Course"})
+        course = next(item for item in graph if item["@type"] == "Course")
+        self.assertTrue(course["isAccessibleForFree"])
+        self.assertEqual(course["inLanguage"], "ru")
+
+    def test_sitemap_and_404_indexing_policy(self) -> None:
+        sitemap = (ROOT / "site" / "sitemap.xml").read_text(encoding="utf-8")
+        for suffix in ("", "catalog.html", "routes.html", "glossary.html"):
+            self.assertIn(f"<loc>{SITE_URL}{suffix}</loc>", sitemap)
+        robots = (ROOT / "site" / "robots.txt").read_text(encoding="utf-8")
+        self.assertIn(f"Sitemap: {SITE_URL}sitemap.xml", robots)
+        not_found = (ROOT / "site" / "404.html").read_text(encoding="utf-8")
+        self.assertIn('<meta name="robots" content="noindex, follow">', not_found)
 
     def test_tracked_lesson_outputs_do_not_embed_home_paths(self) -> None:
         tracked = subprocess.run(

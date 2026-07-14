@@ -7,7 +7,6 @@ from pathlib import Path
 
 from course_model import ROOT
 
-
 LESSON_PATTERN = re.compile(r"^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -89,7 +88,7 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
                 "stage": "pre",
                 "question": "TODO",
                 "options": ["TODO A", "TODO B", "TODO C", "TODO D"],
-                "correct": 0,
+                "correct": 1,
                 "explanation": "TODO",
             },
             {
@@ -97,7 +96,7 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
                 "stage": "pre",
                 "question": "TODO",
                 "options": ["TODO A", "TODO B", "TODO C", "TODO D"],
-                "correct": 0,
+                "correct": 2,
                 "explanation": "TODO",
             },
             {
@@ -105,7 +104,7 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
                 "stage": "post",
                 "question": "TODO",
                 "options": ["TODO A", "TODO B", "TODO C", "TODO D"],
-                "correct": 0,
+                "correct": 3,
                 "explanation": "TODO",
             },
             {

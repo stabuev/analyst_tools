@@ -26,6 +26,20 @@
 | 11 | [Docker как факультативная упаковка](11-docker) | 75 мин | Упаковывает CLI/app/API в локальный контейнер, проверяя minimal build context, `.dockerignore`, no-secret policy и equivalence с локальным запуском. | Docker packaging audit с Dockerfile, context report и container run manifest | complete |
 | 12 | [Handoff, документация и сопровождение](12-handoff) | 105 мин | Собирает stakeholder delivery package: memo, workbook, report, interactive appendix, app, CLI/schedule, optional API/container, runbook, support policy и checksum manifest. | Stakeholder delivery package с handoff runbook, support policy, decision status и manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 17 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент поставляет результат в нескольких форматах, пересобирает его одной командой, показывает свежесть, ограничения, owner и понятный handoff.

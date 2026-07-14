@@ -25,6 +25,20 @@
 | 10 | [Sensitivity analysis и falsification checks](10-sensitivity) | 75 мин | Проводит placebo treatment/outcome, negative-control и omitted-confounding sensitivity checks, сравнивает estimates между designs и формулирует, какая сила нарушения assumptions изменит вывод. | Sensitivity и refutation suite с placebo, negative-control и omitted-variable report | complete |
 | 11 | [Causal workflow и границы автоматизации](11-causal-workflow) | 105 мин | Собирает causal-study-package, воспроизводит model-identify-estimate-refute workflow в DoWhy, сверяет его с прозрачными RA/IPW/AIPW/DiD расчетами и объясняет, почему EconML не заменяет identification и нужен только для отдельно поставленной heterogeneity-задачи. | Causal-study-package с DAG, estimates, balance, falsification, sensitivity, automation audit и checksum manifest | complete |
 
+## Как проходить фазу
+
+1. Ответьте на входные вопросы до чтения reference implementation.
+2. Для каждого урока воспроизведите ручной механизм в локальной папке `work/`.
+3. Запустите пример, один failure mode и тесты урока.
+4. Выполните хотя бы одно упражнение, которое меняет данные или правило.
+5. После фазы пройдите перемешанную самопроверку:
+
+```bash
+uv run --locked python scripts/run_quiz.py --phase 13 --stage post --limit 8
+```
+
+Кнопка прогресса на сайте является ручной отметкой, а не сертификатом. Критерий освоения — объяснить решение, воспроизвести расчёт и диагностировать хотя бы одну поломку.
+
 ## Критерий завершения
 
 Студент формулирует estimand, обосновывает adjustment или quasi-experimental design, проверяет overlap, falsification и sensitivity и ограничивает causal claim выполненными assumptions.

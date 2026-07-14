@@ -19,9 +19,10 @@
 ## Проблема
 
 Технически корректный график может быть недоступен: красная и зеленая линии отличаются
-только цветом, bar chart начинается с `0.55`, мелкий текст невозможно прочитать, а title
-называет тему вместо вывода. Pixel-аудит не знает business meaning, поэтому требования
-нужно записать как review contract.
+только цветом, bar chart начинается с `0.55`, сфокусированная line scale скрывает полный
+контекст, мелкий текст невозможно прочитать, а title называет тему вместо вывода.
+Pixel-аудит не знает business meaning, поэтому требования нужно записать как review
+contract.
 
 ## Концепция
 
@@ -34,6 +35,12 @@ Visual review проверяет четыре слоя:
 
 Sequential palette кодирует порядок, diverging - отклонение от meaningful center,
 categorical - различающиеся уровни без порядка.
+
+Нулевая граница обязательна для длины столбца: иначе геометрия bar преувеличивает
+различие. Для line или point chart доли допустим сфокусированный диапазон, если задача —
+сравнить небольшое изменение, границы явно подписаны и рядом есть full-domain reference.
+Правило зависит от visual encoding; автоматический чек не должен превращать `[0, 1]` в
+универсальную догму.
 
 ## Соберите это
 
@@ -57,7 +64,7 @@ uv run --locked python outputs/visual_review.py --example
 ## Сломайте это
 
 1. Установите `color_only=true`.
-2. Обрежьте rate domain до `[0.55, 0.75]`.
+2. Обрежьте rate domain до `[0.55, 0.75]` без disclosure и full-domain reference.
 3. Для bar chart задайте baseline `0.5`.
 4. Уберите interval semantics или sample size.
 5. Оставьте alt text «График активации».
@@ -65,7 +72,9 @@ uv run --locked python outputs/visual_review.py --example
 ## Проверьте это
 
 - example проходит все checks;
-- color-only и truncated rate scale падают;
+- color-only и необъявленная focused rate scale падают;
+- line/point scale может быть focused только с `domain_policy`, пояснением и full-domain
+  reference;
 - bar требует zero baseline;
 - estimate требует uncertainty semantics и `n`;
 - CLI имеет стабильные exit codes.
@@ -89,7 +98,8 @@ uv run --locked python -m unittest discover -s tests
 
 | Термин | Распространенное заблуждение | Точное значение |
 |---|---|---|
-| Baseline | Нижний край картинки | Нулевая или содержательная точка сравнения |
+| Baseline | Нижний край картинки | Нулевая или содержательная точка сравнения; для bar длина должна начинаться от нуля |
+| Focused scale | Любая обрезанная ось | Явно раскрытый диапазон line/point chart с доступным full-domain контекстом |
 | Perceptual palette | Красивые цвета | Шкала с предсказуемым восприятием порядка |
 | Redundant channel | Дублирование данных | Повтор смысла цветом и другим каналом |
 | Alt text | Название файла | Текстовое описание формы и сообщения |
