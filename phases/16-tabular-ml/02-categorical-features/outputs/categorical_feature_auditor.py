@@ -28,6 +28,13 @@ DEFAULT_CATBOOST_REPORT_PATH = PHASE_16_ROOT / "01-catboost" / "outputs" / "catb
 GENERATED_AT = "2026-07-03T13:00:00+03:00"
 
 
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 class CategoricalFeatureError(ValueError):
     """Raised when categorical feature audit inputs cannot be parsed."""
 
@@ -641,7 +648,7 @@ def run(
                 "blocked_selected_feature_count": len(leakage_errors),
             },
             "upstream_handoff": {
-                "catboost_report": str(catboost_report_path),
+                "catboost_report": portable_path(catboost_report_path),
                 "catboost_readiness_status": catboost_report.get("summary", {}).get("readiness_status"),
             },
             "output": contract.get("output", {}),

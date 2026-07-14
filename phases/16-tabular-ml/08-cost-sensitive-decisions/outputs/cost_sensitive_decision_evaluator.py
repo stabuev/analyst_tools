@@ -803,12 +803,12 @@ def add_table_checks(
     decision_gate: list[dict[str, Any]],
     segment_report: dict[str, Any],
 ) -> None:
-    roles = {row["model_role"] for row in decision_rows}
+    roles = sorted({row["model_role"] for row in decision_rows})
     snapshot_sets = {
         role: {row["snapshot_id"] for row in decision_rows if row["model_role"] == role}
         for role in roles
     }
-    if roles == {"baseline", "catboost"} and len(set(map(tuple, [sorted(value) for value in snapshot_sets.values()]))) == 1:
+    if set(roles) == {"baseline", "catboost"} and len(set(map(tuple, [sorted(value) for value in snapshot_sets.values()]))) == 1:
         checks.append(passed("decision_rows_cover_same_validation_population", {role: sorted(ids) for role, ids in snapshot_sets.items()}, "same snapshot ids for both models"))
     else:
         checks.append(failed("decision_rows_cover_same_validation_population", {role: sorted(ids) for role, ids in snapshot_sets.items()}, "same snapshot ids for both models"))

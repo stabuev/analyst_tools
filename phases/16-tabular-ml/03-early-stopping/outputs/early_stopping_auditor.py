@@ -35,6 +35,13 @@ DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / "ml_split_manifest.csv"
 GENERATED_AT = "2026-07-04T10:00:00+03:00"
 
 
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 class EarlyStoppingAuditError(ValueError):
     """Raised when early-stopping audit inputs cannot be parsed."""
 
@@ -789,9 +796,9 @@ def run(
             },
             "tree_count_summary": report_row,
             "upstream_handoff": {
-                "catboost_report": str(catboost_report_path),
+                "catboost_report": portable_path(catboost_report_path),
                 "catboost_readiness_status": catboost_report.get("summary", {}).get("readiness_status"),
-                "categorical_report": str(categorical_report_path),
+                "categorical_report": portable_path(categorical_report_path),
                 "categorical_readiness_status": categorical_report.get("summary", {}).get("readiness_status"),
             },
             "output": policy.get("output", {}),

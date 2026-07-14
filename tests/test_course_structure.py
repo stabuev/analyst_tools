@@ -42,6 +42,17 @@ class CourseStructureTest(TestCase):
             },
         )
 
+    def test_extended_phases_document_scale_exception(self) -> None:
+        for phase in load_curriculum()["phases"]:
+            actual_hours = sum(
+                lesson["time_minutes"] for lesson in phase["lessons"]
+            ) / 60
+            if phase["number"] not in {0, 18} and actual_hours > 18:
+                self.assertTrue(
+                    phase.get("scale_exception"),
+                    f"phase {phase['number']:02d} has {actual_hours:g} hours",
+                )
+
     def test_roadmap_is_up_to_date(self) -> None:
         expected = render_roadmap(load_curriculum())
         self.assertEqual((ROOT / "ROADMAP.md").read_text(encoding="utf-8"), expected)
@@ -79,6 +90,26 @@ class CourseStructureTest(TestCase):
             "site/app.js",
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
+
+    def test_tracked_lesson_outputs_do_not_embed_home_paths(self) -> None:
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z", "phases"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout.split(b"\0")
+        home_path = re.compile(r"(?:/(?:Users|home)/[^/\s\"']+/|[A-Za-z]:\\\\Users\\\\)")
+        offenders: list[str] = []
+        for raw_relative in tracked:
+            if not raw_relative:
+                continue
+            relative = raw_relative.decode("utf-8")
+            if "/outputs/" not in relative:
+                continue
+            content = (ROOT / relative).read_bytes().decode("utf-8", errors="ignore")
+            if home_path.search(content):
+                offenders.append(relative)
+        self.assertEqual(offenders, [])
 
     def test_handoff_context_exists(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")

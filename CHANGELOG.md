@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+### Исправлено
+
+- Полный lesson runner теперь контролирует чистоту рабочего дерева после каждого suite;
+  генерация cost-sensitive report детерминирована.
+- Provenance в outputs фаз 11, 14-16 использует переносимые относительные пути вместо
+  абсолютного пути локального checkout.
+- Финальный пакет фазы 09 проверяет отсутствующие upstream artifacts, checksum mutation
+  и сохранение regression warning flags.
+- Уточнены актуальный handoff в `PROJECT_STATUS.md` и явное scale exception фазы 15.
+
 ### Добавлено
 
 - Фаза 18 «Капстоун-проекты»: семь stage-gated уроков от problem brief и data contract

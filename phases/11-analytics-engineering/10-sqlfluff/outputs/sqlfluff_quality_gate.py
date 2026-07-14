@@ -15,10 +15,19 @@ from typing import Any
 import yaml
 
 
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = LESSON_ROOT.parents[2]
 EXPECTED_PROJECT_NAME = "sqlfluff_project"
 EXPECTED_LINT_PATHS = ("models", "tests", "snapshots")
 EXPECTED_IGNORES = {"target/", "logs/", "dbt_packages/", "*.duckdb"}
 KEYWORD_ALIASES = re.compile(r"\bas\s+(orders|users|support|lines)\b", re.IGNORECASE)
+
+
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
 
 
 def passed(check_id: str, observed: Any = None, expected: Any = None) -> dict[str, Any]:
@@ -151,7 +160,7 @@ def run_raw_bad_example(example_path: Path) -> dict[str, Any]:
 
 def validate_static_project(project_root: Path, bad_example: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     checks: list[dict[str, Any]] = []
-    summary: dict[str, Any] = {"project_root": str(project_root)}
+    summary: dict[str, Any] = {"project_root": portable_path(project_root)}
     required_files = [
         "dbt_project.yml",
         "profiles.yml",

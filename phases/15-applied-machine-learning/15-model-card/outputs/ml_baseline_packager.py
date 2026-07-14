@@ -12,8 +12,17 @@ from typing import Any
 
 LESSON_ROOT = Path(__file__).resolve().parents[1]
 PHASE_ROOT = LESSON_ROOT.parent
+REPO_ROOT = LESSON_ROOT.parents[2]
 DATA_ROOT = PHASE_ROOT / "data" / "tiny"
 GENERATED_AT = "2026-07-03T11:00:00+03:00"
+
+
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
 
 REQUIRED_SPEC_FIELDS = {
     "package_id",
@@ -357,7 +366,11 @@ def validate_package_spec(spec: dict[str, Any], problem_spec: dict[str, Any]) ->
 
 def load_reports(report_paths: dict[str, Path], checks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     reports: dict[str, dict[str, Any]] = {}
-    missing = [{"id": key, "path": str(path)} for key, path in report_paths.items() if not path.exists()]
+    missing = [
+        {"id": key, "path": portable_path(path)}
+        for key, path in report_paths.items()
+        if not path.exists()
+    ]
     if missing:
         checks.append(failed("all_required_upstream_reports_present", len(missing), 0, missing))
     else:
@@ -369,7 +382,9 @@ def load_reports(report_paths: dict[str, Path], checks: list[dict[str, Any]]) ->
         try:
             reports[key] = read_json(path)
         except json.JSONDecodeError as error:
-            invalid.append({"id": key, "path": str(path), "error": str(error)})
+            invalid.append(
+                {"id": key, "path": portable_path(path), "error": str(error)}
+            )
     if invalid:
         checks.append(failed("all_required_upstream_reports_parse", invalid, "valid JSON"))
     else:
@@ -379,7 +394,11 @@ def load_reports(report_paths: dict[str, Path], checks: list[dict[str, Any]]) ->
 
 def load_tables(table_paths: dict[str, Path], checks: list[dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
     tables: dict[str, list[dict[str, str]]] = {}
-    missing = [{"id": key, "path": str(path)} for key, path in table_paths.items() if not path.exists()]
+    missing = [
+        {"id": key, "path": portable_path(path)}
+        for key, path in table_paths.items()
+        if not path.exists()
+    ]
     if missing:
         checks.append(failed("all_required_evidence_tables_present", len(missing), 0, missing))
     else:
@@ -586,7 +605,7 @@ def build_evidence_matrix(
             {
                 "evidence_id": report_id,
                 "lesson": item["lesson"],
-                "path": str(report_paths[report_id]),
+                "path": portable_path(report_paths[report_id]),
                 "valid": report.get("valid") is True,
                 "readiness_status": summary.get("readiness_status", ""),
                 "blocking_error_count": len(blocking),
@@ -963,7 +982,7 @@ def build_manifest(input_paths: dict[str, Path], output_payloads: dict[str, byte
         "hash_algorithm": "sha256",
         "inputs": {
             name: {
-                "path": str(path),
+                "path": portable_path(path),
                 "sha256": sha256_path(path),
                 "bytes": path.stat().st_size,
             }

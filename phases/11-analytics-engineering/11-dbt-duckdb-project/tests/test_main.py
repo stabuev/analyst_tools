@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "outputs" / "analytics_mart_packager.py"
 PROJECT = ROOT / "outputs" / "analytics-mart-dbt"
 DATA_CONTRACT = ROOT.parent / "data" / "contract.json"
+PACKAGE_AUDIT = ROOT / "outputs" / "package_audit.json"
 SPEC = importlib.util.spec_from_file_location("analytics_mart_packager", ARTIFACT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"cannot load {ARTIFACT}")
@@ -55,6 +56,16 @@ class AnalyticsMartPackageTest(unittest.TestCase):
             self.assertTrue((project / "quality" / "sqlfluff-report.json").is_file())
             self.assertTrue(check(report, "dbt_local_gate_succeeds")["valid"])
             self.assertEqual(report["summary"]["artifact_counts"]["run_results"], 87)
+            for command in report["summary"]["dbt_commands"]:
+                self.assertIn("<temp>", command["command"])
+                self.assertNotIn(directory, json.dumps(command))
+
+    def test_committed_audit_redacts_checkout_and_temporary_paths(self) -> None:
+        audit = PACKAGE_AUDIT.read_text(encoding="utf-8")
+        self.assertNotIn("/Users/", audit)
+        self.assertNotIn("/home/", audit)
+        self.assertNotIn("/var/folders/", audit)
+        self.assertIn("<temp>/project", audit)
 
     def test_models_cannot_reference_raw_relations_directly(self) -> None:
         with TemporaryDirectory() as directory:

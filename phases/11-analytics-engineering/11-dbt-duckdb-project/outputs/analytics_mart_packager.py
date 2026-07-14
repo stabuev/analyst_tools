@@ -19,6 +19,8 @@ from typing import Any
 import yaml
 
 
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = LESSON_ROOT.parents[2]
 EXPECTED_PROJECT_NAME = "analytics_mart_dbt"
 EXPECTED_PACKAGE_DIR = "analytics-mart-dbt"
 EXPECTED_EXPOSURE_NAME = "customer_revenue_health_dashboard"
@@ -79,6 +81,13 @@ RELEASE_FILES = {
 GENERATED_DIR_NAMES = {"target", "logs", "dbt_packages", "__pycache__"}
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 RAW_RELATION_RE = re.compile(r"\braw\s*\.", re.IGNORECASE)
+
+
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
 
 
 def utc_now() -> str:
@@ -195,7 +204,21 @@ def flatten_violations(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return violations
 
 
-def run_command(command: list[str], env: dict[str, str], cwd: Path | None = None, timeout: int = 240) -> dict[str, Any]:
+def redact_text(value: str, redactions: dict[str, str] | None) -> str:
+    for source, replacement in sorted(
+        (redactions or {}).items(), key=lambda item: len(item[0]), reverse=True
+    ):
+        value = value.replace(source, replacement)
+    return value
+
+
+def run_command(
+    command: list[str],
+    env: dict[str, str],
+    cwd: Path | None = None,
+    timeout: int = 240,
+    redactions: dict[str, str] | None = None,
+) -> dict[str, Any]:
     started = time.monotonic()
     completed = subprocess.run(
         command,
@@ -207,17 +230,17 @@ def run_command(command: list[str], env: dict[str, str], cwd: Path | None = None
         timeout=timeout,
     )
     return {
-        "command": " ".join(command),
+        "command": redact_text(" ".join(command), redactions),
         "returncode": completed.returncode,
         "elapsed_seconds": round(time.monotonic() - started, 3),
-        "stdout_tail": tail(completed.stdout),
-        "stderr_tail": tail(completed.stderr),
+        "stdout_tail": redact_text(tail(completed.stdout), redactions),
+        "stderr_tail": redact_text(tail(completed.stderr), redactions),
     }
 
 
 def validate_project_identity(project_root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     checks: list[dict[str, Any]] = []
-    summary: dict[str, Any] = {"project_root": str(project_root)}
+    summary: dict[str, Any] = {"project_root": portable_path(project_root)}
     required_files = [
         "dbt_project.yml",
         "profiles.yml",
@@ -794,6 +817,12 @@ def run_release_build(project_root: Path, data_contract: dict[str, Any], data_di
         env["DBT_SEND_ANONYMOUS_USAGE_STATS"] = "false"
         env["DBT_DUCKDB_PATH"] = str(db_path)
         base = ["--project-dir", str(project_copy), "--profiles-dir", str(profiles_dir)]
+        redactions = {
+            str(project_copy): "<temp>/project",
+            str(profiles_dir): "<temp>/profiles",
+            str(db_path): "<temp>/analytics_mart.duckdb",
+            str(tmp): "<temp>",
+        }
 
         summary["loaded_raw_rows"] = prepare_duckdb_database(db_path, data_contract, data_dir)
         commands: list[dict[str, Any]] = []
@@ -804,14 +833,20 @@ def run_release_build(project_root: Path, data_contract: dict[str, Any], data_di
             ["dbt", "run", "--select", "int_subscription_history", *base],
             ["dbt", "test", "--select", "test_type:data", *base],
         ]:
-            command_result = run_command(command, env)
+            command_result = run_command(command, env, redactions=redactions)
             commands.append(command_result)
             if command_result["returncode"] != 0:
                 break
         test_run_results = read_json(project_copy / "target" / "run_results.json") if (project_copy / "target" / "run_results.json").is_file() else {}
 
         if all(command["returncode"] == 0 for command in commands):
-            commands.append(run_command(["dbt", "docs", "generate", *base], env))
+            commands.append(
+                run_command(
+                    ["dbt", "docs", "generate", *base],
+                    env,
+                    redactions=redactions,
+                )
+            )
         summary["dbt_commands"] = commands
         failed_commands = [command for command in commands if command["returncode"] != 0]
         if failed_commands:
@@ -1001,8 +1036,8 @@ def validate_project(
     data_contract = read_json(data_contract_path)
     resolved_data_dir = data_dir or data_contract_path.parent / "tiny"
     checks, summary = validate_static_project(project_root, data_contract)
-    summary["data_contract"] = str(data_contract_path)
-    summary["data_dir"] = str(resolved_data_dir)
+    summary["data_contract"] = portable_path(data_contract_path)
+    summary["data_dir"] = portable_path(resolved_data_dir)
     if build_package:
         if all(check["valid"] for check in checks):
             build_checks, build_summary = run_release_build(project_root, data_contract, resolved_data_dir)

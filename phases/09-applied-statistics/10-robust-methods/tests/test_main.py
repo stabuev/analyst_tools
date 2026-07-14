@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import unittest
@@ -52,6 +53,52 @@ class RobustEvidencePackagerTest(unittest.TestCase):
         for relative, metadata in manifest["files"].items():
             self.assertEqual(PACKAGER.sha256(PACKAGE / relative), metadata["sha256"])
             self.assertGreater(metadata["bytes"], 0)
+        self.assertEqual(PACKAGER.verify_manifest(PACKAGE), {"valid": True, "errors": []})
+
+    def test_missing_upstream_artifact_blocks_package_build(self) -> None:
+        with TemporaryDirectory() as directory:
+            phase_copy = Path(directory) / "phase"
+            shutil.copytree(PHASE, phase_copy)
+            missing = phase_copy / "03-estimators" / "outputs" / "point_estimates.csv"
+            missing.unlink()
+
+            with self.assertRaises(FileNotFoundError):
+                PACKAGER.build_package(phase_copy, Path(directory) / "package")
+
+    def test_manifest_verifier_detects_file_mutation(self) -> None:
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory) / "package"
+            PACKAGER.build_package(PHASE, output_dir)
+            report = output_dir / "report.md"
+            report.write_text(
+                report.read_text(encoding="utf-8") + "\nmutated\n",
+                encoding="utf-8",
+            )
+
+            verification = PACKAGER.verify_manifest(output_dir)
+
+        self.assertFalse(verification["valid"])
+        self.assertIn(
+            {"path": "report.md", "error": "checksum_mismatch"},
+            verification["errors"],
+        )
+
+    def test_removed_regression_warning_flags_block_package_build(self) -> None:
+        with TemporaryDirectory() as directory:
+            phase_copy = Path(directory) / "phase"
+            shutil.copytree(PHASE, phase_copy)
+            diagnostics_path = (
+                phase_copy / "09-regression-diagnostics" / "outputs" / "diagnostics.json"
+            )
+            diagnostics = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+            diagnostics["summary"]["warning_flags"] = []
+            diagnostics_path.write_text(
+                json.dumps(diagnostics, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "preserve at least one warning flag"):
+                PACKAGER.build_package(phase_copy, Path(directory) / "package")
 
     def test_robust_estimates_include_mean_median_trimmed_and_winsorized(self) -> None:
         with (PACKAGE / "robustness" / "robust-estimates.csv").open(encoding="utf-8", newline="") as source:

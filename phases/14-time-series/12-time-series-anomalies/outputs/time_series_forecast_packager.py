@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 
+LESSON_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = LESSON_ROOT.parents[2]
 REQUIRED_SPEC_FIELDS = {
     "package_id",
     "forecast_id",
@@ -27,6 +29,15 @@ REQUIRED_SPEC_FIELDS = {
     "decision_policy",
     "quality_gates",
 }
+
+
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 REQUIRED_ANOMALY_LABELS = [
     "data_quality",
     "calendar_expected",
@@ -560,7 +571,11 @@ def build_manifest(input_paths: dict[str, Path], output_payloads: dict[str, byte
         "manifest_id": "active-subscriptions-forecast-package-manifest",
         "hash_algorithm": "sha256",
         "inputs": {
-            name: {"path": str(path), "sha256": sha256_path(path), "bytes": path.stat().st_size}
+            name: {
+                "path": portable_path(path),
+                "sha256": sha256_path(path),
+                "bytes": path.stat().st_size,
+            }
             for name, path in sorted(input_paths.items())
         },
         "outputs": {

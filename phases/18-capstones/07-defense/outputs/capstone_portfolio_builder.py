@@ -1480,10 +1480,10 @@ def render_handoff_readme(report: dict[str, Any]) -> str:
             f"Status: `{report['status']}`.",
             f"Project: `{report['project_id']}`.",
             "",
-            "Start with `defense/decision-report.md`, then inspect `rubric-result.json` ",
-            "and run the verify command in `handoff/runbook.md`.",
+            "Start with `defense/decision-report.md`, then inspect `rubric-result.json` and "
+            "run the verify command in `handoff/runbook.md`.",
             "",
-            "The package contains only aggregate reference data. It is not production, ",
+            "The package contains only aggregate reference data. It is not production, "
             "causal, legal, security or SLA certification.",
             "",
         ]
@@ -1501,12 +1501,12 @@ def render_runbook(spec: dict[str, Any]) -> str:
             spec["live_rerun"]["verify_command"],
             "```",
             "",
-            "A non-zero exit code means the package is stale, incomplete, restricted, ",
-            "or inconsistent with its reviewed provenance.",
+            "A non-zero exit code means the package is stale, incomplete, restricted, or "
+            "inconsistent with its reviewed provenance.",
             "",
             "## Escalation",
             "",
-            "Return to the earliest affected stage, rebuild downstream packages, repeat ",
+            "Return to the earliest affected stage, rebuild downstream packages, repeat "
             "independent verification and request re-review before another defense.",
             "",
         ]

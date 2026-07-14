@@ -146,7 +146,10 @@ Tests проверяют:
 - nonparametric sensitivity;
 - ссылки report на artifacts;
 - PNG figures;
-- CLI-сборку в новой директории.
+- CLI-сборку в новой директории;
+- отказ при отсутствующем upstream artifact;
+- checksum mismatch после изменения собранного файла;
+- блокировку пакета при потере regression warning flags.
 
 ## Поставьте результат
 

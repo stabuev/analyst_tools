@@ -80,7 +80,9 @@ class CostSensitiveDecisionEvaluatorTest(TestCase):
         self.assertEqual(rows[("catboost", "S006")]["score"], 0.492308)
         self.assertEqual(rows[("catboost", "S006")]["calibration_status"], "not_approved_for_candidate")
         self.assertFalse(rows[("catboost", "S006")]["upstream_selected_at_budget"])
-        self.assertTrue(check(report, "decision_rows_cover_same_validation_population")["valid"])
+        population_check = check(report, "decision_rows_cover_same_validation_population")
+        self.assertTrue(population_check["valid"])
+        self.assertEqual(list(population_check["observed"]), ["baseline", "catboost"])
 
     def test_threshold_table_shows_under_budget_and_over_budget_options(self) -> None:
         report = self.audit()

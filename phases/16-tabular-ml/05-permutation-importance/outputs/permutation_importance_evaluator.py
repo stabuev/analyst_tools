@@ -45,6 +45,13 @@ DEFAULT_MANIFEST_PATH = UPSTREAM_DATA_ROOT / "ml_split_manifest.csv"
 GENERATED_AT = "2026-07-05T12:00:00+03:00"
 
 
+def portable_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 class PermutationImportanceError(ValueError):
     """Raised when permutation-importance inputs cannot be parsed."""
 
@@ -840,11 +847,11 @@ def run(
                 "correlated_pair_count": len(correlated_pairs),
             },
             "upstream_handoff": {
-                "built_in_importance_report": str(built_in_report_path),
+                "built_in_importance_report": portable_path(built_in_report_path),
                 "built_in_readiness_status": built_in_report.get("summary", {}).get("readiness_status"),
-                "early_stopping_report": str(early_stopping_report_path),
+                "early_stopping_report": portable_path(early_stopping_report_path),
                 "early_stopping_model_id": early_spec.get("early_stopping_model_id"),
-                "categorical_report": str(categorical_report_path),
+                "categorical_report": portable_path(categorical_report_path),
                 "categorical_audit_id": categorical_report.get("summary", {}).get("categorical_audit_id"),
             },
             "output": policy.get("output", {}),

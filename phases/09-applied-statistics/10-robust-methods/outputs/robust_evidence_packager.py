@@ -236,6 +236,20 @@ def manifest(output_dir: Path) -> dict[str, Any]:
     return {"files": files, "file_count": len(files)}
 
 
+def verify_manifest(output_dir: Path) -> dict[str, Any]:
+    package_manifest = read_json(output_dir / "manifest.json")
+    errors: list[dict[str, str]] = []
+    for relative, metadata in package_manifest.get("files", {}).items():
+        path = output_dir / relative
+        if not path.is_file():
+            errors.append({"path": relative, "error": "missing"})
+            continue
+        actual = sha256(path)
+        if actual != metadata.get("sha256"):
+            errors.append({"path": relative, "error": "checksum_mismatch"})
+    return {"valid": not errors, "errors": errors}
+
+
 def build_report_md(output_dir: Path, sensitivity: dict[str, Any]) -> None:
     warning_flags = ", ".join(sensitivity["regression_warning_flags"]) or "none"
     text = f"""# Statistical Evidence Report
@@ -293,14 +307,17 @@ def build_package(phase_root: Path, output_dir: Path) -> dict[str, Any]:
         ["metric_id", "method", "estimate", "limitation"],
     )
     sensitivity = sensitivity_report(rows, diagnostics)
+    if not sensitivity["regression_warning_flags"]:
+        raise ValueError("regression diagnostics must preserve at least one warning flag")
     write_json(output_dir / "robustness" / "sensitivity.json", sensitivity)
     build_sampling_bias_figure(output_dir / "figures" / "sampling-bias.png", copied["estimates/bias-variance.csv"])
     build_interval_coverage_figure(output_dir / "figures" / "interval-coverage.png", copied["estimates/confidence-intervals.csv"])
     build_report_md(output_dir, sensitivity)
     package_manifest = manifest(output_dir)
     write_json(output_dir / "manifest.json", package_manifest)
+    verification = verify_manifest(output_dir)
     return {
-        "valid": True,
+        "valid": verification["valid"],
         "summary": {
             "output_dir": str(output_dir),
             "files": package_manifest["file_count"],
@@ -308,6 +325,7 @@ def build_package(phase_root: Path, output_dir: Path) -> dict[str, Any]:
             "robust_estimates": len(robust_rows),
         },
         "manifest": package_manifest,
+        "verification": verification,
     }
 
 
