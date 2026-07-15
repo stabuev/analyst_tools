@@ -20,6 +20,7 @@ from course_model import load_curriculum  # noqa: E402
 from render_curriculum import render_phase_readme, render_roadmap  # noqa: E402
 from render_outputs import build_output_index, render_output_index  # noqa: E402
 from render_site import SITE_URL, build_site_data, build_site_outputs  # noqa: E402
+from run_lesson_tests import lesson_practice_mode  # noqa: E402
 from scaffold_lesson import scaffold  # noqa: E402
 from validate_course import (  # noqa: E402
     validate_complete_lesson,
@@ -203,7 +204,10 @@ class CourseStructureTest(TestCase):
             relative = raw_relative.decode("utf-8")
             if "/outputs/" not in relative:
                 continue
-            content = (ROOT / relative).read_bytes().decode("utf-8", errors="ignore")
+            path = ROOT / relative
+            if not path.is_file():
+                continue
+            content = path.read_bytes().decode("utf-8", errors="ignore")
             if home_path.search(content):
                 offenders.append(relative)
         self.assertEqual(offenders, [])
@@ -657,6 +661,45 @@ class CourseStructureTest(TestCase):
             docs = (lesson / "docs" / "ru.md").read_text(encoding="utf-8")
             self.assertIn("## Дополнительное чтение", docs)
             self.assertEqual(docs.count("https://example.com/TODO"), 3)
+            self.assertEqual(lesson_practice_mode(lesson), "executable")
+
+    def test_lesson_scaffolder_supports_guided_artifact_practice(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "phases" / "00-example").mkdir(parents=True)
+            lesson = scaffold(
+                "00-example",
+                "01-first-lesson",
+                "Первый урок",
+                root,
+                practice_mode="guided-artifact",
+            )
+            files = {
+                str(path.relative_to(lesson))
+                for path in lesson.rglob("*")
+                if path.is_file()
+            } - {"notebook/.gitkeep"}
+            self.assertEqual(
+                files,
+                {
+                    "docs/ru.md",
+                    "outputs/artifact.json",
+                    "outputs/TODO.md",
+                    "outputs/TODO-rubric.md",
+                    "quiz.json",
+                    "lesson.json",
+                },
+            )
+            metadata = json.loads((lesson / "lesson.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                metadata["practice"],
+                {
+                    "mode": "guided-artifact",
+                    "path": "outputs/TODO.md",
+                    "verification": "outputs/TODO-rubric.md",
+                },
+            )
+            self.assertEqual(lesson_practice_mode(lesson), "guided-artifact")
 
     def test_complete_lesson_contract(self) -> None:
         with TemporaryDirectory() as directory:
@@ -738,6 +781,105 @@ class CourseStructureTest(TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(validate_complete_lesson(root, phase, lesson, 1), [])
+
+    def test_complete_guided_artifact_lesson_contract(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            phase = {"number": 0, "slug": "example"}
+            lesson = {
+                "slug": "first-lesson",
+                "title": "Первый урок",
+                "time_minutes": 75,
+                "outcome": "Обосновывает решение",
+            }
+            (root / "phases" / "00-example").mkdir(parents=True)
+            lesson_root = scaffold(
+                "00-example",
+                "01-first-lesson",
+                lesson["title"],
+                root,
+                practice_mode="guided-artifact",
+            )
+            metadata = json.loads((lesson_root / "lesson.json").read_text(encoding="utf-8"))
+            metadata.update(
+                {
+                    "tracks": ["core"],
+                    "outcome": lesson["outcome"],
+                    "artifact": {
+                        "name": "decision-template",
+                        "type": "report-template",
+                        "path": "outputs/decision-template.md",
+                    },
+                    "practice": {
+                        "mode": "guided-artifact",
+                        "path": "outputs/decision-template.md",
+                        "verification": "outputs/decision-rubric.md",
+                    },
+                }
+            )
+            (lesson_root / "lesson.json").write_text(
+                json.dumps(metadata, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            artifact = {
+                "name": "decision-template",
+                "type": "report-template",
+                "path": "outputs/decision-template.md",
+                "description": "Помогает обосновать решение",
+                "usage": "Заполните шаблон и проверьте его по рубрике.",
+            }
+            (lesson_root / "outputs" / "artifact.json").write_text(
+                json.dumps(artifact, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (lesson_root / "outputs" / "decision-template.md").write_text(
+                "# Decision template\n",
+                encoding="utf-8",
+            )
+            (lesson_root / "outputs" / "decision-rubric.md").write_text(
+                "# Decision rubric\n",
+                encoding="utf-8",
+            )
+            (lesson_root / "outputs" / "TODO.md").unlink()
+            (lesson_root / "outputs" / "TODO-rubric.md").unlink()
+            quiz = json.loads((lesson_root / "quiz.json").read_text(encoding="utf-8"))
+            for question in quiz["questions"]:
+                question["question"] = f"Вопрос {question['id']}"
+                question["options"] = ["A", "B", "C", "D"]
+                question["explanation"] = "Объяснение"
+            (lesson_root / "quiz.json").write_text(
+                json.dumps(quiz, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            docs = (lesson_root / "docs" / "ru.md").read_text(encoding="utf-8")
+            (lesson_root / "docs" / "ru.md").write_text(
+                docs.replace("TODO", "Содержимое"),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(validate_complete_lesson(root, phase, lesson, 1), [])
+
+            metadata["practice"]["path"] = "outputs/other-template.md"
+            (lesson_root / "outputs" / "other-template.md").write_text(
+                "# Other template\n",
+                encoding="utf-8",
+            )
+            (lesson_root / "lesson.json").write_text(
+                json.dumps(metadata, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            errors = validate_complete_lesson(root, phase, lesson, 1)
+            self.assertTrue(any("must match the named artifact" in error for error in errors))
+
+            metadata["practice"]["path"] = "outputs/decision-template.md"
+            (lesson_root / "lesson.json").write_text(
+                json.dumps(metadata, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            (lesson_root / "outputs" / "decision-rubric.md").unlink()
+            errors = validate_complete_lesson(root, phase, lesson, 1)
+            self.assertTrue(any("verification does not exist" in error for error in errors))
 
     def test_scaffold_cannot_pass_as_complete(self) -> None:
         with TemporaryDirectory() as directory:

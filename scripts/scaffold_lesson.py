@@ -10,9 +10,17 @@ from course_model import ROOT
 LESSON_PATTERN = re.compile(r"^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
-def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
+def scaffold(
+    phase: str,
+    lesson: str,
+    title: str,
+    root: Path = ROOT,
+    practice_mode: str = "executable",
+) -> Path:
     if not LESSON_PATTERN.fullmatch(lesson):
         raise ValueError("Lesson must match NN-kebab-case.")
+    if practice_mode not in {"executable", "guided-artifact"}:
+        raise ValueError(f"Unknown practice mode: {practice_mode}")
     phase_root = root / "phases" / phase
     if not phase_root.is_dir():
         raise ValueError(f"Unknown phase directory: {phase}")
@@ -20,7 +28,10 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
     if lesson_root.exists():
         raise ValueError(f"Lesson already exists: {lesson_root.relative_to(root)}")
 
-    for directory in ("code", "notebook", "docs", "tests", "outputs"):
+    directories = ["notebook", "docs", "outputs"]
+    if practice_mode == "executable":
+        directories.extend(["code", "tests"])
+    for directory in directories:
         (lesson_root / directory).mkdir(parents=True, exist_ok=True)
 
     metadata = {
@@ -36,6 +47,12 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
             "path": "outputs/TODO.md",
         },
     }
+    if practice_mode == "guided-artifact":
+        metadata["practice"] = {
+            "mode": "guided-artifact",
+            "path": "outputs/TODO.md",
+            "verification": "outputs/TODO-rubric.md",
+        }
     (lesson_root / "lesson.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -69,18 +86,19 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
         "он помогает освоить.\n",
         encoding="utf-8",
     )
-    (lesson_root / "code" / "main.py").write_text(
-        'def main() -> None:\n    raise NotImplementedError("Implement the lesson")\n\n\n'
-        'if __name__ == "__main__":\n    main()\n',
-        encoding="utf-8",
-    )
-    (lesson_root / "tests" / "test_main.py").write_text(
-        "from unittest import TestCase\n\n\n"
-        "class LessonTest(TestCase):\n"
-        "    def test_lesson_is_implemented(self) -> None:\n"
-        '        self.fail("Replace with a real behavioral test")\n',
-        encoding="utf-8",
-    )
+    if practice_mode == "executable":
+        (lesson_root / "code" / "main.py").write_text(
+            'def main() -> None:\n    raise NotImplementedError("Implement the lesson")\n\n\n'
+            'if __name__ == "__main__":\n    main()\n',
+            encoding="utf-8",
+        )
+        (lesson_root / "tests" / "test_main.py").write_text(
+            "from unittest import TestCase\n\n\n"
+            "class LessonTest(TestCase):\n"
+            "    def test_lesson_is_implemented(self) -> None:\n"
+            '        self.fail("Replace with a real behavioral test")\n',
+            encoding="utf-8",
+        )
     quiz = {
         "questions": [
             {
@@ -141,6 +159,11 @@ def scaffold(phase: str, lesson: str, title: str, root: Path = ROOT) -> Path:
         encoding="utf-8",
     )
     (lesson_root / "outputs" / "TODO.md").write_text("# TODO\n", encoding="utf-8")
+    if practice_mode == "guided-artifact":
+        (lesson_root / "outputs" / "TODO-rubric.md").write_text(
+            "# TODO: rubric\n",
+            encoding="utf-8",
+        )
     (lesson_root / "notebook" / ".gitkeep").touch()
     return lesson_root
 
@@ -150,8 +173,19 @@ def main() -> None:
     parser.add_argument("phase", help="Phase directory, for example 03-pandas")
     parser.add_argument("lesson", help="Lesson directory, for example 05-groupby")
     parser.add_argument("title")
+    parser.add_argument(
+        "--practice-mode",
+        choices=("executable", "guided-artifact"),
+        default="executable",
+        help="How the lesson practice is verified.",
+    )
     args = parser.parse_args()
-    path = scaffold(args.phase, args.lesson, args.title)
+    path = scaffold(
+        args.phase,
+        args.lesson,
+        args.title,
+        practice_mode=args.practice_mode,
+    )
     print(f"Created {path.relative_to(ROOT)}")
 
 

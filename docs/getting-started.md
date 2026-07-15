@@ -48,12 +48,16 @@ uv run --locked python scripts/validate_course.py
 Course structure is valid.
 ```
 
-Проверьте, что запускается первый пример:
+Откройте первый урок и заполните персональную карту маршрута по шаблону:
 
 ```bash
-uv run --locked python \
-  phases/00-entry-and-tools/01-profession-map/code/main.py
+mkdir -p work/00-01-profession-map
+cp phases/00-entry-and-tools/01-profession-map/outputs/route-plan-template.md \
+  work/00-01-profession-map/route-plan.md
 ```
+
+Первый исполняемый пример находится в уроке 00/02: первый урок проверяет профессиональное
+суждение по рубрике и намеренно не требует кода.
 
 ## Где выполнять упражнения
 
@@ -67,7 +71,8 @@ touch work/00-02-diagnostic/solution.py
 
 Перенесите в `solution.py` только условие из документации и начните с собственного
 решения. Для обычного урока создавайте файлы в `work/<phase>-<lesson>/`. Папка `work/` не
-попадёт в commit. Готовые `code/` и `outputs/` остаются reference implementation:
+попадёт в commit. Готовые `code/`, если они есть, и `outputs/` остаются
+reference-материалами:
 открывайте их после собственной попытки или когда нужно локализовать непонятный шаг.
 
 ## Типовые ошибки первого запуска

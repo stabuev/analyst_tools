@@ -11,6 +11,7 @@ from render_site import build_site_outputs
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LESSON_TYPES = {"build", "learn", "case"}
+PRACTICE_MODES = {"executable", "guided-artifact"}
 ARTIFACT_TYPES = {
     "function",
     "sql",
@@ -67,6 +68,15 @@ def contains_todo(value: Any) -> bool:
     if isinstance(value, list):
         return any(contains_todo(item) for item in value)
     return False
+
+
+def safe_lesson_path(value: Any, prefix: str) -> Path | None:
+    if not isinstance(value, str):
+        return None
+    parts = Path(value).parts
+    if not parts or parts[0] != prefix or ".." in parts:
+        return None
+    return Path(value)
 
 
 def validate_development_reading(
@@ -178,9 +188,7 @@ def validate_complete_lesson(
     lesson_root = root / "phases" / phase_dir_name(phase) / lesson_dir_name(index, lesson)
     label = str(lesson_root.relative_to(root))
     required_files = (
-        "code/main.py",
         "docs/ru.md",
-        "tests/test_main.py",
         "outputs/artifact.json",
         "quiz.json",
         "lesson.json",
@@ -220,6 +228,37 @@ def validate_complete_lesson(
     if metadata.get("outcome") != lesson.get("outcome"):
         errors.append(f"{label}: lesson outcome differs from curriculum.json.")
 
+    practice = metadata.get("practice", {"mode": "executable"})
+    if not isinstance(practice, dict):
+        errors.append(f"{label}: practice must be an object.")
+        practice = {}
+    practice_mode = practice.get("mode")
+    if practice_mode not in PRACTICE_MODES:
+        errors.append(f"{label}: invalid practice mode {practice_mode}.")
+    elif practice_mode == "executable":
+        for relative in ("code/main.py", "tests/test_main.py"):
+            if not (lesson_root / relative).is_file():
+                errors.append(f"{label}: executable practice misses {relative}.")
+    else:
+        practice_path = safe_lesson_path(practice.get("path"), "outputs")
+        verification_path = safe_lesson_path(practice.get("verification"), "outputs")
+        if practice_path is None:
+            errors.append(
+                f"{label}: guided-artifact practice path must start with outputs/."
+            )
+        elif not (lesson_root / practice_path).is_file():
+            errors.append(f"{label}: practice file does not exist: {practice_path}.")
+        if verification_path is None:
+            errors.append(
+                f"{label}: guided-artifact verification must start with outputs/."
+            )
+        elif not (lesson_root / verification_path).is_file():
+            errors.append(
+                f"{label}: practice verification does not exist: {verification_path}."
+            )
+        if practice_path is not None and verification_path == practice_path:
+            errors.append(f"{label}: practice and verification must be separate files.")
+
     artifact_required = {"name", "type", "path", "description", "usage"}
     missing_artifact = artifact_required - set(artifact)
     if missing_artifact:
@@ -227,16 +266,18 @@ def validate_complete_lesson(
     if artifact.get("type") not in ARTIFACT_TYPES:
         errors.append(f"{label}: invalid artifact type {artifact.get('type')}.")
     artifact_path = artifact.get("path")
-    artifact_parts = Path(artifact_path).parts if isinstance(artifact_path, str) else ()
-    if (
-        not isinstance(artifact_path, str)
-        or not artifact_parts
-        or artifact_parts[0] != "outputs"
-        or ".." in artifact_parts
-    ):
+    safe_artifact_path = safe_lesson_path(artifact_path, "outputs")
+    if safe_artifact_path is None:
         errors.append(f"{label}: artifact path must start with outputs/.")
-    elif not (lesson_root / artifact_path).is_file():
+    elif not (lesson_root / safe_artifact_path).is_file():
         errors.append(f"{label}: artifact file does not exist: {artifact_path}.")
+    if (
+        practice_mode == "guided-artifact"
+        and practice_path is not None
+        and safe_artifact_path is not None
+        and practice_path != safe_artifact_path
+    ):
+        errors.append(f"{label}: guided practice path must match the named artifact path.")
     if metadata.get("artifact") != {
         key: artifact.get(key) for key in ("name", "type", "path")
     }:
@@ -245,8 +286,10 @@ def validate_complete_lesson(
     errors.extend(validate_quiz(quiz, label))
     docs_path = lesson_root / "docs" / "ru.md"
     docs = docs_path.read_text(encoding="utf-8")
-    code = (lesson_root / "code" / "main.py").read_text(encoding="utf-8")
-    tests = (lesson_root / "tests" / "test_main.py").read_text(encoding="utf-8")
+    code_path = lesson_root / "code" / "main.py"
+    tests_path = lesson_root / "tests" / "test_main.py"
+    code = code_path.read_text(encoding="utf-8") if code_path.is_file() else ""
+    tests = tests_path.read_text(encoding="utf-8") if tests_path.is_file() else ""
     missing_headings = sorted(REQUIRED_HEADINGS - set(docs.splitlines()))
     if missing_headings:
         errors.append(f"{label}: docs miss headings: {missing_headings}")

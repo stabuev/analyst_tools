@@ -243,21 +243,30 @@ def render_lesson_files(lesson_root: Path, repository_path: str) -> str:
         ("outputs", "Артефакт и результаты"),
     )
     sections: list[str] = []
+    has_executable_practice = False
     source_url = f"{REPOSITORY_URL}/blob/{BRANCH}/{repository_path}"
     for folder, title in groups:
         files = _lesson_files(lesson_root, folder)
         if not files:
             continue
+        if folder in {"tests", "code"}:
+            has_executable_practice = True
         rendered = "".join(render_file(path, lesson_root, source_url) for path in files)
         sections.append(
             f'<section class="lesson-files-group"><h3>{title}</h3>{rendered}</section>'
         )
+    intro = (
+        "Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте "
+        "решить задачу самостоятельно, затем раскройте нужный файл и сравните подход."
+        if has_executable_practice
+        else "Шаблон, пример и рубрика встроены в страницу. Сначала создайте собственный "
+        "артефакт, затем сравните его с примером и проверьте по критериям."
+    )
     return (
         '<section class="lesson-files" id="lesson-files">'
         '<p class="eyebrow">Практика без перехода на GitHub</p>'
         '<h2>Файлы урока</h2>'
-        '<p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте '
-        "решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p>"
+        f"<p>{intro}</p>"
         f"{''.join(sections)}</section>"
     )
 
