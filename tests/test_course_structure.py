@@ -597,6 +597,21 @@ class CourseStructureTest(TestCase):
         self.assertTrue(any("at least three" in error for error in errors))
         self.assertTrue(any("useful annotation" in error for error in errors))
 
+    def test_development_reading_allows_up_to_ten_links(self) -> None:
+        heading = "## Дополнительное чтение\n\n"
+        links = [
+            f"- [Источник {index}](https://example.com/{index}) — "
+            "прочитайте нужный раздел и сопоставьте его с уроком.\n"
+            for index in range(1, 12)
+        ]
+
+        ten_links = heading + "".join(links[:10])
+        self.assertEqual(validate_development_reading(ten_links, "lesson"), [])
+
+        eleven_links = heading + "".join(links)
+        errors = validate_development_reading(eleven_links, "lesson")
+        self.assertTrue(any("at most ten" in error for error in errors))
+
     def test_phase_pages_are_up_to_date(self) -> None:
         curriculum = load_curriculum()
         for phase in curriculum["phases"]:

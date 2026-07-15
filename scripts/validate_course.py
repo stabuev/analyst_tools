@@ -101,8 +101,8 @@ def validate_development_reading(
     ]
     if len(link_lines) < 3:
         errors.append(f"{label}: development reading requires at least three links.")
-    if len(link_lines) > 5:
-        errors.append(f"{label}: development reading must contain at most five links.")
+    if len(link_lines) > 10:
+        errors.append(f"{label}: development reading must contain at most ten links.")
 
     external_links = 0
     for line in link_lines:

@@ -5,7 +5,7 @@ window.COURSE_DATA = {
     "version": "0.1.0",
     "hours": {
       "min": 238,
-      "max": 326
+      "max": 327
     }
   },
   "repository": {
@@ -24,7 +24,7 @@ window.COURSE_DATA = {
   },
   "routes": [
     {
-      "name": "Базовый аналитик",
+      "name": "Аналитик данных",
       "path": "00-10 -> 17 -> 18",
       "phase_numbers": [
         0,
@@ -43,7 +43,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 160,
-        "max": 224
+        "max": 225
       },
       "phases": [
         {
@@ -134,7 +134,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 172,
-        "max": 240
+        "max": 241
       },
       "phases": [
         {
@@ -229,7 +229,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 158,
-        "max": 222
+        "max": 223
       },
       "phases": [
         {
@@ -318,7 +318,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 148,
-        "max": 208
+        "max": 209
       },
       "phases": [
         {
@@ -404,7 +404,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 174,
-        "max": 242
+        "max": 243
       },
       "phases": [
         {
@@ -505,7 +505,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 238,
-        "max": 326
+        "max": 327
       },
       "phases": [
         {
@@ -618,7 +618,7 @@ window.COURSE_DATA = {
       "prerequisites": [],
       "hours": {
         "min": 4,
-        "max": 6
+        "max": 7
       },
       "artifact": "Репозиторий первой аналитической задачи",
       "completion": "Студент проходит диагностику, создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
@@ -628,11 +628,11 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "slug": "profession-map",
-          "title": "Карта профессии аналитика",
+          "title": "Карта аналитических профессий и маршрутов",
           "status": "complete",
-          "time_minutes": 45,
-          "outcome": "Связывает рабочую задачу с решением, проверяемым артефактом и обоснованным маршрутом курса.",
-          "artifact": "Персональная карта маршрута и рубрика самопроверки",
+          "time_minutes": 60,
+          "outcome": "Различает направления аналитической работы и обосновывает предварительный маршрут по задачам и ожидаемым результатам.",
+          "artifact": "Персональная карта учебного маршрута",
           "type": "case",
           "tracks": [
             "core"
@@ -4851,7 +4851,7 @@ window.COURSE_DATA = {
     "complete_lessons": 201,
     "hours": {
       "min": 238,
-      "max": 326
+      "max": 327
     }
   }
 };
