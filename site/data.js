@@ -684,9 +684,9 @@ window.COURSE_DATA = {
           "slug": "branches-and-review",
           "title": "Ветки, pull request и ревью",
           "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Проводит изменение через ветку и проверяет аналитический код коллеги.",
-          "artifact": "CLI-пакет pull request и чек-лист аналитического ревью",
+          "time_minutes": 90,
+          "outcome": "Проводит аналитическое изменение через отдельную ветку и pull request, формулирует доказательное ревью и завершает проверенный цикл merge.",
+          "artifact": "Описание pull request, доказательное ревью и проверочный CLI-пакет",
           "type": "build",
           "tracks": [
             "core"

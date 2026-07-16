@@ -8,11 +8,25 @@ from pathlib import Path
 from typing import Any
 
 
-REQUIRED_SECTIONS = (
+PR_REQUIRED_SECTIONS = (
+    "Задача",
     "Что изменено",
-    "Проверка",
-    "Решения и ограничения",
+    "Как проверено",
+    "Ограничения",
 )
+REVIEW_REQUIRED_SECTIONS = (
+    "Решение",
+    "Файл и строки",
+    "Наблюдение",
+    "Риск",
+    "Что исправить",
+    "Как проверить",
+)
+ALLOWED_REVIEW_DECISIONS = {
+    "comment": "Comment",
+    "approve": "Approve",
+    "request changes": "Request changes",
+}
 
 
 def run_git(
@@ -43,13 +57,7 @@ def resolve_repository(path: Path) -> Path:
 
 
 def verify_ref(root: Path, ref: str) -> str:
-    result = run_git(
-        root,
-        "rev-parse",
-        "--verify",
-        f"{ref}^{{commit}}",
-        check=False,
-    )
+    result = run_git(root, "rev-parse", "--verify", f"{ref}^{{commit}}", check=False)
     if result.returncode != 0:
         raise ValueError(f"unknown commit or branch: {ref}")
     return result.stdout.strip()
@@ -74,10 +82,14 @@ def parse_sections(markdown: str) -> dict[str, str]:
     return sections
 
 
+def without_comments(value: str) -> str:
+    return re.sub(r"<!--.*?-->", "", value, flags=re.DOTALL).strip()
+
+
 def meaningful_section(value: str) -> bool:
-    without_comments = re.sub(r"<!--.*?-->", "", value, flags=re.DOTALL)
+    cleaned = without_comments(value)
     meaningful_lines = []
-    for line in without_comments.splitlines():
+    for line in cleaned.splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("- ["):
             continue
@@ -85,6 +97,38 @@ def meaningful_section(value: str) -> bool:
             continue
         meaningful_lines.append(stripped)
     return len(" ".join(meaningful_lines)) >= 20
+
+
+def load_markdown(path: Path | None, label: str) -> tuple[str, str]:
+    if path is None:
+        return "", f"{label} path is required."
+    candidate = path.expanduser().resolve()
+    if not candidate.is_file():
+        return "", f"{label} does not exist: {candidate}"
+    return candidate.read_text(encoding="utf-8"), ""
+
+
+def missing_meaningful_sections(
+    sections: dict[str, str],
+    required: tuple[str, ...],
+    *,
+    short_sections: set[str] | None = None,
+) -> list[str]:
+    short_sections = short_sections or set()
+    missing = []
+    for section in required:
+        value = sections.get(section, "")
+        is_filled = bool(without_comments(value)) if section in short_sections else meaningful_section(value)
+        if not is_filled:
+            missing.append(section)
+    return missing
+
+
+def review_decision(sections: dict[str, str]) -> str:
+    value = without_comments(sections.get("Решение", ""))
+    first_line = next((line.strip() for line in value.splitlines() if line.strip()), "")
+    normalized = first_line.strip("`*_ .").casefold()
+    return ALLOWED_REVIEW_DECISIONS.get(normalized, "")
 
 
 def commit_list(root: Path, base: str, head: str) -> list[dict[str, str]]:
@@ -105,67 +149,28 @@ def commit_list(root: Path, base: str, head: str) -> list[dict[str, str]]:
     return commits
 
 
-def review_questions(files: list[str]) -> list[str]:
-    questions = [
-        "Соответствует ли изменение заявленной задаче и не расширяет ли scope?",
-        "Есть ли проверяемое доказательство результата, а не только успешный запуск?",
-        "Можно ли безопасно отменить изменение без скрытых ручных шагов?",
-    ]
-    suffixes = {Path(path).suffix.casefold() for path in files}
-    names = {Path(path).name.casefold() for path in files}
-    if ".py" in suffixes or ".ipynb" in suffixes:
-        questions.extend(
-            [
-                "Покрыты ли граничные случаи и не зависит ли результат от скрытого состояния?",
-                "Не мутируются ли входные данные и воспроизводимы ли случайные процессы?",
-            ]
-        )
-    if ".sql" in suffixes:
-        questions.extend(
-            [
-                "Названы ли grain, ключи и ожидаемая кардинальность каждого join?",
-                "Проверены ли NULL, дубликаты и размножение строк?",
-            ]
-        )
-    if suffixes & {".csv", ".tsv", ".parquet", ".xlsx", ".json"}:
-        questions.append(
-            "Нужны ли эти данные в Git и не содержат ли они чувствительные поля или ответы?"
-        )
-    if {"pyproject.toml", "requirements.txt", "uv.lock"} & names:
-        questions.append(
-            "Обоснованы ли новые зависимости и зафиксирована ли воспроизводимая версия?"
-        )
-    if suffixes <= {".md", ".txt"} and files:
-        questions.append(
-            "Запускаются ли команды и существуют ли ссылки, заявленные в документации?"
-        )
-    return questions
-
-
 def evaluate_pull_request(
     path: Path,
     base: str,
     head: str = "HEAD",
     body_path: Path | None = None,
+    review_path: Path | None = None,
 ) -> dict[str, Any]:
     root = resolve_repository(path)
     base_hash = verify_ref(root, base)
     head_hash = verify_ref(root, head)
     branch = current_branch(root) if head == "HEAD" else head
-    merge_base = run_git(root, "merge-base", base, head, check=False)
-    merge_base_hash = merge_base.stdout.strip() if merge_base.returncode == 0 else ""
-    commits = commit_list(root, base, head) if merge_base_hash else []
+    merge_base_result = run_git(root, "merge-base", base, head, check=False)
+    merge_base = (
+        merge_base_result.stdout.strip() if merge_base_result.returncode == 0 else ""
+    )
+
+    commits = commit_list(root, base, head) if merge_base else []
     files = (
         split_nul(
-            run_git(
-                root,
-                "diff",
-                "--name-only",
-                "-z",
-                f"{base}...{head}",
-            ).stdout
+            run_git(root, "diff", "--name-only", "-z", f"{base}...{head}").stdout
         )
-        if merge_base_hash
+        if merge_base
         else []
     )
     status = split_nul(
@@ -178,61 +183,59 @@ def evaluate_pull_request(
         ).stdout
     )
 
-    body_text = ""
-    sections: dict[str, str] = {}
-    body_error = ""
-    if body_path is None:
-        body_error = "PR description path is required."
-    else:
-        candidate = body_path.expanduser()
-        if not candidate.is_absolute():
-            candidate = root / candidate
-        if not candidate.is_file():
-            body_error = f"PR description does not exist: {candidate}"
-        else:
-            body_text = candidate.read_text(encoding="utf-8")
-            sections = parse_sections(body_text)
+    body_text, body_error = load_markdown(body_path, "PR description")
+    body_sections = parse_sections(body_text)
+    missing_body_sections = missing_meaningful_sections(
+        body_sections,
+        PR_REQUIRED_SECTIONS,
+    )
 
-    missing_sections = [
-        section
-        for section in REQUIRED_SECTIONS
-        if section not in sections or not meaningful_section(sections[section])
-    ]
+    review_text, review_error = load_markdown(review_path, "Review")
+    review_sections = parse_sections(review_text)
+    missing_review_sections = missing_meaningful_sections(
+        review_sections,
+        REVIEW_REQUIRED_SECTIONS,
+        short_sections={"Решение"},
+    )
+    decision = review_decision(review_sections)
+
     diff_stat = (
         run_git(root, "diff", "--shortstat", f"{base}...{head}").stdout.strip()
-        if merge_base_hash
+        if merge_base
         else ""
     )
-    ahead = len(commits)
     behind = (
         int(run_git(root, "rev-list", "--count", f"{head}..{base}").stdout.strip())
-        if merge_base_hash
+        if merge_base
         else 0
     )
 
+    separate_head = base_hash != head_hash and branch not in {None, base}
+    body_ok = not body_error and not missing_body_sections
+    review_ok = not review_error and not missing_review_sections and bool(decision)
     checks = [
         {
             "id": "separate-head",
-            "passed": base_hash != head_hash and branch not in {None, base},
+            "passed": separate_head,
             "message": (
                 f"Head `{branch}` отличается от base `{base}`."
-                if base_hash != head_hash and branch not in {None, base}
+                if separate_head
                 else "Head должен быть отдельной именованной веткой с изменениями."
             ),
         },
         {
             "id": "merge-base",
-            "passed": bool(merge_base_hash),
+            "passed": bool(merge_base),
             "message": (
-                f"Merge base: {merge_base_hash[:12]}."
-                if merge_base_hash
+                f"Merge base: {merge_base[:12]}."
+                if merge_base
                 else "У base и head не найден общий предок."
             ),
         },
         {
             "id": "commits",
-            "passed": ahead > 0,
-            "message": f"Commits в предложении: {ahead}.",
+            "passed": bool(commits),
+            "message": f"Коммитов в предложении: {len(commits)}.",
         },
         {
             "id": "changed-files",
@@ -249,22 +252,35 @@ def evaluate_pull_request(
             ),
         },
         {
-            "id": "description",
-            "passed": not body_error and not missing_sections,
+            "id": "pr-description",
+            "passed": body_ok,
             "message": (
-                "Описание PR содержит цель, проверку и ограничения."
-                if not body_error and not missing_sections
+                "Описание PR связывает задачу, изменение, проверку и ограничения."
+                if body_ok
                 else body_error
-                or "Нужно заполнить разделы: " + ", ".join(missing_sections)
+                or "Нужно заполнить разделы: " + ", ".join(missing_body_sections)
+            ),
+        },
+        {
+            "id": "review",
+            "passed": review_ok,
+            "message": (
+                f"Ревью заполнено; решение: {decision}."
+                if review_ok
+                else review_error
+                or "Нужно заполнить разделы: " + ", ".join(missing_review_sections)
+                if missing_review_sections
+                else "Решение должно быть Comment, Approve или Request changes."
             ),
         },
     ]
+
     return {
         "repository": str(root),
         "base": base,
         "head": branch or head,
-        "merge_base": merge_base_hash,
-        "ahead": ahead,
+        "merge_base": merge_base,
+        "ahead": len(commits),
         "behind": behind,
         "diff_stat": diff_stat,
         "ready": all(check["passed"] for check in checks),
@@ -272,7 +288,9 @@ def evaluate_pull_request(
         "commits": commits,
         "files": files,
         "working_tree": status,
-        "review_questions": review_questions(files),
+        "pr_sections": list(body_sections),
+        "review_sections": list(review_sections),
+        "review_decision": decision,
     }
 
 
@@ -289,6 +307,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Commits ahead: {report['ahead']}",
         f"- Base-only commits: {report['behind']}",
         f"- Diff: {report['diff_stat'] or 'empty'}",
+        f"- Review decision: **{report['review_decision'] or 'not set'}**",
         f"- Result: **{'ready for review' if report['ready'] else 'needs work'}**",
         "",
         "## Checks",
@@ -299,16 +318,13 @@ def render_markdown(report: dict[str, Any]) -> str:
     for check in report["checks"]:
         result = "PASS" if check["passed"] else "FAIL"
         lines.append(
-            f"| `{check['id']}` | {result} | "
-            f"{markdown_escape(check['message'])} |"
+            f"| `{check['id']}` | {result} | {markdown_escape(check['message'])} |"
         )
 
     lines.extend(["", "## Commits", ""])
     if report["commits"]:
         for commit in report["commits"]:
-            lines.append(
-                f"- `{commit['hash']}` {markdown_escape(commit['subject'])}"
-            )
+            lines.append(f"- `{commit['hash']}` {markdown_escape(commit['subject'])}")
     else:
         lines.append("- _No proposed commits_")
 
@@ -317,20 +333,18 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.extend(f"- `{markdown_escape(path)}`" for path in report["files"])
     else:
         lines.append("- _No changed files_")
-
-    lines.extend(["", "## Review checklist", ""])
-    lines.extend(f"- [ ] {question}" for question in report["review_questions"])
     return "\n".join(lines) + "\n"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build a local pull request packet from a base and head branch"
+        description="Validate a branch, PR description, and analytical review"
     )
     parser.add_argument("repository", nargs="?", default=".")
     parser.add_argument("--base", default="main")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--body", type=Path, required=True)
+    parser.add_argument("--review", type=Path, required=True)
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -341,6 +355,7 @@ def main() -> None:
             base=args.base,
             head=args.head,
             body_path=args.body,
+            review_path=args.review,
         )
     except (RuntimeError, ValueError) as error:
         parser.exit(2, f"pr-review-packet: {error}\n")
