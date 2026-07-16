@@ -5,7 +5,7 @@ window.COURSE_DATA = {
     "version": "0.1.0",
     "hours": {
       "min": 238,
-      "max": 327
+      "max": 326
     }
   },
   "repository": {
@@ -43,7 +43,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 160,
-        "max": 225
+        "max": 224
       },
       "phases": [
         {
@@ -134,7 +134,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 172,
-        "max": 241
+        "max": 240
       },
       "phases": [
         {
@@ -229,7 +229,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 158,
-        "max": 223
+        "max": 222
       },
       "phases": [
         {
@@ -318,7 +318,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 148,
-        "max": 209
+        "max": 208
       },
       "phases": [
         {
@@ -404,7 +404,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 174,
-        "max": 243
+        "max": 242
       },
       "phases": [
         {
@@ -505,7 +505,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 238,
-        "max": 327
+        "max": 326
       },
       "phases": [
         {
@@ -611,17 +611,17 @@ window.COURSE_DATA = {
       "number": 0,
       "slug": "entry-and-tools",
       "title": "Вход и инструменты",
-      "summary": "Определите стартовый уровень и соберите безопасный рабочий процесс.",
+      "summary": "Выберите профессиональный маршрут и соберите безопасный рабочий процесс.",
       "tracks": [
         "core"
       ],
       "prerequisites": [],
       "hours": {
         "min": 4,
-        "max": 7
+        "max": 6
       },
       "artifact": "Репозиторий первой аналитической задачи",
-      "completion": "Студент проходит диагностику, создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
+      "completion": "Студент выбирает предварительный профессиональный маршрут, создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
       "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools",
       "lessons": [
@@ -645,42 +645,24 @@ window.COURSE_DATA = {
         },
         {
           "number": 2,
-          "slug": "python-and-sql-diagnostic",
-          "title": "Диагностика Python и SQL",
-          "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Решает короткие задачи без подсказок и фиксирует конкретные пробелы перед стартом.",
-          "artifact": "Отчет диагностики и список подготовительных тем",
-          "type": "case",
-          "tracks": [
-            "core"
-          ],
-          "path": "phases/00-entry-and-tools/02-python-and-sql-diagnostic",
-          "available": true,
-          "site_url": "lessons/entry-and-tools/python-and-sql-diagnostic/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/02-python-and-sql-diagnostic",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/02-python-and-sql-diagnostic/docs/ru.md"
-        },
-        {
-          "number": 3,
           "slug": "terminal-and-filesystem",
           "title": "Терминал и файловая система",
           "status": "complete",
           "time_minutes": 60,
-          "outcome": "Навигирует по проекту, управляет файлами и связывает команды через pipes.",
-          "artifact": "Воспроизводимый shell-сценарий аудита файлов",
+          "outcome": "Ориентируется в проекте, безопасно работает с файлами и сохраняет простой pipeline в Bash-скрипт.",
+          "artifact": "Bash-скрипт краткой сводки каталога",
           "type": "build",
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/03-terminal-and-filesystem",
+          "path": "phases/00-entry-and-tools/02-terminal-and-filesystem",
           "available": true,
           "site_url": "lessons/entry-and-tools/terminal-and-filesystem/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-terminal-and-filesystem",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-terminal-and-filesystem/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/02-terminal-and-filesystem",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/02-terminal-and-filesystem/docs/ru.md"
         },
         {
-          "number": 4,
+          "number": 3,
           "slug": "git-foundations",
           "title": "Git: история аналитического проекта",
           "status": "complete",
@@ -691,14 +673,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/04-git-foundations",
+          "path": "phases/00-entry-and-tools/03-git-foundations",
           "available": true,
           "site_url": "lessons/entry-and-tools/git-foundations/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-git-foundations",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-git-foundations/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-git-foundations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-git-foundations/docs/ru.md"
         },
         {
-          "number": 5,
+          "number": 4,
           "slug": "branches-and-review",
           "title": "Ветки, pull request и ревью",
           "status": "complete",
@@ -709,14 +691,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/05-branches-and-review",
+          "path": "phases/00-entry-and-tools/04-branches-and-review",
           "available": true,
           "site_url": "lessons/entry-and-tools/branches-and-review/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/05-branches-and-review",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/05-branches-and-review/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-branches-and-review",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-branches-and-review/docs/ru.md"
         },
         {
-          "number": 6,
+          "number": 5,
           "slug": "secrets-and-sensitive-data",
           "title": "Секреты и безопасная работа с данными",
           "status": "complete",
@@ -727,11 +709,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/06-secrets-and-sensitive-data",
+          "path": "phases/00-entry-and-tools/05-secrets-and-sensitive-data",
           "available": true,
           "site_url": "lessons/entry-and-tools/secrets-and-sensitive-data/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/06-secrets-and-sensitive-data/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/05-secrets-and-sensitive-data",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/05-secrets-and-sensitive-data/docs/ru.md"
         }
       ]
     },
@@ -4847,11 +4829,11 @@ window.COURSE_DATA = {
   ],
   "stats": {
     "phases": 19,
-    "lessons": 201,
-    "complete_lessons": 201,
+    "lessons": 200,
+    "complete_lessons": 200,
     "hours": {
       "min": 238,
-      "max": 327
+      "max": 326
     }
   }
 };

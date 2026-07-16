@@ -8,8 +8,8 @@
 - [`course-design.md`](course-design.md) — педагогические принципы и критерии готовности.
 - [`getting-started.md`](getting-started.md) — установка, поддерживаемые окружения и первый
   запуск курса.
-- [`pre-course-preparation.md`](pre-course-preparation.md) — точечное повторение Python,
-  SQL и статистики после входной диагностики.
+- [`pre-course-preparation.md`](pre-course-preparation.md) — необязательный справочник по
+  базовым темам Python, SQL и статистики.
 - [`capstone-independent-review.md`](capstone-independent-review.md) — peer/agent workflow
   для обязательного независимого ревью capstone.
 - [`data-universe.md`](data-universe.md) — общая предметная область и учебные данные.

@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1f2937?style=flat-square" alt="Лицензия MIT"></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/phases-19-2563eb?style=flat-square" alt="19 фаз"></a>
-  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-201-2563eb?style=flat-square" alt="201 урок"></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-200-2563eb?style=flat-square" alt="200 уроков"></a>
   <a href="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml"><img src="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml/badge.svg" alt="Проверка и публикация сайта"></a>
 </p>
 
@@ -63,20 +63,15 @@ uv sync --locked --dev
 uv run --locked python scripts/validate_course.py
 ```
 
-**Вариант D — определить уровень.** В агенте, который поддерживает project skills:
-
-```text
-/find-your-level
-```
-
-После фазы:
+**Вариант D — проверить понимание пройденной фазы.** В агенте, который поддерживает
+project skills:
 
 ```text
 /check-understanding 3
 ```
 
-Диагностика рекомендует стартовую фазу и маршрут, но не заменяет проверку практических
-работ.
+Эта проверка помогает заметить пробелы уже после изучения материала, но не заменяет
+практическую работу.
 
 ### Предварительные требования
 
@@ -85,9 +80,9 @@ uv run --locked python scripts/validate_course.py
 - Понимание среднего, дисперсии и идеи статистической гипотезы.
 - Готовность запускать код и разбирать ошибки, а не только читать материалы.
 
-Если база неуверенная, начните с диагностики фазы 00: она укажет конкретные пробелы и не
-требует заранее выбирать специализацию. Курс не обучает Python и SQL с нуля; точечные
-бесплатные материалы и критерии возврата собраны в
+Все студенты начинают с фазы 00 и проходят общее ядро последовательно. Курс не обучает
+Python и SQL с нуля; если отдельные темы пока незнакомы, используйте как справочник
+бесплатные материалы из
 [`docs/pre-course-preparation.md`](docs/pre-course-preparation.md).
 
 ### Как проходить один урок
@@ -156,7 +151,7 @@ production-библиотеку и сравнивает поведение. Дл
 ├── glossary/             # общие термины и заблуждения
 ├── outputs/              # каталог переиспользуемых артефактов
 ├── schemas/              # контракты lesson, quiz и artifact
-├── .agents/skills/       # диагностика уровня и проверка понимания
+├── .agents/skills/       # проверка понимания пройденной фазы
 ├── scripts/              # генерация, scaffolding и валидация
 ├── tests/                # проверки структуры курса
 ├── LESSON_TEMPLATE.md    # обязательный формат урока
@@ -198,7 +193,7 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Завершены все
-фазы `00-18`: 201 из 201 уроков. Готовы общее ядро, продуктовая
+фазы `00-18`: 200 из 200 уроков. Готовы общее ядро, продуктовая
 аналитика и эксперименты, analytics engineering, performance, causal analysis, time
 series, прикладной и табличный ML, а также доставка результата через memo, workbook,
 reproducible report, приложение, CLI/schedule и handoff package.
