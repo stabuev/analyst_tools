@@ -7,13 +7,13 @@ from tempfile import TemporaryDirectory
 
 
 LESSON_ROOT = Path(__file__).resolve().parents[1]
-CHECKER_PATH = LESSON_ROOT / "outputs" / "git_history_check.py"
+CHECKER_PATH = LESSON_ROOT / "outputs" / "git_project_check.py"
 
 
 def load_checker():
-    spec = importlib.util.spec_from_file_location("git_history_check_demo", CHECKER_PATH)
+    spec = importlib.util.spec_from_file_location("git_project_check_demo", CHECKER_PATH)
     if spec is None or spec.loader is None:
-        raise RuntimeError("Cannot load git history checker")
+        raise RuntimeError("Cannot load Git project checker")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -44,30 +44,40 @@ def build_demo_repository(root: Path) -> None:
     commit_files(
         root,
         {
-            "README.md": "# Revenue check\n",
-            ".gitignore": ".venv/\n__pycache__/\n*.py[cod]\n.env\ndata/raw/\n",
+            "README.md": "# Revenue project\n",
+            ".gitignore": (
+                ".venv/\n"
+                "__pycache__/\n"
+                "*.py[cod]\n"
+                ".ipynb_checkpoints/\n"
+                ".env\n"
+                "data/raw/\n"
+                "outputs/local/\n"
+            ),
         },
         "Initialize revenue project",
     )
     commit_files(
         root,
         {
-            "src/revenue.py": (
-                "def paid_revenue(amounts: list[float]) -> float:\n"
-                "    return round(sum(amounts), 2)\n"
-            )
+            "queries/revenue_by_day.sql": (
+                "SELECT\n"
+                "    order_date,\n"
+                "    SUM(amount) AS revenue\n"
+                "FROM orders\n"
+                "WHERE status = 'paid'\n"
+                "GROUP BY order_date;\n"
+            ),
+            "docs/metric-definition.md": (
+                "# Дневная выручка\n\n"
+                "Сумма оплаченных заказов за календарный день.\n"
+            ),
         },
         "Add paid revenue calculation",
     )
-    commit_files(
-        root,
-        {
-            "docs/assumptions.md": (
-                "# Assumptions\n\nAmounts are already filtered to paid orders.\n"
-            )
-        },
-        "Document revenue assumptions",
-    )
+    raw_extract = root / "data" / "raw" / "orders.csv"
+    raw_extract.parent.mkdir(parents=True)
+    raw_extract.write_text("order_id,amount\n101,120\n", encoding="utf-8")
 
 
 def main() -> None:

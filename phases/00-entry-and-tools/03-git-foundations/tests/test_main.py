@@ -8,13 +8,13 @@ from unittest import TestCase
 
 
 LESSON_ROOT = Path(__file__).resolve().parents[1]
-CHECKER_PATH = LESSON_ROOT / "outputs" / "git_history_check.py"
+CHECKER_PATH = LESSON_ROOT / "outputs" / "git_project_check.py"
 
 
 def load_checker():
-    spec = importlib.util.spec_from_file_location("git_history_check_test", CHECKER_PATH)
+    spec = importlib.util.spec_from_file_location("git_project_check_test", CHECKER_PATH)
     if spec is None or spec.loader is None:
-        raise RuntimeError("Cannot load git history checker")
+        raise RuntimeError("Cannot load Git project checker")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -44,44 +44,72 @@ def commit_files(root: Path, files: dict[str, str], message: str) -> None:
     git(root, "commit", "-q", "-m", message)
 
 
+def full_gitignore() -> str:
+    return (
+        ".venv/\n"
+        "__pycache__/\n"
+        "*.py[cod]\n"
+        ".ipynb_checkpoints/\n"
+        ".env\n"
+        "data/raw/\n"
+        "outputs/local/\n"
+    )
+
+
 def build_valid_repository(root: Path) -> None:
     initialize_repository(root)
     commit_files(
         root,
         {
-            "README.md": "# Project\n",
-            ".gitignore": ".venv/\n__pycache__/\n.env\ndata/raw/\n",
+            "README.md": "# Revenue project\n",
+            ".gitignore": full_gitignore(),
         },
-        "Initialize analytics project",
+        "Initialize revenue project",
     )
     commit_files(
         root,
-        {"src/metric.py": "def metric() -> int:\n    return 1\n"},
-        "Add metric calculation",
-    )
-    commit_files(
-        root,
-        {"docs/assumptions.md": "# Assumptions\n"},
-        "Document metric assumptions",
+        {
+            "queries/revenue.sql": "SELECT SUM(amount) FROM orders;\n",
+            "docs/metric.md": "# Revenue\n",
+        },
+        "Add revenue calculation",
     )
 
 
-class GitHistoryCheckTest(TestCase):
+class GitProjectCheckTest(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.checker = load_checker()
 
-    def test_focused_clean_repository_passes(self) -> None:
+    def test_clean_repository_with_basic_safety_passes(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
             build_valid_repository(root)
+            raw_extract = root / "data" / "raw" / "orders.csv"
+            raw_extract.parent.mkdir(parents=True)
+            raw_extract.write_text("order_id\n101\n", encoding="utf-8")
             report = self.checker.evaluate_repository(root)
 
         self.assertTrue(report["ready"])
-        self.assertEqual(len(report["history"]), 3)
+        self.assertEqual(len(report["history"]), 2)
         self.assertTrue(all(check["passed"] for check in report["checks"]))
 
-    def test_dirty_working_tree_fails(self) -> None:
+    def test_repository_with_one_commit_fails_history_check(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            initialize_repository(root)
+            commit_files(
+                root,
+                {"README.md": "# Project\n", ".gitignore": full_gitignore()},
+                "Initialize project",
+            )
+            report = self.checker.evaluate_repository(root)
+
+        check = next(item for item in report["checks"] if item["id"] == "history")
+        self.assertFalse(check["passed"])
+        self.assertFalse(report["ready"])
+
+    def test_uncommitted_change_fails_clean_tree_check(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
             build_valid_repository(root)
@@ -92,66 +120,46 @@ class GitHistoryCheckTest(TestCase):
         self.assertFalse(check["passed"])
         self.assertFalse(report["ready"])
 
-    def test_tracked_file_stays_visible_after_it_is_ignored(self) -> None:
+    def test_missing_local_output_rule_is_reported(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            initialize_repository(root)
+            incomplete_gitignore = ".env\ndata/raw/\n"
+            commit_files(
+                root,
+                {"README.md": "# Project\n", ".gitignore": incomplete_gitignore},
+                "Initialize project",
+            )
+            commit_files(root, {"query.sql": "SELECT 1;\n"}, "Add query")
+            report = self.checker.evaluate_repository(root)
+
+        check = next(item for item in report["checks"] if item["id"] == "ignore-rules")
+        self.assertFalse(check["passed"])
+        self.assertIn("outputs/local/report.html", check["message"])
+
+    def test_tracked_env_is_reported_even_when_rule_exists(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
             initialize_repository(root)
             commit_files(
                 root,
-                {
-                    "README.md": "# Project\n",
-                    ".gitignore": ".venv/\n",
-                },
-                "Initialize analytics project",
+                {"README.md": "# Project\n", ".env": "TOKEN=example\n"},
+                "Initialize unsafe project",
             )
             commit_files(
                 root,
-                {"data/raw/orders.csv": "order_id\n101\n"},
-                "Add raw order sample",
-            )
-            commit_files(
-                root,
-                {".gitignore": ".venv/\ndata/raw/\n"},
-                "Ignore raw data directory",
+                {".gitignore": full_gitignore()},
+                "Add ignore rules",
             )
             report = self.checker.evaluate_repository(root)
 
         check = next(
-            item for item in report["checks"] if item["id"] == "tracked-ignored"
+            item for item in report["checks"] if item["id"] == "protected-paths"
         )
         self.assertFalse(check["passed"])
-        self.assertIn("data/raw/orders.csv", check["message"])
+        self.assertIn(".env", check["message"])
 
-    def test_generic_subject_and_wide_commit_fail_policy(self) -> None:
-        with TemporaryDirectory() as directory:
-            root = Path(directory)
-            initialize_repository(root)
-            commit_files(
-                root,
-                {
-                    "README.md": "# Project\n",
-                    ".gitignore": ".venv/\n",
-                },
-                "Initialize analytics project",
-            )
-            commit_files(
-                root,
-                {"src/metric.py": "VALUE = 1\n"},
-                "Add metric baseline",
-            )
-            files = {f"notes/note-{index}.md": "note\n" for index in range(5)}
-            commit_files(root, files, "update")
-            report = self.checker.evaluate_repository(
-                root,
-                max_files_per_commit=4,
-            )
-
-        subjects = next(item for item in report["checks"] if item["id"] == "subjects")
-        focus = next(item for item in report["checks"] if item["id"] == "focus")
-        self.assertFalse(subjects["passed"])
-        self.assertFalse(focus["passed"])
-
-    def test_markdown_report_contains_checks_and_history(self) -> None:
+    def test_markdown_report_shows_checks_and_history(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
             build_valid_repository(root)
@@ -160,5 +168,5 @@ class GitHistoryCheckTest(TestCase):
             )
 
         self.assertIn("**ready**", markdown)
-        self.assertIn("`tracked-ignored`", markdown)
-        self.assertIn("Document metric assumptions", markdown)
+        self.assertIn("`ignore-rules`", markdown)
+        self.assertIn("Add revenue calculation", markdown)
