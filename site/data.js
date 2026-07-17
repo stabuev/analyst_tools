@@ -742,10 +742,10 @@ window.COURSE_DATA = {
           "slug": "python-versions",
           "title": "Версии Python и совместимость",
           "status": "complete",
-          "time_minutes": 45,
-          "outcome": "Объясняет связь интерпретатора, окружения и совместимости зависимостей.",
-          "artifact": "CLI-контракт requires-python и выбранной версии",
-          "type": "build",
+          "time_minutes": 60,
+          "outcome": "Определяет версию и путь фактически запущенного Python, различает требование проекта и локальный выбор интерпретатора и документирует обоснованный контракт версии.",
+          "artifact": "Карточка выбора и проверки версии Python",
+          "type": "learn",
           "tracks": [
             "core"
           ],
