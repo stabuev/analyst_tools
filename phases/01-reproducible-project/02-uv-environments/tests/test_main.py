@@ -1,187 +1,101 @@
 from __future__ import annotations
 
 import importlib.util
-import shutil
+import json
 import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import SkipTest, TestCase
-
+from unittest import TestCase
 
 LESSON_ROOT = Path(__file__).resolve().parents[1]
-TOOL_PATH = LESSON_ROOT / "outputs" / "uv_project_check.py"
+ARTIFACT_PATH = LESSON_ROOT / "outputs" / "revenue_summary.py"
 
 
-def load_tool():
-    spec = importlib.util.spec_from_file_location("uv_project_test", TOOL_PATH)
+def load_artifact():
+    spec = importlib.util.spec_from_file_location("revenue_summary_test", ARTIFACT_PATH)
     if spec is None or spec.loader is None:
-        raise RuntimeError("Cannot load uv project checker")
+        raise RuntimeError("Cannot load the lesson artifact")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def run_uv(cache: Path, *arguments: str, check: bool = True):
-    return subprocess.run(
-        [
-            "uv",
-            *arguments,
-            "--offline",
-            "--no-python-downloads",
-            "--cache-dir",
-            str(cache),
-        ],
-        check=check,
-        capture_output=True,
-        text=True,
-    )
-
-
-def build_valid_project(root: Path) -> tuple[Path, Path]:
-    cache = root / "cache"
-    dependency = root / "metric-core"
-    project = root / "analytics-app"
-    run_uv(
-        cache,
-        "init",
-        "--lib",
-        str(dependency),
-        "--name",
-        "metric-core",
-        "--python",
-        sys.executable,
-        "--vcs",
-        "none",
-        "--no-workspace",
-    )
-    run_uv(
-        cache,
-        "init",
-        "--bare",
-        str(project),
-        "--name",
-        "analytics-app",
-        "--python",
-        sys.executable,
-        "--vcs",
-        "none",
-        "--no-workspace",
-    )
-    project.joinpath(".gitignore").write_text(".venv/\n", encoding="utf-8")
-    project.joinpath(".python-version").write_text(
-        f"{sys.version_info.major}.{sys.version_info.minor}\n",
-        encoding="utf-8",
-    )
-    run_uv(
-        cache,
-        "add",
-        "--editable",
-        str(dependency),
-        "--project",
-        str(project),
-    )
-    return project, cache
-
-
-class UvProjectCheckTest(TestCase):
+class RevenueSummaryTest(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        if shutil.which("uv") is None:
-            raise SkipTest("uv is required")
-        cls.tool = load_tool()
+        cls.artifact = load_artifact()
 
-    def evaluate(self, project: Path, cache: Path, modules=None):
-        return self.tool.evaluate_project(
-            project,
-            modules=modules or [],
-            offline=True,
-            cache_dir=cache,
+    def write_sample(self, directory: str, content: str) -> Path:
+        path = Path(directory) / "orders.csv"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_course_sample_has_expected_paid_revenue(self) -> None:
+        with TemporaryDirectory() as directory:
+            sample = self.write_sample(
+                directory,
+                "order_id,order_date,status,amount\n"
+                "TEST-001,2026-01-10,paid,120\n"
+                "TEST-002,2026-01-10,pending,80\n"
+                "TEST-003,2026-01-11,paid,75\n",
+            )
+            result = self.artifact.summarize_paid_orders(sample)
+
+        self.assertEqual(
+            result,
+            {
+                "paid_order_count": 2,
+                "revenue": 195.0,
+                "average_paid_order": 97.5,
+            },
         )
 
-    def test_locked_synced_project_with_import_passes(self) -> None:
+    def test_missing_column_is_reported(self) -> None:
         with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            report = self.evaluate(project, cache, ["metric_core"])
+            sample = self.write_sample(directory, "order_id,status\n1,paid\n")
 
-        self.assertTrue(report["ready"])
-        self.assertEqual(report["lock_packages"], 2)
-        self.assertTrue(all(check["passed"] for check in report["checks"]))
+            with self.assertRaisesRegex(ValueError, "amount"):
+                self.artifact.summarize_paid_orders(sample)
 
-    def test_stale_lockfile_fails_without_being_updated(self) -> None:
+    def test_invalid_paid_amount_names_source_row(self) -> None:
         with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            pyproject = project / "pyproject.toml"
-            content = pyproject.read_text(encoding="utf-8")
-            pyproject.write_text(
-                content.replace(
-                    "dependencies = [\n",
-                    'dependencies = [\n    "missing-course-package>=1",\n',
-                ),
-                encoding="utf-8",
+            sample = self.write_sample(
+                directory,
+                "order_id,status,amount\n1,paid,not-a-number\n",
             )
-            before = project.joinpath("uv.lock").read_text(encoding="utf-8")
-            report = self.evaluate(project, cache)
-            after = project.joinpath("uv.lock").read_text(encoding="utf-8")
 
-        check = next(item for item in report["checks"] if item["id"] == "lock-current")
-        self.assertFalse(check["passed"])
-        self.assertEqual(before, after)
+            with self.assertRaisesRegex(ValueError, "row 2"):
+                self.artifact.summarize_paid_orders(sample)
 
-    def test_missing_environment_fails_but_lock_stays_current(self) -> None:
+    def test_file_without_paid_orders_is_rejected(self) -> None:
         with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            shutil.rmtree(project / ".venv")
-            report = self.evaluate(project, cache)
+            sample = self.write_sample(
+                directory,
+                "order_id,status,amount\n1,pending,80\n",
+            )
 
-        lock = next(item for item in report["checks"] if item["id"] == "lock-current")
-        environment = next(
-            item for item in report["checks"] if item["id"] == "environment"
+            with self.assertRaisesRegex(ValueError, "no paid orders"):
+                self.artifact.summarize_paid_orders(sample)
+
+    def test_cli_prints_json(self) -> None:
+        with TemporaryDirectory() as directory:
+            sample = self.write_sample(
+                directory,
+                "order_id,status,amount\n1,paid,10.5\n2,paid,20\n",
+            )
+            result = subprocess.run(
+                [sys.executable, str(ARTIFACT_PATH), str(sample)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "paid_order_count": 2,
+                "revenue": 30.5,
+                "average_paid_order": 15.25,
+            },
         )
-        self.assertTrue(lock["passed"])
-        self.assertFalse(environment["passed"])
-
-    def test_locked_sync_recreates_deleted_environment(self) -> None:
-        with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            shutil.rmtree(project / ".venv")
-            run_uv(
-                cache,
-                "sync",
-                "--locked",
-                "--project",
-                str(project),
-            )
-            report = self.evaluate(project, cache, ["metric_core"])
-            environment_exists = project.joinpath(".venv").is_dir()
-
-        self.assertTrue(report["ready"])
-        self.assertTrue(environment_exists)
-
-    def test_unignored_environment_fails(self) -> None:
-        with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            project.joinpath(".gitignore").write_text("data/raw/\n", encoding="utf-8")
-            report = self.evaluate(project, cache)
-
-        check = next(item for item in report["checks"] if item["id"] == "gitignore")
-        self.assertFalse(check["passed"])
-
-    def test_missing_smoke_import_fails(self) -> None:
-        with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            report = self.evaluate(project, cache, ["package_that_is_not_installed"])
-
-        check = next(item for item in report["checks"] if item["id"] == "imports")
-        self.assertFalse(check["passed"])
-        self.assertFalse(report["ready"])
-
-    def test_missing_lockfile_is_reported(self) -> None:
-        with TemporaryDirectory() as directory:
-            project, cache = build_valid_project(Path(directory))
-            project.joinpath("uv.lock").unlink()
-            report = self.evaluate(project, cache)
-
-        check = next(item for item in report["checks"] if item["id"] == "lockfile")
-        self.assertFalse(check["passed"])
-        self.assertIn("missing", check["message"])
