@@ -48,16 +48,9 @@ uv run --locked python scripts/validate_course.py
 Course structure is valid.
 ```
 
-Откройте первый урок и заполните персональную карту маршрута по шаблону:
-
-```bash
-mkdir -p work/00-01-profession-map
-cp phases/00-entry-and-tools/01-profession-map/outputs/route-plan-template.md \
-  work/00-01-profession-map/route-plan.md
-```
-
-Первый исполняемый пример находится в уроке 00/02 о терминале и файловой системе: первый
-урок развивает профессиональное суждение по рубрике и намеренно не требует кода.
+Перед началом можно прочитать [описание профессий и маршрутов](professions-and-routes.md).
+Это навигация, а не обязательный урок или вступительная проверка. Первый урок курса —
+`00/01` о терминале и файловой системе.
 
 ## Где выполнять упражнения
 
@@ -65,8 +58,8 @@ cp phases/00-entry-and-tools/01-profession-map/outputs/route-plan-template.md \
 папку, которая уже исключена из Git:
 
 ```bash
-mkdir -p work/00-02-terminal
-touch work/00-02-terminal/commands.sh
+mkdir -p work/00-01-terminal
+touch work/00-01-terminal/commands.sh
 ```
 
 Перенесите в `commands.sh` только необходимые команды из задания и начните с собственного

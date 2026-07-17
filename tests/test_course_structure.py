@@ -103,7 +103,12 @@ class CourseStructureTest(TestCase):
         catalog = (ROOT / "site" / "catalog.html").read_text(encoding="utf-8")
         routes = (ROOT / "site" / "routes.html").read_text(encoding="utf-8")
         glossary = (ROOT / "site" / "glossary.html").read_text(encoding="utf-8")
-        self.assertEqual(catalog.count('<tr><td><span class="phase-chip">'), 200)
+        expected_lessons = sum(
+            len(phase["lessons"]) for phase in load_curriculum()["phases"]
+        )
+        self.assertEqual(
+            catalog.count('<tr><td><span class="phase-chip">'), expected_lessons
+        )
         self.assertEqual(routes.count('<article class="route-detail">'), len(data["routes"]))
         self.assertEqual(
             glossary.count('<article class="term-card">'),
@@ -162,7 +167,10 @@ class CourseStructureTest(TestCase):
             for phase in data["phases"]
             for lesson in phase["lessons"]
         ]
-        self.assertEqual(len(lesson_urls), 200)
+        expected_lessons = sum(
+            len(phase["lessons"]) for phase in load_curriculum()["phases"]
+        )
+        self.assertEqual(len(lesson_urls), expected_lessons)
         self.assertEqual(sitemap.count("<url>"), 4 + len(lesson_urls))
         for lesson_url in lesson_urls:
             self.assertIn(f"<loc>{SITE_URL}{lesson_url}</loc>", sitemap)
@@ -187,7 +195,10 @@ class CourseStructureTest(TestCase):
                 self.assertIn('src="../../../lesson.js"', html)
                 self.assertIn('type="application/ld+json"', html)
                 canonicals.add(canonical)
-        self.assertEqual(len(canonicals), 200)
+        expected_lessons = sum(
+            len(phase["lessons"]) for phase in load_curriculum()["phases"]
+        )
+        self.assertEqual(len(canonicals), expected_lessons)
 
     def test_tracked_lesson_outputs_do_not_embed_home_paths(self) -> None:
         tracked = subprocess.run(
@@ -621,26 +632,24 @@ class CourseStructureTest(TestCase):
 
     def test_only_completed_lessons_create_links(self) -> None:
         roadmap = render_roadmap(load_curriculum())
-        self.assertIn("phases/00-entry-and-tools/02-terminal-and-filesystem", roadmap)
-        self.assertIn("phases/00-entry-and-tools/03-git-foundations", roadmap)
-        self.assertIn("phases/00-entry-and-tools/04-branches-and-review", roadmap)
-        self.assertIn("phases/00-entry-and-tools/05-secrets-and-sensitive-data", roadmap)
-        self.assertIn("phases/01-reproducible-project/01-python-versions", roadmap)
-        self.assertIn("phases/01-reproducible-project/02-uv-environments", roadmap)
-        self.assertIn("phases/01-reproducible-project/03-pyproject", roadmap)
-        self.assertIn("phases/01-reproducible-project/04-jupyter-kernels", roadmap)
+        self.assertIn("phases/00-entry-and-tools/01-terminal-and-filesystem", roadmap)
+        self.assertIn("phases/00-entry-and-tools/02-git-foundations", roadmap)
+        self.assertIn("phases/00-entry-and-tools/03-branches-and-review", roadmap)
+        self.assertIn("phases/00-entry-and-tools/04-secrets-and-sensitive-data", roadmap)
+        self.assertIn("phases/01-reproducible-project/01-uv-environments", roadmap)
+        self.assertIn("phases/01-reproducible-project/02-jupyter-kernels", roadmap)
         self.assertIn(
-            "phases/01-reproducible-project/05-notebook-reproducibility",
+            "phases/01-reproducible-project/03-notebook-reproducibility",
             roadmap,
         )
         self.assertIn(
-            "phases/01-reproducible-project/06-modules-and-scripts",
+            "phases/01-reproducible-project/04-modules-and-scripts",
             roadmap,
         )
-        self.assertIn("phases/01-reproducible-project/07-ruff", roadmap)
-        self.assertIn("phases/01-reproducible-project/08-pytest", roadmap)
+        self.assertIn("phases/01-reproducible-project/05-ruff", roadmap)
+        self.assertIn("phases/01-reproducible-project/06-pytest", roadmap)
         self.assertIn(
-            "phases/01-reproducible-project/09-continuous-integration",
+            "phases/01-reproducible-project/07-continuous-integration",
             roadmap,
         )
         self.assertIn("phases/02-numpy/01-arrays", roadmap)

@@ -10,6 +10,9 @@
   запуск курса.
 - [`pre-course-preparation.md`](pre-course-preparation.md) — необязательный справочник по
   базовым темам Python, SQL и статистики.
+- [`professions-and-routes.md`](professions-and-routes.md) — человеческое описание
+  аналитических профессий, различий между направлениями и выбора маршрута без входного
+  теста.
 - [`capstone-independent-review.md`](capstone-independent-review.md) — peer/agent workflow
   для обязательного независимого ревью capstone.
 - [`data-universe.md`](data-universe.md) — общая предметная область и учебные данные.

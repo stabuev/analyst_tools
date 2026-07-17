@@ -4,8 +4,8 @@ window.COURSE_DATA = {
     "title": "Инструменты аналитика",
     "version": "0.1.0",
     "hours": {
-      "min": 238,
-      "max": 326
+      "min": 237,
+      "max": 324
     }
   },
   "repository": {
@@ -25,6 +25,9 @@ window.COURSE_DATA = {
   "routes": [
     {
       "name": "Аналитик данных",
+      "description": "Превращает широкий вопрос в проверенный расчет, понятный вывод и рекомендацию для конкретного решения.",
+      "roles": "Data analyst, BI-аналитик, reporting analyst, иногда business data analyst.",
+      "deliverable": "Воспроизводимый расчет, понятная таблица или отчет, вывод и рекомендация для конкретного решения.",
       "path": "00-10 -> 17 -> 18",
       "phase_numbers": [
         0,
@@ -42,8 +45,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 160,
-        "max": 224
+        "min": 159,
+        "max": 222
       },
       "phases": [
         {
@@ -115,6 +118,9 @@ window.COURSE_DATA = {
     },
     {
       "name": "Продуктовый аналитик",
+      "description": "Исследует поведение пользователей и помогает проверяемо решать, какие изменения продукта запускать или дорабатывать.",
+      "roles": "Product analyst, growth analyst, digital analyst, experimentation analyst.",
+      "deliverable": "Система метрик, исследование поведения, план честного сравнения и рекомендация по изменению продукта.",
       "path": "00-10 -> 13 -> 17 -> 18",
       "phase_numbers": [
         0,
@@ -133,8 +139,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 172,
-        "max": 240
+        "min": 171,
+        "max": 238
       },
       "phases": [
         {
@@ -211,6 +217,9 @@ window.COURSE_DATA = {
     },
     {
       "name": "Аналитик временных рядов",
+      "description": "Строит и честно проверяет прогнозы, показывает неопределенность и задает правила реакции на ошибки и аномалии.",
+      "roles": "Forecasting analyst, demand planner, operations analyst, risk analyst; иногда специализация data scientist.",
+      "deliverable": "Прогноз на заданный срок, диапазон возможных значений, backtesting и правило реакции на ошибку или аномалию.",
       "path": "00-09 -> 14 -> 17 -> 18",
       "phase_numbers": [
         0,
@@ -228,8 +237,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 158,
-        "max": 222
+        "min": 157,
+        "max": 220
       },
       "phases": [
         {
@@ -301,6 +310,9 @@ window.COURSE_DATA = {
     },
     {
       "name": "Analytics Engineer",
+      "description": "Превращает сырые источники в общие, документированные и проверяемые модели данных для аналитической команды.",
+      "roles": "Analytics Engineer, BI Engineer, data modeler, иногда data warehouse developer.",
+      "deliverable": "Общие модели данных, автоматические проверки, документация, lineage и надежный процесс обновления.",
       "path": "00-07 -> 11-12 -> 17 -> 18",
       "phase_numbers": [
         0,
@@ -317,8 +329,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 148,
-        "max": 208
+        "min": 147,
+        "max": 206
       },
       "phases": [
         {
@@ -385,6 +397,9 @@ window.COURSE_DATA = {
     },
     {
       "name": "ML-аналитик",
+      "description": "Строит проверяемое предсказание и правило действия для повторяющегося решения с учетом цены ошибок.",
+      "roles": "Data scientist, applied data scientist, ML analyst, decision scientist, risk modeler.",
+      "deliverable": "Проверенная модель, сравнение с простым baseline, правило действия и описание границ применения.",
       "path": "00-07 -> 09 -> 12 -> 15-18",
       "phase_numbers": [
         0,
@@ -403,8 +418,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 174,
-        "max": 242
+        "min": 173,
+        "max": 240
       },
       "phases": [
         {
@@ -481,6 +496,9 @@ window.COURSE_DATA = {
     },
     {
       "name": "Полный маршрут",
+      "description": "Показывает всю систему курса для тех, кто совмещает несколько зон ответственности или исследует направления.",
+      "roles": "Не отдельная профессия и не обязательная вершина программы.",
+      "deliverable": "Набор артефактов всех специализаций и понимание их связей в полном аналитическом процессе.",
       "path": "00-18",
       "phase_numbers": [
         0,
@@ -504,8 +522,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 238,
-        "max": 326
+        "min": 237,
+        "max": 324
       },
       "phases": [
         {
@@ -611,7 +629,7 @@ window.COURSE_DATA = {
       "number": 0,
       "slug": "entry-and-tools",
       "title": "Вход и инструменты",
-      "summary": "Выберите профессиональный маршрут и соберите безопасный рабочий процесс.",
+      "summary": "Освойте командную строку, Git и безопасную границу аналитического проекта.",
       "tracks": [
         "core"
       ],
@@ -621,30 +639,12 @@ window.COURSE_DATA = {
         "max": 6
       },
       "artifact": "Репозиторий первой аналитической задачи",
-      "completion": "Студент выбирает предварительный профессиональный маршрут, создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
+      "completion": "Студент создает репозиторий и выполняет изменение через отдельную ветку без публикации данных или секретов.",
       "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools",
       "lessons": [
         {
           "number": 1,
-          "slug": "profession-map",
-          "title": "Карта аналитических профессий и маршрутов",
-          "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Различает направления аналитической работы и обосновывает предварительный маршрут по задачам и ожидаемым результатам.",
-          "artifact": "Персональная карта учебного маршрута",
-          "type": "case",
-          "tracks": [
-            "core"
-          ],
-          "path": "phases/00-entry-and-tools/01-profession-map",
-          "available": true,
-          "site_url": "lessons/entry-and-tools/profession-map/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/01-profession-map",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/01-profession-map/docs/ru.md"
-        },
-        {
-          "number": 2,
           "slug": "terminal-and-filesystem",
           "title": "Терминал и файловая система",
           "status": "complete",
@@ -655,14 +655,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/02-terminal-and-filesystem",
+          "path": "phases/00-entry-and-tools/01-terminal-and-filesystem",
           "available": true,
           "site_url": "lessons/entry-and-tools/terminal-and-filesystem/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/02-terminal-and-filesystem",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/02-terminal-and-filesystem/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/01-terminal-and-filesystem",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/01-terminal-and-filesystem/docs/ru.md"
         },
         {
-          "number": 3,
+          "number": 2,
           "slug": "git-foundations",
           "title": "Git: история аналитического проекта",
           "status": "complete",
@@ -673,14 +673,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/03-git-foundations",
+          "path": "phases/00-entry-and-tools/02-git-foundations",
           "available": true,
           "site_url": "lessons/entry-and-tools/git-foundations/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-git-foundations",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-git-foundations/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/02-git-foundations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/02-git-foundations/docs/ru.md"
         },
         {
-          "number": 4,
+          "number": 3,
           "slug": "branches-and-review",
           "title": "Ветки, pull request и ревью",
           "status": "complete",
@@ -691,14 +691,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/04-branches-and-review",
+          "path": "phases/00-entry-and-tools/03-branches-and-review",
           "available": true,
           "site_url": "lessons/entry-and-tools/branches-and-review/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-branches-and-review",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-branches-and-review/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/03-branches-and-review",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/03-branches-and-review/docs/ru.md"
         },
         {
-          "number": 5,
+          "number": 4,
           "slug": "secrets-and-sensitive-data",
           "title": "Секреты и безопасная работа с данными",
           "status": "complete",
@@ -709,11 +709,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/00-entry-and-tools/05-secrets-and-sensitive-data",
+          "path": "phases/00-entry-and-tools/04-secrets-and-sensitive-data",
           "available": true,
           "site_url": "lessons/entry-and-tools/secrets-and-sensitive-data/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/05-secrets-and-sensitive-data",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/05-secrets-and-sensitive-data/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/00-entry-and-tools/04-secrets-and-sensitive-data",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/00-entry-and-tools/04-secrets-and-sensitive-data/docs/ru.md"
         }
       ]
     },
@@ -729,8 +729,8 @@ window.COURSE_DATA = {
         0
       ],
       "hours": {
-        "min": 8,
-        "max": 10
+        "min": 7,
+        "max": 8
       },
       "artifact": "Проект, запускаемый с нуля одной инструкцией",
       "completion": "Коллега клонирует проект, устанавливает зафиксированные зависимости и получает тот же проверенный результат.",
@@ -739,60 +739,24 @@ window.COURSE_DATA = {
       "lessons": [
         {
           "number": 1,
-          "slug": "python-versions",
-          "title": "Версии Python и совместимость",
-          "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Определяет версию и путь фактически запущенного Python, различает требование проекта и локальный выбор интерпретатора и документирует обоснованный контракт версии.",
-          "artifact": "Карточка выбора и проверки версии Python",
-          "type": "learn",
-          "tracks": [
-            "core"
-          ],
-          "path": "phases/01-reproducible-project/01-python-versions",
-          "available": true,
-          "site_url": "lessons/reproducible-project/python-versions/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/01-python-versions",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/01-python-versions/docs/ru.md"
-        },
-        {
-          "number": 2,
           "slug": "uv-environments",
           "title": "Окружения и зависимости с uv",
           "status": "complete",
-          "time_minutes": 75,
-          "outcome": "Добавляет зависимость через uv, запускает проект в его окружении и восстанавливает то же рабочее состояние из lock-файла.",
+          "time_minutes": 90,
+          "outcome": "Фиксирует поддерживаемую версию Python, добавляет зависимость через uv и восстанавливает проверенное рабочее состояние из lock-файла.",
           "artifact": "Воспроизводимый контрольный расчёт выручки в locked uv-окружении",
           "type": "build",
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/02-uv-environments",
+          "path": "phases/01-reproducible-project/01-uv-environments",
           "available": true,
           "site_url": "lessons/reproducible-project/uv-environments/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/02-uv-environments",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/02-uv-environments/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/01-uv-environments",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/01-uv-environments/docs/ru.md"
         },
         {
-          "number": 3,
-          "slug": "pyproject",
-          "title": "pyproject.toml как контракт проекта",
-          "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Описывает метаданные, зависимости и настройки инструментов в одном manifest.",
-          "artifact": "CLI-аудит pyproject.toml и минимальный manifest",
-          "type": "build",
-          "tracks": [
-            "core"
-          ],
-          "path": "phases/01-reproducible-project/03-pyproject",
-          "available": true,
-          "site_url": "lessons/reproducible-project/pyproject/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/03-pyproject",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/03-pyproject/docs/ru.md"
-        },
-        {
-          "number": 4,
+          "number": 2,
           "slug": "jupyter-kernels",
           "title": "Jupyter, kernels и состояние",
           "status": "complete",
@@ -803,14 +767,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/04-jupyter-kernels",
+          "path": "phases/01-reproducible-project/02-jupyter-kernels",
           "available": true,
           "site_url": "lessons/reproducible-project/jupyter-kernels/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/04-jupyter-kernels",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/04-jupyter-kernels/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/02-jupyter-kernels",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/02-jupyter-kernels/docs/ru.md"
         },
         {
-          "number": 5,
+          "number": 3,
           "slug": "notebook-reproducibility",
           "title": "Воспроизводимые ноутбуки",
           "status": "complete",
@@ -821,14 +785,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/05-notebook-reproducibility",
+          "path": "phases/01-reproducible-project/03-notebook-reproducibility",
           "available": true,
           "site_url": "lessons/reproducible-project/notebook-reproducibility/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/05-notebook-reproducibility",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/05-notebook-reproducibility/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/03-notebook-reproducibility",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/03-notebook-reproducibility/docs/ru.md"
         },
         {
-          "number": 6,
+          "number": 4,
           "slug": "modules-and-scripts",
           "title": "От ноутбука к модулям и скриптам",
           "status": "complete",
@@ -839,14 +803,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/06-modules-and-scripts",
+          "path": "phases/01-reproducible-project/04-modules-and-scripts",
           "available": true,
           "site_url": "lessons/reproducible-project/modules-and-scripts/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/06-modules-and-scripts",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/06-modules-and-scripts/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/04-modules-and-scripts",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/04-modules-and-scripts/docs/ru.md"
         },
         {
-          "number": 7,
+          "number": 5,
           "slug": "ruff",
           "title": "Единый стиль и Ruff",
           "status": "complete",
@@ -857,14 +821,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/07-ruff",
+          "path": "phases/01-reproducible-project/05-ruff",
           "available": true,
           "site_url": "lessons/reproducible-project/ruff/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/07-ruff",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/07-ruff/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/05-ruff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/05-ruff/docs/ru.md"
         },
         {
-          "number": 8,
+          "number": 6,
           "slug": "pytest",
           "title": "Первые проверки с pytest",
           "status": "complete",
@@ -875,14 +839,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/08-pytest",
+          "path": "phases/01-reproducible-project/06-pytest",
           "available": true,
           "site_url": "lessons/reproducible-project/pytest/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/08-pytest",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/08-pytest/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/06-pytest",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/06-pytest/docs/ru.md"
         },
         {
-          "number": 9,
+          "number": 7,
           "slug": "continuous-integration",
           "title": "Автоматическая проверка в CI",
           "status": "complete",
@@ -893,11 +857,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/01-reproducible-project/09-continuous-integration",
+          "path": "phases/01-reproducible-project/07-continuous-integration",
           "available": true,
           "site_url": "lessons/reproducible-project/continuous-integration/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/09-continuous-integration",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/09-continuous-integration/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/01-reproducible-project/07-continuous-integration",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/01-reproducible-project/07-continuous-integration/docs/ru.md"
         }
       ]
     },
@@ -4829,11 +4793,11 @@ window.COURSE_DATA = {
   ],
   "stats": {
     "phases": 19,
-    "lessons": 200,
-    "complete_lessons": 200,
+    "lessons": 197,
+    "complete_lessons": 197,
     "hours": {
-      "min": 238,
-      "max": 326
+      "min": 237,
+      "max": 324
     }
   }
 };

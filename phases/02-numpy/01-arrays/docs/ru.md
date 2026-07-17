@@ -4,7 +4,7 @@
 
 **Тип:** Learn
 **Треки:** Core
-**Пререквизит:** `01-reproducible-project/09-continuous-integration`
+**Пререквизит:** `01-reproducible-project/07-continuous-integration`
 **Время:** ~60 минут
 
 ## Цели обучения

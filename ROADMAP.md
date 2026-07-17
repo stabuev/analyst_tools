@@ -3,14 +3,14 @@
 # Дорожная карта: Инструменты аналитика
 
 **Версия:** 0.1.0  
-**Полный маршрут:** ~238-326 часов
+**Полный маршрут:** ~237-324 часов
 
 ## Обзор
 
 | Фаза | Название | Треки | Пререквизиты | Часы |
 |---:|---|---|---|---:|
 | 00 | [Вход и инструменты](phases/00-entry-and-tools) | core | - | 4-6 |
-| 01 | [Воспроизводимый проект](phases/01-reproducible-project) | core | 00 | 8-10 |
+| 01 | [Воспроизводимый проект](phases/01-reproducible-project) | core | 00 | 7-8 |
 | 02 | [NumPy и численные данные](phases/02-numpy) | core | 01 | 8-10 |
 | 03 | [pandas и табличные данные](phases/03-pandas) | core | 02 | 14-18 |
 | 04 | [SQL и DuckDB](phases/04-sql-and-duckdb) | core | 03 | 14-18 |
@@ -31,12 +31,12 @@
 
 ## Маршруты
 
-- **Аналитик данных**: `00-10 -> 17 -> 18` (~160-224 часов)
-- **Продуктовый аналитик**: `00-10 -> 13 -> 17 -> 18` (~172-240 часов)
-- **Аналитик временных рядов**: `00-09 -> 14 -> 17 -> 18` (~158-222 часов)
-- **Analytics Engineer**: `00-07 -> 11-12 -> 17 -> 18` (~148-208 часов)
-- **ML-аналитик**: `00-07 -> 09 -> 12 -> 15-18` (~174-242 часов)
-- **Полный маршрут**: `00-18` (~238-326 часов)
+- **Аналитик данных**: `00-10 -> 17 -> 18` (~159-222 часов)
+- **Продуктовый аналитик**: `00-10 -> 13 -> 17 -> 18` (~171-238 часов)
+- **Аналитик временных рядов**: `00-09 -> 14 -> 17 -> 18` (~157-220 часов)
+- **Analytics Engineer**: `00-07 -> 11-12 -> 17 -> 18` (~147-206 часов)
+- **ML-аналитик**: `00-07 -> 09 -> 12 -> 15-18` (~173-240 часов)
+- **Полный маршрут**: `00-18` (~237-324 часов)
 
 ## Граф зависимостей
 
@@ -62,30 +62,27 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | [Карта аналитических профессий и маршрутов](phases/00-entry-and-tools/01-profession-map) | complete |
-| 02 | [Терминал и файловая система](phases/00-entry-and-tools/02-terminal-and-filesystem) | complete |
-| 03 | [Git: история аналитического проекта](phases/00-entry-and-tools/03-git-foundations) | complete |
-| 04 | [Ветки, pull request и ревью](phases/00-entry-and-tools/04-branches-and-review) | complete |
-| 05 | [Секреты и безопасная работа с данными](phases/00-entry-and-tools/05-secrets-and-sensitive-data) | complete |
+| 01 | [Терминал и файловая система](phases/00-entry-and-tools/01-terminal-and-filesystem) | complete |
+| 02 | [Git: история аналитического проекта](phases/00-entry-and-tools/02-git-foundations) | complete |
+| 03 | [Ветки, pull request и ревью](phases/00-entry-and-tools/03-branches-and-review) | complete |
+| 04 | [Секреты и безопасная работа с данными](phases/00-entry-and-tools/04-secrets-and-sensitive-data) | complete |
 
 ## Фаза 01: Воспроизводимый проект
 
 - **Треки:** core
 - **Пререквизиты:** Фаза 00
-- **Время:** ~8-10 часов
+- **Время:** ~7-8 часов
 - **Итоговый артефакт:** Проект, запускаемый с нуля одной инструкцией
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | [Версии Python и совместимость](phases/01-reproducible-project/01-python-versions) | complete |
-| 02 | [Окружения и зависимости с uv](phases/01-reproducible-project/02-uv-environments) | complete |
-| 03 | [pyproject.toml как контракт проекта](phases/01-reproducible-project/03-pyproject) | complete |
-| 04 | [Jupyter, kernels и состояние](phases/01-reproducible-project/04-jupyter-kernels) | complete |
-| 05 | [Воспроизводимые ноутбуки](phases/01-reproducible-project/05-notebook-reproducibility) | complete |
-| 06 | [От ноутбука к модулям и скриптам](phases/01-reproducible-project/06-modules-and-scripts) | complete |
-| 07 | [Единый стиль и Ruff](phases/01-reproducible-project/07-ruff) | complete |
-| 08 | [Первые проверки с pytest](phases/01-reproducible-project/08-pytest) | complete |
-| 09 | [Автоматическая проверка в CI](phases/01-reproducible-project/09-continuous-integration) | complete |
+| 01 | [Окружения и зависимости с uv](phases/01-reproducible-project/01-uv-environments) | complete |
+| 02 | [Jupyter, kernels и состояние](phases/01-reproducible-project/02-jupyter-kernels) | complete |
+| 03 | [Воспроизводимые ноутбуки](phases/01-reproducible-project/03-notebook-reproducibility) | complete |
+| 04 | [От ноутбука к модулям и скриптам](phases/01-reproducible-project/04-modules-and-scripts) | complete |
+| 05 | [Единый стиль и Ruff](phases/01-reproducible-project/05-ruff) | complete |
+| 06 | [Первые проверки с pytest](phases/01-reproducible-project/06-pytest) | complete |
+| 07 | [Автоматическая проверка в CI](phases/01-reproducible-project/07-continuous-integration) | complete |
 
 ## Фаза 02: NumPy и численные данные
 

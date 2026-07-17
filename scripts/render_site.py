@@ -231,6 +231,11 @@ def render_route_cards(data: dict[str, Any]) -> str:
             f'Профессиональный маршрут</p><h2>{escape(route["name"])}</h2></div>'
             f'<div class="route-detail-hours">{route["hours"]["min"]}–'
             f'{route["hours"]["max"]}<small>часов</small></div></div>'
+            f'<p class="route-description">{escape(route["description"])}</p>'
+            f'<p class="route-professions"><strong>Похожие профессии:</strong> '
+            f'{escape(route["roles"])}</p>'
+            f'<p class="route-deliverable"><strong>Рабочий результат:</strong> '
+            f'{escape(route["deliverable"])}</p>'
             f'<p class="route-path">{escape(route["path"])}</p>'
             f'<div class="route-sequence">{"".join(phases)}</div></article>'
         )
