@@ -888,11 +888,11 @@ window.COURSE_DATA = {
         {
           "number": 1,
           "slug": "arrays",
-          "title": "ndarray и модель массива",
+          "title": "ndarray: модель числового массива",
           "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Создает массивы и объясняет отличие ndarray от списка Python.",
-          "artifact": "Шпаргалка создания и инспекции массивов",
+          "time_minutes": 75,
+          "outcome": "Выбирает ndarray для однородных прямоугольных данных, называет смысл осей и проверяет контракт массива.",
+          "artifact": "Паспорт массива с предметными именами осей",
           "type": "learn",
           "tracks": [
             "core"

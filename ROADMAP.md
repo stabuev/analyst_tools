@@ -93,7 +93,7 @@ flowchart LR
 
 | № | Урок | Статус |
 |---:|---|---|
-| 01 | [ndarray и модель массива](phases/02-numpy/01-arrays) | complete |
+| 01 | [ndarray: модель числового массива](phases/02-numpy/01-arrays) | complete |
 | 02 | [Shape, axes и размерность](phases/02-numpy/02-shape-and-axes) | complete |
 | 03 | [Dtype, память и диапазоны](phases/02-numpy/03-dtypes) | complete |
 | 04 | [Индексация, срезы и маски](phases/02-numpy/04-indexing-and-masks) | complete |
