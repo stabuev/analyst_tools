@@ -908,9 +908,9 @@ window.COURSE_DATA = {
           "slug": "shape-and-axes",
           "title": "Shape, axes и размерность",
           "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Предсказывает форму результата до выполнения операции.",
-          "artifact": "Набор проверок shape для аналитических функций",
+          "time_minutes": 75,
+          "outcome": "По предметным именам осей предсказывает форму и смысл результата и закрепляет ожидание проверкой.",
+          "artifact": "Shape-контракт с предметными именами осей",
           "type": "build",
           "tracks": [
             "core"
