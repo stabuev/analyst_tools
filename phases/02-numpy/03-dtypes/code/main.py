@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 ARTIFACT = Path(__file__).resolve().parents[1] / "outputs" / "dtype_audit.py"
@@ -12,5 +13,11 @@ SPEC.loader.exec_module(AUDIT)
 
 
 if __name__ == "__main__":
-    print(AUDIT.audit_values([0, 12, 255], dtype="uint8"))
-    print(AUDIT.audit_values([12.5, None, 18.0]))
+    report = AUDIT.audit_values(
+        [0, 12, 200],
+        target_dtype="uint16",
+        expected_min=0,
+        expected_max=20_000,
+        planned_shape=(500, 365, 24),
+    )
+    print(json.dumps(report, ensure_ascii=False, indent=2))
