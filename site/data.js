@@ -959,6 +959,24 @@ window.COURSE_DATA = {
         },
         {
           "number": 5,
+          "slug": "aggregations",
+          "title": "Агрегации и оси расчета",
+          "status": "complete",
+          "time_minutes": 75,
+          "outcome": "По предметным именам осей выбирает осмысленную редукцию, предсказывает детализацию и shape результата, явно задает обработку пропусков и проверяет расчет.",
+          "artifact": "Проверяемый контракт агрегации по предметным осям",
+          "type": "build",
+          "tracks": [
+            "core"
+          ],
+          "path": "phases/02-numpy/05-aggregations",
+          "available": true,
+          "site_url": "lessons/numpy/aggregations/",
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-aggregations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-aggregations/docs/ru.md"
+        },
+        {
+          "number": 6,
           "slug": "broadcasting",
           "title": "Broadcasting без магии",
           "status": "complete",
@@ -969,29 +987,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/05-broadcasting",
+          "path": "phases/02-numpy/06-broadcasting",
           "available": true,
           "site_url": "lessons/numpy/broadcasting/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-broadcasting",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-broadcasting/docs/ru.md"
-        },
-        {
-          "number": 6,
-          "slug": "aggregations",
-          "title": "Агрегации и оси расчета",
-          "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Выбирает правильную axis и сохраняет ожидаемую размерность результата.",
-          "artifact": "Пакет агрегатов с тестами по осям",
-          "type": "build",
-          "tracks": [
-            "core"
-          ],
-          "path": "phases/02-numpy/06-aggregations",
-          "available": true,
-          "site_url": "lessons/numpy/aggregations/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-aggregations",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-aggregations/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-broadcasting",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-broadcasting/docs/ru.md"
         },
         {
           "number": 7,

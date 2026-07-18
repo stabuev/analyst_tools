@@ -12,4 +12,15 @@ SPEC.loader.exec_module(AGGREGATES)
 
 
 if __name__ == "__main__":
-    print(AGGREGATES.aggregate([[1, 2, 3], [4, 5, 6]], axis=0))
+    daily_metrics = [
+        [[10, 1000], [12, 1440], [8, 880]],
+        [[7, 840], [9, 990], [11, 1320]],
+    ]
+    print(
+        AGGREGATES.aggregate(
+            daily_metrics,
+            axis=(0, 1),
+            axis_names=("store", "day", "metric"),
+            keepdims=True,
+        )
+    )

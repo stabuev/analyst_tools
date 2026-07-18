@@ -97,8 +97,8 @@ flowchart LR
 | 02 | [Shape, axes и размерность](phases/02-numpy/02-shape-and-axes) | complete |
 | 03 | [Dtype, память и диапазоны](phases/02-numpy/03-dtypes) | complete |
 | 04 | [Индексация, срезы и маски](phases/02-numpy/04-indexing-and-masks) | complete |
-| 05 | [Broadcasting без магии](phases/02-numpy/05-broadcasting) | complete |
-| 06 | [Агрегации и оси расчета](phases/02-numpy/06-aggregations) | complete |
+| 05 | [Агрегации и оси расчета](phases/02-numpy/05-aggregations) | complete |
+| 06 | [Broadcasting без магии](phases/02-numpy/06-broadcasting) | complete |
 | 07 | [Случайность и воспроизводимые симуляции](phases/02-numpy/07-random-simulations) | complete |
 | 08 | [Векторизация и производительность](phases/02-numpy/08-vectorization) | complete |
 | 09 | [Численная точность и сравнение результатов](phases/02-numpy/09-numerical-precision) | complete |
