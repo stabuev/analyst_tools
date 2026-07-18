@@ -980,9 +980,9 @@ window.COURSE_DATA = {
           "slug": "broadcasting",
           "title": "Broadcasting без магии",
           "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Проверяет совместимость форм и использует broadcasting осознанно.",
-          "artifact": "Векторная нормализация матрицы признаков",
+          "time_minutes": 90,
+          "outcome": "По предметным осям и dtype операндов предсказывает результат поэлементной broadcast-операции, явно добавляет единичные оси и проверяет семантику, тип, запись на месте и память.",
+          "artifact": "Проверяемый контракт broadcast-операции",
           "type": "build",
           "tracks": [
             "core"
