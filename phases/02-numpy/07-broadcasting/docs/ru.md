@@ -4,7 +4,7 @@
 
 **Тип:** Build
 **Треки:** Core
-**Пререквизит:** `02-numpy/05-aggregations`
+**Пререквизит:** `02-numpy/06-aggregations`
 **Время:** ~90 минут
 **Результат:** по предметным осям и `dtype` операндов предсказывает результат поэлементной broadcast-операции, явно добавляет единичные оси и проверяет семантику, тип, запись на месте и память.
 
@@ -722,7 +722,7 @@ assert np.broadcast_shapes((5, 1), (1, 6), (6,)) == (5, 6)
 Артефакт принимает две формы, имена осей и `dtype`, но не выделяет память под результат:
 
 ```bash
-uv run --locked python phases/02-numpy/06-broadcasting/outputs/broadcast_contract.py \
+uv run --locked python phases/02-numpy/07-broadcasting/outputs/broadcast_contract.py \
   --operands '[
     {"name":"daily_metrics","shape":[2,3,2],"axis_names":["store","day","metric"],"dtype":"float64"},
     {"name":"metric_means","shape":[1,1,2],"axis_names":["summarized_store","summarized_day","metric"],"dtype":"float64"}
@@ -883,7 +883,7 @@ result = values + increment
 
 ```bash
 uv run --locked python -m unittest discover \
-  -s phases/02-numpy/06-broadcasting/tests \
+  -s phases/02-numpy/07-broadcasting/tests \
   -v
 ```
 
@@ -894,7 +894,7 @@ uv run --locked python -m unittest discover \
 Исполняемый пример:
 
 ```bash
-uv run --locked python phases/02-numpy/06-broadcasting/code/main.py
+uv run --locked python phases/02-numpy/07-broadcasting/code/main.py
 ```
 
 ## Поставьте результат

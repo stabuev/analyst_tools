@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1f2937?style=flat-square" alt="Лицензия MIT"></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/phases-19-2563eb?style=flat-square" alt="19 фаз"></a>
-  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-197-2563eb?style=flat-square" alt="197 уроков"></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-198-2563eb?style=flat-square" alt="198 уроков"></a>
   <a href="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml"><img src="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml/badge.svg" alt="Проверка и публикация сайта"></a>
 </p>
 
@@ -196,7 +196,7 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Завершены все
-фазы `00-18`: 197 из 197 уроков. Готовы общее ядро, продуктовая
+фазы `00-18`: 198 из 198 уроков. Готовы общее ядро, продуктовая
 аналитика и эксперименты, analytics engineering, performance, causal analysis, time
 series, прикладной и табличный ML, а также доставка результата через memo, workbook,
 reproducible report, приложение, CLI/schedule и handoff package.

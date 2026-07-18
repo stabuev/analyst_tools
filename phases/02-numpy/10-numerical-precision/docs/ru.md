@@ -8,8 +8,8 @@
 
 **Треки:** Core
 
-**Пререквизиты:** `02-numpy/03-dtypes`, `02-numpy/05-aggregations`,
-`02-numpy/06-broadcasting`, `02-numpy/08-vectorization`
+**Пререквизиты:** `02-numpy/03-dtypes`, `02-numpy/06-aggregations`,
+`02-numpy/07-broadcasting`, `02-numpy/09-vectorization`
 
 **Время:** ~60 минут
 
@@ -498,7 +498,7 @@ assert report["passed"]
 CLI для успешного сравнения:
 
 ```bash
-uv run --locked python phases/02-numpy/09-numerical-precision/outputs/numerical_checks.py \
+uv run --locked python phases/02-numpy/10-numerical-precision/outputs/numerical_checks.py \
   --actual '[0.30000000000000004, 10.0]' \
   --expected '[0.3, 10.0]' \
   --rtol 1e-9 \
@@ -517,7 +517,7 @@ uv run --locked python phases/02-numpy/09-numerical-precision/outputs/numerical_
 Проваленный gate тоже возвращает отчет, но завершает процесс с кодом `1`:
 
 ```bash
-uv run --locked python phases/02-numpy/09-numerical-precision/outputs/numerical_checks.py \
+uv run --locked python phases/02-numpy/10-numerical-precision/outputs/numerical_checks.py \
   --actual '[1000000000.50]' \
   --expected '[1000000000.00]' \
   --rtol 0 \
@@ -689,7 +689,7 @@ wide = narrow.astype(np.int64)
 
 ```bash
 uv run --locked python -m unittest discover \
-  -s phases/02-numpy/09-numerical-precision/tests \
+  -s phases/02-numpy/10-numerical-precision/tests \
   -v
 ```
 
@@ -711,7 +711,7 @@ uv run --locked python -m unittest discover \
 Затем запустите связный пример:
 
 ```bash
-uv run --locked python phases/02-numpy/09-numerical-precision/code/main.py
+uv run --locked python phases/02-numpy/10-numerical-precision/code/main.py
 ```
 
 Он показывает успешное сравнение, явную политику деления, проверенное integer-сложение,

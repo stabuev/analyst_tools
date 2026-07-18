@@ -306,7 +306,7 @@ class CourseStructureTest(TestCase):
             1,
         )
 
-        previous = "02-numpy/09-numerical-precision"
+        previous = "02-numpy/10-numerical-precision"
         for index, lesson in enumerate(lessons, start=1):
             self.assertIn(lesson["type"], {"build", "learn", "case"})
             self.assertEqual(lesson["prerequisites"], [previous])
@@ -656,11 +656,12 @@ class CourseStructureTest(TestCase):
         self.assertIn("phases/02-numpy/02-shape-and-axes", roadmap)
         self.assertIn("phases/02-numpy/03-dtypes", roadmap)
         self.assertIn("phases/02-numpy/04-indexing-and-masks", roadmap)
-        self.assertIn("phases/02-numpy/05-aggregations", roadmap)
-        self.assertIn("phases/02-numpy/06-broadcasting", roadmap)
-        self.assertIn("phases/02-numpy/07-random-simulations", roadmap)
-        self.assertIn("phases/02-numpy/08-vectorization", roadmap)
-        self.assertIn("phases/02-numpy/09-numerical-precision", roadmap)
+        self.assertIn("phases/02-numpy/05-composition-and-ordering", roadmap)
+        self.assertIn("phases/02-numpy/06-aggregations", roadmap)
+        self.assertIn("phases/02-numpy/07-broadcasting", roadmap)
+        self.assertIn("phases/02-numpy/08-random-simulations", roadmap)
+        self.assertIn("phases/02-numpy/09-vectorization", roadmap)
+        self.assertIn("phases/02-numpy/10-numerical-precision", roadmap)
 
     def test_lesson_scaffolder_creates_required_files(self) -> None:
         with TemporaryDirectory() as directory:

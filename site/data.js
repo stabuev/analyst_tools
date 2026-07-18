@@ -4,8 +4,8 @@ window.COURSE_DATA = {
     "title": "Инструменты аналитика",
     "version": "0.1.0",
     "hours": {
-      "min": 237,
-      "max": 325
+      "min": 238,
+      "max": 327
     }
   },
   "repository": {
@@ -45,8 +45,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 159,
-        "max": 223
+        "min": 160,
+        "max": 225
       },
       "phases": [
         {
@@ -139,8 +139,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 171,
-        "max": 239
+        "min": 172,
+        "max": 241
       },
       "phases": [
         {
@@ -237,8 +237,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 157,
-        "max": 221
+        "min": 158,
+        "max": 223
       },
       "phases": [
         {
@@ -329,8 +329,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 147,
-        "max": 207
+        "min": 148,
+        "max": 209
       },
       "phases": [
         {
@@ -418,8 +418,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 173,
-        "max": 241
+        "min": 174,
+        "max": 243
       },
       "phases": [
         {
@@ -522,8 +522,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 237,
-        "max": 325
+        "min": 238,
+        "max": 327
       },
       "phases": [
         {
@@ -877,11 +877,11 @@ window.COURSE_DATA = {
         1
       ],
       "hours": {
-        "min": 8,
-        "max": 11
+        "min": 9,
+        "max": 13
       },
       "artifact": "Пакет проверенных функций для численных расчетов",
-      "completion": "Студент реализует расчет без Python-циклов, объясняет shape и dtype и подтверждает корректность контрольным примером.",
+      "completion": "Студент собирает и векторизует численный расчет, объясняет shape и dtype, сохраняет соответствие наблюдений и подтверждает результат контрольным примером.",
       "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy",
       "lessons": [
@@ -959,6 +959,24 @@ window.COURSE_DATA = {
         },
         {
           "number": 5,
+          "slug": "composition-and-ordering",
+          "title": "Сборка, сортировка и согласованность массивов",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Собирает массивы по существующей или новой предметной оси, получает и применяет единую перестановку к связанным значениям, находит уникальные значения и частоты и проверяет shape, dtype, порядок и сохранение соответствия наблюдений.",
+          "artifact": "Аудитор сборки и согласованного порядка массивов",
+          "type": "build",
+          "tracks": [
+            "core"
+          ],
+          "path": "phases/02-numpy/05-composition-and-ordering",
+          "available": true,
+          "site_url": "lessons/numpy/composition-and-ordering/",
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-composition-and-ordering",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-composition-and-ordering/docs/ru.md"
+        },
+        {
+          "number": 6,
           "slug": "aggregations",
           "title": "Агрегации и оси расчета",
           "status": "complete",
@@ -969,14 +987,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/05-aggregations",
+          "path": "phases/02-numpy/06-aggregations",
           "available": true,
           "site_url": "lessons/numpy/aggregations/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/05-aggregations",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/05-aggregations/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-aggregations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-aggregations/docs/ru.md"
         },
         {
-          "number": 6,
+          "number": 7,
           "slug": "broadcasting",
           "title": "Broadcasting без магии",
           "status": "complete",
@@ -987,14 +1005,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/06-broadcasting",
+          "path": "phases/02-numpy/07-broadcasting",
           "available": true,
           "site_url": "lessons/numpy/broadcasting/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/06-broadcasting",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/06-broadcasting/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/07-broadcasting",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/07-broadcasting/docs/ru.md"
         },
         {
-          "number": 7,
+          "number": 8,
           "slug": "random-simulations",
           "title": "Случайность и воспроизводимые симуляции",
           "status": "complete",
@@ -1005,14 +1023,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/07-random-simulations",
+          "path": "phases/02-numpy/08-random-simulations",
           "available": true,
           "site_url": "lessons/numpy/random-simulations/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/07-random-simulations",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/07-random-simulations/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/08-random-simulations",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/08-random-simulations/docs/ru.md"
         },
         {
-          "number": 8,
+          "number": 9,
           "slug": "vectorization",
           "title": "Векторизация и производительность",
           "status": "complete",
@@ -1023,14 +1041,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/08-vectorization",
+          "path": "phases/02-numpy/09-vectorization",
           "available": true,
           "site_url": "lessons/numpy/vectorization/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/08-vectorization",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/08-vectorization/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/09-vectorization",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/09-vectorization/docs/ru.md"
         },
         {
-          "number": 9,
+          "number": 10,
           "slug": "numerical-precision",
           "title": "Численная точность и сравнение результатов",
           "status": "complete",
@@ -1041,11 +1059,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/02-numpy/09-numerical-precision",
+          "path": "phases/02-numpy/10-numerical-precision",
           "available": true,
           "site_url": "lessons/numpy/numerical-precision/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/09-numerical-precision",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/09-numerical-precision/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/02-numpy/10-numerical-precision",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/02-numpy/10-numerical-precision/docs/ru.md"
         }
       ]
     },
@@ -4793,11 +4811,11 @@ window.COURSE_DATA = {
   ],
   "stats": {
     "phases": 19,
-    "lessons": 197,
-    "complete_lessons": 197,
+    "lessons": 198,
+    "complete_lessons": 198,
     "hours": {
-      "min": 237,
-      "max": 325
+      "min": 238,
+      "max": 327
     }
   }
 };
