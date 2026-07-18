@@ -5,7 +5,7 @@ window.COURSE_DATA = {
     "version": "0.1.0",
     "hours": {
       "min": 237,
-      "max": 324
+      "max": 325
     }
   },
   "repository": {
@@ -46,7 +46,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 159,
-        "max": 222
+        "max": 223
       },
       "phases": [
         {
@@ -140,7 +140,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 171,
-        "max": 238
+        "max": 239
       },
       "phases": [
         {
@@ -238,7 +238,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 157,
-        "max": 220
+        "max": 221
       },
       "phases": [
         {
@@ -330,7 +330,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 147,
-        "max": 206
+        "max": 207
       },
       "phases": [
         {
@@ -419,7 +419,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 173,
-        "max": 240
+        "max": 241
       },
       "phases": [
         {
@@ -523,7 +523,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 237,
-        "max": 324
+        "max": 325
       },
       "phases": [
         {
@@ -878,7 +878,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 8,
-        "max": 10
+        "max": 11
       },
       "artifact": "Пакет проверенных функций для численных расчетов",
       "completion": "Студент реализует расчет без Python-циклов, объясняет shape и dtype и подтверждает корректность контрольным примером.",
@@ -944,9 +944,9 @@ window.COURSE_DATA = {
           "slug": "indexing-and-masks",
           "title": "Индексация, срезы и маски",
           "status": "complete",
-          "time_minutes": 60,
-          "outcome": "Извлекает и изменяет подмножества данных без скрытого копирования.",
-          "artifact": "Функции фильтрации числовых наблюдений",
+          "time_minutes": 75,
+          "outcome": "По смыслу осей выбирает элементы, строки и столбцы, предсказывает shape результата и явно контролирует изменение источника или независимой копии.",
+          "artifact": "Проверяемый контракт выбора строк, столбцов и изменения массива",
           "type": "build",
           "tracks": [
             "core"
@@ -4797,7 +4797,7 @@ window.COURSE_DATA = {
     "complete_lessons": 197,
     "hours": {
       "min": 237,
-      "max": 324
+      "max": 325
     }
   }
 };
