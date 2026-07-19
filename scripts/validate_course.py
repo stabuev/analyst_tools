@@ -437,6 +437,7 @@ def validate_curriculum(curriculum: dict[str, Any], root: Path = ROOT) -> list[s
         ".github/ISSUE_TEMPLATE/bug_report.md",
         ".github/ISSUE_TEMPLATE/new_lesson_proposal.md",
         ".github/workflows/pages.yml",
+        ".agents/skills/audit-course-lesson/SKILL.md",
         ".agents/skills/check-understanding/SKILL.md",
     )
     for relative in required_project_paths:
