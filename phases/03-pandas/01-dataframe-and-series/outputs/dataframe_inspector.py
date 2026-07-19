@@ -29,8 +29,19 @@ def inspect_dataframe(frame: pd.DataFrame, keys: list[str]) -> dict[str, Any]:
     if missing_keys:
         raise TableContractError(f"missing key columns: {missing_keys}")
 
+    key_values = frame[keys]
+    null_key_mask = key_values.isna().any(axis=1)
+    blank_key_cells = pd.DataFrame(False, index=frame.index, columns=keys)
+    for key in keys:
+        text = key_values[key].astype("string")
+        blank_key_cells[key] = text.str.strip().eq("").fillna(False)
+
+    blank_key_mask = blank_key_cells.any(axis=1)
+    missing_key_mask = null_key_mask | blank_key_mask
     duplicate_key_rows = int(frame.duplicated(keys, keep=False).sum())
-    null_key_rows = int(frame[keys].isna().any(axis=1).sum())
+    null_key_rows = int(null_key_mask.sum())
+    blank_key_rows = int(blank_key_mask.sum())
+    missing_key_rows = int(missing_key_mask.sum())
     return {
         "table": {
             "object_type": type(frame).__name__,
@@ -46,8 +57,10 @@ def inspect_dataframe(frame: pd.DataFrame, keys: list[str]) -> dict[str, Any]:
         "declared_grain": {
             "keys": keys,
             "null_key_rows": null_key_rows,
+            "blank_key_rows": blank_key_rows,
+            "missing_key_rows": missing_key_rows,
             "duplicate_key_rows": duplicate_key_rows,
-            "valid": duplicate_key_rows == 0 and null_key_rows == 0,
+            "valid": duplicate_key_rows == 0 and missing_key_rows == 0,
         },
     }
 

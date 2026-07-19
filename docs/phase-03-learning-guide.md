@@ -38,6 +38,12 @@ print(orders.columns.tolist())
 print(orders.dtypes)
 print(orders["order_id"].is_unique)
 print(orders["order_id"].isna().sum())
+print(
+    sum(
+        isinstance(value, str) and value.strip() == ""
+        for value in orders["order_id"].tolist()
+    )
+)
 ```
 
 До следующего шага ответьте письменно:
@@ -47,40 +53,67 @@ print(orders["order_id"].isna().sum())
 3. Может ли технический индекс `0..n` заменить бизнес-ключ?
 4. Какие дубликаты допустимы в `order_items`, но недопустимы в `orders`?
 
-Сохраните проверку как функцию. Функция должна отклонять пропуски и дубликаты ключа, а не
-только печатать их число.
+Сохраните проверку как функцию. Функция должна отклонять pandas-пропуски, пустые строки,
+строки из пробелов и дубликаты ключа, а не только печатать их число.
 
 ## 2. Семантические типы раньше вычислений
 
-`read_csv` угадывает физический dtype по текущему файлу. Бизнес-смысл нужно объявить
-отдельно:
+`read_csv` выводит физический dtype по текущему файлу. Бизнес-смысл, целевой dtype и
+допустимость пропуска нужно объявить отдельно:
 
-| Поле | Смысл | Политика пропусков |
-|---|---|---|
-| `order_id` | идентификатор заказа | запрещены |
-| `amount` | денежная сумма | зависит от статуса и источника |
-| `ordered_at` | момент события | ошибка parsing не заменяется текущей датой |
-| `status` | ограниченная категория | неизвестное значение не становится `other` молча |
+| Поле | Смысл | Целевой dtype | Пропуск |
+|---|---|---|---|
+| `order_id` | идентификатор заказа | `string` | запрещён |
+| `amount` | денежная сумма | `Float64` | разрешён текущим учебным контрактом |
 
-В рабочем файле создайте новые нормализованные столбцы, не перезаписывая raw до проверки:
+Не перезаписывайте исходный столбец до проверки. Сначала отдельно отметьте пустые и
+непустые неразбираемые значения:
 
 ```python
-normalized = orders.assign(
-    status_normalized=orders["status"].astype("string").str.strip().str.lower(),
-    amount_numeric=pd.to_numeric(orders["amount"], errors="coerce"),
-    ordered_at_utc=pd.to_datetime(orders["ordered_at"], utc=True, errors="coerce"),
+amount_raw = orders["amount"].astype("string")
+amount_missing = amount_raw.isna() | amount_raw.str.strip().eq("").fillna(False)
+amount_parsed = pd.to_numeric(
+    amount_raw.mask(amount_missing, pd.NA),
+    errors="coerce",
 )
+amount_non_finite = amount_parsed.isin([float("inf"), float("-inf")])
+amount_invalid = ((~amount_missing) & amount_parsed.isna()) | amount_non_finite
+
+if amount_invalid.any():
+    evidence = [
+        {"row": row, "value": value}
+        for row, value, is_invalid in zip(
+            amount_raw.index.tolist(),
+            amount_raw.tolist(),
+            amount_invalid.tolist(),
+            strict=True,
+        )
+        if is_invalid
+    ]
+    raise ValueError(evidence)
+
+amount_numeric = amount_parsed.astype("Float64")
 ```
 
-Сравните число пропусков до и после преобразования. Новый `NA` означает строку, которую
-парсер не смог интерпретировать; это диагностический сигнал, а не разрешение удалить её.
+`amount_missing` и `amount_invalid` нельзя складывать в одну причину. Первый флаг
+описывает отсутствие значения по объявленному правилу, второй — непустую строку, которую
+parser не смог интерпретировать. Даты будут строго разобраны в `03/08`, а нормализация
+строк и категорий — в `03/09`.
+
+`Float64` здесь является учебным типом для конечных аналитических величин, а не обещанием
+точного бухгалтерского хранения каждой десятичной суммы. Если точность критична, перенесите
+в этот шаг контракт точности из `02/10`.
 
 ## 3. Маска — именованное правило
 
 Не собирайте длинное выражение сразу. Назовите части:
 
 ```python
-is_paid = normalized["status_normalized"].eq("paid")
+normalized = orders.copy()
+normalized["amount_numeric"] = amount_numeric
+
+status = normalized["status"].astype("string").str.strip().str.lower()
+is_paid = status.eq("paid")
 has_amount = normalized["amount_numeric"].notna()
 is_positive = normalized["amount_numeric"].gt(0)
 

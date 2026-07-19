@@ -8,7 +8,6 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "outputs" / "dtype_audit.py"
-DATA = ROOT.parent / "data" / "tiny" / "orders.csv"
 
 
 def load_artifact():
@@ -20,15 +19,29 @@ def load_artifact():
     return module
 
 
+def build_example() -> tuple[pd.DataFrame, dict[str, dict[str, object]]]:
+    frame = pd.DataFrame(
+        {
+            "order_id": ["O1001", "O1002", "O1003"],
+            "amount": ["1200.00", "", "oops"],
+        },
+        dtype="string",
+    )
+    schema = {
+        "order_id": {"dtype": "string", "nullable": False},
+        "amount": {"dtype": "Float64", "nullable": True},
+    }
+    return frame, schema
+
+
 def main() -> None:
     audit = load_artifact()
-    frame = pd.read_csv(DATA, dtype="string")
-    schema = {
-        "order_id": "string",
-        "amount": "Float64",
-        "ordered_at": "datetime_utc",
-    }
-    _, report = audit.audit_and_convert(frame, schema)
+    frame, schema = build_example()
+    converted, report = audit.audit_and_convert(frame, schema)
+
+    print("Converted dtypes:")
+    print(converted.dtypes.to_string())
+    print("\nAudit report:")
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

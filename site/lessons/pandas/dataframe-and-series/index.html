@@ -164,6 +164,11 @@ amount.values: 1200.0   800.0  5500.0
 <blockquote>
 <p>В этой таблице каждая имеющаяся строка получает один непустой уникальный <code>order_id</code>.</p>
 </blockquote>
+<p>Здесь «непустой» шире, чем «не равен pandas-пропуску». <code>isna()</code> находит <code>None</code>, <code>NaN</code>
+и другие специальные маркеры отсутствия, но не считает пропуском пустую строку <code>&quot;&quot;</code> или
+строку из пробелов. Для бизнес-ключа оба случая непригодны: по ним нельзя надёжно назвать
+сущность. Поэтому preflight проверяет отдельно pandas-пропуски и пустой текст. Во втором
+уроке мы обобщим это различие на dtype-контракт каждого столбца.</p>
 <p>Для <code>order_items</code> одна строка означает уже товарную позицию заказа. Поэтому отдельный
 <code>order_id</code> там повторяется законно, а кандидатный ключ составной:</p>
 <div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">order_id + product_id
@@ -208,6 +213,11 @@ discount: order-b=10,  order-c=20
 </code></pre></div><p>Число определено только для общей метки <code>order-b</code>. Метки без пары не удаляются молча:
 они остаются в результате с пропуском. Политику обработки таких пропусков мы выберем в
 следующем уроке; здесь важно заметить причину их появления.</p>
+<p>Этот первый прогноз намеренно использует уникальные метки. Если индекс содержит повторы,
+одной метке могут соответствовать несколько строк и результат выравнивания становится
+сложнее. Пока достаточно проверять <code>index.is_unique</code> и не переносить правило примера на
+повторяющиеся метки; отдельные последствия duplicate labels вынесены в дополнительное
+чтение.</p>
 <h3 id="граница-этого-урока">Граница этого урока</h3>
 <p>Сейчас мы читаем объекты и выполняем арифметику. Правила выбора строк, <code>loc</code>, <code>iloc</code>,
 булевы маски, изменение таблицы и Copy-on-Write будут центральной темой <code>03/03</code>.
@@ -333,13 +343,21 @@ assert pd.isna(values[2])
 <div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">key = orders[&quot;order_id&quot;]
 
 null_key_rows = int(key.isna().sum())
+blank_key_rows = sum(
+    isinstance(value, str) and value.strip() == &quot;&quot;
+    for value in key.tolist()
+)
 duplicate_key_rows = int(
     orders.duplicated([&quot;order_id&quot;], keep=False).sum()
 )
 
 assert null_key_rows == 0
+assert blank_key_rows == 0
 assert duplicate_key_rows == 0
-</code></pre></div><p><code>keep=False</code> отмечает все строки, участвующие в повторе. Если один ключ встретился дважды,
+</code></pre></div><p><code>isna()</code> отвечает за технические маркеры отсутствия. Отдельная проверка проходит по уже
+знакомому списку значений и считает пустой текст после удаления внешних пробелов. Она не
+нормализует и не исправляет ключ: её задача — остановиться на двусмысленной строке.</p>
+<p><code>keep=False</code> отмечает все строки, участвующие в повторе. Если один ключ встретился дважды,
 <code>duplicate_key_rows</code> будет равен <code>2</code>, а не <code>1</code>.</p>
 <p>Для составного ключа передайте оба столбца одной проверке:</p>
 <div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">items = pd.read_csv(DATA / &quot;order_items.csv&quot;)
@@ -367,6 +385,8 @@ assert duplicate_item_rows == 0
   &quot;declared_grain&quot;: {
     &quot;keys&quot;: [&quot;order_id&quot;],
     &quot;null_key_rows&quot;: 0,
+    &quot;blank_key_rows&quot;: 0,
+    &quot;missing_key_rows&quot;: 0,
     &quot;duplicate_key_rows&quot;: 0,
     &quot;valid&quot;: true
   }
@@ -391,6 +411,10 @@ assert duplicate_item_rows == 0
 <p>Инспектор может подтвердить непустоту и уникальность переданных столбцов, но не знает
 предметную область. Сначала получите описание таблицы от источника, затем передайте
 кандидатный ключ в проверку.</p>
+<h3 id="ошибка-6-проверить-только-isna-и-пропустить-пустой-текст">Ошибка 6. Проверить только <code>isna()</code> и пропустить пустой текст</h3>
+<p><code>&quot;&quot;</code> и <code>&quot;   &quot;</code> не являются pandas-пропусками, но не идентифицируют заказ. Проверка
+ключа должна отклонять их отдельно. Не заменяйте их выдуманным идентификатором: причина
+пустоты должна остаться видимой владельцу данных.</p>
 <h2 id="проверьте-это">Проверьте это</h2>
 <p>Перед завершением урока убедитесь, что можете без подсказки:</p>
 <ul>
@@ -406,14 +430,15 @@ assert duplicate_item_rows == 0
 </code></pre></div><p>Затем выполните только behavioral tests этого урока:</p>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
 </code></pre></div><p>Тесты проверяют типы объектов, сохранение индекса <code>Series</code>, label alignment, простой и
-составной ключи, а также различимые коды завершения CLI для корректного и нарушенного
-контрактов.</p>
+составной ключи, <code>None</code>, пустые строки и строки из пробелов в ключе, а также различимые
+коды завершения CLI для корректного и нарушенного контрактов.</p>
 <h2 id="поставьте-результат">Поставьте результат</h2>
 <p><code>outputs/dataframe_inspector.py</code> — небольшой preflight таблицы перед анализом. Он:</p>
 <ul>
 <li>принимает CSV и обязательный список ключевых столбцов;</li>
 <li>показывает форму, столбцы и ограниченный preview технического индекса;</li>
-<li>считает строки с пустым или повторяющимся объявленным ключом;</li>
+<li>отдельно считает строки с pandas-пропуском, пустым текстом и любым отсутствующим
+значением объявленного ключа;</li>
 <li>поддерживает составной ключ;</li>
 <li>возвращает код <code>0</code> для корректного контракта, <code>1</code> для нарушения данных и <code>2</code> для
 невалидного запуска.</li>
@@ -427,8 +452,9 @@ assert duplicate_item_rows == 0
 <code>order_id,product_id</code>. Объясните, почему результаты различаются.</li>
 <li>Создайте две <code>Series</code> с метками <code>U001,U002,U003</code> и <code>U003,U001,U004</code>. До сложения
 выпишите индекс результата и места пропусков, затем подтвердите прогноз кодом.</li>
-<li>Создайте таблицу с уникальным <code>RangeIndex</code> и двумя одинаковыми <code>order_id</code>. Сохраните
-JSON-отчёт проваленного preflight и объясните, какое обещание нарушено.</li>
+<li>Создайте таблицу с уникальным <code>RangeIndex</code>, повтором <code>order_id</code>, пустой строкой и
+строкой из пробелов. Сохраните JSON-отчёт проваленного preflight и разделите причины
+нарушения.</li>
 <li>Предложите кандидатный ключ для таблицы платежей, где один заказ может иметь несколько
 попыток оплаты. Объясните, какой предметной информации не хватает для окончательного
 решения.</li>
@@ -496,7 +522,7 @@ JSON-отчёт проваленного preflight и объясните, как
 <li><a href="https://www.jstatsoft.org/v59/i10/" target="_blank" rel="noopener">Hadley Wickham: Tidy Data</a> — прочитайте разделы 2 <code>Defining tidy data</code> и 3 <code>Tidying messy datasets</code>; первичная статья расширяет понятие grain через правила «переменная — столбец, наблюдение — строка, тип наблюдения — таблица» и показывает, почему структура таблицы является частью аналитического контракта.</li>
 </ol>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>Что верно для amount = orders[&quot;amount&quot;]?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">amount становится обычным списком без меток</button><button type="button" class="quiz-option" data-choice="1">amount обязательно становится DataFrame с двумя осями</button><button type="button" class="quiz-option" data-choice="2">amount получает новый RangeIndex, не связанный с orders</button><button type="button" class="quiz-option" data-choice="3">amount является Series и сохраняет индекс строк orders</button></div><p class="quiz-feedback" hidden>Выбор одного столбца возвращает Series. Её индекс связывает значения с теми же строками, что и в исходном DataFrame.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>У price есть метки A,B, а у discount — B,C. Какова структура price - discount?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Индекс содержит только B, остальные метки удаляются</button><button type="button" class="quiz-option" data-choice="1">Индекс содержит A,B,C; число есть на B, на A и C — пропуски</button><button type="button" class="quiz-option" data-choice="2">Индекс содержит A,B; discount сопоставляется по позиции</button><button type="button" class="quiz-option" data-choice="3">Операция всегда завершается ошибкой из-за разных меток</button></div><p class="quiz-feedback" hidden>Series выравниваются по меткам. Результат сохраняет объединение индексов, а метки без пары получают пропуск.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Проверка показала, что order_id существует, не пуст и уникален. Какой вывод обоснован?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">pandas доказал, что источник содержит все реальные заказы</button><button type="button" class="quiz-option" data-choice="1">RangeIndex автоматически стал бизнес-ключом</button><button type="button" class="quiz-option" data-choice="2">Объявленный кандидатный ключ проходит механическую проверку, но смысл grain всё равно задаётся предметным контрактом</button><button type="button" class="quiz-option" data-choice="3">Любой другой столбец таблицы теперь также уникален</button></div><p class="quiz-feedback" hidden>Непустота и уникальность поддерживают контракт выбранного ключа, но не определяют предметный смысл строки и не обнаруживают потерянные сущности.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>Что верно для amount = orders[&quot;amount&quot;]?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">amount становится обычным списком без меток</button><button type="button" class="quiz-option" data-choice="1">amount обязательно становится DataFrame с двумя осями</button><button type="button" class="quiz-option" data-choice="2">amount получает новый RangeIndex, не связанный с orders</button><button type="button" class="quiz-option" data-choice="3">amount является Series и сохраняет индекс строк orders</button></div><p class="quiz-feedback" hidden>Выбор одного столбца возвращает Series. Её индекс связывает значения с теми же строками, что и в исходном DataFrame.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>У price есть метки A,B, а у discount — B,C. Какова структура price - discount?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Индекс содержит только B, остальные метки удаляются</button><button type="button" class="quiz-option" data-choice="1">Индекс содержит A,B,C; число есть на B, на A и C — пропуски</button><button type="button" class="quiz-option" data-choice="2">Индекс содержит A,B; discount сопоставляется по позиции</button><button type="button" class="quiz-option" data-choice="3">Операция всегда завершается ошибкой из-за разных меток</button></div><p class="quiz-feedback" hidden>Series выравниваются по меткам. Результат сохраняет объединение индексов, а метки без пары получают пропуск.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Проверка показала, что order_id существует, не содержит None, пустых строк и строк из пробелов и уникален. Какой вывод обоснован?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">pandas доказал, что источник содержит все реальные заказы</button><button type="button" class="quiz-option" data-choice="1">RangeIndex автоматически стал бизнес-ключом</button><button type="button" class="quiz-option" data-choice="2">Объявленный кандидатный ключ проходит механическую проверку, но смысл grain всё равно задаётся предметным контрактом</button><button type="button" class="quiz-option" data-choice="3">Любой другой столбец таблицы теперь также уникален</button></div><p class="quiz-feedback" hidden>Непустота и уникальность поддерживают контракт выбранного ключа, но не определяют предметный смысл строки и не обнаруживают потерянные сущности.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util
@@ -583,6 +609,16 @@ class DataFrameInspectorTest(unittest.TestCase):
 
         self.assertFalse(report[&quot;declared_grain&quot;][&quot;valid&quot;])
         self.assertEqual(report[&quot;declared_grain&quot;][&quot;null_key_rows&quot;], 1)
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;missing_key_rows&quot;], 1)
+
+    def test_blank_business_keys_are_invalid(self) -&gt; None:
+        frame = pd.DataFrame({&quot;order_id&quot;: [&quot;A&quot;, &quot;&quot;, &quot;   &quot;]})
+        report = INSPECTOR.inspect_dataframe(frame, [&quot;order_id&quot;])
+
+        self.assertFalse(report[&quot;declared_grain&quot;][&quot;valid&quot;])
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;null_key_rows&quot;], 0)
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;blank_key_rows&quot;], 2)
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;missing_key_rows&quot;], 2)
 
     def test_composite_key_is_checked_as_one_contract(self) -&gt; None:
         valid = pd.DataFrame(
@@ -607,6 +643,20 @@ class DataFrameInspectorTest(unittest.TestCase):
         self.assertTrue(valid_report[&quot;declared_grain&quot;][&quot;valid&quot;])
         self.assertFalse(invalid_report[&quot;declared_grain&quot;][&quot;valid&quot;])
         self.assertEqual(invalid_report[&quot;declared_grain&quot;][&quot;duplicate_key_rows&quot;], 2)
+
+    def test_blank_or_null_part_invalidates_composite_key(self) -&gt; None:
+        frame = pd.DataFrame(
+            {
+                &quot;order_id&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;],
+                &quot;product_id&quot;: [&quot;P1&quot;, &quot;  &quot;, None],
+            }
+        )
+        report = INSPECTOR.inspect_dataframe(frame, [&quot;order_id&quot;, &quot;product_id&quot;])
+
+        self.assertFalse(report[&quot;declared_grain&quot;][&quot;valid&quot;])
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;blank_key_rows&quot;], 1)
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;null_key_rows&quot;], 1)
+        self.assertEqual(report[&quot;declared_grain&quot;][&quot;missing_key_rows&quot;], 2)
 
     def test_missing_or_empty_key_contract_is_rejected(self) -&gt; None:
         frame = pd.DataFrame({&quot;id&quot;: [1]})
@@ -751,8 +801,19 @@ def inspect_dataframe(frame: pd.DataFrame, keys: list[str]) -&gt; dict[str, Any]
     if missing_keys:
         raise TableContractError(f&quot;missing key columns: {missing_keys}&quot;)
 
+    key_values = frame[keys]
+    null_key_mask = key_values.isna().any(axis=1)
+    blank_key_cells = pd.DataFrame(False, index=frame.index, columns=keys)
+    for key in keys:
+        text = key_values[key].astype(&quot;string&quot;)
+        blank_key_cells[key] = text.str.strip().eq(&quot;&quot;).fillna(False)
+
+    blank_key_mask = blank_key_cells.any(axis=1)
+    missing_key_mask = null_key_mask | blank_key_mask
     duplicate_key_rows = int(frame.duplicated(keys, keep=False).sum())
-    null_key_rows = int(frame[keys].isna().any(axis=1).sum())
+    null_key_rows = int(null_key_mask.sum())
+    blank_key_rows = int(blank_key_mask.sum())
+    missing_key_rows = int(missing_key_mask.sum())
     return {
         &quot;table&quot;: {
             &quot;object_type&quot;: type(frame).__name__,
@@ -768,8 +829,10 @@ def inspect_dataframe(frame: pd.DataFrame, keys: list[str]) -&gt; dict[str, Any]
         &quot;declared_grain&quot;: {
             &quot;keys&quot;: keys,
             &quot;null_key_rows&quot;: null_key_rows,
+            &quot;blank_key_rows&quot;: blank_key_rows,
+            &quot;missing_key_rows&quot;: missing_key_rows,
             &quot;duplicate_key_rows&quot;: duplicate_key_rows,
-            &quot;valid&quot;: duplicate_key_rows == 0 and null_key_rows == 0,
+            &quot;valid&quot;: duplicate_key_rows == 0 and missing_key_rows == 0,
         },
     }
 

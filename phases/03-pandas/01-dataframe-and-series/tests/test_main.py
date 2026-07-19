@@ -84,6 +84,16 @@ class DataFrameInspectorTest(unittest.TestCase):
 
         self.assertFalse(report["declared_grain"]["valid"])
         self.assertEqual(report["declared_grain"]["null_key_rows"], 1)
+        self.assertEqual(report["declared_grain"]["missing_key_rows"], 1)
+
+    def test_blank_business_keys_are_invalid(self) -> None:
+        frame = pd.DataFrame({"order_id": ["A", "", "   "]})
+        report = INSPECTOR.inspect_dataframe(frame, ["order_id"])
+
+        self.assertFalse(report["declared_grain"]["valid"])
+        self.assertEqual(report["declared_grain"]["null_key_rows"], 0)
+        self.assertEqual(report["declared_grain"]["blank_key_rows"], 2)
+        self.assertEqual(report["declared_grain"]["missing_key_rows"], 2)
 
     def test_composite_key_is_checked_as_one_contract(self) -> None:
         valid = pd.DataFrame(
@@ -108,6 +118,20 @@ class DataFrameInspectorTest(unittest.TestCase):
         self.assertTrue(valid_report["declared_grain"]["valid"])
         self.assertFalse(invalid_report["declared_grain"]["valid"])
         self.assertEqual(invalid_report["declared_grain"]["duplicate_key_rows"], 2)
+
+    def test_blank_or_null_part_invalidates_composite_key(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "order_id": ["A", "B", "C"],
+                "product_id": ["P1", "  ", None],
+            }
+        )
+        report = INSPECTOR.inspect_dataframe(frame, ["order_id", "product_id"])
+
+        self.assertFalse(report["declared_grain"]["valid"])
+        self.assertEqual(report["declared_grain"]["blank_key_rows"], 1)
+        self.assertEqual(report["declared_grain"]["null_key_rows"], 1)
+        self.assertEqual(report["declared_grain"]["missing_key_rows"], 2)
 
     def test_missing_or_empty_key_contract_is_rejected(self) -> None:
         frame = pd.DataFrame({"id": [1]})
