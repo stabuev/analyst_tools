@@ -1128,9 +1128,9 @@ window.COURSE_DATA = {
           "slug": "selection-and-filtering",
           "title": "Выбор строк и столбцов",
           "status": "complete",
-          "time_minutes": 75,
-          "outcome": "Формулирует булевы условия и изменяет строки через loc без chained assignment.",
-          "artifact": "Набор безопасных селекторов и проверок фильтра",
+          "time_minutes": 90,
+          "outcome": "Выбирает строки и столбцы по меткам или позициям, строит согласованную с индексом nullable-маску, явно разрешает NA и изменяет выбранные строки одним loc-присваиванием.",
+          "artifact": "Строгий селектор с nullable-маской, отчётом об unknown-строках и безопасным loc-присваиванием",
           "type": "build",
           "tracks": [
             "core"
