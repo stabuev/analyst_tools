@@ -116,7 +116,7 @@ flowchart LR
 | 01 | [DataFrame, Series и индексы](phases/03-pandas/01-dataframe-and-series) | complete |
 | 02 | [Типы данных и пропуски](phases/03-pandas/02-types-and-missing-values) | complete |
 | 03 | [Выбор строк и столбцов](phases/03-pandas/03-selection-and-filtering) | complete |
-| 04 | [Преобразования без apply по умолчанию](phases/03-pandas/04-transformations) | complete |
+| 04 | [Производные столбцы: арифметика, where и mask](phases/03-pandas/04-transformations) | complete |
 | 05 | [GroupBy и единица анализа](phases/03-pandas/05-groupby) | complete |
 | 06 | [Joins, ключи и cardinality](phases/03-pandas/06-joins-and-cardinality) | complete |
 | 07 | [Pivot, melt и tidy data](phases/03-pandas/07-reshape) | complete |

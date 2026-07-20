@@ -1,77 +1,81 @@
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
+import math
+from numbers import Real
 
 import pandas as pd
 
 
 class TransformContractError(ValueError):
-    """Raised when an input table does not support the declared transformation."""
+    """Raised when a table cannot be transformed without changing its meaning."""
 
 
-def normalize_orders(frame: pd.DataFrame) -> pd.DataFrame:
-    required = {"order_id", "status", "currency", "amount"}
-    missing = sorted(required - set(frame.columns))
-    if missing:
-        raise TransformContractError(f"missing order columns: {missing}")
-    result = frame.copy()
-    result["status"] = result["status"].astype("string").str.strip().str.lower()
-    result["currency"] = result["currency"].astype("string").str.strip().str.upper()
-    result["amount"] = pd.to_numeric(result["amount"], errors="coerce").astype("Float64")
-    result["is_paid"] = result["status"].eq("paid").astype("boolean")
-    result["paid_amount"] = result["amount"].where(result["is_paid"], 0).astype("Float64")
-    result["amount_band"] = pd.cut(
-        result["amount"],
-        bins=[float("-inf"), 0, 100, 1000, float("inf")],
-        labels=["zero", "small", "medium", "large"],
-        right=True,
-    )
-    return result
+def _validate_review_threshold(review_threshold: Real) -> float:
+    if isinstance(review_threshold, bool) or not isinstance(review_threshold, Real):
+        raise TransformContractError("review_threshold must be a finite non-negative number")
+    threshold = float(review_threshold)
+    if not math.isfinite(threshold) or threshold < 0:
+        raise TransformContractError("review_threshold must be a finite non-negative number")
+    return threshold
 
 
-def add_line_totals(frame: pd.DataFrame) -> pd.DataFrame:
+def _validate_input(frame: pd.DataFrame) -> None:
     required = {"quantity", "unit_price"}
     missing = sorted(required - set(frame.columns))
     if missing:
-        raise TransformContractError(f"missing item columns: {missing}")
+        raise TransformContractError(f"missing columns: {missing}")
+
+    produced = {"line_total", "requires_review", "review_amount"}
+    collisions = sorted(produced & set(frame.columns))
+    if collisions:
+        raise TransformContractError(f"output columns already exist: {collisions}")
+
+    expected_dtypes = {"quantity": "Int64", "unit_price": "Float64"}
+    wrong_dtypes = {
+        column: {"expected": expected, "actual": str(frame[column].dtype)}
+        for column, expected in expected_dtypes.items()
+        if str(frame[column].dtype) != expected
+    }
+    if wrong_dtypes:
+        raise TransformContractError(
+            f"input must already satisfy the dtype contract: {wrong_dtypes}"
+        )
+
+    quantity_is_invalid = frame["quantity"].notna() & frame["quantity"].le(0)
+    price_is_invalid = frame["unit_price"].notna() & frame["unit_price"].lt(0)
+    if quantity_is_invalid.any():
+        labels = frame.index[quantity_is_invalid].tolist()
+        raise TransformContractError(f"quantity must be positive at rows: {labels}")
+    if price_is_invalid.any():
+        labels = frame.index[price_is_invalid].tolist()
+        raise TransformContractError(f"unit_price must be non-negative at rows: {labels}")
+
+
+def add_line_item_features(
+    frame: pd.DataFrame,
+    *,
+    review_threshold: Real,
+) -> pd.DataFrame:
+    """Add row-preserving line-item features to an already typed DataFrame.
+
+    Missing quantity or price remains unknown in every dependent feature. The input
+    object is not modified; its row count, index and existing columns are preserved.
+    """
+
+    threshold = _validate_review_threshold(review_threshold)
+    _validate_input(frame)
+
     result = frame.copy()
-    quantity = pd.to_numeric(result["quantity"], errors="raise").astype("Int64")
-    unit_price = pd.to_numeric(result["unit_price"], errors="raise").astype("Float64")
-    if quantity.le(0).any() or unit_price.lt(0).any():
-        raise TransformContractError("quantity must be positive and price non-negative")
-    result["quantity"] = quantity
-    result["unit_price"] = unit_price
-    result["line_total"] = (quantity * unit_price).astype("Float64")
+
+    line_total = (result["quantity"] * result["unit_price"]).astype("Float64")
+    requires_review = line_total.ge(threshold).astype("boolean")
+
+    # Series.where uses ``other`` not only for False, but also for pd.NA in a nullable
+    # condition. Restore unknown decisions explicitly instead of turning them into zero.
+    review_amount = line_total.where(requires_review, 0.0).astype("Float64")
+    review_amount = review_amount.mask(requires_review.isna(), pd.NA)
+
+    result["line_total"] = line_total
+    result["requires_review"] = requires_review
+    result["review_amount"] = review_amount.astype("Float64")
     return result
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Vectorized order transformations")
-    parser.add_argument("orders", type=Path)
-    parser.add_argument("--items", type=Path)
-    args = parser.parse_args()
-    try:
-        orders = normalize_orders(pd.read_csv(args.orders))
-        report = {
-            "orders": len(orders),
-            "paid_orders": int(orders["is_paid"].sum()),
-            "paid_amount_by_currency": {
-                key: float(value)
-                for key, value in orders.groupby("currency", dropna=False)["paid_amount"]
-                .sum()
-                .items()
-            },
-        }
-        if args.items:
-            items = add_line_totals(pd.read_csv(args.items))
-            report["item_rows"] = len(items)
-            report["line_total"] = float(items["line_total"].sum())
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-    except (OSError, TransformContractError, ValueError) as error:
-        parser.error(str(error))
-
-
-if __name__ == "__main__":
-    main()
