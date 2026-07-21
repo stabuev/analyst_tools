@@ -1183,8 +1183,8 @@ window.COURSE_DATA = {
           "title": "Joins, ключи и cardinality",
           "status": "complete",
           "time_minutes": 105,
-          "outcome": "Предсказывает cardinality объединения, валидирует ключи и предотвращает размножение выручки.",
-          "artifact": "Проверка cardinality и безопасного merge",
+          "outcome": "До merge объявляет grain обеих таблиц, ключ, ожидаемую cardinality и политику unmatched-ключей, а после проверяет число строк и сохранение order-level метрик.",
+          "artifact": "Чистые функции контрактного merge и присоединения order-level свёртки",
           "type": "case",
           "tracks": [
             "core"

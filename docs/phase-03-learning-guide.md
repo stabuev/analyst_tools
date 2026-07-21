@@ -162,31 +162,39 @@ paid = working.loc[
 
 ## 4. Преобразование и агрегат имеют разные grain
 
-Производный столбец сохраняет число строк:
+После проверки dtype постройте `line_total` построчными операциями `Series`. Этот шаг
+сохраняет grain товарной позиции: число строк, индекс и составной ключ
+`(order_id, product_id)` не меняются.
+
+Затем передайте уже типизированные столбцы `order_id`, `product_id`, `line_total` в
+`aggregate_order_items` из `03/05`. Агрегация меняет grain и возвращает одну строку на
+заказ со столбцами:
+
+```text
+order_id
+line_count
+known_amount_lines
+missing_amount_lines
+known_amount_total
+order_amount
+```
+
+Не заменяйте неизвестную позицию нулём. `known_amount_total` хранит сумму известных
+частей, а строгий `order_amount` остаётся `pd.NA`, если неизвестна хотя бы одна часть.
+
+Проверьте независимые условия:
 
 ```python
-items = pd.read_csv(DATA / "order_items.csv").assign(
-    line_total=lambda frame: frame["quantity"] * frame["unit_price"]
+assert order_rollup["order_id"].is_unique
+assert order_rollup["line_count"].sum() == len(items)
+assert (
+    order_rollup["missing_amount_lines"].sum()
+    == items["line_total"].isna().sum()
 )
 ```
 
-Агрегация меняет grain:
-
-```python
-item_totals = (
-    items.groupby("order_id", as_index=False, dropna=False)
-    .agg(item_rows=("product_id", "size"), item_total=("line_total", "sum"))
-)
-```
-
-Проверьте два независимых условия:
-
-```python
-assert item_totals["order_id"].is_unique
-assert item_totals["item_total"].sum() == items["line_total"].sum()
-```
-
-Первое защищает grain результата, второе — control total. Одно не заменяет другое.
+Уникальность защищает новый grain, а reconciliation строк и пропусков — полноту. Одно
+не заменяет другое.
 
 ## 5. Join сначала моделируется на бумаге
 
@@ -194,15 +202,16 @@ assert item_totals["item_total"].sum() == items["line_total"].sum()
 
 | Левая таблица | Правая таблица | Ключ уникален слева | Ключ уникален справа | Ожидаемая cardinality |
 |---|---|---|---|---|
-| orders | item_totals | да | да | one-to-one |
+| orders | order_rollup | да | да | one-to-one |
 | orders | users | нет по `user_id` | да | many-to-one |
 
-Только затем выполняйте соединения:
+Для каждого ключа дополнительно зафиксируйте `how`, target grain, политику `left_only` и
+`right_only`, ожидаемое число строк и control total. Только затем выполняйте соединения:
 
 ```python
 mart = (
     working.merge(
-        item_totals,
+        order_rollup,
         on="order_id",
         how="left",
         validate="one_to_one",
@@ -218,8 +227,12 @@ mart = (
 )
 ```
 
-`indicator` не решает политику unmatched rows. Он делает проблему наблюдаемой. Проверьте,
-что число строк mart совпало с orders и что общая сумма заказа не размножилась.
+`indicator` не решает политику unmatched rows и после left join не показывает правые
+ключи без пары. Сравните уникальные ключи обеих сторон отдельно. Заказ без свёртки можно
+сохранить как `left_only` для расследования; свёртка неизвестного заказа должна
+остановить сборку. Проверьте, что число строк mart совпало с orders, `order_id` остался
+уникальным, исходные значения orders сохранились, а строгий `order_amount` не потерял
+`pd.NA`.
 
 ## 6. Reshape и chaining не должны скрывать проверки
 
