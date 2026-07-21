@@ -1,23 +1,43 @@
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
-
 import pandas as pd
+from pandas.api.types import is_timedelta64_dtype
+
+EXPLICIT_OFFSET_PATTERN = r"(?:Z|[+-]\d{2}:\d{2})$"
 
 
 class TimeContractError(ValueError):
-    """Raised when timestamps cannot be placed on a reliable timeline."""
+    """Raised when temporal data violates the declared source contract."""
 
 
-def normalize_utc(series: pd.Series) -> pd.Series:
-    source = series.astype("string")
-    parsed = pd.to_datetime(source, errors="coerce", format="mixed", utc=True)
-    non_empty = source.notna() & source.str.strip().ne("")
-    invalid = non_empty & parsed.isna()
+def _require_series(value: object, *, name: str) -> pd.Series:
+    if not isinstance(value, pd.Series):
+        raise TimeContractError(f"{name} must be a pandas Series")
+    return value
+
+
+def parse_aware_utc(series: pd.Series) -> pd.Series:
+    """Parse ISO 8601 timestamps with explicit offsets onto the UTC timeline."""
+
+    series = _require_series(series, name="series")
+    source = series.astype("string").str.strip()
+    missing = source.isna() | source.eq("").fillna(False)
+    parsed = pd.to_datetime(
+        source.mask(missing),
+        format="ISO8601",
+        errors="coerce",
+        utc=True,
+    )
+    invalid = ~missing & parsed.isna()
     if invalid.any():
         raise TimeContractError(f"cannot parse {int(invalid.sum())} timestamps")
+
+    has_offset = source.str.contains(EXPLICIT_OFFSET_PATTERN, regex=True, na=False)
+    naive = ~missing & ~has_offset
+    if naive.any():
+        raise TimeContractError(
+            f"{int(naive.sum())} timestamps have no explicit UTC offset"
+        )
     return parsed
 
 
@@ -27,54 +47,50 @@ def add_business_calendar(
     column: str,
     timezone: str,
 ) -> pd.DataFrame:
-    if column not in frame:
+    """Add UTC, local timestamp, local day, and local hour without changing grain."""
+
+    if not isinstance(frame, pd.DataFrame):
+        raise TimeContractError("frame must be a pandas DataFrame")
+    if column not in frame.columns:
         raise TimeContractError(f"missing timestamp column: {column}")
+    if not isinstance(timezone, str) or not timezone.strip():
+        raise TimeContractError("timezone must be a non-empty named zone")
+
     result = frame.copy()
-    utc = normalize_utc(result[column])
+    utc = parse_aware_utc(result[column])
     try:
         local = utc.dt.tz_convert(timezone)
     except (TypeError, ValueError, KeyError) as error:
         raise TimeContractError(f"invalid timezone: {timezone}") from error
+
     result[f"{column}_utc"] = utc
     result[f"{column}_local"] = local
-    result["local_date"] = local.dt.date
+    result["local_day"] = local.dt.normalize()
     result["local_hour"] = local.dt.hour.astype("Int64")
-    result["local_week_start"] = (
-        local.dt.tz_localize(None).dt.to_period("W-SUN").dt.start_time.dt.date
-    )
     return result
 
 
-def elapsed_hours(start: pd.Series, end: pd.Series) -> pd.Series:
-    start_utc = normalize_utc(start)
-    end_utc = normalize_utc(end)
-    result = (end_utc - start_utc).dt.total_seconds() / 3600
-    if result.dropna().lt(0).any():
+def elapsed_time(start: pd.Series, end: pd.Series) -> pd.Series:
+    """Return non-negative elapsed time between index-aligned aware moments."""
+
+    start = _require_series(start, name="start")
+    end = _require_series(end, name="end")
+    if not start.index.equals(end.index):
+        raise TimeContractError("start and end indexes must match exactly")
+
+    start_utc = parse_aware_utc(start)
+    end_utc = parse_aware_utc(end)
+    duration = (end_utc - start_utc).rename("elapsed_time")
+    if duration.dropna().lt(pd.Timedelta(0)).any():
         raise TimeContractError("end timestamp precedes start timestamp")
-    return result.astype("Float64")
+    return duration
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Normalize timestamps and calendar fields")
-    parser.add_argument("input", type=Path)
-    parser.add_argument("--column", required=True)
-    parser.add_argument("--timezone", required=True)
-    args = parser.parse_args()
-    try:
-        result = add_business_calendar(
-            pd.read_csv(args.input),
-            column=args.column,
-            timezone=args.timezone,
-        )
-        report = {
-            "rows": len(result),
-            "missing_timestamps": int(result[f"{args.column}_utc"].isna().sum()),
-            "local_dates": sorted(str(value) for value in result["local_date"].dropna().unique()),
-        }
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-    except (OSError, TimeContractError) as error:
-        parser.error(str(error))
+def duration_to_hours(duration: pd.Series) -> pd.Series:
+    """Convert a Timedelta Series to reporting hours without losing whole days."""
 
-
-if __name__ == "__main__":
-    main()
+    duration = _require_series(duration, name="duration")
+    if not is_timedelta64_dtype(duration.dtype):
+        raise TimeContractError("duration must have a timedelta64 dtype")
+    hours = duration.dt.total_seconds().div(3600).astype("Float64")
+    return hours.rename("elapsed_hours")

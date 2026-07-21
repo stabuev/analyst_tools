@@ -21,12 +21,34 @@ def load_artifact():
 
 def main() -> None:
     time = load_artifact()
-    result = time.add_business_calendar(
-        pd.read_csv(DATA),
+
+    orders = pd.read_csv(DATA)
+    calendar = time.add_business_calendar(
+        orders,
         column="ordered_at",
         timezone="Europe/Moscow",
     )
-    print(result[["order_id", "ordered_at_utc", "local_date"]].to_string(index=False))
+    print("Календарный день заказа в бизнес-зоне:")
+    print(
+        calendar[["order_id", "ordered_at_utc", "ordered_at_local", "local_day"]]
+        .head(3)
+        .to_string(index=False)
+    )
+
+    delivery = pd.DataFrame(
+        {
+            "started_at": ["2026-03-29T01:30:00+01:00", None],
+            "finished_at": ["2026-03-29T03:30:00+02:00", None],
+        },
+        index=["D1", "D2"],
+    )
+    duration = time.elapsed_time(delivery["started_at"], delivery["finished_at"])
+    delivery = delivery.assign(
+        elapsed_time=duration,
+        elapsed_hours=time.duration_to_hours(duration),
+    )
+    print("\nФактически прошедшее время:")
+    print(delivery.to_string())
 
 
 if __name__ == "__main__":
