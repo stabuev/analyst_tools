@@ -1201,8 +1201,8 @@ window.COURSE_DATA = {
           "title": "Pivot, melt и tidy data",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Преобразует wide- и long-формы без потери идентификаторов и обнаруживает неоднозначный pivot.",
-          "artifact": "Утилита reshape с проверкой ключей",
+          "outcome": "Объявляет grain wide- и long-таблиц, переносит уровни одной переменной между названиями столбцов и строками, проверяет уникальность ключа pivot-ячейки и отделяет reshape от агрегации.",
+          "artifact": "Чистые функции melt и pivot с контрактом идентичности, dtype и уникальности ячейки",
           "type": "build",
           "tracks": [
             "core"
