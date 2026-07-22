@@ -1273,7 +1273,7 @@ window.COURSE_DATA = {
           "title": "Method chaining и читаемые пайплайны",
           "status": "complete",
           "time_minutes": 75,
-          "outcome": "Собирает преобразования в чистую цепочку assign, pipe и query с проверяемыми промежуточными инвариантами.",
+          "outcome": "Собирает уже проверенные преобразования в чистый pandas pipeline через именованные стадии, assign и pipe, размещает checkpoints на границах контрактов и сохраняет промежуточный результат, когда он нужен для диагностики.",
           "artifact": "Композиционный pipeline подготовки таблицы",
           "type": "build",
           "tracks": [

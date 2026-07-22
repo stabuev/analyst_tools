@@ -1,38 +1,142 @@
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
-from typing import Any
-
 import pandas as pd
+from pandas.api.types import CategoricalDtype
+
+REQUIRED_COLUMNS = {"order_id", "ordered_at", "status", "currency", "amount"}
+STATUS_CATEGORIES = ["paid", "refunded", "pending", "cancelled"]
+STATUS_DTYPE = CategoricalDtype(categories=STATUS_CATEGORIES, ordered=False)
+EXPLICIT_OFFSET_PATTERN = r"(?:Z|[+-]\d{2}:\d{2})$"
 
 
 class PipelineContractError(ValueError):
-    """Raised when a pipeline stage breaks its declared invariant."""
+    """Raised when a named pipeline stage breaks its declared contract."""
 
 
-def validate_order_grain(frame: pd.DataFrame) -> pd.DataFrame:
-    if "order_id" not in frame:
-        raise PipelineContractError("missing order_id")
-    if frame["order_id"].isna().any() or not frame["order_id"].is_unique:
-        raise PipelineContractError("expected one row per non-null order_id")
+def _require_columns(frame: pd.DataFrame, *, stage: str) -> None:
+    missing = sorted(REQUIRED_COLUMNS - set(frame.columns))
+    if missing:
+        raise PipelineContractError(f"{stage}: missing columns: {missing}")
+
+
+def _examples(series: pd.Series, mask: pd.Series) -> list[str]:
+    values = series.loc[mask].astype("string").dropna().unique().tolist()
+    return [str(value) for value in values[:5]]
+
+
+def _normalize_text(series: pd.Series) -> pd.Series:
+    normalized = (
+        series.astype("string")
+        .str.normalize("NFKC")
+        .str.strip()
+        .str.casefold()
+    )
+    return normalized.mask(normalized.eq("").fillna(False), pd.NA)
+
+
+def check_raw_orders(frame: pd.DataFrame) -> pd.DataFrame:
+    """Check the incoming schema and order grain without changing the frame."""
+
+    if not isinstance(frame, pd.DataFrame):
+        raise PipelineContractError("check_raw_orders: expected a pandas DataFrame")
+    _require_columns(frame, stage="check_raw_orders")
+
+    order_id = frame["order_id"].astype("string").str.strip()
+    missing_key = order_id.isna() | order_id.eq("").fillna(False)
+    if missing_key.any():
+        raise PipelineContractError(
+            "check_raw_orders: order_id must be non-missing and non-blank"
+        )
+    if order_id.duplicated().any():
+        duplicates = _examples(order_id, order_id.duplicated(keep=False))
+        raise PipelineContractError(
+            f"check_raw_orders: expected one row per order_id; duplicates: {duplicates}"
+        )
     return frame
 
 
-def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
-    required = {"status", "currency", "amount"}
-    missing = sorted(required - set(frame.columns))
-    if missing:
-        raise PipelineContractError(f"missing columns: {missing}")
-    return frame.assign(
-        status=lambda value: value["status"].astype("string").str.strip().str.lower(),
-        currency=lambda value: value["currency"].astype("string").str.strip().str.upper(),
-        amount=lambda value: pd.to_numeric(
-            value["amount"],
-            errors="coerce",
-        ).astype("Float64"),
+def normalize_order_fields(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize text and parse amount without confusing invalid values with missing."""
+
+    _require_columns(frame, stage="normalize_order_fields")
+
+    status = _normalize_text(frame["status"])
+    if status.isna().any():
+        raise PipelineContractError(
+            "normalize_order_fields: status must be non-missing and non-blank"
+        )
+    unknown_status = ~status.isin(STATUS_CATEGORIES)
+    if unknown_status.any():
+        unknown = _examples(status, unknown_status)
+        raise PipelineContractError(
+            f"normalize_order_fields: unknown status values: {unknown}"
+        )
+
+    currency = (
+        frame["currency"]
+        .astype("string")
+        .str.normalize("NFKC")
+        .str.strip()
+        .str.upper()
     )
+    currency = currency.mask(currency.eq("").fillna(False), pd.NA)
+    if currency.isna().any():
+        raise PipelineContractError(
+            "normalize_order_fields: currency must be non-missing and non-blank"
+        )
+    invalid_currency = ~currency.str.fullmatch(r"[A-Z]{3}", na=False)
+    if invalid_currency.any():
+        invalid = _examples(currency, invalid_currency)
+        raise PipelineContractError(
+            f"normalize_order_fields: invalid currency codes: {invalid}"
+        )
+
+    amount_source = frame["amount"].astype("string").str.strip()
+    amount_missing = amount_source.isna() | amount_source.eq("").fillna(False)
+    amount = pd.to_numeric(
+        amount_source.mask(amount_missing),
+        errors="coerce",
+    )
+    invalid_amount = (~amount_missing & amount.isna()) | amount.isin(
+        [float("inf"), float("-inf")]
+    )
+    if invalid_amount.any():
+        invalid = _examples(amount_source, invalid_amount)
+        raise PipelineContractError(
+            f"normalize_order_fields: invalid amount values: {invalid}"
+        )
+
+    return frame.assign(
+        status=status.astype(STATUS_DTYPE),
+        currency=currency.astype("string"),
+        amount=amount.astype("Float64"),
+    )
+
+
+def check_normalized_orders(
+    frame: pd.DataFrame,
+    *,
+    expected_index: pd.Index,
+) -> pd.DataFrame:
+    """Checkpoint the text, dtype, vocabulary, and row-identity contracts."""
+
+    if not frame.index.equals(expected_index):
+        raise PipelineContractError(
+            "check_normalized_orders: stage changed row labels or their order"
+        )
+    if str(frame["amount"].dtype) != "Float64":
+        raise PipelineContractError(
+            "check_normalized_orders: amount must have nullable Float64 dtype"
+        )
+    if frame["status"].dtype != STATUS_DTYPE:
+        raise PipelineContractError(
+            "check_normalized_orders: status vocabulary or category order changed"
+        )
+    if str(frame["currency"].dtype) != "string":
+        raise PipelineContractError(
+            "check_normalized_orders: currency must have string dtype"
+        )
+    return frame
 
 
 def add_time_columns(
@@ -40,78 +144,114 @@ def add_time_columns(
     *,
     timezone: str,
 ) -> pd.DataFrame:
-    if "ordered_at" not in frame:
-        raise PipelineContractError("missing ordered_at")
-    source = frame["ordered_at"].astype("string")
-    utc = pd.to_datetime(source, errors="coerce", format="mixed", utc=True)
-    invalid = source.notna() & source.str.strip().ne("") & utc.isna()
+    """Parse aware timestamps onto UTC and derive the local business date."""
+
+    source = frame["ordered_at"].astype("string").str.strip()
+    missing = source.isna() | source.eq("").fillna(False)
+    parsed = pd.to_datetime(
+        source.mask(missing),
+        format="ISO8601",
+        errors="coerce",
+        utc=True,
+    )
+    invalid = ~missing & parsed.isna()
     if invalid.any():
-        raise PipelineContractError("ordered_at contains invalid timestamps")
+        values = _examples(source, invalid)
+        raise PipelineContractError(
+            f"add_time_columns: invalid ordered_at values: {values}"
+        )
+
+    has_offset = source.str.contains(
+        EXPLICIT_OFFSET_PATTERN,
+        regex=True,
+        na=False,
+    )
+    naive = ~missing & ~has_offset
+    if naive.any():
+        values = _examples(source, naive)
+        raise PipelineContractError(
+            f"add_time_columns: timestamps need an explicit UTC offset: {values}"
+        )
+
     try:
-        local = utc.dt.tz_convert(timezone)
+        local = parsed.dt.tz_convert(timezone)
     except (TypeError, ValueError, KeyError) as error:
-        raise PipelineContractError(f"invalid timezone: {timezone}") from error
+        raise PipelineContractError(
+            f"add_time_columns: invalid timezone: {timezone}"
+        ) from error
+
     return frame.assign(
-        ordered_at_utc=utc,
+        ordered_at_utc=parsed,
         local_order_date=local.dt.date,
     )
 
 
 def add_paid_metrics(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add paid flags and amounts after status and amount contracts are satisfied."""
+
+    if frame["status"].isna().any():
+        raise PipelineContractError(
+            "add_paid_metrics: status must be known before calculating paid metrics"
+        )
+    is_paid = frame["status"].eq("paid").astype("boolean")
     return frame.assign(
-        is_paid=lambda value: value["status"].eq("paid").astype("boolean"),
-        paid_amount=lambda value: (
-            value["amount"].where(value["status"].eq("paid"), 0).astype("Float64")
-        ),
+        is_paid=is_paid,
+        paid_amount=frame["amount"].where(is_paid, 0).astype("Float64"),
     )
 
 
-def check_invariants(frame: pd.DataFrame) -> pd.DataFrame:
-    validate_order_grain(frame)
-    if frame.loc[frame["is_paid"], "paid_amount"].ne(frame.loc[frame["is_paid"], "amount"]).any():
-        raise PipelineContractError("paid rows must preserve amount")
-    if frame.loc[~frame["is_paid"], "paid_amount"].ne(0).any():
-        raise PipelineContractError("non-paid rows must contribute zero")
+def check_prepared_orders(
+    frame: pd.DataFrame,
+    *,
+    expected_index: pd.Index,
+    expected_rows: int,
+) -> pd.DataFrame:
+    """Check final grain, row identity, and paid-metric invariants."""
+
+    if len(frame) != expected_rows or not frame.index.equals(expected_index):
+        raise PipelineContractError(
+            "check_prepared_orders: a preserving stage changed rows or their order"
+        )
+    check_raw_orders(frame)
+
+    paid = frame["is_paid"]
+    paid_missing_amount = paid & frame["amount"].isna()
+    if paid_missing_amount.any():
+        order_ids = _examples(frame["order_id"], paid_missing_amount)
+        raise PipelineContractError(
+            f"check_prepared_orders: paid orders need amount: {order_ids}"
+        )
+    if frame.loc[paid, "paid_amount"].ne(frame.loc[paid, "amount"]).any():
+        raise PipelineContractError(
+            "check_prepared_orders: paid rows must preserve amount"
+        )
+    if frame.loc[~paid, "paid_amount"].ne(0).any():
+        raise PipelineContractError(
+            "check_prepared_orders: non-paid rows must contribute zero"
+        )
     return frame
 
 
 def prepare_orders(frame: pd.DataFrame, *, timezone: str) -> pd.DataFrame:
+    """Run the checked order pipeline and return a deterministic order-level table."""
+
+    if not isinstance(frame, pd.DataFrame):
+        raise PipelineContractError("prepare_orders: expected a pandas DataFrame")
+    source = frame.copy(deep=True)
+    source_index = source.index.copy()
+    source_rows = len(source)
+
     return (
-        frame.copy()
-        .pipe(validate_order_grain)
-        .pipe(normalize_columns)
+        source.pipe(check_raw_orders)
+        .pipe(normalize_order_fields)
+        .pipe(check_normalized_orders, expected_index=source_index)
         .pipe(add_time_columns, timezone=timezone)
         .pipe(add_paid_metrics)
-        .pipe(check_invariants)
-        .sort_values("order_id")
+        .pipe(
+            check_prepared_orders,
+            expected_index=source_index,
+            expected_rows=source_rows,
+        )
+        .sort_values("order_id", kind="stable")
         .reset_index(drop=True)
     )
-
-
-def pipeline_report(frame: pd.DataFrame) -> dict[str, Any]:
-    return {
-        "rows": len(frame),
-        "grain": ["order_id"],
-        "paid_orders": int(frame["is_paid"].sum()),
-        "missing_ordered_at": int(frame["ordered_at_utc"].isna().sum()),
-        "columns": frame.columns.tolist(),
-    }
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run a checked pandas order pipeline")
-    parser.add_argument("orders", type=Path)
-    parser.add_argument("--timezone", required=True)
-    args = parser.parse_args()
-    try:
-        result = prepare_orders(
-            pd.read_csv(args.orders),
-            timezone=args.timezone,
-        )
-        print(json.dumps(pipeline_report(result), ensure_ascii=False, indent=2))
-    except (OSError, PipelineContractError) as error:
-        parser.error(str(error))
-
-
-if __name__ == "__main__":
-    main()
