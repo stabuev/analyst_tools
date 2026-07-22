@@ -1023,6 +1023,39 @@ evidence = contracted.audit
 
 ## Дополнительное чтение
 
-- [Working with text](https://pandas.pydata.org/docs/user_guide/text.html) — изучите nullable string и векторные методы.
-- [Categorical data](https://pandas.pydata.org/docs/user_guide/categorical.html) — разберите словарь, порядок и память категорий.
-- [CategoricalDtype](https://pandas.pydata.org/docs/reference/api/pandas.CategoricalDtype.html) — изучите явное описание допустимых категорий.
+- [pandas: Working with text data](https://pandas.pydata.org/docs/user_guide/text.html) — начните с разделов **Text data types** и **String methods**.
+  Они помогают отличить
+  nullable `string` от исторического `object`, понять распространение пропусков и
+  увидеть границы векторного интерфейса `.str`.
+- [pandas: `Series.str.normalize`](https://pandas.pydata.org/docs/reference/api/pandas.Series.str.normalize.html) — сопоставьте формы `NFC`, `NFKC`, `NFD` и `NFKD` с примером из урока.
+  Страница нужна,
+  чтобы выбор формы был явным решением контракта, а не безымянным шагом «очистки».
+- [pandas: `Series.str.casefold`](https://pandas.pydata.org/docs/reference/api/pandas.Series.str.casefold.html) — сравните `casefold` с обычным приведением к нижнему регистру.
+  Обратите внимание, что
+  это операция для регистронезависимого сопоставления, а не для оформления текста.
+- [pandas: `Series.str.fullmatch`](https://pandas.pydata.org/docs/reference/api/pandas.Series.str.fullmatch.html) — разберите параметры `pat`, `case`, `flags` и `na`.
+  Особенно важно отличие проверки
+  всей строки от поиска подходящего фрагмента через `contains` или `match`.
+- [Microsoft Learn: использование нормализации Unicode для представления строк](https://learn.microsoft.com/ru-ru/windows/win32/intl/using-unicode-normalization-to-represent-strings) — русскоязычное объяснение того, почему визуально одинаковые строки могут иметь разное представление.
+  Прочитайте описание четырёх форм и предупреждение о том, что
+  compatibility-нормализация может стирать значимые различия.
+- [docs-python.ru: строковые методы `Series.str`](https://docs-python.ru/packages/modul-pandas-analiz-dannykh-python/string-series-index/) — используйте как русскоязычную карту векторных строковых методов pandas.
+  Она удобна
+  для быстрого поиска операции, но бизнес-правила нормализации всё равно должны быть
+  явно заданы в вашем контракте.
+- [pandas: Categorical data](https://pandas.pydata.org/docs/user_guide/categorical.html) — изучите создание категорий, управление словарём и порядком.
+  Обратите внимание на представление пропусков и
+  раздел о памяти. Это основное продолжение урока: `category` полезен как явный
+  контракт, а экономию памяти нужно подтверждать измерением.
+- [pandas: `CategoricalDtype`](https://pandas.pydata.org/docs/reference/api/pandas.CategoricalDtype.html) — разберите поля `categories`, `ordered` и правила сравнения dtype.
+  Страница
+  показывает, как один словарь повторно использовать для нескольких порций данных,
+  не выводя его заново из каждого файла.
+- [docs-python.ru: `Categorical` и `CategoricalIndex`](https://docs-python.ru/packages/modul-pandas-analiz-dannykh-python/categorical-categoricalindex/) — русскоязычное дополнение о фиксированном словаре и ordered-категориях.
+  Особое внимание
+  уделите поведению значения вне словаря: оно превращается в пропуск, поэтому unknown
+  нужно обнаружить до `astype`.
+- [Unicode Standard Annex #15: Unicode Normalization Forms](https://www.unicode.org/reports/tr15/) — первичный стандарт для углубления.
+  После практики прочитайте описание четырёх форм и
+  гарантий стабильности: документ уточняет, что именно нормализация гарантирует и какие
+  семантические решения она за аналитика не принимает.
