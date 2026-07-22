@@ -89,9 +89,14 @@ def _string_membership(
     allowed: Collection[str],
 ) -> pd.Series:
     source = _require_column(frame, column)
-    if not isinstance(source.dtype, pd.StringDtype):
+    is_string = isinstance(source.dtype, pd.StringDtype)
+    is_string_category = isinstance(source.dtype, pd.CategoricalDtype) and all(
+        isinstance(value, str) for value in source.cat.categories.tolist()
+    )
+    if not is_string and not is_string_category:
         raise SelectionContractError(
-            f"{column} must already have a string dtype; got {source.dtype}"
+            f"{column} must already have a string dtype or a categorical dtype "
+            f"with string categories; got {source.dtype}"
         )
     nullable = source.astype("string")
     condition = nullable.isin(allowed).astype("boolean")

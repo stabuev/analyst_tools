@@ -1197,6 +1197,24 @@ window.COURSE_DATA = {
         },
         {
           "number": 7,
+          "slug": "concat-and-ordering",
+          "title": "Concat, партии данных и порядок строк",
+          "status": "complete",
+          "time_minutes": 45,
+          "outcome": "Выбирает concat вместо merge для одинаковых по grain партий строк, проверяет схему, dtype, происхождение и пересечения бизнес-ключей и задаёт воспроизводимый порядок результата.",
+          "artifact": "Чистая функция объединения партий с контрактом схемы, grain, provenance и порядка",
+          "type": "build",
+          "tracks": [
+            "core"
+          ],
+          "path": "phases/03-pandas/07-concat-and-ordering",
+          "available": true,
+          "site_url": "lessons/pandas/concat-and-ordering/",
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/07-concat-and-ordering",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/07-concat-and-ordering/docs/ru.md"
+        },
+        {
+          "number": 8,
           "slug": "reshape",
           "title": "Pivot, melt и tidy data",
           "status": "complete",
@@ -1207,14 +1225,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/03-pandas/07-reshape",
+          "path": "phases/03-pandas/08-reshape",
           "available": true,
           "site_url": "lessons/pandas/reshape/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/07-reshape",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/07-reshape/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/08-reshape",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/08-reshape/docs/ru.md"
         },
         {
-          "number": 8,
+          "number": 9,
           "slug": "dates-and-timezones",
           "title": "Даты, интервалы и часовые пояса",
           "status": "complete",
@@ -1225,32 +1243,32 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/03-pandas/08-dates-and-timezones",
+          "path": "phases/03-pandas/09-dates-and-timezones",
           "available": true,
           "site_url": "lessons/pandas/dates-and-timezones/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/08-dates-and-timezones",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/08-dates-and-timezones/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/09-dates-and-timezones",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/09-dates-and-timezones/docs/ru.md"
         },
         {
-          "number": 9,
+          "number": 10,
           "slug": "strings-and-categories",
           "title": "Строки и категориальные типы",
           "status": "complete",
-          "time_minutes": 75,
-          "outcome": "Нормализует строковые признаки и применяет категории без потери новых или пропущенных значений.",
-          "artifact": "Нормализатор строк и категориальный контракт",
+          "time_minutes": 105,
+          "outcome": "Нормализует и проверяет строковые признаки, применяет стабильный категориальный словарь без смешения unknown и missing и сохраняет evidence до объединения в other.",
+          "artifact": "Нормализатор строк и категориальный контракт с аудитом",
           "type": "build",
           "tracks": [
             "core"
           ],
-          "path": "phases/03-pandas/09-strings-and-categories",
+          "path": "phases/03-pandas/10-strings-and-categories",
           "available": true,
           "site_url": "lessons/pandas/strings-and-categories/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/09-strings-and-categories",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/09-strings-and-categories/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/10-strings-and-categories",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/10-strings-and-categories/docs/ru.md"
         },
         {
-          "number": 10,
+          "number": 11,
           "slug": "method-chaining",
           "title": "Method chaining и читаемые пайплайны",
           "status": "complete",
@@ -1261,14 +1279,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/03-pandas/10-method-chaining",
+          "path": "phases/03-pandas/11-method-chaining",
           "available": true,
           "site_url": "lessons/pandas/method-chaining/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/10-method-chaining",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/10-method-chaining/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/11-method-chaining",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/11-method-chaining/docs/ru.md"
         },
         {
-          "number": 11,
+          "number": 12,
           "slug": "export-and-handoff",
           "title": "Экспорт и передача результата",
           "status": "complete",
@@ -1279,11 +1297,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/03-pandas/11-export-and-handoff",
+          "path": "phases/03-pandas/12-export-and-handoff",
           "available": true,
           "site_url": "lessons/pandas/export-and-handoff/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/11-export-and-handoff",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/11-export-and-handoff/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/12-export-and-handoff",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/docs/ru.md"
         }
       ]
     },
@@ -4811,8 +4829,8 @@ window.COURSE_DATA = {
   ],
   "stats": {
     "phases": 19,
-    "lessons": 198,
-    "complete_lessons": 198,
+    "lessons": 199,
+    "complete_lessons": 199,
     "hours": {
       "min": 238,
       "max": 327

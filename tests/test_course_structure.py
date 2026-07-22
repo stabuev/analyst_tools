@@ -300,7 +300,7 @@ class CourseStructureTest(TestCase):
 
         self.assertEqual(phase["slug"], "pandas")
         self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
-        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1005)
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1080)
         self.assertEqual(
             sum(bool(lesson.get("integration_project")) for lesson in lessons),
             1,
@@ -377,7 +377,7 @@ class CourseStructureTest(TestCase):
             1,
         )
 
-        previous = "03-pandas/11-export-and-handoff"
+        previous = "03-pandas/12-export-and-handoff"
         for index, lesson in enumerate(lessons, start=1):
             self.assertIn(lesson["type"], {"build", "learn", "case"})
             self.assertEqual(lesson["prerequisites"], [previous])

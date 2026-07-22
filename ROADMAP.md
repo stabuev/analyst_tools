@@ -119,11 +119,12 @@ flowchart LR
 | 04 | [Производные столбцы: арифметика, where и mask](phases/03-pandas/04-transformations) | complete |
 | 05 | [GroupBy и единица анализа](phases/03-pandas/05-groupby) | complete |
 | 06 | [Joins, ключи и cardinality](phases/03-pandas/06-joins-and-cardinality) | complete |
-| 07 | [Pivot, melt и tidy data](phases/03-pandas/07-reshape) | complete |
-| 08 | [Даты, интервалы и часовые пояса](phases/03-pandas/08-dates-and-timezones) | complete |
-| 09 | [Строки и категориальные типы](phases/03-pandas/09-strings-and-categories) | complete |
-| 10 | [Method chaining и читаемые пайплайны](phases/03-pandas/10-method-chaining) | complete |
-| 11 | [Экспорт и передача результата](phases/03-pandas/11-export-and-handoff) | complete |
+| 07 | [Concat, партии данных и порядок строк](phases/03-pandas/07-concat-and-ordering) | complete |
+| 08 | [Pivot, melt и tidy data](phases/03-pandas/08-reshape) | complete |
+| 09 | [Даты, интервалы и часовые пояса](phases/03-pandas/09-dates-and-timezones) | complete |
+| 10 | [Строки и категориальные типы](phases/03-pandas/10-strings-and-categories) | complete |
+| 11 | [Method chaining и читаемые пайплайны](phases/03-pandas/11-method-chaining) | complete |
+| 12 | [Экспорт и передача результата](phases/03-pandas/12-export-and-handoff) | complete |
 
 ## Фаза 04: SQL и DuckDB
 

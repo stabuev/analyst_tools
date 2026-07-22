@@ -135,6 +135,29 @@ class SafeSelectionTest(unittest.TestCase):
         with self.assertRaisesRegex(SELECTION.SelectionContractError, "string dtype"):
             SELECTION.build_order_mask(object_status, statuses={"paid"})
 
+    def test_normalized_string_categories_are_valid_filter_inputs(self) -> None:
+        categorical = self.orders.copy()
+        categorical["status"] = categorical["status"].astype(
+            pd.CategoricalDtype(
+                categories=["paid", "refunded", "pending"],
+                ordered=True,
+            )
+        )
+
+        mask = SELECTION.build_order_mask(categorical, statuses={"paid"})
+
+        self.assertEqual(mask.iloc[:3].tolist(), [True, True, False])
+        self.assertTrue(pd.isna(mask.iloc[3]))
+        self.assertFalse(mask.iloc[4])
+
+    def test_non_string_categories_are_rejected_for_text_criteria(self) -> None:
+        broken = pd.DataFrame(
+            {"status": pd.Series(pd.Categorical([1, 2], categories=[1, 2]))}
+        )
+
+        with self.assertRaisesRegex(SELECTION.SelectionContractError, "string categories"):
+            SELECTION.build_order_mask(broken, statuses={"paid"})
+
     def test_numeric_boundaries_are_inclusive(self) -> None:
         mask = SELECTION.build_order_mask(
             self.orders,
