@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 import subprocess
 import sys
@@ -14,11 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "outputs" / "mart_builder.py"
 DATA = ROOT.parent / "data" / "tiny"
 BUSINESS_TIMEZONE = "Europe/Moscow"
-SPEC = importlib.util.spec_from_file_location("mart_builder", ARTIFACT)
-if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f"cannot load {ARTIFACT}")
-BUILDER = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(BUILDER)
+sys.path.insert(0, str(ROOT))
+BUILDER = importlib.import_module("outputs.mart_builder")
 
 
 def read_source(name: str) -> pd.DataFrame:

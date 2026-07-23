@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Вам передали четыре CSV и запрос «посчитать выручку по пользователям». Названия выглядят знакомо: users, orders, orderitems, events. Но до первого JOIN неизвестно:">
+  <meta name="description" content="Вам передали четыре знакомых CSV:">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Grain, ключи и связи">
-  <meta property="og:description" content="Вам передали четыре CSV и запрос «посчитать выручку по пользователям». Названия выглядят знакомо: users, orders, orderitems, events. Но до первого JOIN неизвестно:">
+  <meta property="og:description" content="Вам передали четыре знакомых CSV:">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/">
   <meta name="twitter:card" content="summary">
   <title>Grain, ключи и связи — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Grain, ключи и связи", "description": "Вам передали четыре CSV и запрос «посчитать выручку по пользователям». Названия выглядят знакомо: users, orders, orderitems, events. Но до первого JOIN неизвестно:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Grain, ключи и связи", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Grain, ключи и связи", "description": "Вам передали четыре знакомых CSV:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT75M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Grain, ключи и связи", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/grain-keys-relations/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,911 +50,995 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/01-grain-keys-relations" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Таблица order_items содержит две строки с одним order_id и разными product_id. Когда это нарушает grain?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Всегда: order_id обязан быть уникальным в любой таблице</button><button type="button" class="quiz-option" data-choice="1">Только если grain объявлен как одна строка на заказ</button><button type="button" class="quiz-option" data-choice="2">Никогда: дубликаты идентификаторов допустимы</button><button type="button" class="quiz-option" data-choice="3">Только если обе строки имеют одинаковую цену</button></div><p class="quiz-feedback" hidden>Допустимость повтора определяется grain. Для grain товарной позиции ключом может быть пара order_id, product_id.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что доказывает foreign key orders.user_id -&gt; users.user_id?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">У пользователя не более одного заказа</button><button type="button" class="quiz-option" data-choice="1">Каждый непустой user_id заказа существует в users</button><button type="button" class="quiz-option" data-choice="2">JOIN не изменит число строк</button><button type="button" class="quiz-option" data-choice="3">Все пользователи сделали заказ</button></div><p class="quiz-feedback" hidden>Foreign key проверяет существование родительского ключа, но не задает число дочерних строк и cardinality JOIN.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>В order_items две строки имеют один order_id и разные product_id. Когда это нарушает объявленный grain?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Всегда: любой идентификатор обязан быть уникален</button><button type="button" class="quiz-option" data-choice="1">Если одна строка таблицы должна означать один заказ</button><button type="button" class="quiz-option" data-choice="2">Никогда: повторы ключей не влияют на grain</button><button type="button" class="quiz-option" data-choice="3">Только если у строк совпадает quantity</button></div><p class="quiz-feedback" hidden>Допустимость повтора определяется смыслом строки. Для grain товарной позиции order_id закономерно повторяется, а для grain заказа должен быть уникален.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">02</p><h3>После сопоставления orders с users значение U999 из orders не нашлось в users. Какое наблюдение уже можно зафиксировать до выбора политики?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Заказ нужно немедленно удалить</button><button type="button" class="quiz-option" data-choice="1">Пользователь U999 точно никогда не существовал</button><button type="button" class="quiz-option" data-choice="2">Непустому ключу U999 не найдено соответствие в users</button><button type="button" class="quiz-option" data-choice="3">Связь между таблицами обязательно one-to-one</button></div><p class="quiz-feedback" hidden>Наблюдение состоит только в отсутствии соответствия. Удаление, warning или blocker — отдельное решение конкретного контракта.</p></article></section>
         <article class="lesson-article"><h1 id="grain-ключи-и-связи">Grain, ключи и связи</h1>
 <blockquote>
-<p>До запроса нужно доказать, что вы понимаете единицу строки и допустимые связи таблиц.</p>
+<p>До первого SQL-запроса нужно договориться, что означает строка каждой таблицы, как
+она идентифицируется и на какие другие сущности имеет право ссылаться.</p>
 </blockquote>
 <p><strong>Тип:</strong> Learn
 <strong>Треки:</strong> Core
 <strong>Пререквизиты:</strong> 03/12
 <strong>Время:</strong> ~75 минут
-<strong>Результат:</strong> объявляет grain таблиц, проверяет ключи и находит нарушения связей.</p>
+<strong>Результат:</strong> для набора связанных таблиц объявляет grain, выбирает простой или
+составной primary key, задаёт направление и обязательность foreign key и отличает
+пропуск ссылки от orphan-ключа.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
+<p>После урока вы сможете:</p>
 <ul>
-<li>Отличать смысл строки, primary key и foreign key.</li>
-<li>Проверять простой и составной ключ на <code>NULL</code> и дубликаты.</li>
-<li>Находить orphan-ключи без потери проблемных строк.</li>
-<li>Превращать контракт данных в воспроизводимый DuckDB-аудит.</li>
+<li>перенести знакомые grain, бизнес-ключи и cardinality из Pandas в реляционную модель;</li>
+<li>отличить популяцию таблицы, смысл строки и способ идентификации строки;</li>
+<li>выбрать primary key из кандидатных ключей и не потерять части составного ключа;</li>
+<li>прочитать foreign key от дочерней таблицы к уникальному ключу родительской;</li>
+<li>отдельно зафиксировать обязательность ссылки и ожидаемую cardinality;</li>
+<li>отличить отсутствующую необязательную ссылку от непустого orphan-ключа;</li>
+<li>разделить объявленный контракт, состояние текущих данных и ограничение,
+действительно обеспечиваемое базой;</li>
+<li>передать реляционный контракт коллеге до написания аналитических запросов.</li>
 </ul>
 <h2 id="проблема">Проблема</h2>
-<p>Вам передали четыре CSV и запрос «посчитать выручку по пользователям». Названия выглядят
-знакомо: <code>users</code>, <code>orders</code>, <code>order_items</code>, <code>events</code>. Но до первого <code>JOIN</code> неизвестно:</p>
+<p>Вам передали четыре знакомых CSV:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">users.csv
+orders.csv
+order_items.csv
+events.csv
+</code></pre></div><p>Запрос звучит просто: «Посчитайте выручку по пользователям». Но один и тот же
+синтаксически корректный запрос может ответить на разные вопросы или вернуть
+правдоподобно завышенную сумму.</p>
+<p>До вычислений неизвестно:</p>
 <ul>
-<li>одна ли строка в <code>orders</code> действительно означает один заказ;</li>
-<li>уникален ли <code>event_id</code> после повторной доставки событий;</li>
-<li>существует ли каждый <code>orders.user_id</code> в <code>users</code>;</li>
-<li>является ли одна строка <code>order_items</code> заказом или товарной позицией.</li>
+<li>означает ли строка <code>orders</code> один заказ или одну версию заказа;</li>
+<li>почему <code>order_id</code> повторяется в <code>order_items</code> и является ли это дефектом;</li>
+<li>обязана ли каждая строка <code>orders</code> ссылаться на существующего пользователя;</li>
+<li>идентифицирует ли <code>event_id</code> логическое событие или отдельную попытку доставки;</li>
+<li>какие ограничения только написаны в документации, а какие реально проверяет база.</li>
 </ul>
-<p>Если принять неверный grain, запрос может синтаксически выполниться и вернуть правдоподобное
-число. Повторный <code>event_id</code> завысит активность, неизвестный пользователь исчезнет при
-<code>INNER JOIN</code>, а две позиции заказа размножат <code>orders.amount</code>.</p>
+<p>Представьте две строки:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th>product_id</th>
+<th style="text-align:right">quantity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1001</td>
+<td>P01</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>O1001</td>
+<td>P02</td>
+<td style="text-align:right">2</td>
+</tr>
+</tbody>
+</table>
+<p>Если <code>order_items</code> содержит одну строку на товарную позицию, повтор <code>order_id</code>
+закономерен. Если таблица объявлена как одна строка на заказ, те же данные нарушают
+контракт. Сами значения не сообщают, какая интерпретация правильна.</p>
+<p>Или другой пример:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders.user_id = U999
+</code></pre></div><p>В <code>users</code> такого значения нет. Это может означать:</p>
+<ul>
+<li>повреждённую ссылку;</li>
+<li>удалённого пользователя, которого политика разрешает сохранить как warning;</li>
+<li>неверно выбранную родительскую таблицу;</li>
+<li>допустимую внешнюю сущность, которую вообще не следовало объявлять foreign key.</li>
+</ul>
+<p>Сначала нужно сформулировать модель. SQL сможет проверить только то утверждение,
+которое мы сделали явным.</p>
+<h2 id="что-уже-известно-из-pandas">Что уже известно из Pandas</h2>
+<p>Урок не начинает модель данных заново. В фазе 03 вы уже:</p>
+<table>
+<thead>
+<tr>
+<th>Пройденное знание</th>
+<th>Где применялось</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>grain — смысл одной строки</td>
+<td><code>03/01</code>, <code>03/05</code>, <code>03/12</code></td>
+</tr>
+<tr>
+<td>простой и составной кандидатный ключ</td>
+<td><code>03/01</code></td>
+</tr>
+<tr>
+<td>пропуск и пустое значение в ключе</td>
+<td><code>03/01</code>, <code>03/02</code></td>
+</tr>
+<tr>
+<td>cardinality и частоты ключей</td>
+<td><code>03/06</code></td>
+</tr>
+<tr>
+<td>unmatched-строки и политика их сохранения</td>
+<td><code>03/06</code>, <code>03/12</code></td>
+</tr>
+<tr>
+<td>data contract и проверяемый handoff</td>
+<td><code>03/12</code></td>
+</tr>
+</tbody>
+</table>
+<p>Теперь меняется не предметная область, а язык описания:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">кандидатный бизнес-ключ  -&gt; candidate key
+выбранный основной ключ -&gt; primary key
+ссылка одной сущности на другую -&gt; foreign key
+непустая ссылка без родителя -&gt; orphan key
+</code></pre></div><p>В Pandas эти правила проверяли функции перед <code>merge</code>. В реляционной системе часть
+правил может стать ограничениями таблиц, а часть всё равно останется внешним
+контрактом и проверяемым запросом.</p>
 <h2 id="концепция">Концепция</h2>
-<p><strong>Grain</strong> отвечает на вопрос: «Что означает одна строка?» Он задается словами до выбора
-ключа и до вычислений.</p>
+<h3 id="1-таблица-становится-отношением-только-вместе-со-смыслом">1. Таблица становится отношением только вместе со смыслом</h3>
+<p>В практическом SQL слова <strong>table</strong> и <strong>relation</strong> часто используют почти как
+синонимы. Для первого рабочего проекта достаточно следующей модели:</p>
+<ul>
+<li>таблица хранит строки;</li>
+<li>каждая строка описывает объект, событие или состояние одного объявленного вида;</li>
+<li>столбцы описывают свойства этого вида;</li>
+<li>схема задаёт имена, типы и ограничения;</li>
+<li>ключи позволяют идентифицировать строки и связывать таблицы.</li>
+</ul>
+<p>В теории реляционной модели строку называют <strong>tuple</strong>, а столбец — <strong>attribute</strong>.
+Эти термины полезны при чтении документации, но сейчас важнее не словарь, а
+контракт конкретной таблицы.</p>
+<p>Файл с заголовком и строками ещё не сообщает:</p>
+<ul>
+<li>какую популяцию он охватывает;</li>
+<li>что означает одна строка;</li>
+<li>какие повторы допустимы;</li>
+<li>какие ссылки обязательны;</li>
+<li>какое состояние считается нарушением.</li>
+</ul>
+<h3 id="2-популяция-grain-и-ключ-отвечают-на-разные-вопросы">2. Популяция, grain и ключ отвечают на разные вопросы</h3>
+<p>Эти понятия связаны, но не взаимозаменяемы.</p>
+<table>
+<thead>
+<tr>
+<th>Понятие</th>
+<th>Вопрос</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Популяция</td>
+<td>Какие объекты или события вообще могут находиться в таблице?</td>
+</tr>
+<tr>
+<td>Grain</td>
+<td>Что означает одна строка?</td>
+</tr>
+<tr>
+<td>Ключ</td>
+<td>Как однозначно назвать строку заявленного grain?</td>
+</tr>
+</tbody>
+</table>
+<p>Для <code>orders</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">популяция -&gt; заказы, попавшие в выбранный источник и период
+grain     -&gt; один заказ
+ключ      -&gt; order_id
+</code></pre></div><p>Для <code>order_items</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">популяция -&gt; товарные позиции заказов
+grain     -&gt; одна товарная позиция в одном заказе
+ключ      -&gt; order_id + product_id
+</code></pre></div><p>Уникальность текущих значений не создаёт grain. Например, <code>ordered_at</code> сегодня может
+случайно не повторяться, но время заказа не становится от этого его идентичностью.</p>
+<h3 id="3-candidate-key-сначала-предлагается-primary-key-затем-выбирается">3. Candidate key сначала предлагается, primary key затем выбирается</h3>
+<p><strong>Candidate key</strong>, или кандидатный ключ, — столбец либо комбинация столбцов, которые
+по смыслу должны однозначно идентифицировать строку.</p>
+<p>У таблицы может быть несколько кандидатных ключей. Например, технический идентификатор
+и устойчивый внешний номер могут оба претендовать на эту роль. Нужно оценить:</p>
+<ul>
+<li>соответствует ли ключ grain;</li>
+<li>обязаны ли все его части быть заполнены;</li>
+<li>может ли значение измениться;</li>
+<li>кто гарантирует уникальность;</li>
+<li>одинаково ли ключ понимают производитель и потребитель данных.</li>
+</ul>
+<p><strong>Primary key</strong> — один кандидатный ключ, выбранный основным идентификатором строки
+в реляционном контракте.</p>
+<p>Важно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">уникален в сегодняшнем файле != является candidate key
+candidate key != автоматически выбран primary key
+назван primary key != уже обеспечен фактическими данными
+</code></pre></div><p>В SQL primary key обычно объединяет два требования:</p>
+<ol>
+<li>ключ не может быть <code>NULL</code>;</li>
+<li>полная комбинация ключа не повторяется.</li>
+</ol>
+<p>Генерация surrogate keys и выбор между естественным и техническим ключом требуют
+отдельного архитектурного решения. В этом уроке мы не проектируем генераторы ключей:
+нам достаточно уметь обосновать уже выбранный идентификатор.</p>
+<h3 id="4-составной-ключ-является-одной-комбинацией">4. Составной ключ является одной комбинацией</h3>
+<p>В <code>order_items</code> ключ:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">(order_id, product_id)
+</code></pre></div><p>Проверяется целиком.</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th>product_id</th>
+<th>Нарушение?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1001</td>
+<td>P01</td>
+<td>нет</td>
+</tr>
+<tr>
+<td>O1001</td>
+<td>P02</td>
+<td>нет</td>
+</tr>
+<tr>
+<td>O1002</td>
+<td>P01</td>
+<td>нет</td>
+</tr>
+<tr>
+<td>O1001</td>
+<td>P01</td>
+<td>да: повторилась полная пара</td>
+</tr>
+</tbody>
+</table>
+<p>Отдельный <code>order_id</code> имеет право повторяться: один заказ содержит несколько позиций.
+Отдельный <code>product_id</code> тоже может повторяться между заказами. Ошибкой становится повтор
+полной пары.</p>
+<p>Если из составного ключа убрать <code>product_id</code>, контракт незаметно сменит grain с
+товарной позиции на заказ. Это не упрощение проверки, а изменение модели данных.</p>
+<h3 id="5-foreign-key-читается-от-child-к-parent">5. Foreign key читается от child к parent</h3>
+<p><strong>Foreign key</strong> хранится в дочерней таблице и ссылается на уникальный ключ
+родительской таблицы.</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders.user_id -&gt; users.user_id
+</code></pre></div><p>Читаем обычными словами:</p>
+<blockquote>
+<p>Значение <code>orders.user_id</code> называет пользователя, который должен быть представлен
+уникальной строкой <code>users</code>.</p>
+</blockquote>
+<p>Здесь:</p>
+<table>
+<thead>
+<tr>
+<th>Роль</th>
+<th>Таблица и столбец</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>child</td>
+<td><code>orders.user_id</code></td>
+</tr>
+<tr>
+<td>parent</td>
+<td><code>users.user_id</code></td>
+</tr>
+<tr>
+<td>foreign key</td>
+<td><code>orders.user_id</code></td>
+</tr>
+<tr>
+<td>referenced key</td>
+<td><code>users.user_id</code></td>
+</tr>
+</tbody>
+</table>
+<p>Стрелка направлена от места, где хранится ссылка, к месту, где находится
+идентифицируемая сущность.</p>
+<p>Foreign key должен вести на уникальный ключ родителя. Если <code>users.user_id</code>
+повторяется, ссылка одного заказа перестаёт однозначно называть пользователя.</p>
+<h3 id="6-foreign-key-не-означает-one-to-one">6. Foreign key не означает one-to-one</h3>
+<p>Пусть один пользователь сделал три заказа:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders.user_id = U001, U001, U001
+users.user_id  = U001
+</code></pre></div><p>Все три дочерние строки корректно ссылаются на одну родительскую. Со стороны
+<code>orders</code> это связь <code>many-to-one</code>; в обратном чтении <code>users -&gt; orders</code> —
+<code>one-to-many</code>.</p>
+<p>Поэтому проверяются отдельно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">foreign key  -&gt; существует ли допустимый parent
+cardinality  -&gt; сколько строк может соответствовать одному ключу с каждой стороны
+grain        -&gt; что означает строка каждой таблицы и будущего результата
+</code></pre></div><p>Связь <code>one-to-many</code> не является дефектом. Она становится опасной, если будущий
+аналитический запрос использует метрику стороны <code>one</code> так, будто строка не
+размножилась. Подробно выполнять такие JOIN будем в <code>04/05</code>.</p>
+<h3 id="7-missing-ссылка-и-orphan-ключ-разные-состояния">7. Missing-ссылка и orphan-ключ — разные состояния</h3>
+<p>Пусть таблица <code>support_tickets</code> может содержать обращение гостя. Тогда
+<code>support_tickets.user_id</code> может отсутствовать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">user_id = NULL
+</code></pre></div><p>Это <strong>missing foreign key</strong>. Допустимость определяется предметным правилом:
+может ли обращение существовать без известного пользователя?</p>
+<p>Теперь другой случай:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">support_tickets.user_id = U999
+</code></pre></div><p>Значение присутствует, но соответствующего <code>users.user_id</code> нет. Это
+<strong>orphan key</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Состояние</th>
+<th>Значение child key</th>
+<th>Parent найден</th>
+<th>Возможный смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>корректная ссылка</td>
+<td><code>U001</code></td>
+<td>да</td>
+<td>известный пользователь</td>
+</tr>
+<tr>
+<td>missing-ссылка</td>
+<td><code>NULL</code></td>
+<td>не проверяется как конкретный ключ</td>
+<td>пользователь неизвестен или ссылка необязательна</td>
+</tr>
+<tr>
+<td>orphan-ключ</td>
+<td><code>U999</code></td>
+<td>нет</td>
+<td>нарушенная или несогласованная ссылка</td>
+</tr>
+</tbody>
+</table>
+<p>Формальную трёхзначную логику <code>NULL</code> разберём в <code>04/03</code>. Здесь достаточно не
+смешивать отсутствие значения с непустым значением, для которого не найден parent.</p>
+<h3 id="8-обязательность-ссылки-является-предметным-решением">8. Обязательность ссылки является предметным решением</h3>
+<p>Нельзя вывести обязательность foreign key только из названия столбца.</p>
+<p>Например:</p>
+<ul>
+<li><code>order_items.order_id</code> обязателен: товарная позиция без заказа не имеет смысла
+в нашей модели;</li>
+<li><code>support_tickets.user_id</code> может быть необязательным, если разрешены гости;</li>
+<li><code>events.session_id</code> может быть nullable и вообще не быть foreign key, если
+отдельной таблицы сессий нет.</li>
+</ul>
+<p>В <code>03/12</code> заказ неизвестного пользователя сохранялся как warning, потому что
+политика delivery mart разрешала такую неполноту и делала её наблюдаемой.
+Если теперь объявить строгий контракт
+<code>orders.user_id -&gt; users.user_id</code>, тот же <code>U999</code> станет нарушением связи.</p>
+<p>Противоречия нет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">наблюдение одно: parent U999 не найден
+решение разное: warning или blocker
+причина решения: назначение конкретного контракта
+</code></pre></div><h3 id="9-grain-событий-должен-описывать-логическое-событие">9. Grain событий должен описывать логическое событие</h3>
+<p>В raw-потоках одна и та же запись может доставляться повторно:</p>
+<table>
+<thead>
+<tr>
+<th>event_id</th>
+<th>delivery</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E0005</td>
+<td>первая</td>
+</tr>
+<tr>
+<td>E0005</td>
+<td>повторная</td>
+</tr>
+</tbody>
+</table>
+<p>Если наша аналитическая таблица должна содержать одно <strong>логическое продуктовое
+событие</strong>, её grain именно так и формулируется, а <code>event_id</code> является кандидатным
+primary key. Повторная доставка нарушает ожидаемую уникальность.</p>
+<p>Если бы строка означала отдельную попытку доставки, <code>event_id</code> одного события имел бы
+право повторяться, а ключу понадобился бы идентификатор доставки. Поэтому формулировка
+«одна доставленная строка» была бы недостаточной для объявления <code>event_id</code> primary key.</p>
+<p>Ключ не выбирают отдельно от смысла строки.</p>
+<h3 id="10-объявлено-наблюдается-и-обеспечивается-три-разных-уровня">10. Объявлено, наблюдается и обеспечивается — три разных уровня</h3>
+<p>Рассмотрим утверждение:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders.order_id является primary key
+</code></pre></div><p>Оно может находиться на трёх уровнях:</p>
+<table>
+<thead>
+<tr>
+<th>Уровень</th>
+<th>Что известно</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Объявленный контракт</td>
+<td>автор утверждает, что <code>order_id</code> обязан идентифицировать заказ</td>
+</tr>
+<tr>
+<td>Наблюдаемые данные</td>
+<td>в текущем CSV нет missing и повторов <code>order_id</code></td>
+</tr>
+<tr>
+<td>Обеспечиваемое ограничение</td>
+<td>база не разрешает записать missing или повторяющийся ключ</td>
+</tr>
+</tbody>
+</table>
+<p>Эти уровни не заменяют друг друга.</p>
+<ul>
+<li>Чистый сегодняшний файл не доказывает, что завтра не появится дубликат.</li>
+<li>Запись в документации не останавливает плохую загрузку.</li>
+<li>Ограничение базы не доказывает, что выбранный ключ правильно выражает бизнес-grain.</li>
+</ul>
+<p>CSV хранит текстовые строки и заголовок, но не переносит primary и foreign keys как
+исполняемые ограничения. При чтении CSV в DuckDB мы получаем данные, а реляционный
+контракт нужно хранить и проверять отдельно.</p>
+<p>Позже в фазе мы постепенно сделаем проверки исполняемыми:</p>
+<table>
+<thead>
+<tr>
+<th>Что проверяем</th>
+<th>Где появится механизм</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>проекция и контракт результата</td>
+<td><code>04/02</code></td>
+</tr>
+<tr>
+<td>поведение <code>NULL</code></td>
+<td><code>04/03</code></td>
+</tr>
+<tr>
+<td>повторы ключа через группировку</td>
+<td><code>04/04</code></td>
+</tr>
+<tr>
+<td>orphan-ключи и cardinality JOIN</td>
+<td><code>04/05</code></td>
+</tr>
+<tr>
+<td>композиция проверок через CTE</td>
+<td><code>04/06</code></td>
+</tr>
+<tr>
+<td>запуск DuckDB из Python</td>
+<td><code>04/10</code></td>
+</tr>
+</tbody>
+</table>
+<p>Сейчас задача — сформулировать проверяемые утверждения до появления синтаксиса.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Практика выполняется без SQL. Возьмите маленькие таблицы и заполните реляционный
+контракт так, чтобы другой аналитик мог позже написать однозначные проверки.</p>
+<h3 id="шаг-1-назовите-популяцию-и-grain">Шаг 1. Назовите популяцию и grain</h3>
+<p>Начните с четырех карточек:</p>
 <table>
 <thead>
 <tr>
 <th>Таблица</th>
+<th>Популяция</th>
 <th>Grain</th>
-<th>Primary key</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>users</code></td>
+<td>пользователи продукта</td>
 <td>один пользователь</td>
-<td><code>user_id</code></td>
 </tr>
 <tr>
 <td><code>orders</code></td>
+<td>заказы выбранного источника</td>
 <td>один заказ</td>
-<td><code>order_id</code></td>
 </tr>
 <tr>
 <td><code>order_items</code></td>
-<td>одна товарная позиция заказа</td>
-<td><code>order_id, product_id</code></td>
+<td>товарные позиции заказов</td>
+<td>одна позиция одного товара в одном заказе</td>
 </tr>
 <tr>
 <td><code>events</code></td>
-<td>одна доставленная строка события</td>
-<td><code>event_id</code></td>
+<td>логические продуктовые события</td>
+<td>одно логическое событие</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Primary key</strong> должен однозначно идентифицировать строку заявленного grain:</p>
-<ol>
-<li>ни одна часть ключа не равна <code>NULL</code>;</li>
-<li>комбинация значений не повторяется.</li>
-</ol>
-<p>Составной ключ проверяется как единая комбинация. Повтор <code>order_id</code> в <code>order_items</code>
-нормален: один заказ содержит несколько товаров. Повтор пары <code>order_id, product_id</code>
-нарушает контракт.</p>
-<p><strong>Foreign key</strong> описывает допустимую связь. <code>orders.user_id -&gt; users.user_id</code> означает:
-каждый непустой пользователь заказа должен существовать в <code>users</code>. Значение без
-соответствия называется orphan key. Внешний ключ не доказывает уникальность дочерней
-таблицы и не определяет cardinality всего <code>JOIN</code>.</p>
-<p>Файлы CSV не хранят ограничения базы данных. Поэтому контракт и фактические проверки
-нужны отдельно: описание сообщает намерение, SQL проверяет наблюдаемые данные.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<p>Сначала проверьте механизм без DuckDB.</p>
-<h3 id="шаг-1-найдите-дубликат-ключа">Шаг 1. Найдите дубликат ключа</h3>
-<p>Для последовательности событий:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">E0001, E0002, E0005, E0005
-</code></pre></div><p>постройте словарь частот:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">E0001 -&gt; 1
-E0002 -&gt; 1
-E0005 -&gt; 2
-</code></pre></div><p>Группа <code>E0005</code> нарушает уникальность. Здесь одна duplicate group и две строки,
-участвующие в дубликате.</p>
-<h3 id="шаг-2-проверьте-внешний-ключ-как-разность-множеств">Шаг 2. Проверьте внешний ключ как разность множеств</h3>
+<p>Проверьте каждую формулировку вопросом:</p>
+<blockquote>
+<p>Если две строки имеют одинаковый предполагаемый ключ, описывают ли они один объект
+дважды или два допустимых объекта?</p>
+</blockquote>
+<h3 id="шаг-2-предложите-candidate-keys-и-выберите-primary-keys">Шаг 2. Предложите candidate keys и выберите primary keys</h3>
+<table>
+<thead>
+<tr>
+<th>Таблица</th>
+<th>Candidate key</th>
+<th>Выбранный primary key</th>
+<th>Почему</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td><code>user_id</code></td>
+<td><code>user_id</code></td>
+<td>называет одного пользователя</td>
+</tr>
+<tr>
+<td><code>orders</code></td>
+<td><code>order_id</code></td>
+<td><code>order_id</code></td>
+<td>называет один заказ</td>
+</tr>
+<tr>
+<td><code>order_items</code></td>
+<td><code>order_id, product_id</code></td>
+<td><code>order_id, product_id</code></td>
+<td>называет товар внутри заказа</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td><code>event_id</code></td>
+<td><code>event_id</code></td>
+<td>называет одно логическое событие</td>
+</tr>
+</tbody>
+</table>
+<p>Для каждой таблицы отдельно запишите:</p>
+<ul>
+<li>какие повторы отдельных столбцов допустимы;</li>
+<li>что будет missing-нарушением;</li>
+<li>какой конкретный пример опровергнет уникальность полной комбинации.</li>
+</ul>
+<h3 id="шаг-3-нарисуйте-направление-связей">Шаг 3. Нарисуйте направление связей</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">users.user_id
+      ↑
+      └── orders.user_id
+
+orders.order_id
+      ↑
+      └── order_items.order_id
+</code></pre></div><p>Затем прочитайте каждую стрелку предложением:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">каждый обязательный orders.user_id должен называть существующего users.user_id
+каждый order_items.order_id должен называть существующий orders.order_id
+</code></pre></div><p>Не добавляйте связь только потому, что два столбца имеют похожие названия. Нужен
+общий предметный смысл и уникальный parent key.</p>
+<h3 id="шаг-4-разберите-нарушения-вручную">Шаг 4. Разберите нарушения вручную</h3>
+<h4 id="повтор-logical-event">Повтор logical event</h4>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">event_id = E0001, E0002, E0005, E0005
+</code></pre></div><p>Результат:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">duplicate groups -&gt; 1
+affected rows    -&gt; 2
+example          -&gt; E0005
+</code></pre></div><p>Одна группа означает один повторившийся ключ. Две затронутые строки означают все
+строки, входящие в эту группу.</p>
+<h4 id="orphan-user">Orphan user</h4>
 <div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders.user_id = {U001, U002, U999}
 users.user_id  = {U001, U002}
-</code></pre></div><p>Разность дочерних и родительских ключей равна <code>{U999}</code>. Это orphan key. Не удаляйте его
-фильтром: задача аудита состоит в том, чтобы сделать нарушение видимым.</p>
-<p>Исполняемый пример повторяет ручную проверку через <code>Counter</code>, затем сравнивает результат
-с DuckDB:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<p>DuckDB читает CSV напрямую. Для проверки дубликатов нужен тот же механизм частот:</p>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT event_id, count(*) AS row_count
-FROM read_csv(&#x27;../data/tiny/events.csv&#x27;, header = true, all_varchar = true)
-WHERE event_id IS NOT NULL
-GROUP BY event_id
-HAVING count(*) &gt; 1;
-</code></pre></div><p>Проверка orphan-ключей сохраняет дочернюю сторону и ищет отсутствие родителя:</p>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH
-orders AS (
-    SELECT *
-    FROM read_csv(&#x27;../data/tiny/orders.csv&#x27;, header = true, all_varchar = true)
-),
-users AS (
-    SELECT *
-    FROM read_csv(&#x27;../data/tiny/users.csv&#x27;, header = true, all_varchar = true)
-)
-SELECT orders.user_id, count(*) AS order_count
-FROM orders
-WHERE orders.user_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM users
-      WHERE users.user_id = orders.user_id
-  )
-GROUP BY orders.user_id;
-</code></pre></div><p>Артефакт выполняет эти проверки для всех таблиц из <code>contract.json</code>:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/grain_key_audit.py \
-  --data-dir ../data/tiny \
-  --contract ../data/contract.json \
-  --allow-failures
-</code></pre></div><p>Отчет показывает:</p>
-<ul>
-<li>фактические и ожидаемые колонки;</li>
-<li>число строк;</li>
-<li><code>NULL</code> и duplicate groups в primary key;</li>
-<li>примеры повторившихся комбинаций;</li>
-<li>orphan keys и число затронутых строк;</li>
-<li>общий <code>valid</code> и количество проваленных проверок.</li>
-</ul>
-<p>Пути передаются в DuckDB параметрами. Имена таблиц и колонок берутся из контракта только
-после проверки формата SQL-идентификатора.</p>
-<h2 id="сломайте-это">Сломайте это</h2>
-<p>Tiny-набор намеренно содержит два нарушения:</p>
-<ul>
-<li><code>events.event_id = E0005</code> доставлен дважды;</li>
-<li><code>orders.user_id = U999</code> отсутствует в <code>users</code>.</li>
-</ul>
-<p>Без <code>--allow-failures</code> аудитор является quality gate и завершается с кодом <code>1</code>:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/grain_key_audit.py \
-  --data-dir ../data/tiny \
-  --contract ../data/contract.json
-</code></pre></div><p>Попробуйте также:</p>
+</code></pre></div><p><code>U999</code> присутствует в child, но отсутствует среди parent keys:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orphan keys -&gt; 1
+orphan rows -&gt; 1
+example     -&gt; U999
+</code></pre></div><p>Не удаляйте строку из контрольного примера. Задача аудита — сохранить evidence и
+принять явное решение.</p>
+<h3 id="шаг-5-разделите-наблюдение-и-политику">Шаг 5. Разделите наблюдение и политику</h3>
+<p>Заполните таблицу:</p>
+<table>
+<thead>
+<tr>
+<th>Наблюдение</th>
+<th>Контракт</th>
+<th>Решение</th>
+<th>Обоснование</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>events.event_id=E0005</code> повторён</td>
+<td>одно логическое событие на <code>event_id</code></td>
+<td>blocker</td>
+<td>событие будет посчитано дважды</td>
+</tr>
+<tr>
+<td><code>orders.user_id=U999</code> не найден</td>
+<td>строгая ссылка на <code>users</code></td>
+<td>blocker</td>
+<td>обязательный parent отсутствует</td>
+</tr>
+<tr>
+<td><code>support_tickets.user_id=NULL</code></td>
+<td>ссылка необязательна для гостя</td>
+<td>допустимо</td>
+<td>конкретный неизвестный ключ не заявлен</td>
+</tr>
+</tbody>
+</table>
+<p>Если политика допускает orphan как warning, так и напишите. Не называйте его
+«корректным foreign key»: это наблюдаемое отклонение, которое разрешено конкретным
+потребителем.</p>
+<h3 id="шаг-6-заполните-артефакт">Шаг 6. Заполните артефакт</h3>
+<p>Скопируйте:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/relational-contract-template.md
+</code></pre></div><p>Заполните как минимум:</p>
 <ol>
-<li>удалить колонку <code>product_id</code> из копии <code>order_items.csv</code>;</li>
-<li>сделать пустым один <code>users.user_id</code>;</li>
-<li>продублировать только <code>order_id</code>, но оставить разные <code>product_id</code>;</li>
-<li>добавить позицию для несуществующего заказа.</li>
+<li>контракты <code>users</code>, <code>orders</code>, <code>order_items</code>, <code>events</code>;</li>
+<li>две связи из схемы выше;</li>
+<li>три контрольных сценария;</li>
+<li>policy для duplicate event и orphan user;</li>
+<li>границу между документацией, фактической проверкой и ограничениями базы.</li>
 </ol>
-<p>В третьем случае составной ключ остается допустимым. Остальные изменения должны сделать
-соответствующую проверку невалидной.</p>
+<p>Не открывайте рубрику как список ответов до первой попытки. Сначала сформулируйте
+контракт своими словами.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Шаблон является рабочим preflight перед SQL-задачей. Его можно приложить к задаче,
+положить рядом с моделью или использовать как основу для data contract.</p>
+<p>Короткий заполненный фрагмент связи:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">child            -&gt; orders
+foreign key      -&gt; user_id
+parent           -&gt; users
+referenced key   -&gt; user_id
+meaning          -&gt; заказ принадлежит известному пользователю
+optional         -&gt; нет
+cardinality      -&gt; many orders to one user
+orphan policy    -&gt; blocker для source contract
+evidence         -&gt; count + до пяти user_id
+</code></pre></div><p>Такой фрагмент уже отвечает на вопросы, которые нельзя восстановить из будущего
+<code>JOIN</code>:</p>
+<ul>
+<li>почему выбраны именно эти столбцы;</li>
+<li>где требуется уникальность;</li>
+<li>можно ли сохранить missing;</li>
+<li>что делать с отсутствующим parent;</li>
+<li>какой уровень строк ожидается после объединения.</li>
+</ul>
+<p>В <code>04/02</code> вы используете тот же способ мышления для результата <code>SELECT</code>: сначала
+назовёте grain и столбцы новой таблицы, затем напишете выражения.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-вывести-grain-из-случайной-уникальности">Ошибка 1. Вывести grain из случайной уникальности</h3>
+<p><code>ordered_at</code> сегодня уникален, поэтому его объявляют primary key. Завтра два заказа
+созданы в одну секунду, и модель ломается. Наблюдение подменило бизнес-утверждение.</p>
+<h3 id="ошибка-2-сократить-составной-ключ">Ошибка 2. Сократить составной ключ</h3>
+<p>Для <code>order_items</code> оставляют только <code>order_id</code>. Все многопозиционные заказы становятся
+«дубликатами», хотя нарушен не источник, а контракт аудитора.</p>
+<h3 id="ошибка-3-развернуть-foreign-key">Ошибка 3. Развернуть foreign key</h3>
+<p>Записывают:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">users.user_id -&gt; orders.user_id
+</code></pre></div><p>Но ссылка хранится в <code>orders</code>. Такое направление ошибочно требует, чтобы каждый
+пользователь имел заказ, и смешивает существование parent с наличием child.</p>
+<h3 id="ошибка-4-ссылаться-на-неуникального-parent">Ошибка 4. Ссылаться на неуникального parent</h3>
+<p>Если parent key повторяется, одна child-строка соответствует нескольким parent-строкам.
+Foreign key больше не называет одну родительскую сущность.</p>
+<h3 id="ошибка-5-смешать-missing-и-orphan">Ошибка 5. Смешать missing и orphan</h3>
+<p><code>NULL</code> и <code>U999</code> объединяют в «нет пользователя». В первом случае конкретная ссылка
+не заявлена, во втором заявлено значение, которому не найдено соответствие.</p>
+<h3 id="ошибка-6-считать-foreign-key-гарантией-one-to-one">Ошибка 6. Считать foreign key гарантией one-to-one</h3>
+<p>Несколько заказов одного пользователя объявляют нарушением. Но foreign key проверяет
+существование parent, а не уникальность child key.</p>
+<h3 id="ошибка-7-исправить-аудит-удалением-evidence">Ошибка 7. Исправить аудит удалением evidence</h3>
+<p>Orphan-строки фильтруют, после чего отчёт показывает ноль нарушений. Данные стали
+удобнее, но причина и масштаб дефекта исчезли.</p>
 <h2 id="проверьте-это">Проверьте это</h2>
-<p>Контрольные факты для committed tiny-набора:</p>
+<p>Проверьте заполненный документ по:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/relational-contract-rubric.md
+</code></pre></div><p>Для учебного tiny-набора сильный контракт должен привести к следующим выводам:</p>
 <ul>
-<li><code>users</code>: 8 строк, ключ <code>user_id</code> валиден;</li>
-<li><code>orders</code>: 12 строк, ключ <code>order_id</code> валиден;</li>
-<li><code>order_items</code>: 14 строк, составной ключ валиден;</li>
-<li><code>events</code>: 16 строк, одна duplicate group и две duplicate rows;</li>
-<li>связь <code>orders -&gt; users</code>: один orphan key и одна orphan row;</li>
-<li>связь <code>order_items -&gt; orders</code> валидна;</li>
-<li>итоговый отчет содержит ровно две проваленные проверки.</li>
+<li><code>users</code>: grain — один пользователь, primary key <code>user_id</code>;</li>
+<li><code>orders</code>: grain — один заказ, primary key <code>order_id</code>;</li>
+<li><code>order_items</code>: grain — одна товарная позиция заказа, составной primary key
+<code>(order_id, product_id)</code>;</li>
+<li><code>events</code>: grain — одно логическое событие, primary key <code>event_id</code>;</li>
+<li>повтор одного <code>order_id</code> в <code>order_items</code> сам по себе допустим;</li>
+<li>повтор полной пары <code>(order_id, product_id)</code> был бы нарушением;</li>
+<li><code>orders.user_id -&gt; users.user_id</code> направлен от child к parent;</li>
+<li><code>order_items.order_id -&gt; orders.order_id</code> направлен от child к parent;</li>
+<li>повторный <code>E0005</code> нарушает grain логического события;</li>
+<li>непустой <code>U999</code> без parent является orphan, а не missing-ссылкой.</li>
 </ul>
-<p>Запустите behavioral tests:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><p>Тесты создают дополнительные временные данные с <code>NULL</code>-ключом и отсутствующей колонкой,
-поэтому проверяют поведение, а не только запоминают committed CSV.</p>
+<p>Результат готов не тогда, когда таблица терминов заполнена, а когда новый человек
+может получить те же выводы на трёх контрольных сценариях.</p>
 <h2 id="поставьте-результат">Поставьте результат</h2>
-<p><code>outputs/grain_key_audit.py</code> — самостоятельный CLI. Ему нужны каталог CSV и машинный
-контракт. Артефакт не зависит от текста урока и подходит как локальный preflight перед
-аналитическим запросом или как шаг CI.</p>
-<p>Код возврата:</p>
-<ul>
-<li><code>0</code>: все проверки прошли;</li>
-<li><code>1</code>: данные прочитаны, но grain, ключ или связь нарушены;</li>
-<li><code>2</code>: контракт или входные файлы нельзя проверить;</li>
-<li><code>0</code> с <code>--allow-failures</code>: учебный режим для просмотра известных дефектов.</li>
-</ul>
+<p>Именованный артефакт урока состоит из двух файлов:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/
+├── relational-contract-template.md
+└── relational-contract-rubric.md
+</code></pre></div><p>Передавайте заполненный контракт вместе с данными или постановкой SQL-задачи.
+Получателю не нужно читать урок: инструкции находятся в самом шаблоне, а критерии
+проверки — в отдельной рубрике.</p>
+<p>Артефакт сознательно не запускает SQL и не содержит CLI. Исполняемые проверки
+появятся после того, как студент изучит соответствующие операции SQL.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>Добавьте таблицу <code>products</code> и связь <code>order_items.product_id -&gt; products.product_id</code>.</li>
-<li>Создайте составной foreign key и расширьте <code>references</code> списком колонок через запятую.</li>
-<li>Добавьте режим, который записывает JSON-отчет в файл и сравнивает его с предыдущим
-запуском.</li>
+<li>Добавьте таблицу <code>payments</code>, где одна строка означает попытку платежа,
+<code>payment_id</code> уникален, а один заказ может иметь несколько попыток. Объявите primary
+и foreign key, затем назовите cardinality.</li>
+<li>Добавьте необязательный <code>coupon_id</code> в <code>orders</code>. Опишите отдельно допустимый <code>NULL</code>
+и непустой coupon key без строки в <code>coupons</code>.</li>
+<li>Измените grain <code>events</code> на «одна попытка доставки». Объясните, почему одного
+<code>event_id</code> теперь недостаточно и какая дополнительная часть нужна ключу.</li>
+<li>Предложите candidate key, который случайно уникален в tiny-наборе, но не выражает
+grain. Запишите контрпример, на котором он перестанет работать.</li>
+<li>Возьмите одну связь своего рабочего проекта и зафиксируйте, где она только
+документирована, где проверяется и где действительно обеспечивается.</li>
 </ol>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
 <thead>
 <tr>
 <th>Термин</th>
-<th>Распространенное заблуждение</th>
+<th>Распространённое заблуждение</th>
 <th>Точное значение</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Relation</td>
+<td>Любой CSV</td>
+<td>Табличное представление с объявленной схемой и смыслом строк</td>
+</tr>
+<tr>
+<td>Population</td>
+<td>Все возможные строки</td>
+<td>Множество объектов или событий, которое охватывает таблица</td>
+</tr>
+<tr>
 <td>Grain</td>
 <td>Количество строк</td>
-<td>Смысл одной строки таблицы</td>
+<td>Смысл одной строки</td>
+</tr>
+<tr>
+<td>Candidate key</td>
+<td>Любой уникальный столбец текущего файла</td>
+<td>Осмысленный претендент на однозначную идентификацию grain</td>
 </tr>
 <tr>
 <td>Primary key</td>
 <td>Любая колонка с <code>id</code></td>
-<td>Непустая уникальная комбинация, идентифицирующая grain</td>
+<td>Выбранный непустой уникальный идентификатор строки</td>
 </tr>
 <tr>
 <td>Composite key</td>
 <td>Несколько независимых ключей</td>
-<td>Один ключ из комбинации нескольких колонок</td>
+<td>Один ключ из полной комбинации столбцов</td>
 </tr>
 <tr>
 <td>Foreign key</td>
 <td>Гарантия <code>one-to-one</code></td>
-<td>Требование существования ключа в родительской таблице</td>
+<td>Child key, ссылающийся на уникальный parent key</td>
+</tr>
+<tr>
+<td>Parent</td>
+<td>Таблица слева в <code>JOIN</code></td>
+<td>Таблица с идентифицируемой сущностью</td>
+</tr>
+<tr>
+<td>Child</td>
+<td>Таблица справа в <code>JOIN</code></td>
+<td>Таблица, в которой хранится ссылка на parent</td>
+</tr>
+<tr>
+<td>Missing foreign key</td>
+<td>Несуществующий parent</td>
+<td>Отсутствие самого значения ссылки</td>
 </tr>
 <tr>
 <td>Orphan key</td>
-<td>Строка, которую надо удалить</td>
-<td>Дочерний ключ без соответствующего родителя</td>
+<td>Любой <code>NULL</code></td>
+<td>Непустой child key, которому не найден parent</td>
 </tr>
 <tr>
 <td>Cardinality</td>
-<td>Число колонок</td>
-<td>Допустимое число соответствий между строками таблиц</td>
+<td>Количество столбцов</td>
+<td>Допустимое число соответствий ключа между названными сторонами</td>
+</tr>
+<tr>
+<td>Constraint</td>
+<td>Проверка, которая однажды прошла</td>
+<td>Правило, объявленное и при наличии механизма обеспечиваемое системой</td>
 </tr>
 </tbody>
 </table>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
-<ul>
-<li><a href="https://duckdb.org/docs/current/sql/constraints" target="_blank" rel="noopener">DuckDB: Constraints</a> — разберите семантику <code>PRIMARY KEY</code>, <code>UNIQUE</code>, <code>NOT NULL</code> и <code>FOREIGN KEY</code> в настоящих таблицах.</li>
-<li><a href="https://duckdb.org/docs/current/data/csv/overview" target="_blank" rel="noopener">DuckDB: CSV Import</a> — изучите <code>read_csv</code>, <code>all_varchar</code>, <code>nullstr</code> и границы автоматического определения схемы.</li>
-<li><a href="https://duckdb.org/docs/current/clients/python/dbapi" target="_blank" rel="noopener">DuckDB: Python DB API</a> — обратите внимание на connections, <code>execute</code> и параметризованные значения.</li>
-<li><a href="https://doi.org/10.1145/362384.362685" target="_blank" rel="noopener">E. F. Codd: A Relational Model of Data</a> — прочитайте исходную постановку реляционной модели и роли ключей в идентификации кортежей.</li>
-</ul>
+<ol>
+<li><a href="https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/grain/" target="_blank" rel="noopener">EN · Kimball Group: Grain</a> — прочитайте всю короткую заметку и обратите внимание на две мысли: grain нужно объявить до выбора полей, а все факты должны быть истинны на этом grain; это переносит модель урока на аналитические таблицы.</li>
+<li><a href="https://postgrespro.ru/docs/postgrespro/current/ddl-constraints" target="_blank" rel="noopener">RU · Postgres Pro: Ограничения</a> — прочитайте смысловые объяснения в разделах 5.5.3 «Ограничения уникальности», 5.5.4 «Первичные ключи» и 5.5.5 «Внешние ключи»; сосредоточьтесь на уникальности, обязательности и ссылочной целостности, а SQL-синтаксис пока используйте только как иллюстрацию.</li>
+<li><a href="https://learn.microsoft.com/ru-ru/sql/relational-databases/tables/primary-and-foreign-key-constraints?view=sql-server-ver17" target="_blank" rel="noopener">RU · Microsoft Learn: Ограничения первичных и внешних ключей</a> — прочитайте разделы про primary key, foreign key и ссылочную целостность: схема составного ключа и пример «осиротевшего» заказа помогают ещё раз увидеть роли родительской и дочерней таблиц; ограничения конкретной версии SQL Server можно пропустить.</li>
+<li><a href="https://duckdb.org/docs/current/sql/constraints" target="_blank" rel="noopener">EN · DuckDB: Constraints</a> — прочитайте <code>Primary Key and Unique Constraint</code> и <code>Foreign Keys</code>, чтобы увидеть, какие утверждения из заполненного контракта DuckDB способен обеспечивать сам; выполнять DDL-примеры в этом уроке не требуется.</li>
+<li><a href="https://duckdb.org/docs/current/data/csv/overview" target="_blank" rel="noopener">EN · DuckDB: CSV Import</a> — прочитайте <code>CSV Loading</code> и начало <code>Parameters</code>, затем сопоставьте автоматически распознаваемые формат и типы с тем, чего CSV не сообщает о grain, primary key и связях; это закрепляет различие между файлом данных и внешним контрактом.</li>
+<li><a href="https://learn.microsoft.com/ru-ru/analysis-services/tabular-models/relationships-ssas-tabular?view=asallproducts-allversions" target="_blank" rel="noopener">RU · Microsoft Learn: Связи в табличных моделях Analysis Services</a> — прочитайте «Столбцы и ключи», «Типы связей» и ограничения составных ключей, чтобы перенести модель one-to-many в BI-инструмент и увидеть, что логическая связь модели не всегда равна ограничению исходной базы.</li>
+<li><a href="https://specs.frictionlessdata.io/table-schema/" target="_blank" rel="noopener">EN · Frictionless Data: Table Schema</a> — прочитайте <code>Constraints</code>, <code>Primary Key</code> и <code>Foreign Keys</code>: стандарт показывает, как вынести типы, обязательность и связи из плоского файла в машиночитаемое JSON-описание; сравните его поля со своим шаблоном контракта.</li>
+<li><a href="https://docs.getdbt.com/docs/build/data-tests" target="_blank" rel="noopener">EN · dbt: Add data tests to your DAG</a> — прочитайте <code>Overview</code> и <code>Generic data tests</code>, особенно <code>unique</code>, <code>not_null</code> и <code>relationships</code>; материал показывает будущий способ регулярно проверять наблюдаемые свойства аналитической модели, не смешивая такую проверку с ограничением, которое обеспечивает сама база.</li>
+<li><a href="https://bitol-io.github.io/open-data-contract-standard/v3.1.0/schema/" target="_blank" rel="noopener">EN · Open Data Contract Standard: Schema</a> — изучите <code>Complete schema</code>, <code>Applicable to Objects</code> и <code>Applicable to Properties</code>, найдите <code>dataGranularityDescription</code>, <code>primaryKey</code>, <code>required</code> и <code>unique</code>; это следующий уровень формализации учебного контракта, а не обязательный формат для текущей практики.</li>
+<li><a href="https://doi.org/10.1145/362384.362685" target="_blank" rel="noopener">EN · E. F. Codd: A Relational Model of Data for Large Shared Data Banks</a> — факультативно прочитайте аннотацию и начало раздела 1 о представлении данных через отношения; источник объясняет происхождение реляционной модели, но его математические детали не нужны для следующих уроков.</li>
+</ol>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Как корректно проверить составной primary key (order_id, product_id)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Проверить уникальность только order_id</button><button type="button" class="quiz-option" data-choice="1">Проверить уникальность каждой колонки отдельно</button><button type="button" class="quiz-option" data-choice="2">Проверить NULL в обеих колонках и уникальность их комбинации</button><button type="button" class="quiz-option" data-choice="3">Посчитать DISTINCT product_id</button></div><p class="quiz-feedback" hidden>Составной ключ является одной комбинацией: каждая часть должна быть непустой, а комбинация не должна повторяться.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Почему INNER JOIN плохо подходит для аудита orphan-ключей?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он всегда медленнее NOT EXISTS</button><button type="button" class="quiz-option" data-choice="1">Он удаляет дочерние строки без родителя и скрывает нарушение</button><button type="button" class="quiz-option" data-choice="2">Он запрещает составные ключи</button><button type="button" class="quiz-option" data-choice="3">Он заменяет неизвестные ключи на NULL</button></div><p class="quiz-feedback" hidden>INNER JOIN сохраняет только совпавшие строки. Для аудита нужно явно найти отсутствие родителя через anti join или NOT EXISTS.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Аудитор нашел duplicate_groups=1 и duplicate_key_rows=3. Что это означает?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Три разных ключа повторились по одному разу</button><button type="button" class="quiz-option" data-choice="1">Одна комбинация ключа встречается в трех строках</button><button type="button" class="quiz-option" data-choice="2">В таблице три строки всего</button><button type="button" class="quiz-option" data-choice="3">В ключе три NULL</button></div><p class="quiz-feedback" hidden>duplicate_groups считает повторившиеся комбинации, а duplicate_key_rows — все строки, входящие в эти группы.</p></article></section>
-        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
-
-import csv
-import importlib.util
-import json
-import subprocess
-import sys
-import unittest
-from pathlib import Path
-from tempfile import TemporaryDirectory
-
-ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;grain_key_audit.py&quot;
-DATA_ROOT = ROOT.parent / &quot;data&quot;
-TINY = DATA_ROOT / &quot;tiny&quot;
-CONTRACT = DATA_ROOT / &quot;contract.json&quot;
-SPEC = importlib.util.spec_from_file_location(&quot;grain_key_audit&quot;, ARTIFACT)
-if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
-AUDITOR = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(AUDITOR)
-
-
-def write_csv(path: Path, rows: list[dict[str, str]]) -&gt; None:
-    with path.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as output:
-        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator=&quot;\n&quot;)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-class GrainKeyAuditTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -&gt; None:
-        cls.report = AUDITOR.audit_dataset(TINY, CONTRACT)
-
-    def test_unique_users_key_passes(self) -&gt; None:
-        key = self.report[&quot;tables&quot;][&quot;users&quot;][&quot;primary_key&quot;]
-        self.assertTrue(key[&quot;valid&quot;])
-        self.assertEqual(key[&quot;null_key_rows&quot;], 0)
-        self.assertEqual(key[&quot;duplicate_groups&quot;], 0)
-
-    def test_duplicate_event_delivery_is_visible(self) -&gt; None:
-        key = self.report[&quot;tables&quot;][&quot;events&quot;][&quot;primary_key&quot;]
-        self.assertFalse(key[&quot;valid&quot;])
-        self.assertEqual(key[&quot;duplicate_groups&quot;], 1)
-        self.assertEqual(key[&quot;duplicate_key_rows&quot;], 2)
-        self.assertEqual(key[&quot;sample_duplicates&quot;][0][&quot;event_id&quot;], &quot;E0005&quot;)
-
-    def test_composite_order_item_key_passes(self) -&gt; None:
-        key = self.report[&quot;tables&quot;][&quot;order_items&quot;][&quot;primary_key&quot;]
-        self.assertEqual(key[&quot;columns&quot;], [&quot;order_id&quot;, &quot;product_id&quot;])
-        self.assertTrue(key[&quot;valid&quot;])
-
-    def test_unknown_order_user_is_reported_as_orphan(self) -&gt; None:
-        relationship = next(
-            item for item in self.report[&quot;relationships&quot;] if item[&quot;child_table&quot;] == &quot;orders&quot;
-        )
-        self.assertFalse(relationship[&quot;valid&quot;])
-        self.assertEqual(relationship[&quot;orphan_keys&quot;], 1)
-        self.assertEqual(relationship[&quot;orphan_rows&quot;], 1)
-        self.assertEqual(relationship[&quot;sample_orphans&quot;][0][&quot;user_id&quot;], &quot;U999&quot;)
-
-    def test_order_items_to_orders_relationship_passes(self) -&gt; None:
-        relationship = next(
-            item for item in self.report[&quot;relationships&quot;] if item[&quot;child_table&quot;] == &quot;order_items&quot;
-        )
-        self.assertTrue(relationship[&quot;valid&quot;])
-        self.assertEqual(relationship[&quot;orphan_rows&quot;], 0)
-
-    def test_null_primary_key_is_invalid(self) -&gt; None:
-        with TemporaryDirectory() as directory:
-            data_root = Path(directory)
-            write_csv(data_root / &quot;things.csv&quot;, [{&quot;thing_id&quot;: &quot;&quot;}, {&quot;thing_id&quot;: &quot;T2&quot;}])
-            contract = {
-                &quot;tables&quot;: {
-                    &quot;things&quot;: {
-                        &quot;file&quot;: &quot;things.csv&quot;,
-                        &quot;grain&quot;: &quot;one thing&quot;,
-                        &quot;primary_key&quot;: [&quot;thing_id&quot;],
-                        &quot;foreign_keys&quot;: [],
-                        &quot;columns&quot;: {&quot;thing_id&quot;: {}},
-                    }
-                }
-            }
-            contract_path = data_root / &quot;contract.json&quot;
-            contract_path.write_text(json.dumps(contract), encoding=&quot;utf-8&quot;)
-
-            report = AUDITOR.audit_dataset(data_root, contract_path)
-
-        self.assertEqual(report[&quot;tables&quot;][&quot;things&quot;][&quot;primary_key&quot;][&quot;null_key_rows&quot;], 1)
-        self.assertFalse(report[&quot;summary&quot;][&quot;valid&quot;])
-
-    def test_missing_declared_column_fails_without_sql_error(self) -&gt; None:
-        with TemporaryDirectory() as directory:
-            data_root = Path(directory)
-            write_csv(data_root / &quot;things.csv&quot;, [{&quot;thing_id&quot;: &quot;T1&quot;}])
-            contract = {
-                &quot;tables&quot;: {
-                    &quot;things&quot;: {
-                        &quot;file&quot;: &quot;things.csv&quot;,
-                        &quot;grain&quot;: &quot;one thing&quot;,
-                        &quot;primary_key&quot;: [&quot;thing_id&quot;, &quot;version&quot;],
-                        &quot;foreign_keys&quot;: [],
-                        &quot;columns&quot;: {&quot;thing_id&quot;: {}, &quot;version&quot;: {}},
-                    }
-                }
-            }
-            contract_path = data_root / &quot;contract.json&quot;
-            contract_path.write_text(json.dumps(contract), encoding=&quot;utf-8&quot;)
-
-            report = AUDITOR.audit_dataset(data_root, contract_path)
-
-        table = report[&quot;tables&quot;][&quot;things&quot;]
-        self.assertEqual(table[&quot;columns&quot;][&quot;missing&quot;], [&quot;version&quot;])
-        self.assertFalse(table[&quot;primary_key&quot;][&quot;checked&quot;])
-        self.assertFalse(table[&quot;valid&quot;])
-
-    def test_cli_is_a_quality_gate_by_default(self) -&gt; None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                ARTIFACT,
-                &quot;--data-dir&quot;,
-                TINY,
-                &quot;--contract&quot;,
-                CONTRACT,
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(result.returncode, 1, result.stderr)
-        report = json.loads(result.stdout)
-        self.assertEqual(report[&quot;summary&quot;][&quot;failed_checks&quot;], 2)
-
-    def test_cli_can_print_known_failures_for_learning(self) -&gt; None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                ARTIFACT,
-                &quot;--data-dir&quot;,
-                TINY,
-                &quot;--contract&quot;,
-                CONTRACT,
-                &quot;--allow-failures&quot;,
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn(&quot;Traceback&quot;, result.stderr)
-        self.assertFalse(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
-
-
-if __name__ == &quot;__main__&quot;:
-    unittest.main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
-
-import csv
-import json
-import sys
-from collections import Counter
-from pathlib import Path
-from typing import Any
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from outputs.grain_key_audit import audit_dataset
-
-
-def manual_key_audit(
-    rows: list[dict[str, str | None]],
-    keys: list[str],
-) -&gt; dict[str, Any]:
-    key_values = [tuple(row.get(key) or None for key in keys) for row in rows]
-    counts = Counter(key for key in key_values if all(value is not None for value in key))
-    duplicates = [
-        {&quot;key&quot;: list(key), &quot;row_count&quot;: count} for key, count in sorted(counts.items()) if count &gt; 1
-    ]
-    return {
-        &quot;rows&quot;: len(rows),
-        &quot;keys&quot;: keys,
-        &quot;null_key_rows&quot;: sum(any(value is None for value in key) for key in key_values),
-        &quot;duplicate_groups&quot;: len(duplicates),
-        &quot;duplicates&quot;: duplicates,
-    }
-
-
-def load_csv(path: Path) -&gt; list[dict[str, str | None]]:
-    with path.open(encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as source:
-        return list(csv.DictReader(source))
-
-
-def main() -&gt; None:
-    lesson_root = Path(__file__).resolve().parents[1]
-    data_root = lesson_root.parent / &quot;data&quot;
-    tiny_root = data_root / &quot;tiny&quot;
-    manual = manual_key_audit(load_csv(tiny_root / &quot;events.csv&quot;), [&quot;event_id&quot;])
-    duckdb_report = audit_dataset(tiny_root, data_root / &quot;contract.json&quot;)
-    print(
-        json.dumps(
-            {
-                &quot;manual_events_key_check&quot;: manual,
-                &quot;duckdb_summary&quot;: duckdb_report[&quot;summary&quot;],
-                &quot;duckdb_event_key_check&quot;: duckdb_report[&quot;tables&quot;][&quot;events&quot;][&quot;primary_key&quot;],
-                &quot;orders_users_relationship&quot;: next(
-                    relationship
-                    for relationship in duckdb_report[&quot;relationships&quot;]
-                    if relationship[&quot;child_table&quot;] == &quot;orders&quot;
-                ),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
-  &quot;name&quot;: &quot;sql-grain-key-audit&quot;,
-  &quot;type&quot;: &quot;cli&quot;,
-  &quot;path&quot;: &quot;outputs/grain_key_audit.py&quot;,
-  &quot;description&quot;: &quot;Проверяет объявленный grain, уникальность ключей и нарушения внешних связей в DuckDB.&quot;,
-  &quot;usage&quot;: &quot;python outputs/grain_key_audit.py --data-dir ../data/tiny&quot;
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 6 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Почему случайно уникальный ordered_at не становится candidate key таблицы orders?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Уникальность текущих значений не доказывает, что столбец идентифицирует grain заказа</button><button type="button" class="quiz-option" data-choice="1">В ключах разрешены только названия с суффиксом _id</button><button type="button" class="quiz-option" data-choice="2">Timestamp нельзя сравнивать</button><button type="button" class="quiz-option" data-choice="3">Candidate key обязательно должен быть составным</button></div><p class="quiz-feedback" hidden>Кандидатный ключ выбирают по устойчивому смыслу идентичности, а не только по состоянию одной выгрузки.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">02</p><h3>Как проверить primary key (order_id, product_id) таблицы товарных позиций?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Потребовать уникальности только order_id</button><button type="button" class="quiz-option" data-choice="1">Потребовать уникальности order_id и product_id по отдельности</button><button type="button" class="quiz-option" data-choice="2">Запретить missing в обеих частях и проверять повтор полной комбинации</button><button type="button" class="quiz-option" data-choice="3">Разрешить повтор полной комбинации, если цена отличается</button></div><p class="quiz-feedback" hidden>Составной primary key является одной комбинацией: каждая часть обязательна, а повторяться не должна полная пара.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">03</p><h3>Как правильно записать связь заказа с пользователем?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">users.user_id -&gt; orders.order_id</button><button type="button" class="quiz-option" data-choice="1">users.user_id -&gt; orders.user_id, потому что parent всегда пишется первым</button><button type="button" class="quiz-option" data-choice="2">orders.order_id -&gt; users.user_id</button><button type="button" class="quiz-option" data-choice="3">orders.user_id -&gt; users.user_id, потому что ссылка хранится в child orders</button></div><p class="quiz-feedback" hidden>Foreign key находится в дочерней таблице orders и ссылается на уникальный parent key users.user_id.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">04</p><h3>Чем необязательный NULL в support_tickets.user_id отличается от значения U999 без строки в users?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ничем: оба значения являются одним orphan key</button><button type="button" class="quiz-option" data-choice="1">NULL не заявляет конкретного parent, а U999 заявляет непустую ссылку без соответствия</button><button type="button" class="quiz-option" data-choice="2">NULL всегда является blocker, а U999 всегда допустим</button><button type="button" class="quiz-option" data-choice="3">U999 автоматически превращается в NULL при проверке</button></div><p class="quiz-feedback" hidden>Missing означает отсутствие значения ссылки. Orphan — присутствующее значение, которому не найден parent. Политика обоих состояний задается отдельно.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Один users.user_id соответствует трём строкам orders. Нарушает ли это foreign key orders.user_id -&gt; users.user_id?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Нет: несколько child-строк могут ссылаться на один уникальный parent</button><button type="button" class="quiz-option" data-choice="1">Да: foreign key всегда требует one-to-one</button><button type="button" class="quiz-option" data-choice="2">Да, если order_id у заказов различается</button><button type="button" class="quiz-option" data-choice="3">Нет только при отсутствии amount</button></div><p class="quiz-feedback" hidden>Foreign key проверяет существование уникального parent. Повторы child key формируют допустимую many-to-one связь со стороны orders.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">06</p><h3>Сегодня в CSV нет повторов order_id. Что из этого следует?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">База гарантированно запретит повтор завтра</button><button type="button" class="quiz-option" data-choice="1">Grain таблицы автоматически доказан</button><button type="button" class="quiz-option" data-choice="2">Наблюдаемые данные прошли одну проверку, но объявление и обеспечение контракта нужно фиксировать отдельно</button><button type="button" class="quiz-option" data-choice="3">order_id обязательно является единственным candidate key</button></div><p class="quiz-feedback" hidden>Чистое состояние одного файла — наблюдение. Оно не заменяет бизнес-обоснование ключа и механизм, который обеспечивает ограничение на будущих данных.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Шаблон, пример и рубрика встроены в страницу. Сначала создайте собственный артефакт, затем сравните его с примером и проверьте по критериям.</p><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;relational-contract-template&quot;,
+  &quot;type&quot;: &quot;report-template&quot;,
+  &quot;path&quot;: &quot;outputs/relational-contract-template.md&quot;,
+  &quot;description&quot;: &quot;Помогает до SQL зафиксировать grain таблиц, primary keys, направление и обязательность foreign keys, ожидаемую cardinality и evidence обнаруженных нарушений.&quot;,
+  &quot;usage&quot;: &quot;Скопируйте шаблон в рабочий проект, заполните контракты таблиц и связей на фактических данных, затем проверьте результат по outputs/relational-contract-rubric.md.&quot;
 }
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/grain_key_audit.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/relational-contract-rubric.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Рубрика реляционного контракта
 
-import argparse
-import json
-import re
-from pathlib import Path
-from typing import Any
+Проверяйте смысл модели, а не красоту документа. Контракт не готов, если его нельзя
+использовать для однозначной проверки новых данных.
 
-import duckdb
+## Обязательные критерии
 
-IDENTIFIER_PATTERN = re.compile(r&quot;^[A-Za-z_][A-Za-z0-9_]*$&quot;)
-SOURCE_SQL = &quot;read_csv(?, header = true, all_varchar = true)&quot;
+- [ ] Для каждой таблицы названы популяция и grain; формулировка объясняет смысл строки,
+  а не количество строк или имя файла.
+- [ ] Кандидатный и выбранный primary key соответствуют grain. Уникальность одного
+  текущего файла не используется как единственное обоснование.
+- [ ] У составного primary key перечислены все части; допустимые повторы отдельной части
+  не объявлены нарушением полной комбинации.
+- [ ] Primary key объявлен обязательным: missing или blank в любой его части считается
+  нарушением.
+- [ ] Для каждой связи правильно названы child, parent, child columns и уникальный
+  parent key.
+- [ ] Foreign key не используется как доказательство `one-to-one`: cardinality записана
+  отдельно и относительно названных сторон.
+- [ ] Обязательность ссылки определена предметным смыслом. Missing допустимой ссылки
+  отделён от непустого orphan-ключа.
+- [ ] Для каждого типа нарушения приведены count, ограниченный набор примеров и решение
+  `blocker` / `warning` / допустимое состояние с обоснованием.
+- [ ] Отделены объявленный контракт, наблюдения текущего файла и ограничения, которые
+  действительно обеспечивает база данных.
+- [ ] Минимум три контрольных сценария позволяют другому человеку воспроизвести вывод
+  без догадки о намерении автора.
 
+## Критические ошибки
 
-class DataContractError(ValueError):
-    &quot;&quot;&quot;Raised when the data or its declared relational contract cannot be audited.&quot;&quot;&quot;
+Результат нельзя считать готовым при любой из ошибок:
 
+- grain выводится из случайно уникального столбца;
+- повтор части составного ключа объявлен дубликатом полной строки;
+- foreign key направлен от parent к child;
+- ссылка ведёт на родительские столбцы, уникальность которых не объявлена;
+- missing и orphan объединены в одну категорию;
+- `one-to-many` автоматически объявлено нарушением;
+- фактическое отсутствие дефектов выдано за доказательство будущей целостности;
+- нарушение удалено из данных без сохранения count, примеров и принятой политики.
 
-def quote_identifier(value: str) -&gt; str:
-    if not isinstance(value, str) or not IDENTIFIER_PATTERN.fullmatch(value):
-        raise DataContractError(f&quot;invalid SQL identifier in contract: {value!r}&quot;)
-    return f&#x27;&quot;{value}&quot;&#x27;
+## Проверка переноса
 
+Дайте автору новый сценарий:
 
-def load_contract(path: str | Path) -&gt; dict[str, Any]:
-    contract_path = Path(path)
-    if not contract_path.is_file():
-        raise DataContractError(f&quot;contract file does not exist: {contract_path}&quot;)
-    try:
-        contract = json.loads(contract_path.read_text(encoding=&quot;utf-8&quot;))
-    except json.JSONDecodeError as error:
-        raise DataContractError(f&quot;invalid contract JSON: {error.msg}&quot;) from error
+&gt; В `payments` одна строка означает попытку платежа. Один заказ может иметь несколько
+&gt; попыток, а один `payment_id` не должен повторяться. `order_id` обязателен и должен
+&gt; существовать в `orders`.
 
-    tables = contract.get(&quot;tables&quot;)
-    if not isinstance(tables, dict) or not tables:
-        raise DataContractError(&quot;contract must contain a non-empty &#x27;tables&#x27; object&quot;)
+Контракт переносится, если автор без подсказки:
 
-    for table_name, table in tables.items():
-        quote_identifier(table_name)
-        if not isinstance(table, dict):
-            raise DataContractError(f&quot;table contract must be an object: {table_name}&quot;)
-        if not isinstance(table.get(&quot;file&quot;), str) or not table[&quot;file&quot;]:
-            raise DataContractError(f&quot;table {table_name} must declare a file&quot;)
-        columns = table.get(&quot;columns&quot;)
-        if not isinstance(columns, dict) or not columns:
-            raise DataContractError(f&quot;table {table_name} must declare columns&quot;)
-        for column in columns:
-            quote_identifier(column)
-        keys = table.get(&quot;primary_key&quot;)
-        if not isinstance(keys, list) or not keys:
-            raise DataContractError(f&quot;table {table_name} must declare a primary_key&quot;)
-        for key in keys:
-            quote_identifier(key)
-            if key not in columns:
-                raise DataContractError(
-                    f&quot;primary key column {table_name}.{key} is absent from contract columns&quot;
-                )
-        foreign_keys = table.get(&quot;foreign_keys&quot;, [])
-        if not isinstance(foreign_keys, list):
-            raise DataContractError(f&quot;table {table_name} foreign_keys must be a list&quot;)
-        for foreign_key in foreign_keys:
-            _validate_foreign_key(table_name, columns, foreign_key, tables)
-    return contract
+1. выбирает `payment_id` primary key;
+2. не требует уникальности `order_id` в `payments`;
+3. записывает `payments.order_id -&gt; orders.order_id`;
+4. называет связь `many-to-one` со стороны `payments`;
+5. считает непустой неизвестный `order_id` orphan-ключом.
 
+## Итог
 
-def _validate_foreign_key(
-    table_name: str,
-    columns: dict[str, Any],
-    foreign_key: Any,
-    tables: dict[str, Any],
-) -&gt; None:
-    if not isinstance(foreign_key, dict):
-        raise DataContractError(f&quot;foreign key in {table_name} must be an object&quot;)
-    child_columns = foreign_key.get(&quot;columns&quot;)
-    if not isinstance(child_columns, list) or not child_columns:
-        raise DataContractError(f&quot;foreign key in {table_name} must declare columns&quot;)
-    for column in child_columns:
-        quote_identifier(column)
-        if column not in columns:
-            raise DataContractError(
-                f&quot;foreign key column {table_name}.{column} is absent from contract columns&quot;
-            )
-    parent_table, parent_columns = parse_reference(
-        foreign_key.get(&quot;references&quot;),
-        len(child_columns),
-    )
-    if parent_table not in tables:
-        raise DataContractError(f&quot;foreign key references unknown table: {parent_table}&quot;)
-    declared_parent_columns = tables[parent_table].get(&quot;columns&quot;, {})
-    for column in parent_columns:
-        if column not in declared_parent_columns:
-            raise DataContractError(
-                f&quot;foreign key references unknown column: {parent_table}.{column}&quot;
-            )
+- **Готово:** выполнены все обязательные критерии, критических ошибок нет, перенос
+  выполнен правильно.
+- **Нужна правка:** направление модели верно, но отсутствуют evidence, обязательность,
+  cardinality или граница фактического обеспечения.
+- **Перестроить контракт:** неверно определены grain, primary key либо направление
+  foreign key. Запросы по такой модели пока писать нельзя.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/outputs/relational-contract-rubric.md" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/relational-contract-template.md</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code># Шаблон реляционного контракта
 
+Скопируйте файл в рабочий проект и заполните до написания аналитических запросов.
+Контракт описывает намерение. Результаты ручной или автоматической проверки показывают,
+соответствуют ли ему фактические данные.
 
-def parse_reference(reference: Any, width: int) -&gt; tuple[str, list[str]]:
-    if not isinstance(reference, str) or &quot;.&quot; not in reference:
-        raise DataContractError(f&quot;invalid foreign key reference: {reference!r}&quot;)
-    table_name, raw_columns = reference.split(&quot;.&quot;, 1)
-    quote_identifier(table_name)
-    parent_columns = [column.strip() for column in raw_columns.split(&quot;,&quot;) if column.strip()]
-    if len(parent_columns) != width:
-        raise DataContractError(
-            f&quot;foreign key width mismatch: {width} child columns, &quot;
-            f&quot;{len(parent_columns)} parent columns&quot;
-        )
-    for column in parent_columns:
-        quote_identifier(column)
-    return table_name, parent_columns
+## 1. Контекст
 
+- **Проект или задача:**
+- **Автор контракта:**
+- **Дата и версия:**
+- **Какие таблицы входят в область проверки:**
+- **Какое решение или расчёт будет использовать эти таблицы:**
+- **Кто должен подтвердить бизнес-смысл спорных полей и связей:**
 
-def resolve_table_paths(
-    data_dir: str | Path,
-    contract: dict[str, Any],
-) -&gt; dict[str, Path]:
-    root = Path(data_dir)
-    if not root.is_dir():
-        raise DataContractError(f&quot;data directory does not exist: {root}&quot;)
+## 2. Контракты таблиц
 
-    paths: dict[str, Path] = {}
-    for table_name, table in contract[&quot;tables&quot;].items():
-        relative = Path(table[&quot;file&quot;])
-        if relative.is_absolute() or &quot;..&quot; in relative.parts:
-            raise DataContractError(
-                f&quot;table {table_name} uses a file outside data directory: {relative}&quot;
-            )
-        path = root / relative
-        if not path.is_file():
-            raise DataContractError(f&quot;input file does not exist: {path}&quot;)
-        paths[table_name] = path
-    return paths
+Скопируйте блок для каждой таблицы.
 
+### Таблица `&lt;table_name&gt;`
 
-def fetch_dicts(
-    connection: duckdb.DuckDBPyConnection,
-    query: str,
-    parameters: list[Any],
-) -&gt; list[dict[str, Any]]:
-    cursor = connection.execute(query, parameters)
-    names = [column[0] for column in cursor.description]
-    return [dict(zip(names, row, strict=True)) for row in cursor.fetchall()]
+- **Что описывает таблица обычными словами:**
+- **Популяция:** какие объекты или события могут попасть в таблицу?
+- **Grain:** одна строка означает…
+- **Кандидатные ключи:** какие столбцы или комбинации должны однозначно называть строку?
+- **Выбранный primary key:**
+- **Ключ простой или составной:**
+- **Почему выбранный ключ соответствует grain:**
+- **Может ли какая-либо часть primary key отсутствовать:** нет.
+- **Какие повторы отдельных частей составного ключа допустимы:**
+- **Какое наблюдение опровергнет контракт:**
 
+| Проверка фактических данных | Результат | Count | Примеры | Вывод |
+|---|---|---:|---|---|
+| отсутствующая часть primary key |  |  |  |  |
+| повтор полной комбинации primary key |  |  |  |  |
+| заявленный grain не соответствует смыслу строк |  |  |  |  |
 
-def inspect_columns(
-    connection: duckdb.DuckDBPyConnection,
-    path: Path,
-    expected: list[str],
-) -&gt; dict[str, Any]:
-    rows = connection.execute(
-        f&quot;DESCRIBE SELECT * FROM {SOURCE_SQL}&quot;,
-        [str(path)],
-    ).fetchall()
-    actual = [row[0] for row in rows]
-    missing = [column for column in expected if column not in actual]
-    unexpected = [column for column in actual if column not in expected]
-    return {
-        &quot;expected&quot;: expected,
-        &quot;actual&quot;: actual,
-        &quot;missing&quot;: missing,
-        &quot;unexpected&quot;: unexpected,
-        &quot;valid&quot;: not missing,
-    }
+## 3. Контракты связей
 
+Скопируйте блок для каждой связи.
 
-def audit_primary_key(
-    connection: duckdb.DuckDBPyConnection,
-    path: Path,
-    keys: list[str],
-    actual_columns: list[str],
-) -&gt; dict[str, Any]:
-    missing_keys = [key for key in keys if key not in actual_columns]
-    if missing_keys:
-        return {
-            &quot;columns&quot;: keys,
-            &quot;checked&quot;: False,
-            &quot;error&quot;: f&quot;missing key columns: {missing_keys}&quot;,
-            &quot;null_key_rows&quot;: None,
-            &quot;duplicate_groups&quot;: None,
-            &quot;duplicate_key_rows&quot;: None,
-            &quot;sample_duplicates&quot;: [],
-            &quot;valid&quot;: False,
-        }
+### Связь `&lt;child_table&gt;.&lt;child_columns&gt; -&gt; &lt;parent_table&gt;.&lt;parent_columns&gt;`
 
-    quoted_keys = [quote_identifier(key) for key in keys]
-    key_list = &quot;, &quot;.join(quoted_keys)
-    null_predicate = &quot; OR &quot;.join(f&quot;{key} IS NULL&quot; for key in quoted_keys)
-    non_null_predicate = &quot; AND &quot;.join(f&quot;{key} IS NOT NULL&quot; for key in quoted_keys)
-    null_key_rows = connection.execute(
-        f&quot;SELECT count(*) FROM {SOURCE_SQL} WHERE {null_predicate}&quot;,
-        [str(path)],
-    ).fetchone()[0]
+- **Дочерняя таблица:** где хранится ссылка?
+- **Родительская таблица:** где находится объект, на который ссылаются?
+- **Foreign key дочерней таблицы:**
+- **Ключ родительской таблицы, на который ведёт ссылка:**
+- **Почему родительский ключ уникален:**
+- **Смысл связи обычными словами:** каждый…
+- **Ссылка обязательна или необязательна:**
+- **Если ссылка необязательна, что означает её отсутствие:**
+- **Ожидаемая cardinality:** `one-to-one`, `one-to-many` или `many-to-one` относительно
+  явно названных сторон.
+- **Что считается orphan-ключом:**
+- **Политика нарушения:** blocker, warning или допустимое состояние — и почему.
 
-    duplicate_cte = f&quot;&quot;&quot;
-        WITH duplicate_keys AS (
-            SELECT {key_list}, count(*) AS row_count
-            FROM {SOURCE_SQL}
-            WHERE {non_null_predicate}
-            GROUP BY {key_list}
-            HAVING count(*) &gt; 1
-        )
-    &quot;&quot;&quot;
-    duplicate_key_rows, duplicate_groups = connection.execute(
-        duplicate_cte
-        + &quot;&quot;&quot;
-        SELECT coalesce(sum(row_count), 0), count(*)
-        FROM duplicate_keys
-        &quot;&quot;&quot;,
-        [str(path)],
-    ).fetchone()
-    sample_duplicates = fetch_dicts(
-        connection,
-        duplicate_cte
-        + f&quot;&quot;&quot;
-        SELECT {key_list}, row_count
-        FROM duplicate_keys
-        ORDER BY row_count DESC, {key_list}
-        LIMIT 5
-        &quot;&quot;&quot;,
-        [str(path)],
-    )
-    return {
-        &quot;columns&quot;: keys,
-        &quot;checked&quot;: True,
-        &quot;null_key_rows&quot;: null_key_rows,
-        &quot;duplicate_groups&quot;: duplicate_groups,
-        &quot;duplicate_key_rows&quot;: duplicate_key_rows,
-        &quot;sample_duplicates&quot;: sample_duplicates,
-        &quot;valid&quot;: null_key_rows == 0 and duplicate_groups == 0,
-    }
+| Проверка фактических данных | Результат | Count | Примеры | Вывод |
+|---|---|---:|---|---|
+| отсутствующая обязательная ссылка |  |  |  |  |
+| непустой child key без родителя |  |  |  |  |
+| родительский ключ не уникален |  |  |  |  |
+| наблюдаемая cardinality нарушает ожидание |  |  |  |  |
 
+## 4. Контрольные строки
 
-def audit_table(
-    connection: duckdb.DuckDBPyConnection,
-    table_name: str,
-    table: dict[str, Any],
-    path: Path,
-) -&gt; dict[str, Any]:
-    expected_columns = list(table[&quot;columns&quot;])
-    columns = inspect_columns(connection, path, expected_columns)
-    row_count = connection.execute(
-        f&quot;SELECT count(*) FROM {SOURCE_SQL}&quot;,
-        [str(path)],
-    ).fetchone()[0]
-    primary_key = audit_primary_key(
-        connection,
-        path,
-        table[&quot;primary_key&quot;],
-        columns[&quot;actual&quot;],
-    )
-    return {
-        &quot;file&quot;: table[&quot;file&quot;],
-        &quot;grain&quot;: table.get(&quot;grain&quot;),
-        &quot;rows&quot;: row_count,
-        &quot;columns&quot;: columns,
-        &quot;primary_key&quot;: primary_key,
-        &quot;valid&quot;: columns[&quot;valid&quot;] and primary_key[&quot;valid&quot;],
-    }
+Добавьте минимум три маленьких примера, по которым контракт можно проверить вручную:
 
+1. корректная строка;
+2. нарушение primary key;
+3. отсутствующая необязательная ссылка или orphan-ключ.
 
-def audit_relationship(
-    connection: duckdb.DuckDBPyConnection,
-    child_table: str,
-    child_columns: list[str],
-    parent_table: str,
-    parent_columns: list[str],
-    paths: dict[str, Path],
-    table_reports: dict[str, Any],
-) -&gt; dict[str, Any]:
-    missing_child = [
-        column
-        for column in child_columns
-        if column not in table_reports[child_table][&quot;columns&quot;][&quot;actual&quot;]
-    ]
-    missing_parent = [
-        column
-        for column in parent_columns
-        if column not in table_reports[parent_table][&quot;columns&quot;][&quot;actual&quot;]
-    ]
-    base_report = {
-        &quot;child_table&quot;: child_table,
-        &quot;child_columns&quot;: child_columns,
-        &quot;parent_table&quot;: parent_table,
-        &quot;parent_columns&quot;: parent_columns,
-    }
-    if missing_child or missing_parent:
-        return {
-            **base_report,
-            &quot;checked&quot;: False,
-            &quot;error&quot;: (
-                f&quot;missing relationship columns: child={missing_child}, parent={missing_parent}&quot;
-            ),
-            &quot;orphan_keys&quot;: None,
-            &quot;orphan_rows&quot;: None,
-            &quot;sample_orphans&quot;: [],
-            &quot;valid&quot;: False,
-        }
+| Сценарий | Строки или ключи | Какой пункт контракта применяется | Ожидаемый вывод |
+|---|---|---|---|
+| корректный |  |  |  |
+| нарушение primary key |  |  |  |
+| missing или orphan |  |  |  |
 
-    child_keys = [quote_identifier(column) for column in child_columns]
-    parent_keys = [quote_identifier(column) for column in parent_columns]
-    child_key_list = &quot;, &quot;.join(f&quot;child.{column}&quot; for column in child_keys)
-    non_null_predicate = &quot; AND &quot;.join(f&quot;child.{column} IS NOT NULL&quot; for column in child_keys)
-    equality = &quot; AND &quot;.join(
-        f&quot;parent.{parent} = child.{child}&quot;
-        for child, parent in zip(child_keys, parent_keys, strict=True)
-    )
-    orphan_cte = f&quot;&quot;&quot;
-        WITH
-        child AS (SELECT * FROM {SOURCE_SQL}),
-        parent AS (SELECT * FROM {SOURCE_SQL}),
-        orphan_groups AS (
-            SELECT {child_key_list}, count(*) AS row_count
-            FROM child
-            WHERE {non_null_predicate}
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM parent
-                  WHERE {equality}
-              )
-            GROUP BY {child_key_list}
-        )
-    &quot;&quot;&quot;
-    parameters = [str(paths[child_table]), str(paths[parent_table])]
-    orphan_rows, orphan_keys = connection.execute(
-        orphan_cte
-        + &quot;&quot;&quot;
-        SELECT coalesce(sum(row_count), 0), count(*)
-        FROM orphan_groups
-        &quot;&quot;&quot;,
-        parameters,
-    ).fetchone()
-    sample_orphans = fetch_dicts(
-        connection,
-        orphan_cte
-        + f&quot;&quot;&quot;
-        SELECT {&quot;, &quot;.join(child_keys)}, row_count
-        FROM orphan_groups
-        ORDER BY row_count DESC, {&quot;, &quot;.join(child_keys)}
-        LIMIT 5
-        &quot;&quot;&quot;,
-        parameters,
-    )
-    return {
-        **base_report,
-        &quot;checked&quot;: True,
-        &quot;orphan_keys&quot;: orphan_keys,
-        &quot;orphan_rows&quot;: orphan_rows,
-        &quot;sample_orphans&quot;: sample_orphans,
-        &quot;valid&quot;: orphan_keys == 0,
-    }
+## 5. Где контракт хранится и исполняется
 
+| Утверждение | Где зафиксировано | Как проверяется сейчас | Что пока не проверяется |
+|---|---|---|---|
+| grain таблицы |  |  |  |
+| primary key |  |  |  |
+| foreign key |  |  |  |
+| обязательность ссылки |  |  |  |
+| ожидаемая cardinality |  |  |  |
 
-def audit_dataset(
-    data_dir: str | Path,
-    contract_path: str | Path,
-) -&gt; dict[str, Any]:
-    contract = load_contract(contract_path)
-    paths = resolve_table_paths(data_dir, contract)
-    connection = duckdb.connect(database=&quot;:memory:&quot;)
-    try:
-        table_reports = {
-            table_name: audit_table(connection, table_name, table, paths[table_name])
-            for table_name, table in contract[&quot;tables&quot;].items()
-        }
-        relationships = []
-        for child_table, table in contract[&quot;tables&quot;].items():
-            for foreign_key in table.get(&quot;foreign_keys&quot;, []):
-                child_columns = foreign_key[&quot;columns&quot;]
-                parent_table, parent_columns = parse_reference(
-                    foreign_key[&quot;references&quot;],
-                    len(child_columns),
-                )
-                relationships.append(
-                    audit_relationship(
-                        connection,
-                        child_table,
-                        child_columns,
-                        parent_table,
-                        parent_columns,
-                        paths,
-                        table_reports,
-                    )
-                )
-    finally:
-        connection.close()
+Отдельно укажите границу:
 
-    failed_checks = sum(not table[&quot;columns&quot;][&quot;valid&quot;] for table in table_reports.values())
-    failed_checks += sum(not table[&quot;primary_key&quot;][&quot;valid&quot;] for table in table_reports.values())
-    failed_checks += sum(not relationship[&quot;valid&quot;] for relationship in relationships)
-    return {
-        &quot;engine&quot;: {&quot;name&quot;: &quot;DuckDB&quot;, &quot;version&quot;: duckdb.__version__},
-        &quot;data_dir&quot;: str(Path(data_dir)),
-        &quot;contract&quot;: str(Path(contract_path)),
-        &quot;tables&quot;: table_reports,
-        &quot;relationships&quot;: relationships,
-        &quot;summary&quot;: {
-            &quot;table_count&quot;: len(table_reports),
-            &quot;relationship_count&quot;: len(relationships),
-            &quot;failed_checks&quot;: failed_checks,
-            &quot;valid&quot;: failed_checks == 0,
-        },
-    }
+- какие ограничения действительно обеспечивает база данных;
+- какие существуют только в документации или внешнем data contract;
+- какие нужно проверять запросом на каждом новом срезе данных;
+- какие отклонения разрешены выбранной политикой, но должны оставаться видимыми.
 
+## 6. Решения и открытые вопросы
 
-def render_report(report: dict[str, Any]) -&gt; str:
-    return json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;
+| Вопрос | Решение или неизвестность | Владелец решения | Следующий шаг |
+|---|---|---|---|
+|  |  |  |  |
 
+## 7. Итог перед первым аналитическим запросом
 
-def main() -&gt; None:
-    parser = argparse.ArgumentParser(
-        description=&quot;Audit declared grain, primary keys, and foreign-key relationships&quot;
-    )
-    parser.add_argument(&quot;--data-dir&quot;, type=Path, required=True)
-    parser.add_argument(
-        &quot;--contract&quot;,
-        type=Path,
-        help=&quot;Defaults to contract.json next to the data profile directory&quot;,
-    )
-    parser.add_argument(
-        &quot;--allow-failures&quot;,
-        action=&quot;store_true&quot;,
-        help=&quot;Return exit code 0 after printing an invalid educational dataset&quot;,
-    )
-    args = parser.parse_args()
-    contract_path = args.contract or args.data_dir.parent / &quot;contract.json&quot;
-    try:
-        report = audit_dataset(args.data_dir, contract_path)
-    except (DataContractError, OSError, duckdb.Error) as error:
-        parser.error(str(error))
-    print(render_report(report), end=&quot;&quot;)
-    if not report[&quot;summary&quot;][&quot;valid&quot;] and not args.allow_failures:
-        raise SystemExit(1)
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/outputs/grain_key_audit.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+- [ ] Для каждой таблицы grain сформулирован одним предложением.
+- [ ] Primary key соответствует grain, а не просто оказался уникальным в текущем файле.
+- [ ] Для составного ключа проверяется полная комбинация.
+- [ ] Каждая foreign key направлена от child к уникальному ключу parent.
+- [ ] Обязательная и необязательная ссылка различены.
+- [ ] Missing-ссылка не смешана с непустым orphan-ключом.
+- [ ] Cardinality записана относительно явно названных сторон.
+- [ ] Нарушения содержат count и несколько примеров.
+- [ ] Ясно, что является blocker, warning и допустимым состоянием.
+- [ ] Отдельно названы объявленные, наблюдаемые и реально обеспечиваемые ограничения.
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/01-grain-keys-relations/outputs/relational-contract-template.md" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/01-grain-keys-relations" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/pandas/export-and-handoff/"><span>← Предыдущий урок</span><strong>Итоговая витрина: экспорт и проверяемый handoff</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>Следующий урок →</span><strong>SELECT и выражения</strong></a></nav>
       </div>

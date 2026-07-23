@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-import importlib.util
+import importlib
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "outputs" / "mart_builder.py"
 DATA = ROOT.parent / "data" / "tiny"
 BUSINESS_TIMEZONE = "Europe/Moscow"
 
 
 def load_artifact():
-    spec = importlib.util.spec_from_file_location("mart_builder", ARTIFACT)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"cannot load {ARTIFACT}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    sys.path.insert(0, str(ROOT))
+    return importlib.import_module("outputs.mart_builder")
 
 
 def read_source(name: str) -> pd.DataFrame:

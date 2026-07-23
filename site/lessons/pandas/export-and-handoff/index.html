@@ -495,6 +495,12 @@ item_total = сумма line_total
 categories = уникальные нормализованные категории
 </code></pre></div><p>После агрегации <code>order_id</code> обязан стать уникальным. Только после этого выполняется
 <code>one_to_one</code> merge с orders.</p>
+<p>В <code>03/05</code> мы сохраняли неполноту суммы как evidence: отдельно считали известные
+и пропущенные <code>line_total</code>, а итоговый <code>order_amount</code> оставляли неизвестным. Здесь
+механизм агрегации тот же, но политика поставки строже: <code>quantity</code> и <code>unit_price</code>
+объявлены обязательными полями, поэтому неполная item-строка закрывает publish gate.
+Это не новое поведение <code>groupby</code>, а осознанное ужесточение предметного контракта
+для конкретной витрины.</p>
 <h3 id="шаг-5-сделайте-политику-join-наблюдаемой">Шаг 5. Сделайте политику join наблюдаемой</h3>
 <p>Item-таблица — обязательная часть заказа в нашей учебной модели:</p>
 <ul>
@@ -730,8 +736,14 @@ item_total закрывает gate. Warning здесь был бы способ�
 </ul>
 <h2 id="поставьте-результат">Поставьте результат</h2>
 <p>Именованный артефакт урока:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/mart_builder.py
-</code></pre></div><p>Он поддерживает два сценария:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/
+├── mart_contracts.py  # схема, словари и общие проверки
+├── mart_pipeline.py   # подготовка источников и сборка витрины
+├── mart_delivery.py   # экспорт, manifest и проверка package
+└── mart_builder.py    # тонкая CLI-оболочка и порядок вызовов
+</code></pre></div><p>Такое разбиение продолжает <code>03/11</code>: локальные стадии сначала остаются именованными
+и проверяемыми, а верхний уровень только задаёт их порядок. Пользователю по-прежнему
+нужна одна точка входа <code>mart_builder.py</code>. Она поддерживает два сценария:</p>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash"># Автор собирает и выпускает package
 uv run --locked python outputs/mart_builder.py build \
   --users PATH/users.csv \
@@ -874,7 +886,7 @@ checksum в manifest и всё равно получает отказ verifier �
         <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>В одном заказе amount=1200, а сумма его item-строк равна 1180. Политика урока считает расхождение блокером. Как должен вести себя сборщик?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Опубликовать CSV и не упоминать расхождение</button><button type="button" class="quiz-option" data-choice="1">Заменить amount на 1180 без следа</button><button type="button" class="quiz-option" data-choice="2">Удалить заказ и продолжить</button><button type="button" class="quiz-option" data-choice="3">Остановить публикацию и показать order_id в ошибке</button></div><p class="quiz-feedback" hidden>Известное нарушение согласованности нельзя превращать в warning: publish gate остаётся закрытым, а evidence помогает исправить источник или правило.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>У заказа нет amount, поэтому сравнить его с item_total невозможно, но согласованная политика разрешает сохранить такой заказ. Как корректно отразить это в результате?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Поставить amount_matches_items=True</button><button type="button" class="quiz-option" data-choice="1">Оставить результат проверки неизвестным, добавить warning с count и примером order_id</button><button type="button" class="quiz-option" data-choice="2">Поставить amount_matches_items=False и объявить mismatch</button><button type="button" class="quiz-option" data-choice="3">Удалить проверку reconciliation целиком</button></div><p class="quiz-feedback" hidden>«Не проверено» не равно ни успеху, ни найденному расхождению. Nullable-флаг и warning сохраняют это различие.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Что должен сделать независимый verifier перед тем, как получатель начнёт анализ CSV?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Пересчитать только средний чек</button><button type="button" class="quiz-option" data-choice="1">Довериться имени файла order_mart.csv</button><button type="button" class="quiz-option" data-choice="2">Проверить версии manifest и схемы, checksum, заголовок, число строк, grain и publish status</button><button type="button" class="quiz-option" data-choice="3">Преобразовать все колонки в object</button></div><p class="quiz-feedback" hidden>Получатель проверяет не внутренние объекты pandas отправителя, а фактически доставленный пакет и заявленный контракт его чтения.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 import subprocess
 import sys
@@ -888,11 +900,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;mart_builder.py&quot;
 DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
 BUSINESS_TIMEZONE = &quot;Europe/Moscow&quot;
-SPEC = importlib.util.spec_from_file_location(&quot;mart_builder&quot;, ARTIFACT)
-if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
-BUILDER = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(BUILDER)
+sys.path.insert(0, str(ROOT))
+BUILDER = importlib.import_module(&quot;outputs.mart_builder&quot;)
 
 
 def read_source(name: str) -&gt; pd.DataFrame:
@@ -1192,25 +1201,21 @@ if __name__ == &quot;__main__&quot;:
     unittest.main()
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
-import importlib.util
+import importlib
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;mart_builder.py&quot;
 DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot;
 BUSINESS_TIMEZONE = &quot;Europe/Moscow&quot;
 
 
 def load_artifact():
-    spec = importlib.util.spec_from_file_location(&quot;mart_builder&quot;, ARTIFACT)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    sys.path.insert(0, str(ROOT))
+    return importlib.import_module(&quot;outputs.mart_builder&quot;)
 
 
 def read_source(name: str) -&gt; pd.DataFrame:
@@ -1256,21 +1261,144 @@ def main() -&gt; None:
 
 if __name__ == &quot;__main__&quot;:
     main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/__init__.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>&quot;&quot;&quot;Standalone order-mart delivery artifact for lesson 03/12.&quot;&quot;&quot;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/__init__.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
   &quot;name&quot;: &quot;pandas-order-mart-builder&quot;,
   &quot;type&quot;: &quot;cli&quot;,
   &quot;path&quot;: &quot;outputs/mart_builder.py&quot;,
-  &quot;description&quot;: &quot;Строит проверенную витрину одна строка на заказ, открывает публикацию только после publish gate и выпускает детерминированный CSV с версионированным manifest; отдельная команда проверяет пакет со стороны получателя.&quot;,
+  &quot;description&quot;: &quot;Тонкая CLI-оболочка связывает отдельные модули контрактов, сборки витрины и поставки: открывает публикацию только после publish gate, выпускает детерминированный CSV с версионированным manifest и отдельно проверяет пакет со стороны получателя.&quot;,
   &quot;usage&quot;: &quot;uv run --locked python outputs/mart_builder.py build --users ../data/tiny/users.csv --orders ../data/tiny/orders.csv --items ../data/tiny/order_items.csv --output-dir mart --business-timezone Europe/Moscow&quot;
 }
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mart_builder.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+
+import pandas as pd
+
+if __package__:
+    from .mart_contracts import (
+        OUTPUT_COLUMNS,
+        PLAN_CATEGORIES,
+        SOURCE_NAMES,
+        STATUS_CATEGORIES,
+        MartContractError,
+    )
+    from .mart_delivery import export_delivery, sha256, verify_delivery
+    from .mart_pipeline import (
+        build_order_mart,
+        prepare_item_totals,
+        prepare_orders,
+        prepare_users,
+    )
+else:
+    from mart_contracts import (
+        OUTPUT_COLUMNS,
+        PLAN_CATEGORIES,
+        SOURCE_NAMES,
+        STATUS_CATEGORIES,
+        MartContractError,
+    )
+    from mart_delivery import export_delivery, sha256, verify_delivery
+    from mart_pipeline import (
+        build_order_mart,
+        prepare_item_totals,
+        prepare_orders,
+        prepare_users,
+    )
+
+__all__ = [
+    &quot;MartContractError&quot;,
+    &quot;OUTPUT_COLUMNS&quot;,
+    &quot;PLAN_CATEGORIES&quot;,
+    &quot;SOURCE_NAMES&quot;,
+    &quot;STATUS_CATEGORIES&quot;,
+    &quot;build_order_mart&quot;,
+    &quot;export_delivery&quot;,
+    &quot;prepare_item_totals&quot;,
+    &quot;prepare_orders&quot;,
+    &quot;prepare_users&quot;,
+    &quot;sha256&quot;,
+    &quot;verify_delivery&quot;,
+]
+
+
+def _read_raw_csv(path: Path) -&gt; pd.DataFrame:
+    return pd.read_csv(
+        path,
+        dtype=&quot;string&quot;,
+        keep_default_na=False,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=&quot;Build or independently verify a checked order-mart delivery&quot;
+    )
+    commands = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+
+    build = commands.add_parser(&quot;build&quot;, help=&quot;build and export the delivery&quot;)
+    build.add_argument(&quot;--users&quot;, type=Path, required=True)
+    build.add_argument(&quot;--orders&quot;, type=Path, required=True)
+    build.add_argument(&quot;--items&quot;, type=Path, required=True)
+    build.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
+    build.add_argument(&quot;--business-timezone&quot;, required=True)
+
+    verify = commands.add_parser(&quot;verify&quot;, help=&quot;verify an existing delivery&quot;)
+    verify.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
+    return parser
+
+
+def run_cli(argv: Sequence[str] | None = None) -&gt; int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        if args.command == &quot;verify&quot;:
+            report = verify_delivery(args.output_dir)
+        else:
+            source_paths = {
+                &quot;users&quot;: args.users,
+                &quot;orders&quot;: args.orders,
+                &quot;order_items&quot;: args.items,
+            }
+            mart, quality = build_order_mart(
+                _read_raw_csv(args.users),
+                _read_raw_csv(args.orders),
+                _read_raw_csv(args.items),
+                business_timezone=args.business_timezone,
+            )
+            manifest = export_delivery(
+                mart,
+                quality,
+                args.output_dir,
+                source_paths,
+                business_timezone=args.business_timezone,
+            )
+            report = {
+                &quot;valid&quot;: True,
+                &quot;publish_status&quot;: manifest[&quot;publish_status&quot;],
+                &quot;rows&quot;: manifest[&quot;dataset&quot;][&quot;rows&quot;],
+                &quot;output_dir&quot;: str(args.output_dir),
+                &quot;artifact_sha256&quot;: manifest[&quot;artifact&quot;][&quot;sha256&quot;],
+            }
+    except (OSError, MartContractError) as error:
+        parser.error(str(error))
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+def main() -&gt; None:
+    raise SystemExit(run_cli())
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/mart_builder.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mart_contracts.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+from collections.abc import Sequence
 
 import pandas as pd
 
@@ -1326,13 +1454,7 @@ class MartContractError(ValueError):
     &quot;&quot;&quot;Raised when the mart or delivery package breaks a declared contract.&quot;&quot;&quot;
 
 
-def sha256(path: Path) -&gt; str:
-    &quot;&quot;&quot;Return a SHA-256 digest for the exact bytes stored at path.&quot;&quot;&quot;
-
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _require_columns(
+def require_columns(
     frame: pd.DataFrame,
     required: set[str],
     *,
@@ -1343,23 +1465,23 @@ def _require_columns(
         raise MartContractError(f&quot;{stage}: missing columns: {missing}&quot;)
 
 
-def _examples(series: pd.Series, mask: pd.Series) -&gt; list[str]:
+def examples(series: pd.Series, mask: pd.Series) -&gt; list[str]:
     values = series.loc[mask].astype(&quot;string&quot;).dropna().unique().tolist()
     return [str(value) for value in values[:5]]
 
 
-def _canonical_identifier(series: pd.Series) -&gt; pd.Series:
+def canonical_identifier(series: pd.Series) -&gt; pd.Series:
     result = series.astype(&quot;string&quot;).str.normalize(&quot;NFKC&quot;).str.strip()
     return result.mask(result.eq(&quot;&quot;).fillna(False), pd.NA)
 
 
-def _assert_unique_nonblank(
+def assert_unique_nonblank(
     frame: pd.DataFrame,
     keys: Sequence[str],
     *,
     stage: str,
 ) -&gt; None:
-    _require_columns(frame, set(keys), stage=stage)
+    require_columns(frame, set(keys), stage=stage)
     missing_key = frame[list(keys)].isna().any(axis=1)
     if missing_key.any():
         raise MartContractError(
@@ -1367,7 +1489,7 @@ def _assert_unique_nonblank(
         )
     duplicate = frame.duplicated(list(keys), keep=False)
     if duplicate.any():
-        examples = [
+        duplicate_examples = [
             tuple(str(value) for value in row)
             for row in frame.loc[duplicate, list(keys)].head(5).itertuples(
                 index=False,
@@ -1375,11 +1497,12 @@ def _assert_unique_nonblank(
             )
         ]
         raise MartContractError(
-            f&quot;{stage}: keys are not unique: {list(keys)}; examples: {examples}&quot;
+            f&quot;{stage}: keys are not unique: {list(keys)}; &quot;
+            f&quot;examples: {duplicate_examples}&quot;
         )
 
 
-def _normalize_text(
+def normalize_text(
     series: pd.Series,
     *,
     separators: bool = False,
@@ -1398,14 +1521,14 @@ def _normalize_text(
     return result.mask(result.eq(&quot;&quot;).fillna(False), pd.NA)
 
 
-def _categorize(
+def categorize(
     series: pd.Series,
     *,
     categories: Sequence[str],
     stage: str,
     aliases: dict[str, str] | None = None,
 ) -&gt; pd.Series:
-    normalized = _normalize_text(series, separators=True)
+    normalized = normalize_text(series, separators=True)
     if aliases:
         normalized = normalized.replace(aliases)
     if normalized.isna().any():
@@ -1413,13 +1536,13 @@ def _categorize(
     unknown = ~normalized.isin(categories)
     if unknown.any():
         raise MartContractError(
-            f&quot;{stage}: unknown categories: {_examples(normalized, unknown)}&quot;
+            f&quot;{stage}: unknown categories: {examples(normalized, unknown)}&quot;
         )
     dtype = pd.CategoricalDtype(categories=list(categories), ordered=False)
     return normalized.astype(dtype)
 
 
-def _strict_numeric(
+def strict_numeric(
     series: pd.Series,
     *,
     dtype: str,
@@ -1434,7 +1557,7 @@ def _strict_numeric(
     )
     if invalid.any():
         raise MartContractError(
-            f&quot;{stage}: invalid numeric values: {_examples(source, invalid)}&quot;
+            f&quot;{stage}: invalid numeric values: {examples(source, invalid)}&quot;
         )
     if missing.any() and not nullable:
         raise MartContractError(f&quot;{stage}: numeric value must be non-missing&quot;)
@@ -1442,12 +1565,12 @@ def _strict_numeric(
         fractional = parsed.notna() &amp; parsed.mod(1).ne(0)
         if fractional.any():
             raise MartContractError(
-                f&quot;{stage}: expected integer values: {_examples(source, fractional)}&quot;
+                f&quot;{stage}: expected integer values: {examples(source, fractional)}&quot;
             )
     return parsed.astype(dtype)
 
 
-def _parse_aware_utc(series: pd.Series, *, stage: str) -&gt; pd.Series:
+def parse_aware_utc(series: pd.Series, *, stage: str) -&gt; pd.Series:
     source = series.astype(&quot;string&quot;).str.strip()
     missing = source.isna() | source.eq(&quot;&quot;).fillna(False)
     parsed = pd.to_datetime(
@@ -1459,7 +1582,7 @@ def _parse_aware_utc(series: pd.Series, *, stage: str) -&gt; pd.Series:
     invalid = ~missing &amp; parsed.isna()
     if invalid.any():
         raise MartContractError(
-            f&quot;{stage}: invalid timestamps: {_examples(source, invalid)}&quot;
+            f&quot;{stage}: invalid timestamps: {examples(source, invalid)}&quot;
         )
     has_offset = source.str.contains(
         EXPLICIT_OFFSET_PATTERN,
@@ -1470,395 +1593,48 @@ def _parse_aware_utc(series: pd.Series, *, stage: str) -&gt; pd.Series:
     if naive.any():
         raise MartContractError(
             f&quot;{stage}: timestamps need an explicit UTC offset: &quot;
-            f&quot;{_examples(source, naive)}&quot;
+            f&quot;{examples(source, naive)}&quot;
         )
     return parsed.astype(pd.DatetimeTZDtype(unit=&quot;ns&quot;, tz=&quot;UTC&quot;))
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/mart_contracts.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mart_delivery.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
 
-def prepare_users(users: pd.DataFrame) -&gt; pd.DataFrame:
-    &quot;&quot;&quot;Prepare the user dimension with a stable plan vocabulary.&quot;&quot;&quot;
+import pandas as pd
 
-    stage = &quot;prepare_users&quot;
-    if not isinstance(users, pd.DataFrame):
-        raise MartContractError(f&quot;{stage}: expected a pandas DataFrame&quot;)
-    _require_columns(users, {&quot;user_id&quot;, &quot;country&quot;, &quot;plan&quot;}, stage=stage)
-    result = users.copy(deep=True).assign(
-        user_id=lambda value: _canonical_identifier(value[&quot;user_id&quot;]),
+if __package__:
+    from .mart_contracts import (
+        BUILDER_NAME,
+        BUILDER_VERSION,
+        DATASET_SCHEMA_VERSION,
+        MANIFEST_VERSION,
+        OUTPUT_COLUMNS,
+        OUTPUT_SCHEMA,
+        SOURCE_NAMES,
+        MartContractError,
+        assert_unique_nonblank,
     )
-    _assert_unique_nonblank(result, [&quot;user_id&quot;], stage=stage)
-
-    country = (
-        result[&quot;country&quot;]
-        .astype(&quot;string&quot;)
-        .str.normalize(&quot;NFKC&quot;)
-        .str.strip()
-        .str.upper()
-    )
-    country = country.mask(country.eq(&quot;&quot;).fillna(False), pd.NA)
-    invalid_country = country.notna() &amp; ~country.str.fullmatch(
-        r&quot;[A-Z]{2}&quot;,
-        na=False,
-    )
-    if invalid_country.any():
-        raise MartContractError(
-            f&quot;{stage}: invalid country codes: &quot;
-            f&quot;{_examples(country, invalid_country)}&quot;
-        )
-
-    plan = _categorize(
-        result[&quot;plan&quot;],
-        categories=PLAN_CATEGORIES,
-        stage=f&quot;{stage}.plan&quot;,
-    )
-    return result.assign(
-        country=country.astype(&quot;string&quot;),
-        plan=plan,
+else:
+    from mart_contracts import (
+        BUILDER_NAME,
+        BUILDER_VERSION,
+        DATASET_SCHEMA_VERSION,
+        MANIFEST_VERSION,
+        OUTPUT_COLUMNS,
+        OUTPUT_SCHEMA,
+        SOURCE_NAMES,
+        MartContractError,
+        assert_unique_nonblank,
     )
 
 
-def _prepare_order_identity(orders: pd.DataFrame) -&gt; pd.DataFrame:
-    stage = &quot;prepare_orders.identity&quot;
-    required = {
-        &quot;order_id&quot;,
-        &quot;user_id&quot;,
-        &quot;ordered_at&quot;,
-        &quot;status&quot;,
-        &quot;currency&quot;,
-        &quot;amount&quot;,
-    }
-    _require_columns(orders, required, stage=stage)
-    result = orders.assign(
-        order_id=lambda value: _canonical_identifier(value[&quot;order_id&quot;]),
-        user_id=lambda value: _canonical_identifier(value[&quot;user_id&quot;]),
-    )
-    _assert_unique_nonblank(result, [&quot;order_id&quot;], stage=stage)
-    if result[&quot;user_id&quot;].isna().any():
-        raise MartContractError(f&quot;{stage}: user_id must be non-missing and non-blank&quot;)
-    return result
+def sha256(path: Path) -&gt; str:
+    &quot;&quot;&quot;Return a SHA-256 digest for the exact bytes stored at path.&quot;&quot;&quot;
 
-
-def _normalize_order_fields(orders: pd.DataFrame) -&gt; pd.DataFrame:
-    stage = &quot;prepare_orders.fields&quot;
-    status = _categorize(
-        orders[&quot;status&quot;],
-        categories=STATUS_CATEGORIES,
-        stage=f&quot;{stage}.status&quot;,
-    )
-    currency = (
-        orders[&quot;currency&quot;]
-        .astype(&quot;string&quot;)
-        .str.normalize(&quot;NFKC&quot;)
-        .str.strip()
-        .str.upper()
-    )
-    currency = currency.mask(currency.eq(&quot;&quot;).fillna(False), pd.NA)
-    missing_currency = currency.isna()
-    invalid_currency = currency.notna() &amp; ~currency.str.fullmatch(
-        r&quot;[A-Z]{3}&quot;,
-        na=False,
-    )
-    if missing_currency.any():
-        raise MartContractError(
-            f&quot;{stage}.currency: value must be non-missing and non-blank&quot;
-        )
-    if invalid_currency.any():
-        raise MartContractError(
-            f&quot;{stage}.currency: invalid codes: &quot;
-            f&quot;{_examples(currency, invalid_currency)}&quot;
-        )
-    amount = _strict_numeric(
-        orders[&quot;amount&quot;],
-        dtype=&quot;Float64&quot;,
-        nullable=True,
-        stage=f&quot;{stage}.amount&quot;,
-    )
-    return orders.assign(
-        status=status,
-        currency=currency.astype(&quot;string&quot;),
-        amount=amount,
-    )
-
-
-def _add_order_time(
-    orders: pd.DataFrame,
-    *,
-    business_timezone: str,
-) -&gt; pd.DataFrame:
-    stage = &quot;prepare_orders.time&quot;
-    ordered_at_utc = _parse_aware_utc(orders[&quot;ordered_at&quot;], stage=stage)
-    try:
-        local = ordered_at_utc.dt.tz_convert(business_timezone)
-    except (TypeError, ValueError, KeyError) as error:
-        raise MartContractError(
-            f&quot;{stage}: invalid business timezone: {business_timezone}&quot;
-        ) from error
-    local_order_date = local.dt.strftime(&quot;%Y-%m-%d&quot;).astype(&quot;string&quot;)
-    return orders.assign(
-        ordered_at_utc=ordered_at_utc,
-        local_order_date=local_order_date,
-    )
-
-
-def _add_paid_metrics(orders: pd.DataFrame) -&gt; pd.DataFrame:
-    stage = &quot;prepare_orders.paid_metrics&quot;
-    is_paid = orders[&quot;status&quot;].eq(&quot;paid&quot;).astype(&quot;boolean&quot;)
-    missing_paid_amount = is_paid &amp; orders[&quot;amount&quot;].isna()
-    if missing_paid_amount.any():
-        raise MartContractError(
-            f&quot;{stage}: paid orders need amount: &quot;
-            f&quot;{_examples(orders[&#x27;order_id&#x27;], missing_paid_amount)}&quot;
-        )
-    return orders.assign(
-        is_paid=is_paid,
-        paid_amount=orders[&quot;amount&quot;].where(is_paid, 0).astype(&quot;Float64&quot;),
-    )
-
-
-def prepare_orders(
-    orders: pd.DataFrame,
-    *,
-    business_timezone: str,
-) -&gt; pd.DataFrame:
-    &quot;&quot;&quot;Run the strict order pipeline from lesson 03/11 inside the mart build.&quot;&quot;&quot;
-
-    if not isinstance(orders, pd.DataFrame):
-        raise MartContractError(&quot;prepare_orders: expected a pandas DataFrame&quot;)
-    source = orders.copy(deep=True)
-    source_index = source.index.copy()
-    result = (
-        source.pipe(_prepare_order_identity)
-        .pipe(_normalize_order_fields)
-        .pipe(_add_order_time, business_timezone=business_timezone)
-        .pipe(_add_paid_metrics)
-    )
-    if len(result) != len(source) or not result.index.equals(source_index):
-        raise MartContractError(
-            &quot;prepare_orders: preserving stages changed rows or their order&quot;
-        )
-    return result
-
-
-def _join_categories(values: pd.Series) -&gt; str:
-    present = set(str(value) for value in values.dropna().tolist())
-    return &quot;|&quot;.join(
-        category for category in ITEM_CATEGORIES if category in present
-    )
-
-
-def prepare_item_totals(items: pd.DataFrame) -&gt; pd.DataFrame:
-    &quot;&quot;&quot;Normalize line items and aggregate them to one row per order.&quot;&quot;&quot;
-
-    stage = &quot;prepare_item_totals&quot;
-    if not isinstance(items, pd.DataFrame):
-        raise MartContractError(f&quot;{stage}: expected a pandas DataFrame&quot;)
-    required = {
-        &quot;order_id&quot;,
-        &quot;product_id&quot;,
-        &quot;category&quot;,
-        &quot;quantity&quot;,
-        &quot;unit_price&quot;,
-    }
-    _require_columns(items, required, stage=stage)
-    result = items.copy(deep=True).assign(
-        order_id=lambda value: _canonical_identifier(value[&quot;order_id&quot;]),
-        product_id=lambda value: _canonical_identifier(value[&quot;product_id&quot;]),
-    )
-    _assert_unique_nonblank(
-        result,
-        [&quot;order_id&quot;, &quot;product_id&quot;],
-        stage=stage,
-    )
-
-    quantity = _strict_numeric(
-        result[&quot;quantity&quot;],
-        dtype=&quot;Int64&quot;,
-        nullable=False,
-        stage=f&quot;{stage}.quantity&quot;,
-    )
-    unit_price = _strict_numeric(
-        result[&quot;unit_price&quot;],
-        dtype=&quot;Float64&quot;,
-        nullable=False,
-        stage=f&quot;{stage}.unit_price&quot;,
-    )
-    if quantity.le(0).any():
-        raise MartContractError(f&quot;{stage}.quantity: values must be positive&quot;)
-    if unit_price.lt(0).any():
-        raise MartContractError(f&quot;{stage}.unit_price: values must be non-negative&quot;)
-
-    category = _categorize(
-        result[&quot;category&quot;],
-        categories=ITEM_CATEGORIES,
-        aliases={&quot;addon&quot;: &quot;add_on&quot;},
-        stage=f&quot;{stage}.category&quot;,
-    )
-    prepared = result.assign(
-        category=category,
-        quantity=quantity,
-        unit_price=unit_price,
-        line_total=quantity.astype(&quot;Float64&quot;).mul(unit_price),
-    )
-    totals = prepared.groupby(
-        &quot;order_id&quot;,
-        as_index=False,
-        observed=True,
-    ).agg(
-        item_rows=(&quot;product_id&quot;, &quot;size&quot;),
-        item_total=(&quot;line_total&quot;, lambda values: values.sum(min_count=1)),
-        categories=(&quot;category&quot;, _join_categories),
-    )
-    totals = totals.assign(
-        order_id=lambda value: value[&quot;order_id&quot;].astype(&quot;string&quot;),
-        item_rows=lambda value: value[&quot;item_rows&quot;].astype(&quot;Int64&quot;),
-        item_total=lambda value: value[&quot;item_total&quot;].astype(&quot;Float64&quot;),
-        categories=lambda value: value[&quot;categories&quot;].astype(&quot;string&quot;),
-    )
-    _assert_unique_nonblank(totals, [&quot;order_id&quot;], stage=&quot;item_totals&quot;)
-    return totals
-
-
-def _warning_check(
-    *,
-    count: int,
-    examples: list[str],
-    message: str,
-) -&gt; dict[str, Any]:
-    return {
-        &quot;status&quot;: &quot;warning&quot; if count else &quot;pass&quot;,
-        &quot;count&quot;: count,
-        &quot;examples&quot;: examples,
-        &quot;message&quot;: message,
-    }
-
-
-def build_order_mart(
-    users: pd.DataFrame,
-    orders: pd.DataFrame,
-    items: pd.DataFrame,
-    *,
-    business_timezone: str,
-) -&gt; tuple[pd.DataFrame, dict[str, Any]]:
-    &quot;&quot;&quot;Build a checked one-row-per-order mart and its publish-gate report.&quot;&quot;&quot;
-
-    prepared_users = prepare_users(users)
-    prepared_orders = prepare_orders(
-        orders,
-        business_timezone=business_timezone,
-    )
-    item_totals = prepare_item_totals(items)
-
-    known_orders = set(prepared_orders[&quot;order_id&quot;].tolist())
-    orphan_items = item_totals.loc[
-        ~item_totals[&quot;order_id&quot;].isin(known_orders),
-        &quot;order_id&quot;,
-    ]
-    if not orphan_items.empty:
-        raise MartContractError(
-            &quot;build_order_mart.items_join: order_items reference unknown orders: &quot;
-            f&quot;{orphan_items.tolist()}&quot;
-        )
-
-    with_items = prepared_orders.merge(
-        item_totals,
-        on=&quot;order_id&quot;,
-        how=&quot;left&quot;,
-        validate=&quot;one_to_one&quot;,
-        indicator=&quot;items_merge&quot;,
-    )
-    missing_items = with_items[&quot;items_merge&quot;].ne(&quot;both&quot;)
-    if missing_items.any():
-        raise MartContractError(
-            &quot;build_order_mart.items_join: orders have no item rows: &quot;
-            f&quot;{_examples(with_items[&#x27;order_id&#x27;], missing_items)}&quot;
-        )
-
-    mart = with_items.merge(
-        prepared_users[[&quot;user_id&quot;, &quot;country&quot;, &quot;plan&quot;]],
-        on=&quot;user_id&quot;,
-        how=&quot;left&quot;,
-        validate=&quot;many_to_one&quot;,
-        indicator=&quot;user_merge&quot;,
-    )
-    if len(mart) != len(prepared_orders):
-        raise MartContractError(
-            &quot;build_order_mart.user_join: mart row count differs from orders&quot;
-        )
-    _assert_unique_nonblank(mart, [&quot;order_id&quot;], stage=&quot;build_order_mart&quot;)
-
-    known_amount = mart[&quot;amount&quot;].notna() &amp; mart[&quot;item_total&quot;].notna()
-    amount_matches_items = (
-        mart[&quot;amount&quot;]
-        .sub(mart[&quot;item_total&quot;])
-        .abs()
-        .le(1e-9)
-        .where(known_amount, pd.NA)
-        .astype(&quot;boolean&quot;)
-    )
-    mismatch = amount_matches_items.eq(False).fillna(False)
-    if mismatch.any():
-        raise MartContractError(
-            &quot;build_order_mart.reconciliation: order amount differs from item total: &quot;
-            f&quot;{_examples(mart[&#x27;order_id&#x27;], mismatch)}&quot;
-        )
-
-    mart = (
-        mart.assign(
-            user_found=mart[&quot;user_merge&quot;].eq(&quot;both&quot;).astype(&quot;boolean&quot;),
-            amount_matches_items=amount_matches_items,
-        )
-        .drop(columns=[&quot;items_merge&quot;, &quot;user_merge&quot;])
-        .loc[:, OUTPUT_COLUMNS]
-        .sort_values(&quot;order_id&quot;, kind=&quot;stable&quot;)
-        .reset_index(drop=True)
-    )
-
-    unknown_user = ~mart[&quot;user_found&quot;]
-    unchecked_amount = mart[&quot;amount_matches_items&quot;].isna()
-    missing_ordered_at = mart[&quot;ordered_at_utc&quot;].isna()
-    missing_country = mart[&quot;country&quot;].isna()
-    checks = {
-        &quot;grain&quot;: {
-            &quot;status&quot;: &quot;pass&quot;,
-            &quot;expected&quot;: [&quot;order_id&quot;],
-            &quot;rows&quot;: len(mart),
-            &quot;unique&quot;: bool(mart[&quot;order_id&quot;].is_unique),
-        },
-        &quot;rows_equal_orders&quot;: {
-            &quot;status&quot;: &quot;pass&quot;,
-            &quot;expected&quot;: len(prepared_orders),
-            &quot;observed&quot;: len(mart),
-        },
-        &quot;amount_reconciliation&quot;: {
-            &quot;status&quot;: &quot;warning&quot; if unchecked_amount.any() else &quot;pass&quot;,
-            &quot;checked_rows&quot;: int((~unchecked_amount).sum()),
-            &quot;unchecked_rows&quot;: int(unchecked_amount.sum()),
-            &quot;mismatches&quot;: 0,
-            &quot;examples&quot;: _examples(mart[&quot;order_id&quot;], unchecked_amount),
-        },
-        &quot;unknown_users&quot;: _warning_check(
-            count=int(unknown_user.sum()),
-            examples=_examples(mart[&quot;user_id&quot;], unknown_user),
-            message=&quot;Orders are preserved and marked with user_found=false.&quot;,
-        ),
-        &quot;missing_ordered_at&quot;: _warning_check(
-            count=int(missing_ordered_at.sum()),
-            examples=_examples(mart[&quot;order_id&quot;], missing_ordered_at),
-            message=&quot;Missing source timestamps remain missing.&quot;,
-        ),
-        &quot;missing_country&quot;: _warning_check(
-            count=int(missing_country.sum()),
-            examples=_examples(mart[&quot;order_id&quot;], missing_country),
-            message=&quot;Country may be missing for a known or unmatched user.&quot;,
-        ),
-    }
-    has_warnings = any(
-        check[&quot;status&quot;] == &quot;warning&quot; for check in checks.values()
-    )
-    quality = {
-        &quot;publish_status&quot;: &quot;passed_with_warnings&quot; if has_warnings else &quot;passed&quot;,
-        &quot;checks&quot;: checks,
-    }
-    return mart, quality
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _validate_source_paths(source_paths: dict[str, Path]) -&gt; dict[str, Path]:
@@ -1922,7 +1698,7 @@ def export_delivery(
         raise MartContractError(
             &quot;export_delivery: mart columns do not match order_mart/v1&quot;
         )
-    _assert_unique_nonblank(mart, [&quot;order_id&quot;], stage=&quot;export_delivery&quot;)
+    assert_unique_nonblank(mart, [&quot;order_id&quot;], stage=&quot;export_delivery&quot;)
     if mart[&quot;order_id&quot;].tolist() != sorted(mart[&quot;order_id&quot;].tolist()):
         raise MartContractError(&quot;export_delivery: mart order is not deterministic&quot;)
     grain_check = quality[&quot;checks&quot;].get(&quot;grain&quot;)
@@ -2071,7 +1847,6 @@ def verify_delivery(output_dir: Path) -&gt; dict[str, Any]:
     schema = dataset.get(&quot;schema&quot;)
     if schema != OUTPUT_SCHEMA:
         raise MartContractError(&quot;verify_delivery: dataset schema is invalid&quot;)
-    expected_columns = OUTPUT_COLUMNS
 
     try:
         delivered = pd.read_csv(
@@ -2084,7 +1859,7 @@ def verify_delivery(output_dir: Path) -&gt; dict[str, Any]:
         raise MartContractError(
             f&quot;verify_delivery: cannot read artifact: {error}&quot;
         ) from error
-    if delivered.columns.tolist() != expected_columns:
+    if delivered.columns.tolist() != OUTPUT_COLUMNS:
         raise MartContractError(&quot;verify_delivery: CSV columns differ from manifest&quot;)
     if len(delivered) != dataset.get(&quot;rows&quot;):
         raise MartContractError(&quot;verify_delivery: CSV row count differs from manifest&quot;)
@@ -2129,80 +1904,429 @@ def verify_delivery(output_dir: Path) -&gt; dict[str, Any]:
         &quot;grain&quot;: [&quot;order_id&quot;],
         &quot;artifact_sha256&quot;: actual_digest,
     }
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/mart_delivery.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/mart_pipeline.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
+from typing import Any
 
-def _read_raw_csv(path: Path) -&gt; pd.DataFrame:
-    return pd.read_csv(
-        path,
-        dtype=&quot;string&quot;,
-        keep_default_na=False,
-        encoding=&quot;utf-8&quot;,
+import pandas as pd
+
+if __package__:
+    from .mart_contracts import (
+        ITEM_CATEGORIES,
+        OUTPUT_COLUMNS,
+        PLAN_CATEGORIES,
+        STATUS_CATEGORIES,
+        MartContractError,
+        assert_unique_nonblank,
+        canonical_identifier,
+        categorize,
+        examples,
+        parse_aware_utc,
+        require_columns,
+        strict_numeric,
+    )
+else:
+    from mart_contracts import (
+        ITEM_CATEGORIES,
+        OUTPUT_COLUMNS,
+        PLAN_CATEGORIES,
+        STATUS_CATEGORIES,
+        MartContractError,
+        assert_unique_nonblank,
+        canonical_identifier,
+        categorize,
+        examples,
+        parse_aware_utc,
+        require_columns,
+        strict_numeric,
     )
 
 
-def build_parser() -&gt; argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=&quot;Build or independently verify a checked order-mart delivery&quot;
+def prepare_users(users: pd.DataFrame) -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Prepare the user dimension with a stable plan vocabulary.&quot;&quot;&quot;
+
+    stage = &quot;prepare_users&quot;
+    if not isinstance(users, pd.DataFrame):
+        raise MartContractError(f&quot;{stage}: expected a pandas DataFrame&quot;)
+    require_columns(users, {&quot;user_id&quot;, &quot;country&quot;, &quot;plan&quot;}, stage=stage)
+    result = users.copy(deep=True).assign(
+        user_id=lambda value: canonical_identifier(value[&quot;user_id&quot;]),
     )
-    commands = parser.add_subparsers(dest=&quot;command&quot;, required=True)
+    assert_unique_nonblank(result, [&quot;user_id&quot;], stage=stage)
 
-    build = commands.add_parser(&quot;build&quot;, help=&quot;build and export the delivery&quot;)
-    build.add_argument(&quot;--users&quot;, type=Path, required=True)
-    build.add_argument(&quot;--orders&quot;, type=Path, required=True)
-    build.add_argument(&quot;--items&quot;, type=Path, required=True)
-    build.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
-    build.add_argument(&quot;--business-timezone&quot;, required=True)
+    country = (
+        result[&quot;country&quot;]
+        .astype(&quot;string&quot;)
+        .str.normalize(&quot;NFKC&quot;)
+        .str.strip()
+        .str.upper()
+    )
+    country = country.mask(country.eq(&quot;&quot;).fillna(False), pd.NA)
+    invalid_country = country.notna() &amp; ~country.str.fullmatch(
+        r&quot;[A-Z]{2}&quot;,
+        na=False,
+    )
+    if invalid_country.any():
+        raise MartContractError(
+            f&quot;{stage}: invalid country codes: &quot;
+            f&quot;{examples(country, invalid_country)}&quot;
+        )
 
-    verify = commands.add_parser(&quot;verify&quot;, help=&quot;verify an existing delivery&quot;)
-    verify.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
-    return parser
+    plan = categorize(
+        result[&quot;plan&quot;],
+        categories=PLAN_CATEGORIES,
+        stage=f&quot;{stage}.plan&quot;,
+    )
+    return result.assign(
+        country=country.astype(&quot;string&quot;),
+        plan=plan,
+    )
 
 
-def run_cli(argv: Sequence[str] | None = None) -&gt; int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def _prepare_order_identity(orders: pd.DataFrame) -&gt; pd.DataFrame:
+    stage = &quot;prepare_orders.identity&quot;
+    required = {
+        &quot;order_id&quot;,
+        &quot;user_id&quot;,
+        &quot;ordered_at&quot;,
+        &quot;status&quot;,
+        &quot;currency&quot;,
+        &quot;amount&quot;,
+    }
+    require_columns(orders, required, stage=stage)
+    result = orders.assign(
+        order_id=lambda value: canonical_identifier(value[&quot;order_id&quot;]),
+        user_id=lambda value: canonical_identifier(value[&quot;user_id&quot;]),
+    )
+    assert_unique_nonblank(result, [&quot;order_id&quot;], stage=stage)
+    if result[&quot;user_id&quot;].isna().any():
+        raise MartContractError(f&quot;{stage}: user_id must be non-missing and non-blank&quot;)
+    return result
+
+
+def _normalize_order_fields(orders: pd.DataFrame) -&gt; pd.DataFrame:
+    stage = &quot;prepare_orders.fields&quot;
+    status = categorize(
+        orders[&quot;status&quot;],
+        categories=STATUS_CATEGORIES,
+        stage=f&quot;{stage}.status&quot;,
+    )
+    currency = (
+        orders[&quot;currency&quot;]
+        .astype(&quot;string&quot;)
+        .str.normalize(&quot;NFKC&quot;)
+        .str.strip()
+        .str.upper()
+    )
+    currency = currency.mask(currency.eq(&quot;&quot;).fillna(False), pd.NA)
+    missing_currency = currency.isna()
+    invalid_currency = currency.notna() &amp; ~currency.str.fullmatch(
+        r&quot;[A-Z]{3}&quot;,
+        na=False,
+    )
+    if missing_currency.any():
+        raise MartContractError(
+            f&quot;{stage}.currency: value must be non-missing and non-blank&quot;
+        )
+    if invalid_currency.any():
+        raise MartContractError(
+            f&quot;{stage}.currency: invalid codes: &quot;
+            f&quot;{examples(currency, invalid_currency)}&quot;
+        )
+    amount = strict_numeric(
+        orders[&quot;amount&quot;],
+        dtype=&quot;Float64&quot;,
+        nullable=True,
+        stage=f&quot;{stage}.amount&quot;,
+    )
+    return orders.assign(
+        status=status,
+        currency=currency.astype(&quot;string&quot;),
+        amount=amount,
+    )
+
+
+def _add_order_time(
+    orders: pd.DataFrame,
+    *,
+    business_timezone: str,
+) -&gt; pd.DataFrame:
+    stage = &quot;prepare_orders.time&quot;
+    ordered_at_utc = parse_aware_utc(orders[&quot;ordered_at&quot;], stage=stage)
     try:
-        if args.command == &quot;verify&quot;:
-            report = verify_delivery(args.output_dir)
-        else:
-            source_paths = {
-                &quot;users&quot;: args.users,
-                &quot;orders&quot;: args.orders,
-                &quot;order_items&quot;: args.items,
-            }
-            mart, quality = build_order_mart(
-                _read_raw_csv(args.users),
-                _read_raw_csv(args.orders),
-                _read_raw_csv(args.items),
-                business_timezone=args.business_timezone,
-            )
-            manifest = export_delivery(
-                mart,
-                quality,
-                args.output_dir,
-                source_paths,
-                business_timezone=args.business_timezone,
-            )
-            report = {
-                &quot;valid&quot;: True,
-                &quot;publish_status&quot;: manifest[&quot;publish_status&quot;],
-                &quot;rows&quot;: manifest[&quot;dataset&quot;][&quot;rows&quot;],
-                &quot;output_dir&quot;: str(args.output_dir),
-                &quot;artifact_sha256&quot;: manifest[&quot;artifact&quot;][&quot;sha256&quot;],
-            }
-    except (OSError, MartContractError) as error:
-        parser.error(str(error))
-    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0
+        local = ordered_at_utc.dt.tz_convert(business_timezone)
+    except (TypeError, ValueError, KeyError) as error:
+        raise MartContractError(
+            f&quot;{stage}: invalid business timezone: {business_timezone}&quot;
+        ) from error
+    local_order_date = local.dt.strftime(&quot;%Y-%m-%d&quot;).astype(&quot;string&quot;)
+    return orders.assign(
+        ordered_at_utc=ordered_at_utc,
+        local_order_date=local_order_date,
+    )
 
 
-def main() -&gt; None:
-    raise SystemExit(run_cli())
+def _add_paid_metrics(orders: pd.DataFrame) -&gt; pd.DataFrame:
+    stage = &quot;prepare_orders.paid_metrics&quot;
+    is_paid = orders[&quot;status&quot;].eq(&quot;paid&quot;).astype(&quot;boolean&quot;)
+    missing_paid_amount = is_paid &amp; orders[&quot;amount&quot;].isna()
+    if missing_paid_amount.any():
+        raise MartContractError(
+            f&quot;{stage}: paid orders need amount: &quot;
+            f&quot;{examples(orders[&#x27;order_id&#x27;], missing_paid_amount)}&quot;
+        )
+    return orders.assign(
+        is_paid=is_paid,
+        paid_amount=orders[&quot;amount&quot;].where(is_paid, 0).astype(&quot;Float64&quot;),
+    )
 
 
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/mart_builder.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+def prepare_orders(
+    orders: pd.DataFrame,
+    *,
+    business_timezone: str,
+) -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Compose the checked order stages introduced in lesson 03/11.&quot;&quot;&quot;
+
+    if not isinstance(orders, pd.DataFrame):
+        raise MartContractError(&quot;prepare_orders: expected a pandas DataFrame&quot;)
+    source = orders.copy(deep=True)
+    source_index = source.index.copy()
+    result = (
+        source.pipe(_prepare_order_identity)
+        .pipe(_normalize_order_fields)
+        .pipe(_add_order_time, business_timezone=business_timezone)
+        .pipe(_add_paid_metrics)
+    )
+    if len(result) != len(source) or not result.index.equals(source_index):
+        raise MartContractError(
+            &quot;prepare_orders: preserving stages changed rows or their order&quot;
+        )
+    return result
+
+
+def _join_categories(values: pd.Series) -&gt; str:
+    present = set(str(value) for value in values.dropna().tolist())
+    return &quot;|&quot;.join(
+        category for category in ITEM_CATEGORIES if category in present
+    )
+
+
+def prepare_item_totals(items: pd.DataFrame) -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Normalize item rows and apply the stricter delivery aggregation policy.&quot;&quot;&quot;
+
+    stage = &quot;prepare_item_totals&quot;
+    if not isinstance(items, pd.DataFrame):
+        raise MartContractError(f&quot;{stage}: expected a pandas DataFrame&quot;)
+    required = {
+        &quot;order_id&quot;,
+        &quot;product_id&quot;,
+        &quot;category&quot;,
+        &quot;quantity&quot;,
+        &quot;unit_price&quot;,
+    }
+    require_columns(items, required, stage=stage)
+    result = items.copy(deep=True).assign(
+        order_id=lambda value: canonical_identifier(value[&quot;order_id&quot;]),
+        product_id=lambda value: canonical_identifier(value[&quot;product_id&quot;]),
+    )
+    assert_unique_nonblank(
+        result,
+        [&quot;order_id&quot;, &quot;product_id&quot;],
+        stage=stage,
+    )
+
+    quantity = strict_numeric(
+        result[&quot;quantity&quot;],
+        dtype=&quot;Int64&quot;,
+        nullable=False,
+        stage=f&quot;{stage}.quantity&quot;,
+    )
+    unit_price = strict_numeric(
+        result[&quot;unit_price&quot;],
+        dtype=&quot;Float64&quot;,
+        nullable=False,
+        stage=f&quot;{stage}.unit_price&quot;,
+    )
+    if quantity.le(0).any():
+        raise MartContractError(f&quot;{stage}.quantity: values must be positive&quot;)
+    if unit_price.lt(0).any():
+        raise MartContractError(f&quot;{stage}.unit_price: values must be non-negative&quot;)
+
+    category = categorize(
+        result[&quot;category&quot;],
+        categories=ITEM_CATEGORIES,
+        aliases={&quot;addon&quot;: &quot;add_on&quot;},
+        stage=f&quot;{stage}.category&quot;,
+    )
+    prepared = result.assign(
+        category=category,
+        quantity=quantity,
+        unit_price=unit_price,
+        line_total=quantity.astype(&quot;Float64&quot;).mul(unit_price),
+    )
+    totals = prepared.groupby(
+        &quot;order_id&quot;,
+        as_index=False,
+        observed=True,
+    ).agg(
+        item_rows=(&quot;product_id&quot;, &quot;size&quot;),
+        item_total=(&quot;line_total&quot;, lambda values: values.sum(min_count=1)),
+        categories=(&quot;category&quot;, _join_categories),
+    )
+    totals = totals.assign(
+        order_id=lambda value: value[&quot;order_id&quot;].astype(&quot;string&quot;),
+        item_rows=lambda value: value[&quot;item_rows&quot;].astype(&quot;Int64&quot;),
+        item_total=lambda value: value[&quot;item_total&quot;].astype(&quot;Float64&quot;),
+        categories=lambda value: value[&quot;categories&quot;].astype(&quot;string&quot;),
+    )
+    assert_unique_nonblank(totals, [&quot;order_id&quot;], stage=&quot;item_totals&quot;)
+    return totals
+
+
+def _warning_check(
+    *,
+    count: int,
+    examples_list: list[str],
+    message: str,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;status&quot;: &quot;warning&quot; if count else &quot;pass&quot;,
+        &quot;count&quot;: count,
+        &quot;examples&quot;: examples_list,
+        &quot;message&quot;: message,
+    }
+
+
+def build_order_mart(
+    users: pd.DataFrame,
+    orders: pd.DataFrame,
+    items: pd.DataFrame,
+    *,
+    business_timezone: str,
+) -&gt; tuple[pd.DataFrame, dict[str, Any]]:
+    &quot;&quot;&quot;Build a checked one-row-per-order mart and its publish-gate report.&quot;&quot;&quot;
+
+    prepared_users = prepare_users(users)
+    prepared_orders = prepare_orders(
+        orders,
+        business_timezone=business_timezone,
+    )
+    item_totals = prepare_item_totals(items)
+
+    known_orders = set(prepared_orders[&quot;order_id&quot;].tolist())
+    orphan_items = item_totals.loc[
+        ~item_totals[&quot;order_id&quot;].isin(known_orders),
+        &quot;order_id&quot;,
+    ]
+    if not orphan_items.empty:
+        raise MartContractError(
+            &quot;build_order_mart.items_join: order_items reference unknown orders: &quot;
+            f&quot;{orphan_items.tolist()}&quot;
+        )
+
+    with_items = prepared_orders.merge(
+        item_totals,
+        on=&quot;order_id&quot;,
+        how=&quot;left&quot;,
+        validate=&quot;one_to_one&quot;,
+        indicator=&quot;items_merge&quot;,
+    )
+    missing_items = with_items[&quot;items_merge&quot;].ne(&quot;both&quot;)
+    if missing_items.any():
+        raise MartContractError(
+            &quot;build_order_mart.items_join: orders have no item rows: &quot;
+            f&quot;{examples(with_items[&#x27;order_id&#x27;], missing_items)}&quot;
+        )
+
+    mart = with_items.merge(
+        prepared_users[[&quot;user_id&quot;, &quot;country&quot;, &quot;plan&quot;]],
+        on=&quot;user_id&quot;,
+        how=&quot;left&quot;,
+        validate=&quot;many_to_one&quot;,
+        indicator=&quot;user_merge&quot;,
+    )
+    if len(mart) != len(prepared_orders):
+        raise MartContractError(
+            &quot;build_order_mart.user_join: mart row count differs from orders&quot;
+        )
+    assert_unique_nonblank(mart, [&quot;order_id&quot;], stage=&quot;build_order_mart&quot;)
+
+    known_amount = mart[&quot;amount&quot;].notna() &amp; mart[&quot;item_total&quot;].notna()
+    amount_matches_items = (
+        mart[&quot;amount&quot;]
+        .sub(mart[&quot;item_total&quot;])
+        .abs()
+        .le(1e-9)
+        .where(known_amount, pd.NA)
+        .astype(&quot;boolean&quot;)
+    )
+    mismatch = amount_matches_items.eq(False).fillna(False)
+    if mismatch.any():
+        raise MartContractError(
+            &quot;build_order_mart.reconciliation: order amount differs from item total: &quot;
+            f&quot;{examples(mart[&#x27;order_id&#x27;], mismatch)}&quot;
+        )
+
+    mart = (
+        mart.assign(
+            user_found=mart[&quot;user_merge&quot;].eq(&quot;both&quot;).astype(&quot;boolean&quot;),
+            amount_matches_items=amount_matches_items,
+        )
+        .drop(columns=[&quot;items_merge&quot;, &quot;user_merge&quot;])
+        .loc[:, OUTPUT_COLUMNS]
+        .sort_values(&quot;order_id&quot;, kind=&quot;stable&quot;)
+        .reset_index(drop=True)
+    )
+
+    unknown_user = ~mart[&quot;user_found&quot;]
+    unchecked_amount = mart[&quot;amount_matches_items&quot;].isna()
+    missing_ordered_at = mart[&quot;ordered_at_utc&quot;].isna()
+    missing_country = mart[&quot;country&quot;].isna()
+    checks = {
+        &quot;grain&quot;: {
+            &quot;status&quot;: &quot;pass&quot;,
+            &quot;expected&quot;: [&quot;order_id&quot;],
+            &quot;rows&quot;: len(mart),
+            &quot;unique&quot;: bool(mart[&quot;order_id&quot;].is_unique),
+        },
+        &quot;rows_equal_orders&quot;: {
+            &quot;status&quot;: &quot;pass&quot;,
+            &quot;expected&quot;: len(prepared_orders),
+            &quot;observed&quot;: len(mart),
+        },
+        &quot;amount_reconciliation&quot;: {
+            &quot;status&quot;: &quot;warning&quot; if unchecked_amount.any() else &quot;pass&quot;,
+            &quot;checked_rows&quot;: int((~unchecked_amount).sum()),
+            &quot;unchecked_rows&quot;: int(unchecked_amount.sum()),
+            &quot;mismatches&quot;: 0,
+            &quot;examples&quot;: examples(mart[&quot;order_id&quot;], unchecked_amount),
+        },
+        &quot;unknown_users&quot;: _warning_check(
+            count=int(unknown_user.sum()),
+            examples_list=examples(mart[&quot;user_id&quot;], unknown_user),
+            message=&quot;Orders are preserved and marked with user_found=false.&quot;,
+        ),
+        &quot;missing_ordered_at&quot;: _warning_check(
+            count=int(missing_ordered_at.sum()),
+            examples_list=examples(mart[&quot;order_id&quot;], missing_ordered_at),
+            message=&quot;Missing source timestamps remain missing.&quot;,
+        ),
+        &quot;missing_country&quot;: _warning_check(
+            count=int(missing_country.sum()),
+            examples_list=examples(mart[&quot;order_id&quot;], missing_country),
+            message=&quot;Country may be missing for a known or unmatched user.&quot;,
+        ),
+    }
+    has_warnings = any(
+        check[&quot;status&quot;] == &quot;warning&quot; for check in checks.values()
+    )
+    quality = {
+        &quot;publish_status&quot;: &quot;passed_with_warnings&quot; if has_warnings else &quot;passed&quot;,
+        &quot;checks&quot;: checks,
+    }
+    return mart, quality
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/03-pandas/12-export-and-handoff/outputs/mart_pipeline.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas/12-export-and-handoff" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/pandas/method-chaining/"><span>← Предыдущий урок</span><strong>Method chaining и читаемые пайплайны</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>Следующий урок →</span><strong>Grain, ключи и связи</strong></a></nav>
       </div>

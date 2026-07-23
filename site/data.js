@@ -1083,7 +1083,7 @@ window.COURSE_DATA = {
         "max": 18
       },
       "artifact": "Витрина из нескольких грязных таблиц",
-      "completion": "Студент собирает витрину, контролирует cardinality объединений и документирует grain результата.",
+      "completion": "Студент собирает витрину, контролирует cardinality объединений, документирует grain и передаёт проверяемый пакет с publish gate и версионированным manifest.",
       "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/03-pandas",
       "lessons": [
@@ -1331,8 +1331,8 @@ window.COURSE_DATA = {
           "title": "Grain, ключи и связи",
           "status": "complete",
           "time_minutes": 75,
-          "outcome": "Объявляет grain таблиц, проверяет уникальность ключей и находит нарушения связей до написания аналитического запроса.",
-          "artifact": "SQL-аудитор grain, первичных и внешних ключей",
+          "outcome": "Для набора связанных таблиц объявляет grain, выбирает простой или составной primary key, задаёт направление и обязательность foreign key и отличает пропуск ссылки от orphan-ключа.",
+          "artifact": "Шаблон реляционного контракта с отдельной рубрикой",
           "type": "learn",
           "tracks": [
             "core"
