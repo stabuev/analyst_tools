@@ -124,7 +124,7 @@ flowchart LR
 | 09 | [Даты, интервалы и часовые пояса](phases/03-pandas/09-dates-and-timezones) | complete |
 | 10 | [Строки и категориальные типы](phases/03-pandas/10-strings-and-categories) | complete |
 | 11 | [Method chaining и читаемые пайплайны](phases/03-pandas/11-method-chaining) | complete |
-| 12 | [Экспорт и передача результата](phases/03-pandas/12-export-and-handoff) | complete |
+| 12 | [Итоговая витрина: экспорт и проверяемый handoff](phases/03-pandas/12-export-and-handoff) | complete |
 
 ## Фаза 04: SQL и DuckDB
 
