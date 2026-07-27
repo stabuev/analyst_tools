@@ -137,7 +137,7 @@ flowchart LR
 |---:|---|---|
 | 01 | [Grain, ключи и связи](phases/04-sql-and-duckdb/01-grain-keys-relations) | complete |
 | 02 | [SELECT и выражения](phases/04-sql-and-duckdb/02-select-and-expressions) | complete |
-| 03 | [NULL и трехзначная логика](phases/04-sql-and-duckdb/03-null-semantics) | complete |
+| 03 | [NULL и трёхзначная логика](phases/04-sql-and-duckdb/03-null-semantics) | complete |
 | 04 | [Агрегации и уровни детализации](phases/04-sql-and-duckdb/04-aggregations) | complete |
 | 05 | [Joins без размножения метрик](phases/04-sql-and-duckdb/05-joins) | complete |
 | 06 | [CTE и композиция запросов](phases/04-sql-and-duckdb/06-cte-and-subqueries) | complete |
