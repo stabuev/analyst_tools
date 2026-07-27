@@ -140,7 +140,7 @@ flowchart LR
 | 03 | [NULL и трёхзначная логика](phases/04-sql-and-duckdb/03-null-semantics) | complete |
 | 04 | [Агрегации и уровни детализации](phases/04-sql-and-duckdb/04-aggregations) | complete |
 | 05 | [Joins без размножения метрик](phases/04-sql-and-duckdb/05-joins) | complete |
-| 06 | [CTE и композиция запросов](phases/04-sql-and-duckdb/06-cte-and-subqueries) | complete |
+| 06 | [CTE, подзапросы и композиция](phases/04-sql-and-duckdb/06-cte-and-subqueries) | complete |
 | 07 | [Оконные функции](phases/04-sql-and-duckdb/07-window-functions) | complete |
 | 08 | [Время и даты в SQL](phases/04-sql-and-duckdb/08-dates) | complete |
 | 09 | [Когорты на SQL](phases/04-sql-and-duckdb/09-cohorts) | complete |
