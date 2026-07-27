@@ -1403,8 +1403,8 @@ window.COURSE_DATA = {
           "title": "Joins без размножения метрик",
           "status": "complete",
           "time_minutes": 105,
-          "outcome": "Предсказывает cardinality JOIN, обнаруживает fanout и сохраняет аддитивность метрик.",
-          "artifact": "Шаблон безопасного JOIN с проверками cardinality и unmatched-ключей",
+          "outcome": "Перед JOIN фиксирует grain, ключ, ожидаемое число совпадений и политику unmatched-строк, а после проверяет целевой grain и сохранение метрик в их исходных единицах.",
+          "artifact": "SQL-витрина заказов с предварительной агрегацией, состояниями сопоставления и проверками fanout",
           "type": "case",
           "tracks": [
             "core"
