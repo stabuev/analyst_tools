@@ -1385,8 +1385,8 @@ window.COURSE_DATA = {
           "title": "Агрегации и уровни детализации",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Объявляет grain результата GROUP BY и подтверждает агрегаты контрольным расчетом.",
-          "artifact": "SQL-модель агрегатов с grain-инвариантами",
+          "outcome": "По бизнес-вопросу строит SQL-агрегацию с явным grain, знаменателями и NULL-политикой, различает WHERE, FILTER и HAVING и сверяет результат с ручной таблицей.",
+          "artifact": "SQL-аудит агрегации по валютам с grain-, denominator- и NULL-контрактом",
           "type": "case",
           "tracks": [
             "core"

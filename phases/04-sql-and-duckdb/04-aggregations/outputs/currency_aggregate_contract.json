@@ -1,0 +1,155 @@
+{
+  "input": {
+    "relation": "orders",
+    "grain": [
+      "order_id"
+    ],
+    "required_columns": [
+      {
+        "name": "order_id",
+        "type": "VARCHAR",
+        "nullable": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR",
+        "nullable": true
+      },
+      {
+        "name": "currency",
+        "type": "VARCHAR",
+        "nullable": true
+      },
+      {
+        "name": "amount",
+        "type": "DECIMAL(18,2)",
+        "nullable": true
+      }
+    ]
+  },
+  "policies": {
+    "population": "All validated order rows remain available to group-level counts.",
+    "group_key": {
+      "columns": [
+        "currency"
+      ],
+      "null_policy": "Preserve a missing currency as a separate NULL group for audit."
+    },
+    "paid_condition": "Only status = 'paid' is TRUE; FALSE and UNKNOWN do not enter FILTER.",
+    "amount": {
+      "known_paid_revenue": "Sum only known amounts of paid rows and publish the missing paid-amount count beside it.",
+      "complete_when": "paid_missing_amount_rows = 0",
+      "zero_is_missing": false
+    },
+    "money": {
+      "unit_column": "currency",
+      "cross_currency_sum_allowed": false,
+      "rule": "Compare and reconcile monetary values only inside the same currency unless a separate conversion policy exists."
+    }
+  },
+  "output": {
+    "grain": [
+      "currency"
+    ],
+    "columns": [
+      {
+        "name": "currency",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "order_rows",
+        "type": "BIGINT"
+      },
+      {
+        "name": "known_amount_rows",
+        "type": "BIGINT"
+      },
+      {
+        "name": "paid_order_rows",
+        "type": "BIGINT"
+      },
+      {
+        "name": "paid_known_amount_rows",
+        "type": "BIGINT"
+      },
+      {
+        "name": "paid_missing_amount_rows",
+        "type": "BIGINT"
+      },
+      {
+        "name": "paid_amount_complete",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "known_paid_revenue",
+        "type": "DECIMAL(38,2)"
+      },
+      {
+        "name": "average_known_paid_amount",
+        "type": "DOUBLE"
+      }
+    ],
+    "order_by": [
+      {
+        "column": "currency",
+        "direction": "asc",
+        "nulls": "last"
+      }
+    ]
+  },
+  "expected_on_tiny": [
+    {
+      "currency": "EUR",
+      "order_rows": 4,
+      "known_amount_rows": 3,
+      "paid_order_rows": 3,
+      "paid_known_amount_rows": 3,
+      "paid_missing_amount_rows": 0,
+      "paid_amount_complete": true,
+      "known_paid_revenue": "1625.00",
+      "average_known_paid_amount": 541.666667
+    },
+    {
+      "currency": "KZT",
+      "order_rows": 1,
+      "known_amount_rows": 1,
+      "paid_order_rows": 1,
+      "paid_known_amount_rows": 1,
+      "paid_missing_amount_rows": 0,
+      "paid_amount_complete": true,
+      "known_paid_revenue": "500.00",
+      "average_known_paid_amount": 500.0
+    },
+    {
+      "currency": "RUB",
+      "order_rows": 3,
+      "known_amount_rows": 3,
+      "paid_order_rows": 2,
+      "paid_known_amount_rows": 2,
+      "paid_missing_amount_rows": 0,
+      "paid_amount_complete": true,
+      "known_paid_revenue": "2700.00",
+      "average_known_paid_amount": 1350.0
+    },
+    {
+      "currency": "USD",
+      "order_rows": 4,
+      "known_amount_rows": 3,
+      "paid_order_rows": 3,
+      "paid_known_amount_rows": 3,
+      "paid_missing_amount_rows": 0,
+      "paid_amount_complete": true,
+      "known_paid_revenue": "180.00",
+      "average_known_paid_amount": 60.0
+    }
+  ],
+  "invariants": [
+    "Each source row contributes to exactly one currency group, including the NULL group.",
+    "The sum of order_rows equals the source row count.",
+    "The sum of known_amount_rows equals the source count of non-NULL amount.",
+    "The sum of paid_order_rows equals the source count where status = 'paid'.",
+    "The sum of paid_known_amount_rows equals the source count of known amount where status = 'paid'.",
+    "paid_order_rows = paid_known_amount_rows + paid_missing_amount_rows for every group.",
+    "known_paid_revenue and average_known_paid_amount are never reconciled across different currencies."
+  ]
+}
