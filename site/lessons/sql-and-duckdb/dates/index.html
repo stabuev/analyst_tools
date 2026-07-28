@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Заказы записаны с Z, +03:00, -05:00 и другими offsets. Если удалить suffix и сгруппировать строку по дню, события одного instant могут попасть в разные периоды, а…">
+  <meta name="description" content="В таблице заказов время приходит строками:">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Время и даты в SQL">
-  <meta property="og:description" content="Заказы записаны с Z, +03:00, -05:00 и другими offsets. Если удалить suffix и сгруппировать строку по дню, события одного instant могут попасть в разные периоды, а…">
+  <meta property="og:description" content="В таблице заказов время приходит строками:">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/">
   <meta name="twitter:card" content="summary">
   <title>Время и даты в SQL — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Время и даты в SQL", "description": "Заказы записаны с Z, +03:00, -05:00 и другими offsets. Если удалить suffix и сгруппировать строку по дню, события одного instant могут попасть в разные периоды, а…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Время и даты в SQL", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Время и даты в SQL", "description": "В таблице заказов время приходит строками:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Время и даты в SQL", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/dates/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,86 +50,738 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/09-dates" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что описывает timestamp с offset?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Однозначный момент времени</button><button type="button" class="quiz-option" data-choice="1">Только локальные часы</button><button type="button" class="quiz-option" data-choice="2">Календарный месяц</button><button type="button" class="quiz-option" data-choice="3">Продолжительность</button></div><p class="quiz-feedback" hidden>Локальная дата-время вместе с offset определяет UTC instant.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Когда правильно вычислять бизнес-день?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">После перевода instant в бизнес-временную зону</button><button type="button" class="quiz-option" data-choice="1">До парсинга</button><button type="button" class="quiz-option" data-choice="2">Всегда в UTC</button><button type="button" class="quiz-option" data-choice="3">После удаления offset</button></div><p class="quiz-feedback" hidden>Календарная граница зависит от выбранной зоны.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Строки `2026-02-01T01:30:00+03:00` и `2026-01-31T22:30:00Z` имеют разные даты и offsets. Как они расположены на общей временной шкале?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Первая строка описывает момент на три часа позже</button><button type="button" class="quiz-option" data-choice="1">Сравнить их можно только после удаления offsets</button><button type="button" class="quiz-option" data-choice="2">Они описывают один и тот же момент</button><button type="button" class="quiz-option" data-choice="3">Вторая строка всегда относится к другому бизнес-дню</button></div><p class="quiz-feedback" hidden>Offset связывает локальные показания часов с UTC: 01:30 при +03:00 и 22:30Z — один момент.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что должно произойти с длительностью, если время начала пропущено, а время окончания известно?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Она должна стать нулевой</button><button type="button" class="quiz-option" data-choice="1">Она должна остаться пропущенной</button><button type="button" class="quiz-option" data-choice="2">Нужно подставить начало текущего дня</button><button type="button" class="quiz-option" data-choice="3">Нужно взять среднюю длительность остальных строк</button></div><p class="quiz-feedback" hidden>Неизвестная граница не определяет длительность. Подстановка нуля или текущего времени меняет смысл данных.</p></article></section>
         <article class="lesson-article"><h1 id="время-и-даты-в-sql">Время и даты в SQL</h1>
 <blockquote>
-<p>Сначала сохраните instant, затем выберите timezone и только потом режьте календарь.</p>
+<p>Сначала определите момент, затем выберите календарь и только потом называйте день или
+месяц.</p>
 </blockquote>
 <p><strong>Тип:</strong> Case
 <strong>Треки:</strong> Core
 <strong>Пререквизиты:</strong> 04/08
 <strong>Время:</strong> ~90 минут
-<strong>Результат:</strong> нормализует timestamps и строит периоды в явной бизнес-зоне.</p>
+<strong>Результат:</strong> преобразует строковые timestamps в однозначные моменты, строит
+типизированные бизнес-даты и месяцы в явной timezone и различает прошедшую длительность
+и календарное расстояние.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
 <ul>
-<li>Различать строку времени, instant, local time и calendar date.</li>
-<li>Нормализовать разные UTC offsets без изменения момента.</li>
-<li>Строить день и месяц после выбора бизнес-timezone.</li>
-<li>Сохранять пропущенные timestamps как отдельный quality signal.</li>
+<li>отличать исходную строку, локальные показания часов, однозначный момент, календарную
+дату и длительность;</li>
+<li>объяснять различие <code>TIMESTAMP</code>, <code>TIMESTAMPTZ</code>, <code>DATE</code> и <code>INTERVAL</code> в DuckDB;</li>
+<li>разбирать строку с явным UTC offset в <code>TIMESTAMPTZ</code>, не меняя описанный момент;</li>
+<li>читать две противоположные операции <code>AT TIME ZONE</code> по типу левого аргумента;</li>
+<li>строить локальное время, бизнес-день и бизнес-месяц только после явного выбора
+business timezone;</li>
+<li>различать прошедшую длительность, фиксированный интервал и число пересечённых
+календарных границ;</li>
+<li>сохранять <code>missing</code> и <code>invalid</code> как разные состояния качества источника;</li>
+<li>задавать отчётный период полуоткрытыми границами <code>[start, end)</code>.</li>
 </ul>
+<h2 id="где-мы-находимся-в-маршруте">Где мы находимся в маршруте</h2>
+<p>Основная модель времени уже была построена в pandas-уроке <code>03/09</code>. Там студент
+переводил строки с offsets в UTC, использовал <code>tz_convert</code>, вычислял <code>Timedelta</code> и
+различал фиксированную длительность и календарный сдвиг. Сейчас не нужно изучать время
+заново: нужно перенести ту же модель в SQL-типы и SQL-операции.</p>
+<table>
+<thead>
+<tr>
+<th>Уже пройдено</th>
+<th>Что используем сейчас</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NULL</code> не равен нулю или пустой строке, <code>04/03</code></td>
+<td>неизвестное время не подменяем текущим моментом</td>
+</tr>
+<tr>
+<td>CTE — именованный этап с собственным контрактом, <code>04/06</code></td>
+<td>отдельно парсим, локализуем и строим календарные поля</td>
+</tr>
+<tr>
+<td><code>ROWS</code> и <code>RANGE</code> отвечают на разные вопросы, <code>04/08</code></td>
+<td>после типизации времени можно задать диапазон через <code>INTERVAL</code></td>
+</tr>
+<tr>
+<td>aware timestamp, UTC, offset, timezone и <code>Timedelta</code>, <code>03/09</code></td>
+<td>сопоставляем их с <code>TIMESTAMPTZ</code>, <code>AT TIME ZONE</code> и <code>INTERVAL</code></td>
+</tr>
+</tbody>
+</table>
+<p>В <code>04/08</code> поле <code>ordered_at</code> намеренно приходило уже как <code>TIMESTAMPTZ</code>: оно было только
+сравнимой осью оконного порядка. Этот урок закрывает отложенные вопросы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">как строка становится моментом
+-&gt; как момент попадает в бизнес-календарь
+-&gt; как получить день и месяц
+-&gt; как отличить длительность от календарного расстояния
+</code></pre></div><p>Следующий урок <code>04/10</code> использует этот результат для <code>cohort_month</code>,
+<code>activity_month</code> и <code>date_diff('month', ...)</code>. Поэтому месяц здесь — не декоративный
+признак, а обязательная граница следующего аналитического расчёта.</p>
 <h2 id="проблема">Проблема</h2>
-<p>Заказы записаны с <code>Z</code>, <code>+03:00</code>, <code>-05:00</code> и другими offsets. Если удалить suffix и
-сгруппировать строку по дню, события одного instant могут попасть в разные периоды, а
-вечерняя активность пересечет границу бизнес-дня.</p>
-<h2 id="концепция">Концепция</h2>
-<p>Разделяйте четыре сущности:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source string -&gt; TIMESTAMPTZ instant -&gt; local time in timezone -&gt; DATE/month
-</code></pre></div><p>UTC нужен для сравнения моментов и длительностей. Бизнес-зона нужна для календарных
-метрик: дня, недели, месяца.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<p>Ручной контроль:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-01-05 10:00 +03:00
-- 03:00
-= 2026-01-05 07:00 UTC
-</code></pre></div><p>В <code>Europe/Moscow</code> этот instant снова отображается как 10:00. В New York это 02:00.</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ordered_at::TIMESTAMPTZ AS ordered_at_instant,
-timezone(&#x27;UTC&#x27;, ordered_at_instant) AS ordered_at_utc,
-timezone(&#x27;Europe/Moscow&#x27;, ordered_at_instant) AS business_local_time,
-cast(timezone(&#x27;Europe/Moscow&#x27;, ordered_at_instant) AS DATE) AS business_date
-</code></pre></div><p>Артефакт принимает timezone параметром и строит <code>business_month</code> после конвертации.</p>
-<h2 id="сломайте-это">Сломайте это</h2>
+<p>В таблице заказов время приходит строками:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-01-05T10:00:00+03:00
+2026-02-01T15:00:00+05:00
+2026-03-10T18:30:00Z
+</code></pre></div><p>Suffix <code>+03:00</code>, <code>+05:00</code> или <code>Z</code> — не оформление. Он связывает показания локальных
+часов с общей временной шкалой.</p>
+<p>Рассмотрим две записи:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-02-01T01:30:00+03:00
+2026-01-31T22:30:00Z
+</code></pre></div><p>На вид у них разные даты, но они описывают один момент. В Москве в этот момент уже
+<code>1 февраля 01:30</code>, а в UTC ещё <code>31 января 22:30</code>.</p>
+<p>Отсюда возникают три разных аналитических вопроса:</p>
 <ol>
-<li>Приведите строку сразу к <code>TIMESTAMP</code> без timezone.</li>
-<li>Вычислите <code>DATE</code> в UTC и назовите ее бизнес-днем.</li>
-<li>Замените пустой timestamp текущим временем.</li>
-<li>Передайте несуществующую timezone.</li>
+<li><strong>Когда произошло событие?</strong> Нужен однозначный момент.</li>
+<li><strong>Как выглядели часы в нужной стране или бизнес-зоне?</strong> Нужна именованная timezone.</li>
+<li><strong>К какому отчётному дню или месяцу относится событие?</strong> Нужны календарные границы
+после выбора зоны.</li>
 </ol>
-<p>Каждая ошибка меняет смысл периода или скрывает качество источника.</p>
-<h2 id="проверьте-это">Проверьте это</h2>
+<p>Если сразу отрезать первые десять символов строки или привести момент к <code>DATE</code> в
+неявной timezone, запрос вернёт правдоподобную таблицу. Ошибка проявится только около
+полуночи, на границе месяца или при изменении среды выполнения.</p>
+<p>Есть и другая ось. Между двумя моментами может пройти 23 часа, хотя местный календарь
+перешёл на следующий день. Поэтому вопросы «сколько времени прошло?» и «сколько
+календарных границ пересечено?» нельзя решать одной операцией.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="1-одна-временная-строка-превращается-в-несколько-разных-сущностей">1. Одна временная строка превращается в несколько разных сущностей</h3>
+<p>Сохраняйте цепочку явно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source string
+    -&gt; TIMESTAMPTZ instant
+        -&gt; TIMESTAMP local time in a named timezone
+            -&gt; DATE / month in that calendar
+
+two instants
+    -&gt; INTERVAL elapsed duration
+
+two calendar dates or months
+    -&gt; date_diff(...) boundary count
+</code></pre></div><p>Это не пять форматов одного значения. Каждая сущность отвечает на отдельный вопрос.</p>
+<table>
+<thead>
+<tr>
+<th>Сущность</th>
+<th>Вопрос</th>
+<th>Пример SQL-типа</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Исходная строка</td>
+<td>Что именно прислал источник?</td>
+<td><code>VARCHAR</code></td>
+</tr>
+<tr>
+<td>Локальные показания</td>
+<td>Какие дата и часы записаны без связи с общей шкалой?</td>
+<td><code>TIMESTAMP</code></td>
+</tr>
+<tr>
+<td>Момент</td>
+<td>Где событие находится на общей временной шкале?</td>
+<td><code>TIMESTAMPTZ</code></td>
+</tr>
+<tr>
+<td>Календарная дата</td>
+<td>Какой это день в выбранной зоне?</td>
+<td><code>DATE</code></td>
+</tr>
+<tr>
+<td>Длительность</td>
+<td>Сколько времени прошло между двумя моментами?</td>
+<td><code>INTERVAL</code></td>
+</tr>
+<tr>
+<td>Календарное расстояние</td>
+<td>Сколько границ дня или месяца пересечено?</td>
+<td>число из <code>date_diff</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-timestamp-и-timestamptz-различаются-смыслом-а-не-наличием-красивого-suffix">2. <code>TIMESTAMP</code> и <code>TIMESTAMPTZ</code> различаются смыслом, а не наличием красивого suffix</h3>
+<p><code>TIMESTAMP</code> хранит компоненты даты и часов без связи с timezone:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMP &#x27;2026-02-01 01:30:00&#x27;
+</code></pre></div><p>Из такого значения нельзя восстановить однозначный момент, пока неизвестно, в какой
+зоне показывали эти часы.</p>
+<p><code>TIMESTAMPTZ</code> представляет однозначный момент:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMPTZ &#x27;2026-02-01 01:30:00+03:00&#x27;
+</code></pre></div><p>Несмотря на название <code>TIMESTAMP WITH TIME ZONE</code>, DuckDB не хранит вместе со значением
+исходную timezone или исходный offset. Он хранит момент как число микросекунд от эпохи.
+Поэтому:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMPTZ &#x27;2026-02-01 01:30:00+03:00&#x27;
+    =
+TIMESTAMPTZ &#x27;2026-01-31 22:30:00Z&#x27;
+</code></pre></div><p>Обе записи превращаются в один instant. Если бизнесу важно помнить, как именно
+источник записал время, исходную строку или отдельное поле source timezone нужно
+сохранить отдельно.</p>
+<h3 id="3-строка-с-offset-и-строка-без-offset-имеют-разные-входные-контракты">3. Строка с offset и строка без offset имеют разные входные контракты</h3>
+<p>Строка с <code>Z</code> или числовым offset однозначна:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">try_cast(&#x27;2026-01-05T10:00:00+03:00&#x27; AS TIMESTAMPTZ)
+</code></pre></div><p>Строка без offset:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-01-05 10:00:00
+</code></pre></div><p>описывает только местные часы. При прямом приведении к <code>TIMESTAMPTZ</code> DuckDB будет
+вынужден использовать timezone текущей сессии. Один запрос может получить разные
+моменты в двух окружениях.</p>
+<p>Для такой строки контракт должен назвать source timezone:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMP &#x27;2026-01-05 10:00:00&#x27;
+    AT TIME ZONE &#x27;Europe/Moscow&#x27;
+</code></pre></div><p>В основном артефакте урока принят более узкий и проверяемый контракт: непустая корректная
+строка обязана содержать явный UTC offset. Naive-строки без зоны не угадываются.</p>
+<h3 id="4-at-time-zone-выполняет-две-противоположные-операции">4. <code>AT TIME ZONE</code> выполняет две противоположные операции</h3>
+<p>Направление определяется типом значения слева.</p>
+<h4 id="локальные-часы-превращаются-в-момент">Локальные часы превращаются в момент</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMP &#x27;2026-01-05 10:00:00&#x27;
+    AT TIME ZONE &#x27;Europe/Moscow&#x27;
+</code></pre></div><p>Типы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">TIMESTAMP + timezone -&gt; TIMESTAMPTZ
+</code></pre></div><p>Смысл:</p>
+<blockquote>
+<p>Эти локальные показания были записаны в Москве. Какой момент они описывают?</p>
+</blockquote>
+<p>Это SQL-аналог назначения timezone naive-времени. На переходах DST местные часы могут
+быть неоднозначными или вообще не существовать, поэтому источник должен объявить
+политику таких записей.</p>
+<h4 id="момент-отображается-в-локальных-часах">Момент отображается в локальных часах</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">TIMESTAMPTZ &#x27;2026-01-05 07:00:00Z&#x27;
+    AT TIME ZONE &#x27;Europe/Moscow&#x27;
+</code></pre></div><p>Типы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">TIMESTAMPTZ + timezone -&gt; TIMESTAMP
+</code></pre></div><p>Результат:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-01-05 10:00:00
+</code></pre></div><p>Смысл:</p>
+<blockquote>
+<p>Как уже известный момент выглядит на московских часах?</p>
+</blockquote>
+<p>Это не сдвиг реального события. Меняется его календарное представление.</p>
+<p>Функция <code>timezone(zone, value)</code> выполняет те же две операции. В артефакте используется
+функциональная форма, потому что имя зоны находится в однострочном CTE <code>settings</code>.</p>
+<h3 id="5-timezone-сессии-не-business-timezone">5. Timezone сессии — не business timezone</h3>
+<p>DuckDB использует настройку timezone сессии для отображения и некоторых календарных
+операций с <code>TIMESTAMPTZ</code>. На ноутбуке аналитика она может быть одной, в CI — другой, а
+на сервере — третьей.</p>
+<p>Поэтому выражение:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(ordered_at_instant AS DATE)
+</code></pre></div><p>не является самодостаточным бизнес-правилом. Оно не говорит, в чьём календаре строится
+дата.</p>
+<p>Надёжная цепочка:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ordered_at_instant
+    AT TIME ZONE &#x27;Europe/Moscow&#x27;
+    -&gt; business_local_time TIMESTAMP
+    -&gt; business_date DATE
+</code></pre></div><p>Timezone сессии можно использовать для удобного отображения результата, но правило
+витрины должно быть выражено внутри запроса.</p>
+<h3 id="6-offset-и-timezone-не-являются-синонимами">6. Offset и timezone не являются синонимами</h3>
+<p>Offset <code>+03:00</code> сообщает разницу с UTC в конкретной записи. Именованная timezone
+<code>Europe/Moscow</code> или <code>Europe/Berlin</code> содержит набор исторических и календарных правил.</p>
+<p>Источник может прислать событие с <code>+03:00</code>, но это не означает, что бизнес обязан
+группировать его по московскому календарю. Offset отвечает за нахождение момента,
+business timezone — за выбор отчётного дня.</p>
+<p>Особенно заметно различие в зонах с сезонным переводом часов. Для
+<code>Europe/Berlin</code> offset в конце марта меняется, хотя название зоны остаётся тем же.</p>
+<h3 id="7-прошедшая-длительность-и-календарный-шаг-разные-результаты">7. Прошедшая длительность и календарный шаг — разные результаты</h3>
+<p>Вычитание двух моментов отвечает на вопрос о прошедшем времени:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">end_instant - start_instant
+</code></pre></div><p>Результат имеет тип <code>INTERVAL</code>.</p>
+<p>В DuckDB интервал не сводится к одному безразмерному числу. В нём отдельно представлены
+месяцы, дни и микросекунды, потому что:</p>
 <ul>
-<li>12 заказов сохраняются;</li>
-<li>11 timestamps парсятся, один остается missing;</li>
-<li>месяцы в Moscow: январь 2, февраль 4, март 3, апрель 2;</li>
-<li><code>O1001</code> нормализуется в <code>07:00Z</code>.</li>
+<li>месяц не имеет фиксированного числа дней;</li>
+<li>местный календарный день при DST может длиться 23 или 25 часов.</li>
 </ul>
+<p><code>INTERVAL '24 hours'</code> означает фиксированную прошедшую длительность. Фраза «то же
+местное время на следующий календарный день» задаёт другое правило.</p>
+<p><code>date_diff</code> отвечает ещё на один вопрос:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">date_diff(&#x27;month&#x27;, DATE &#x27;2026-01-31&#x27;, DATE &#x27;2026-02-01&#x27;)
+</code></pre></div><p>Результат равен <code>1</code>, потому что пересечена одна граница месяца. Это не означает, что
+между датами прошёл месяц: фактически прошёл один день.</p>
+<p>Для следующего когортного урока именно число календарных границ между
+<code>cohort_month</code> и <code>activity_month</code> станет номером периода.</p>
+<h3 id="8-null-после-парсинга-может-означать-две-разные-проблемы">8. <code>NULL</code> после парсинга может означать две разные проблемы</h3>
+<p><code>TRY_CAST</code> полезен тем, что не останавливает весь запрос на повреждённой строке:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">try_cast(source_timestamp AS TIMESTAMPTZ)
+</code></pre></div><p>Но без дополнительного поля он превращает в <code>NULL</code> и настоящий пропуск, и ошибку
+формата:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">NULL                         -&gt; missing
+2026-02-30T10:00:00Z         -&gt; invalid
+</code></pre></div><p>Поэтому артефакт сохраняет <code>timestamp_status</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">valid | missing | invalid
+</code></pre></div><p>Политика может быть строгой: остановить поставку при любом <code>invalid</code>. Может быть
+наблюдаемой: сохранить строки и отдельно посчитать дефекты. Но смешивать повреждённые
+значения с настоящими пропусками нельзя.</p>
+<h3 id="9-отчётный-период-удобнее-задавать-как-start-end">9. Отчётный период удобнее задавать как <code>[start, end)</code></h3>
+<p>Февральский период в московском календаре:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">start = 2026-02-01 00:00 Europe/Moscow
+end   = 2026-03-01 00:00 Europe/Moscow
+</code></pre></div><p>После превращения обеих локальных границ в instants фильтр выглядит так:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WHERE ordered_at_instant
+        &gt;= TIMESTAMP &#x27;2026-02-01 00:00:00&#x27;
+            AT TIME ZONE &#x27;Europe/Moscow&#x27;
+  AND ordered_at_instant
+        &lt; TIMESTAMP &#x27;2026-03-01 00:00:00&#x27;
+            AT TIME ZONE &#x27;Europe/Moscow&#x27;
+</code></pre></div><p>Полуоткрытая граница даёт каждому моменту ровно один период. Не приходится угадывать
+«последнюю секунду» или максимальную точность timestamp, а соседние периоды не
+пересекаются.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-отделите-запись-источника-от-её-смысла">Шаг 1. Отделите запись источника от её смысла</h3>
+<p>До SQL заполните ручную таблицу:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>source timestamp</th>
+<th>status</th>
+<th>instant UTC</th>
+<th>Moscow local</th>
+<th>business date</th>
+<th>business month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>2026-02-01T01:30:00+03:00</code></td>
+<td>valid</td>
+<td><code>2026-01-31 22:30Z</code></td>
+<td><code>2026-02-01 01:30</code></td>
+<td><code>2026-02-01</code></td>
+<td><code>2026-02-01</code></td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>2026-01-31T22:30:00Z</code></td>
+<td>valid</td>
+<td><code>2026-01-31 22:30Z</code></td>
+<td><code>2026-02-01 01:30</code></td>
+<td><code>2026-02-01</code></td>
+<td><code>2026-02-01</code></td>
+</tr>
+<tr>
+<td>C</td>
+<td>пусто</td>
+<td>missing</td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>2026-02-30T10:00:00Z</code></td>
+<td>invalid</td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+</tr>
+</tbody>
+</table>
+<p>Главные наблюдения:</p>
+<ul>
+<li>A и B имеют разные строки, но один instant;</li>
+<li>UTC-дата instant равна <code>31 января</code>, а московская бизнес-дата — <code>1 февраля</code>;</li>
+<li><code>missing</code> и <code>invalid</code> дают одинаковые временные <code>NULL</code>, но требуют разных решений о
+качестве;</li>
+<li><code>business_month</code> — типизированная дата начала месяца, а не подпись <code>&quot;2026-02&quot;</code>.</li>
+</ul>
+<h3 id="шаг-2-предскажите-тип-после-каждой-стрелки">Шаг 2. Предскажите тип после каждой стрелки</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">&#x27;2026-02-01T01:30:00+03:00&#x27;
+    VARCHAR
+        -&gt; TRY_CAST(... AS TIMESTAMPTZ)
+    TIMESTAMPTZ
+        -&gt; AT TIME ZONE &#x27;Europe/Moscow&#x27;
+    TIMESTAMP
+        -&gt; CAST(... AS DATE)
+    DATE
+</code></pre></div><p>Если после последней стрелки получилась строка, вычислительная модель закончилась
+слишком рано. Форматирование нужно потребителю отчёта, но не промежуточной витрине.</p>
+<h3 id="шаг-3-разберите-переход-dst-без-вычислений-на-глаз">Шаг 3. Разберите переход DST без вычислений «на глаз»</h3>
+<p>В <code>Europe/Berlin</code> сравниваются два местных полудня:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2026-03-28 12:00 Europe/Berlin
+2026-03-29 12:00 Europe/Berlin
+</code></pre></div><p>В ночь между ними часы переводятся вперёд. Поэтому:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">календарный шаг: один местный день
+прошедшая длительность: 23 часа
+начальный instant + 24 часа: 2026-03-29 13:00 local
+</code></pre></div><p>Здесь нет противоречия. Три результата отвечают на три разных вопроса.</p>
+<h3 id="шаг-4-предскажите-владельца-граничных-событий">Шаг 4. Предскажите владельца граничных событий</h3>
+<p>Для московского февраля:</p>
+<table>
+<thead>
+<tr>
+<th>instant UTC</th>
+<th>Moscow local</th>
+<th>Входит в февраль?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2026-01-31 20:59:59Z</code></td>
+<td><code>2026-01-31 23:59:59</code></td>
+<td>нет</td>
+</tr>
+<tr>
+<td><code>2026-01-31 21:00:00Z</code></td>
+<td><code>2026-02-01 00:00:00</code></td>
+<td>да</td>
+</tr>
+<tr>
+<td><code>2026-02-28 20:59:59Z</code></td>
+<td><code>2026-02-28 23:59:59</code></td>
+<td>да</td>
+</tr>
+<tr>
+<td><code>2026-02-28 21:00:00Z</code></td>
+<td><code>2026-03-01 00:00:00</code></td>
+<td>нет</td>
+</tr>
+</tbody>
+</table>
+<p>Эта таблица является ручным oracle для полуоткрытого фильтра.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<h3 id="основной-sql-артефакт">Основной SQL-артефакт</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/order_time_model.sql
+</code></pre></div><p>Входной контракт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders_source
+grain = одна строка на уникальный order_id
+
+order_id   VARCHAR, обязательный
+ordered_at VARCHAR, ISO 8601 с явным offset либо пропуск/дефект
+</code></pre></div><p>Артефакт не читает CSV и не принимает аргументы командной строки. Загрузка файла —
+инфраструктура учебного запуска, а не часть временной модели.</p>
+<h3 id="этап-1-зафиксировать-business-timezone">Этап 1. Зафиксировать business timezone</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH settings AS (
+    SELECT &#x27;Europe/Moscow&#x27;::VARCHAR AS business_timezone
+)
+</code></pre></div><p>Одна настройка делает календарный контракт видимым. В следующем уроке об интеграции
+DuckDB и Python такие значения можно будет передавать параметрами; сейчас новый
+механизм параметризации только отвлёк бы от типов времени.</p>
+<h3 id="этап-2-разделить-качество-и-значение">Этап 2. Разделить качество и значение</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">CASE
+    WHEN source_is_missing THEN &#x27;missing&#x27;
+    WHEN NOT source_has_explicit_offset THEN &#x27;invalid&#x27;
+    WHEN try_cast(ordered_at AS TIMESTAMPTZ) IS NULL THEN &#x27;invalid&#x27;
+    ELSE &#x27;valid&#x27;
+END AS timestamp_status
+</code></pre></div><p><code>source_has_explicit_offset</code> проверяется по suffix <code>Z</code> или <code>±HH:MM</code>. Поэтому
+синтаксически допустимая строка без зоны не становится зависимым от сессии моментом
+молчаливо.</p>
+<p>Сам момент вычисляется отдельно только для строк с offset:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">CASE
+    WHEN source_has_explicit_offset
+        THEN try_cast(ordered_at AS TIMESTAMPTZ)
+END AS ordered_at_instant
+</code></pre></div><p>Мы сохраняем исходную строку рядом с результатом. Это позволяет найти и исправить
+конкретный дефект, а не только увидеть выросшее число <code>NULL</code>.</p>
+<h3 id="этап-3-один-раз-построить-локальные-часы">Этап 3. Один раз построить локальные часы</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">timezone(
+    settings.business_timezone,
+    ordered_at_instant
+) AS business_local_time
+</code></pre></div><p>Здесь аргумент — <code>TIMESTAMPTZ</code>, поэтому результат — локальный <code>TIMESTAMP</code>. Все
+календарные поля строятся уже из него:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(business_local_time AS DATE) AS business_date,
+cast(date_trunc(&#x27;month&#x27;, business_local_time) AS DATE) AS business_month
+</code></pre></div><p>Явный <code>CAST(... AS DATE)</code> после <code>date_trunc</code> фиксирует контракт месячного ключа:
+<code>business_month</code> — дата первого дня месяца, а не timestamp полуночи и не строка.</p>
+<h3 id="этап-4-сохранить-типы-в-поставляемом-результате">Этап 4. Сохранить типы в поставляемом результате</h3>
+<p>Выход:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Тип</th>
+<th>Смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>order_id</code></td>
+<td><code>VARCHAR</code></td>
+<td>grain результата</td>
+</tr>
+<tr>
+<td><code>source_timestamp</code></td>
+<td><code>VARCHAR</code></td>
+<td>исходное evidence</td>
+</tr>
+<tr>
+<td><code>timestamp_status</code></td>
+<td><code>VARCHAR</code></td>
+<td><code>valid</code>, <code>missing</code> или <code>invalid</code></td>
+</tr>
+<tr>
+<td><code>ordered_at_instant</code></td>
+<td><code>TIMESTAMPTZ</code></td>
+<td>однозначный момент</td>
+</tr>
+<tr>
+<td><code>business_timezone</code></td>
+<td><code>VARCHAR</code></td>
+<td>явное календарное правило</td>
+</tr>
+<tr>
+<td><code>business_local_time</code></td>
+<td><code>TIMESTAMP</code></td>
+<td>местные показания часов</td>
+</tr>
+<tr>
+<td><code>business_date</code></td>
+<td><code>DATE</code></td>
+<td>день в бизнес-календаре</td>
+</tr>
+<tr>
+<td><code>business_month</code></td>
+<td><code>DATE</code></td>
+<td>первый день месяца в том же календаре</td>
+</tr>
+</tbody>
+</table>
+<p><code>strftime</code> здесь не нужен. Строковое представление можно добавить на последнем
+presentation-слое, не разрушая вычислительные типы витрины.</p>
+<h3 id="этап-5-выполнить-модель-и-эксперимент">Этап 5. Выполнить модель и эксперимент</h3>
+<p>Из каталога урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><p>Учебный runner:</p>
+<ol>
+<li>загружает два исходных столбца в <code>orders_source</code>;</li>
+<li>проверяет grain и SQL-типы входа;</li>
+<li>выполняет <code>order_time_model.sql</code>;</li>
+<li>проверяет схему, значения и состояния парсинга;</li>
+<li>выполняет <code>temporal_semantics_experiment.sql</code>.</li>
+</ol>
+<p>Второй SQL-файл показывает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">elapsed_duration = 23:00:00
+after_24_hours_local_time = 2026-03-29 13:00:00
+calendar_day_boundaries = 1
+month_boundaries = 1
+</code></pre></div><h3 id="этап-6-использовать-календарное-расстояние-по-назначению">Этап 6. Использовать календарное расстояние по назначению</h3>
+<p>Для двух уже построенных месячных ключей:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">date_diff(&#x27;month&#x27;, cohort_month, activity_month) AS period_index
+</code></pre></div><p>Это корректный будущий номер периода когорты, потому что оба аргумента:</p>
+<ul>
+<li>относятся к одной business timezone;</li>
+<li>имеют тип <code>DATE</code>;</li>
+<li>представляют начало календарного месяца.</li>
+</ul>
+<p>Не заменяйте выражение на:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">(activity_month - cohort_month) / 30
+</code></pre></div><p>Месяцы имеют разную длину, а дробление числа дней не задаёт календарные границы.</p>
+<h3 id="этап-7-вернуться-к-временной-рамке-окна">Этап 7. Вернуться к временной рамке окна</h3>
+<p>В <code>04/08</code> мы отложили временной <code>RANGE</code>, пока <code>ordered_at</code> не получил строгий тип.
+Теперь синтаксис можно прочитать содержательно:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    ORDER BY ordered_at_instant
+    RANGE BETWEEN INTERVAL &#x27;7 days&#x27; PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p><code>ROWS BETWEEN 7 PRECEDING</code> означает семь предыдущих строк. <code>RANGE ... INTERVAL</code>
+описывает диапазон значений временной оси. Это разные вопросы, и оба требуют заранее
+объявить population, partition и смысл интервала.</p>
+<p>Временная рамка остаётся мостом к предыдущему уроку, а не вторым основным артефактом:
+здесь главный результат — корректная временная ось и календарные поля.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="поломка-1-приведите-строку-с-offset-к-timestamp">Поломка 1. Приведите строку с offset к <code>TIMESTAMP</code></h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(&#x27;2026-02-01T01:30:00+03:00&#x27; AS TIMESTAMP)
+</code></pre></div><p><code>TIMESTAMP</code> не хранит связь с UTC. Offset больше не участвует в смысле значения, и
+локальные часы могут быть ошибочно приняты за UTC или за timezone сессии.</p>
+<h3 id="поломка-2-примите-строку-без-offset-за-timestamptz">Поломка 2. Примите строку без offset за <code>TIMESTAMPTZ</code></h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(&#x27;2026-01-05 10:00:00&#x27; AS TIMESTAMPTZ)
+</code></pre></div><p>Результат зависит от настроенной timezone сессии. Если source timezone не объявлена,
+однозначного момента в данных пока нет.</p>
+<h3 id="поломка-3-постройте-date-прямо-из-timestamptz">Поломка 3. Постройте <code>DATE</code> прямо из <code>TIMESTAMPTZ</code></h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(ordered_at_instant AS DATE)
+</code></pre></div><p>Получится дата календаря текущей сессии, хотя столбец может называться
+<code>business_date</code>. Тест на дневных значениях пройдёт; ошибка появится около полуночи.</p>
+<h3 id="поломка-4-перепутайте-направления-at-time-zone">Поломка 4. Перепутайте направления <code>AT TIME ZONE</code></h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">TIMESTAMP -&gt; TIMESTAMPTZ  означает «интерпретировать локальные часы»
+TIMESTAMPTZ -&gt; TIMESTAMP  означает «показать момент в локальном календаре»
+</code></pre></div><p>Заучивание одного шаблона без проверки входного и выходного типа легко сдвигает
+реальный момент.</p>
+<h3 id="поломка-5-используйте-try-cast-но-не-сохраните-статус">Поломка 5. Используйте <code>TRY_CAST</code>, но не сохраните статус</h3>
+<p>Тогда настоящий пропуск и строка <code>2026-02-30T10:00:00Z</code> станут одинаковым <code>NULL</code>.
+Количество непроставленных времён вырастет, а число повреждённых записей останется
+невидимым.</p>
+<h3 id="поломка-6-замените-пропуск-на-now">Поломка 6. Замените пропуск на <code>now()</code></h3>
+<p>Текущий момент означает «событие произошло сейчас», а не «время события неизвестно».
+Кроме искажения календарной метрики результат начнёт зависеть от времени запуска.</p>
+<h3 id="поломка-7-отформатируйте-время-в-строку-внутри-модели">Поломка 7. Отформатируйте время в строку внутри модели</h3>
+<p>После <code>strftime</code> сортировка, вычитание и календарные операции зависят уже от формата.
+Строка удобна на границе публикации, но является плохим внутренним контрактом витрины.</p>
+<h3 id="поломка-8-приравняйте-месяц-к-30-дням">Поломка 8. Приравняйте месяц к 30 дням</h3>
+<p>Январь, февраль и март имеют разную длину. Для cohort period нужен
+<code>date_diff('month', ...)</code>, а для прошедшей длительности — разность моментов. Деление
+дней на 30 не решает ни один вопрос строго.</p>
+<h3 id="поломка-9-используйте-закрытую-правую-границу">Поломка 9. Используйте закрытую правую границу</h3>
+<p>Условие с «последней секундой месяца» зависит от точности timestamp. <code>BETWEEN</code> включает
+обе границы, поэтому соседние периоды могут пересечься. <code>[start, end)</code> не требует знать
+последнюю возможную долю секунды.</p>
+<h3 id="поломка-10-считайте-календарный-день-фиксированными-24-часами">Поломка 10. Считайте календарный день фиксированными 24 часами</h3>
+<p>На переходе DST местный день может быть короче или длиннее. Сначала сформулируйте,
+нужна прошедшая длительность или положение в календаре, и только затем выбирайте
+<code>INTERVAL</code> или календарную операцию.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<h3 id="контрольные-строки">Контрольные строки</h3>
+<p>Для reference-данных:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th>source</th>
+<th>instant UTC</th>
+<th>Moscow local</th>
+<th>business date</th>
+<th>business month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>O1001</code></td>
+<td><code>2026-01-05T10:00:00+03:00</code></td>
+<td><code>2026-01-05 07:00Z</code></td>
+<td><code>2026-01-05 10:00</code></td>
+<td><code>2026-01-05</code></td>
+<td><code>2026-01-01</code></td>
+</tr>
+<tr>
+<td><code>O1003</code></td>
+<td><code>2026-02-01T15:00:00+05:00</code></td>
+<td><code>2026-02-01 10:00Z</code></td>
+<td><code>2026-02-01 13:00</code></td>
+<td><code>2026-02-01</code></td>
+<td><code>2026-02-01</code></td>
+</tr>
+<tr>
+<td><code>O1008</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+<td><code>NULL</code></td>
+</tr>
+</tbody>
+</table>
+<p>Сводка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source rows = 12
+unique order_id = 12
+valid timestamps = 11
+missing timestamps = 1
+invalid timestamps = 0
+
+orders by business_month:
+2026-01-01 -&gt; 2
+2026-02-01 -&gt; 4
+2026-03-01 -&gt; 3
+2026-04-01 -&gt; 2
+</code></pre></div><h3 id="инварианты-модели">Инварианты модели</h3>
+<ul>
+<li>выход сохраняет число строк и уникальность <code>order_id</code>;</li>
+<li>каждой исходной строке назначено ровно одно состояние парсинга;</li>
+<li><code>valid</code> всегда имеет instant, local time, business date и business month;</li>
+<li><code>missing</code> и <code>invalid</code> сохраняют временные производные как <code>NULL</code>;</li>
+<li>разные строки одного instant дают одинаковый <code>ordered_at_instant</code>;</li>
+<li>бизнес-дата строится после явной timezone и не меняется вместе с timezone сессии;</li>
+<li><code>business_date</code> и <code>business_month</code> имеют тип <code>DATE</code>;</li>
+<li>граничный instant принадлежит ровно одному полуоткрытому периоду;</li>
+<li>календарный шаг через DST не подменяется фиксированными 24 часами.</li>
+</ul>
+<h3 id="behavioral-tests">Behavioral tests</h3>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/time_model.py \
-  --orders ../data/tiny/orders.csv \
-  --business-timezone Europe/Moscow
-</code></pre></div><p>CLI поставляет нормализованные строки и сводку по календарным месяцам.</p>
+</code></pre></div><p>Тесты проверяют:</p>
+<ul>
+<li>grain, схему и SQL-типы;</li>
+<li>нормализацию offsets в один instant;</li>
+<li>различие UTC-даты и московского календаря около полуночи;</li>
+<li>независимость бизнес-полей от timezone сессии;</li>
+<li>разделение <code>missing</code> и <code>invalid</code>;</li>
+<li>типизированные месячные ключи и контрольные counts;</li>
+<li>23-часовую длительность на DST-переходе;</li>
+<li>календарные границы <code>date_diff</code>;</li>
+<li>полуоткрытый фильтр;</li>
+<li>отсутствие CSV-loading, форматирования и CLI внутри SQL-артефакта.</li>
+</ul>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">order-time-model
+outputs/order_time_model.sql
+</code></pre></div><p>Чтобы применить его к другой таблице:</p>
+<ol>
+<li>подготовьте <code>orders_source(order_id VARCHAR, ordered_at VARCHAR)</code>;</li>
+<li>убедитесь, что непустые корректные строки имеют явный offset;</li>
+<li>измените единственное значение <code>business_timezone</code> в CTE <code>settings</code>, если нужен
+другой календарь;</li>
+<li>выполните SQL;</li>
+<li>проверьте распределение <code>timestamp_status</code>, grain и SQL-типы;</li>
+<li>публикуйте строковое форматирование только в отдельном presentation-слое.</li>
+</ol>
+<p>Companion-файл:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/temporal_semantics_experiment.sql
+</code></pre></div><p>Он не является вторым поставляемым продуктом. Это маленький воспроизводимый oracle,
+который помогает объяснить различие прошедшей длительности и календарного шага.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>Постройте ISO week в бизнес-зоне.</li>
-<li>Сравните даты в Moscow и New York для события около полуночи.</li>
-<li>Добавьте явную политику для missing timestamp.</li>
+<li>Замените business timezone на <code>America/New_York</code>. До запуска предскажите, изменится
+ли <code>ordered_at_instant</code> у <code>O1001</code> и какими станут <code>business_local_time</code> и
+<code>business_date</code>.</li>
+<li>Добавьте две строки одного instant: одну с <code>Z</code>, другую с <code>-05:00</code>. Докажите
+равенство моментов и объясните, почему source strings остаются разными.</li>
+<li>Добавьте повреждённую дату и введите delivery gate: модель сохраняет строку и
+evidence, но поставка должна завершаться ошибкой при <code>invalid_count &gt; 0</code>.</li>
+<li>Для таблицы <code>tickets(opened_at, resolved_at)</code> вычислите <code>resolution_duration</code> как
+<code>INTERVAL</code>. Пропущенная граница должна дать <code>NULL</code>, а отрицательная длительность —
+отдельный quality failure.</li>
+<li>Вычислите <code>date_diff('month', ...)</code> для пар <code>2026-01-31 -&gt; 2026-02-01</code>,
+<code>2026-01-01 -&gt; 2026-02-28</code> и <code>2026-03-01 -&gt; 2026-01-01</code>. Для каждой пары
+объясните знак и число пересечённых границ.</li>
+<li>Постройте московский дневной фильтр <code>[2026-02-01, 2026-02-02)</code> и проверьте события
+за микросекунду до начала, ровно на начале, за микросекунду до конца и ровно на
+конце.</li>
+<li>Вернитесь к заказам из <code>04/08</code> и сравните <code>ROWS BETWEEN 7 PRECEDING</code> с
+<code>RANGE BETWEEN INTERVAL '7 days' PRECEDING</code>. Подберите неравномерные даты, на
+которых результаты различаются.</li>
 </ol>
+<h2 id="что-сознательно-остаётся-за-границей-урока">Что сознательно остаётся за границей урока</h2>
+<ul>
+<li>полный каталог <code>date_part</code>, <code>extract</code>, <code>time_bucket</code> и функций форматирования;</li>
+<li>генерация календарной сетки через <code>range</code> или <code>generate_series</code>;</li>
+<li>локали, названия дней недели и presentation-formatting;</li>
+<li>исторические особенности всех IANA timezones;</li>
+<li>самостоятельное разрешение ambiguous и nonexistent local times без контракта
+источника;</li>
+<li>epoch arithmetic и специальные значения <code>infinity</code>;</li>
+<li>оптимизация больших временных запросов;</li>
+<li>передача параметров и результатов между Python и DuckDB — это тема <code>04/11</code>;</li>
+<li>построение cohort grid и retention — это тема следующего урока <code>04/10</code>.</li>
+</ul>
+<p>Эти границы сохраняют фокус: студент должен уверенно провести данные от строки до
+момента и бизнес-календаря, а не запомнить справочник функций.</p>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
 <thead>
 <tr>
 <th>Термин</th>
-<th>Распространенное заблуждение</th>
+<th>Распространённое заблуждение</th>
 <th>Точное значение</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Source timestamp</td>
+<td>Уже готовое время</td>
+<td>Исходное представление, контракт которого ещё нужно проверить</td>
+</tr>
+<tr>
 <td>Instant</td>
 <td>Отформатированная строка</td>
-<td>Однозначная точка на временной шкале</td>
+<td>Однозначная точка на общей временной шкале</td>
+</tr>
+<tr>
+<td><code>TIMESTAMP</code></td>
+<td>UTC-время без suffix</td>
+<td>Дата и часы без связи с timezone</td>
+</tr>
+<tr>
+<td><code>TIMESTAMPTZ</code></td>
+<td>Значение, которое хранит название исходной зоны</td>
+<td>Однозначный instant; отображение использует выбранную timezone</td>
 </tr>
 <tr>
 <td>Offset</td>
@@ -139,233 +791,582 @@ cast(timezone(&#x27;Europe/Moscow&#x27;, ordered_at_instant) AS DATE) AS busines
 <tr>
 <td>Timezone</td>
 <td>Постоянный offset</td>
-<td>Набор исторических и календарных правил</td>
+<td>Именованный набор календарных правил</td>
+</tr>
+<tr>
+<td>Business timezone</td>
+<td>Timezone ноутбука аналитика</td>
+<td>Явная зона, в календаре которой определены бизнес-периоды</td>
 </tr>
 <tr>
 <td>Business date</td>
-<td>UTC date</td>
-<td>Дата instant в выбранной бизнес-зоне</td>
+<td>UTC-дата</td>
+<td>Дата instant после отображения в business timezone</td>
 </tr>
 <tr>
-<td>DATE_TRUNC</td>
-<td>Форматирование</td>
-<td>Преобразование к календарной границе</td>
+<td><code>INTERVAL</code></td>
+<td>Число без единицы</td>
+<td>Типизированная длительность или календарный интервал</td>
+</tr>
+<tr>
+<td><code>date_trunc</code></td>
+<td>Форматирование строки</td>
+<td>Приведение значения к календарной границе указанной точности</td>
+</tr>
+<tr>
+<td><code>date_diff</code></td>
+<td>Точная прошедшая длительность</td>
+<td>Число пересечённых границ выбранной календарной части</td>
+</tr>
+<tr>
+<td>Half-open interval</td>
+<td>Интервал без последнего события</td>
+<td>Диапазон <code>&gt;= start AND &lt; end</code>, однозначно разделяющий соседние периоды</td>
+</tr>
+<tr>
+<td>DST</td>
+<td>Ошибка timezone</td>
+<td>Сезонное изменение offset по правилам именованной зоны</td>
 </tr>
 </tbody>
 </table>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
 <ul>
-<li><a href="https://duckdb.org/docs/current/sql/data_types/timestamp" target="_blank" rel="noopener">DuckDB: Timestamp Types</a> — разберите <code>TIMESTAMP</code> и <code>TIMESTAMPTZ</code>.</li>
-<li><a href="https://duckdb.org/docs/current/sql/data_types/timezones" target="_blank" rel="noopener">DuckDB: Time Zones</a> — изучите instants, binning и ICU.</li>
-<li><a href="https://duckdb.org/docs/current/sql/functions/timestamptz" target="_blank" rel="noopener">DuckDB: TIMESTAMPTZ Functions</a> — найдите <code>timezone</code>, <code>date_part</code> и календарные функции.</li>
-<li><a href="https://www.iana.org/time-zones" target="_blank" rel="noopener">IANA Time Zone Database</a> — поймите, почему timezone является набором изменяющихся правил, а не числом.</li>
+<li><a href="https://duckdb.org/docs/current/sql/data_types/timestamp" target="_blank" rel="noopener">DuckDB: Timestamp Types</a> — обязательное продолжение урока: прочитайте <strong>Timestamp Types</strong>, <strong>Conversion between Strings and Naïve / Time Zone-Aware Timestamps</strong> и <strong>Time Zones</strong>. Эти разделы точно объясняют, что хранит <code>TIMESTAMPTZ</code>, почему он не запоминает исходную зону и как timezone сессии влияет на преобразования и календарное разбиение.</li>
+<li><a href="https://postgrespro.ru/docs/postgresql/current/datatype-datetime" target="_blank" rel="noopener">Postgres Pro: типы даты/времени</a> — русскоязычное закрепление модели типов; сосредоточьтесь на подразделах <strong>8.5.1 «Ввод даты/времени»</strong>, <strong>8.5.3 «Часовые пояса»</strong> и <strong>8.5.4 «Ввод интервалов»</strong>. Сопоставляйте идеи с DuckDB, но не переносите синтаксические детали другого диалекта автоматически.</li>
+<li><a href="https://duckdb.org/docs/current/sql/functions/timestamptz" target="_blank" rel="noopener">DuckDB: Timestamp with Time Zone Functions</a> — разберите <strong>ICU Timestamp with Time Zone Operators</strong>, функции <code>date_diff</code> / <code>date_trunc</code> / <code>timezone</code> и раздел <strong>At Time Zone</strong>. Особое внимание уделите типу аргумента: <code>TIMESTAMP</code> превращается в instant, а <code>TIMESTAMPTZ</code> — в локальные показания часов.</li>
+<li><a href="https://postgrespro.ru/docs/postgresql/current/functions-datetime" target="_blank" rel="noopener">Postgres Pro: операторы и функции даты/времени</a> — прочитайте <strong>9.9.1 <code>EXTRACT</code></strong>, <strong>9.9.2 <code>date_trunc</code></strong> и <strong>9.9.4 <code>AT TIME ZONE</code> и <code>AT LOCAL</code></strong>. Русскоязычная таблица вариантов <code>AT TIME ZONE</code> помогает ещё раз увидеть две противоположные операции и их выходные типы.</li>
+<li><a href="https://duckdb.org/docs/current/sql/functions/date" target="_blank" rel="noopener">DuckDB: Date Functions</a> — используйте как справочник по <code>date_diff</code>, <code>date_sub</code> и <code>date_trunc</code>: сравните число пересечённых границ, число полных единиц и усечение до календарного периода. Это напрямую готовит вычисление <code>period_index</code> в следующем уроке о когортах.</li>
+<li><a href="https://duckdb.org/docs/current/sql/data_types/interval" target="_blank" rel="noopener">DuckDB: Interval Type</a> — прочитайте введение, способы создания interval и объяснение трёх независимых basis units: месяцев, дней и микросекунд. Именно эта модель показывает, почему календарный месяц нельзя заменить числом дней, а местный день на DST-переходе — фиксированными 24 часами.</li>
+<li><a href="https://duckdb.org/docs/current/sql/expressions/cast" target="_blank" rel="noopener">DuckDB: Casting</a> — изучите <strong>Explicit Casting</strong> и <strong><code>TRY_CAST</code></strong>. Затем вернитесь к <code>timestamp_status</code> из артефакта и объясните, почему безопасный <code>NULL</code> после неудачного cast ещё не различает настоящий пропуск и повреждённую строку.</li>
+<li><a href="https://duckdb.org/docs/current/guides/sql_features/timestamps" target="_blank" rel="noopener">DuckDB: Timestamp Issues</a> — практическое продолжение раздела «Сломайте это»: воспроизведите <strong>Timestamp with Time Zone Promotion Casts</strong> и <strong>Half-Open Intervals</strong>. Страница показывает, как один и тот же правдоподобный фильтр меняет результат вместе с timezone сессии и почему <code>BETWEEN</code> неудобен для соседних временных периодов.</li>
+<li><a href="https://www.w3.org/TR/timezone/" target="_blank" rel="noopener">W3C: Working with Time and Timezones</a> — для концептуального углубления прочитайте <strong>3.3 What is a Time Zone?</strong>, <strong>3.4 Representing Dates and Times in Data</strong> и примеры past/future events. Это развиваемая Working Group Note, а не стабильный стандарт, но она хорошо разводит instant, wall time, offset и timezone и показывает ambiguous и nonexistent local times.</li>
+<li><a href="https://data.iana.org/time-zones/tzdb/theory.html" target="_blank" rel="noopener">IANA tzdb: Theory and pragmatics</a> — первичный источник о том, что находится за именами вроде <code>Europe/Berlin</code>: начните со <strong>Scope of the tz database</strong>, <strong>Timezone identifiers</strong> и <strong>Time zone abbreviations</strong>. Материал объясняет историчность правил, неоднозначность сокращений вроде <code>CST</code> и причины использовать IANA identifiers вместо попытки угадать зону по одному offset.</li>
 </ul>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Чему равен 10:00+03:00 в UTC?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">07:00Z</button><button type="button" class="quiz-option" data-choice="1">13:00Z</button><button type="button" class="quiz-option" data-choice="2">10:00Z</button><button type="button" class="quiz-option" data-choice="3">03:00Z</button></div><p class="quiz-feedback" hidden>Для перехода к UTC вычитают положительный offset.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Почему нельзя просто отбросить +03:00?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Изменится реальный instant</button><button type="button" class="quiz-option" data-choice="1">Изменится только формат</button><button type="button" class="quiz-option" data-choice="2">SQL запретит строку</button><button type="button" class="quiz-option" data-choice="3">NULL станет нулем</button></div><p class="quiz-feedback" hidden>Offset является частью интерпретации локального времени.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Что должен содержать временной контракт?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Тип, timezone и календарные границы</button><button type="button" class="quiz-option" data-choice="1">Только формат строки</button><button type="button" class="quiz-option" data-choice="2">Только год</button><button type="button" class="quiz-option" data-choice="3">Только locale</button></div><p class="quiz-feedback" hidden>Без этих решений одинаковые строки могут означать разные периоды.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 7 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Что фактически хранит значение DuckDB `TIMESTAMPTZ`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Исходную строку вместе с её написанием</button><button type="button" class="quiz-option" data-choice="1">Локальные часы и постоянный offset</button><button type="button" class="quiz-option" data-choice="2">Однозначный момент; исходная timezone не сохраняется в самом значении</button><button type="button" class="quiz-option" data-choice="3">Только календарную дату в timezone сессии</button></div><p class="quiz-feedback" hidden>`TIMESTAMPTZ` однозначно задаёт instant. Отображение и календарное разбиение используют timezone, но исходная зона не хранится как свойство значения.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что делает выражение `ordered_at_instant AT TIME ZONE &#x27;Europe/Moscow&#x27;`, если слева находится `TIMESTAMPTZ`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Возвращает локальный `TIMESTAMP` с показаниями московских часов для того же момента</button><button type="button" class="quiz-option" data-choice="1">Назначает московскую зону исходной строке без изменения типа</button><button type="button" class="quiz-option" data-choice="2">Сдвигает реальный момент на три часа вперёд</button><button type="button" class="quiz-option" data-choice="3">Возвращает `DATE` московского календаря</button></div><p class="quiz-feedback" hidden>Для `TIMESTAMPTZ` операция выводит локальные компоненты момента в выбранной зоне и возвращает `TIMESTAMP` без зоны.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">03</p><h3>Момент `2026-01-31T22:30:00Z` нужно отнести к месяцу в `Europe/Moscow`. Какой месяц верен?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Январь, потому что исходная UTC-дата январская</button><button type="button" class="quiz-option" data-choice="1">Месяц зависит только от timezone операционной системы</button><button type="button" class="quiz-option" data-choice="2">Определить месяц по моменту невозможно</button><button type="button" class="quiz-option" data-choice="3">Февраль, потому что в Москве уже `2026-02-01 01:30`</button></div><p class="quiz-feedback" hidden>Календарный месяц строится после отображения момента в бизнес-timezone.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">04</p><h3>Зачем рядом с `TRY_CAST(source_timestamp AS TIMESTAMPTZ)` сохранять `timestamp_status`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы превратить все ошибки в текущее время</button><button type="button" class="quiz-option" data-choice="1">Чтобы отличить отсутствующую строку от присутствующей, но непарсящейся</button><button type="button" class="quiz-option" data-choice="2">Чтобы заменить `TIMESTAMPTZ` на текст</button><button type="button" class="quiz-option" data-choice="3">Чтобы автоматически выбрать business timezone</button></div><p class="quiz-feedback" hidden>`TRY_CAST` возвращает `NULL` и для повреждённого значения. Статус не даёт смешать дефект источника с настоящим пропуском.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">05</p><h3>Что означает `date_diff(&#x27;month&#x27;, DATE &#x27;2026-01-31&#x27;, DATE &#x27;2026-02-01&#x27;) = 1`?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Между датами прошёл один средний месяц</button><button type="button" class="quiz-option" data-choice="1">Между датами прошло 30 суток</button><button type="button" class="quiz-option" data-choice="2">Даты принадлежат одной календарной неделе</button><button type="button" class="quiz-option" data-choice="3">Между началом и концом пересечена одна граница месяца</button></div><p class="quiz-feedback" hidden>`date_diff` считает границы выбранной календарной части. Это не измерение прошедшей длительности.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">06</p><h3>В `Europe/Berlin` между местным полуднем 28 и 29 марта 2026 года прошло 23 часа из-за DST. Какой вывод верен?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Следующий календарный день и `INTERVAL &#x27;24 hours&#x27;` не всегда приводят к одинаковым местным часам</button><button type="button" class="quiz-option" data-choice="1">Любой SQL `INTERVAL` ошибается на один час</button><button type="button" class="quiz-option" data-choice="2">Для длительности нужно сначала удалить timezone</button><button type="button" class="quiz-option" data-choice="3">Календарный день всегда равен 24 часам, поэтому пример невозможен</button></div><p class="quiz-feedback" hidden>Календарное правило сохраняет положение в местном календаре, а 24 часа задают фиксированную прошедшую длительность.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">07</p><h3>Как безопаснее задать границы февральского отчёта по моментам времени?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Отобрать все строки, у которых текст начинается с `2026-02`</button><button type="button" class="quiz-option" data-choice="1">Использовать `BETWEEN` с последней секундой февраля</button><button type="button" class="quiz-option" data-choice="2">Построить начало февраля и марта в business time zone и применить полуоткрытый интервал `&gt;= start AND &lt; end`</button><button type="button" class="quiz-option" data-choice="3">Привести `TIMESTAMPTZ` к `DATE` без явной timezone сессии</button></div><p class="quiz-feedback" hidden>Полуоткрытые границы дают каждому моменту ровно один период и не требуют угадывать последнюю возможную долю секунды.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util
 import json
-import subprocess
-import sys
+import re
 import unittest
+from collections import Counter
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+import duckdb
+
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;time_model.py&quot;
-DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
-SPEC = importlib.util.spec_from_file_location(&quot;time_model&quot;, ARTIFACT)
+CODE_PATH = ROOT / &quot;code&quot; / &quot;main.py&quot;
+MODEL_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;order_time_model.sql&quot;
+EXPERIMENT_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;temporal_semantics_experiment.sql&quot;
+ARTIFACT_PATH = ROOT / &quot;outputs&quot; / &quot;artifact.json&quot;
+LESSON_PATH = ROOT / &quot;lesson.json&quot;
+QUIZ_PATH = ROOT / &quot;quiz.json&quot;
+
+SPEC = importlib.util.spec_from_file_location(&quot;dates_lesson&quot;, CODE_PATH)
 if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
-TIME = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(TIME)
+    raise RuntimeError(f&quot;cannot load {CODE_PATH}&quot;)
+LESSON = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(LESSON)
 
 
-class TimeModelTest(unittest.TestCase):
+class SqlDatesTest(unittest.TestCase):
     def setUp(self) -&gt; None:
-        self.report = TIME.normalize_order_times(DATA)
-        self.rows = {row[&quot;order_id&quot;]: row for row in self.report[&quot;rows&quot;]}
+        self.connection = duckdb.connect()
+        self.connection.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+        LESSON.prepare_orders_source(self.connection)
+        LESSON.validate_source(self.connection)
 
-    def test_offsets_normalize_to_utc(self) -&gt; None:
-        self.assertEqual(self.rows[&quot;O1001&quot;][&quot;ordered_at_utc&quot;], &quot;2026-01-05T07:00:00Z&quot;)
-        self.assertEqual(self.rows[&quot;O1003&quot;][&quot;ordered_at_utc&quot;], &quot;2026-02-01T10:00:00Z&quot;)
+    def tearDown(self) -&gt; None:
+        self.connection.close()
 
-    def test_business_timezone_is_explicit(self) -&gt; None:
-        self.assertEqual(self.report[&quot;business_timezone&quot;], &quot;Europe/Moscow&quot;)
-        self.assertEqual(self.rows[&quot;O1001&quot;][&quot;business_local_time&quot;], &quot;2026-01-05 10:00:00&quot;)
+    def model(self) -&gt; tuple[list[str], list[str], list[tuple]]:
+        return LESSON.execute_time_model(self.connection)
 
-    def test_missing_timestamp_remains_missing(self) -&gt; None:
-        self.assertIsNone(self.rows[&quot;O1008&quot;][&quot;ordered_at_utc&quot;])
-        self.assertIsNone(self.rows[&quot;O1008&quot;][&quot;business_date&quot;])
+    def model_rows(self) -&gt; tuple[list[str], dict[str, tuple]]:
+        columns, _, rows = self.model()
+        order_id_at = columns.index(&quot;order_id&quot;)
+        return columns, {row[order_id_at]: row for row in rows}
 
-    def test_calendar_months_are_built_after_timezone_conversion(self) -&gt; None:
-        self.assertEqual(self.rows[&quot;O1007&quot;][&quot;business_month&quot;], &quot;2026-03-01&quot;)
+    def test_time_model_preserves_source_grain(self) -&gt; None:
+        columns, types, rows = self.model()
+        LESSON.validate_time_model(columns, types, rows)
+        order_ids = [row[columns.index(&quot;order_id&quot;)] for row in rows]
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(len(set(order_ids)), 12)
+
+    def test_schema_preserves_temporal_types(self) -&gt; None:
+        columns, types, _ = self.model()
+        self.assertEqual(columns, LESSON.EXPECTED_MODEL_COLUMNS)
+        self.assertEqual(types, LESSON.EXPECTED_MODEL_TYPES)
+        self.assertEqual(types[columns.index(&quot;ordered_at_instant&quot;)], &quot;TIMESTAMP WITH TIME ZONE&quot;)
+        self.assertEqual(types[columns.index(&quot;business_local_time&quot;)], &quot;TIMESTAMP&quot;)
+        self.assertEqual(types[columns.index(&quot;business_date&quot;)], &quot;DATE&quot;)
+        self.assertEqual(types[columns.index(&quot;business_month&quot;)], &quot;DATE&quot;)
+
+    def test_offset_string_is_normalized_to_an_instant(self) -&gt; None:
+        columns, by_order = self.model_rows()
+        instant_at = columns.index(&quot;ordered_at_instant&quot;)
+        local_at = columns.index(&quot;business_local_time&quot;)
         self.assertEqual(
-            self.report[&quot;summary&quot;][&quot;orders_by_business_month&quot;],
+            by_order[&quot;O1001&quot;][instant_at],
+            datetime(2026, 1, 5, 7, 0, tzinfo=UTC),
+        )
+        self.assertEqual(by_order[&quot;O1001&quot;][local_at], datetime(2026, 1, 5, 10, 0))
+
+    def test_different_offsets_can_describe_the_same_instant(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders_source
+            VALUES
+                (&#x27;same-plus-three&#x27;, &#x27;2026-02-01T01:30:00+03:00&#x27;),
+                (&#x27;same-utc&#x27;, &#x27;2026-01-31T22:30:00Z&#x27;)
+            &quot;&quot;&quot;
+        )
+        columns, by_order = self.model_rows()
+        instant_at = columns.index(&quot;ordered_at_instant&quot;)
+        local_at = columns.index(&quot;business_local_time&quot;)
+        self.assertEqual(
+            by_order[&quot;same-plus-three&quot;][instant_at],
+            by_order[&quot;same-utc&quot;][instant_at],
+        )
+        self.assertEqual(
+            by_order[&quot;same-plus-three&quot;][local_at],
+            by_order[&quot;same-utc&quot;][local_at],
+        )
+
+    def test_business_calendar_is_cut_after_timezone_conversion(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders_source
+            VALUES (&#x27;month-boundary&#x27;, &#x27;2026-01-31T22:30:00Z&#x27;)
+            &quot;&quot;&quot;
+        )
+        columns, by_order = self.model_rows()
+        row = by_order[&quot;month-boundary&quot;]
+        self.assertEqual(row[columns.index(&quot;business_local_time&quot;)], datetime(2026, 2, 1, 1, 30))
+        self.assertEqual(row[columns.index(&quot;business_date&quot;)], date(2026, 2, 1))
+        self.assertEqual(row[columns.index(&quot;business_month&quot;)], date(2026, 2, 1))
+
+    def test_business_calendar_does_not_depend_on_session_timezone(self) -&gt; None:
+        columns_utc, by_order_utc = self.model_rows()
+        self.connection.execute(&quot;SET TimeZone = &#x27;America/New_York&#x27;&quot;)
+        columns_ny, by_order_ny = self.model_rows()
+        for field in (&quot;business_local_time&quot;, &quot;business_date&quot;, &quot;business_month&quot;):
+            self.assertEqual(
+                by_order_utc[&quot;O1001&quot;][columns_utc.index(field)],
+                by_order_ny[&quot;O1001&quot;][columns_ny.index(field)],
+            )
+
+    def test_missing_and_invalid_sources_remain_distinguishable(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders_source
+            VALUES
+                (&#x27;invalid-time&#x27;, &#x27;2026-02-30T10:00:00Z&#x27;),
+                (&#x27;naive-time&#x27;, &#x27;2026-02-01 10:00:00&#x27;)
+            &quot;&quot;&quot;
+        )
+        columns, by_order = self.model_rows()
+        status_at = columns.index(&quot;timestamp_status&quot;)
+        temporal_fields = (
+            &quot;ordered_at_instant&quot;,
+            &quot;business_local_time&quot;,
+            &quot;business_date&quot;,
+            &quot;business_month&quot;,
+        )
+        self.assertEqual(by_order[&quot;O1008&quot;][status_at], &quot;missing&quot;)
+        self.assertEqual(by_order[&quot;invalid-time&quot;][status_at], &quot;invalid&quot;)
+        self.assertEqual(by_order[&quot;naive-time&quot;][status_at], &quot;invalid&quot;)
+        for order_id in (&quot;O1008&quot;, &quot;invalid-time&quot;, &quot;naive-time&quot;):
+            self.assertTrue(
+                all(by_order[order_id][columns.index(field)] is None for field in temporal_fields)
+            )
+
+    def test_reference_business_month_counts_are_typed_dates(self) -&gt; None:
+        columns, _, rows = self.model()
+        month_at = columns.index(&quot;business_month&quot;)
+        counts = Counter(row[month_at] for row in rows if row[month_at] is not None)
+        self.assertEqual(
+            counts,
             {
-                &quot;2026-01-01&quot;: 2,
-                &quot;2026-02-01&quot;: 4,
-                &quot;2026-03-01&quot;: 3,
-                &quot;2026-04-01&quot;: 2,
+                date(2026, 1, 1): 2,
+                date(2026, 2, 1): 4,
+                date(2026, 3, 1): 3,
+                date(2026, 4, 1): 2,
             },
         )
 
-    def test_summary_reconciles_rows(self) -&gt; None:
-        self.assertEqual(self.report[&quot;summary&quot;][&quot;source_rows&quot;], 12)
-        self.assertEqual(self.report[&quot;summary&quot;][&quot;parsed_timestamps&quot;], 11)
-        self.assertEqual(self.report[&quot;summary&quot;][&quot;missing_timestamps&quot;], 1)
-
-    def test_different_business_timezone_changes_local_time(self) -&gt; None:
-        report = TIME.normalize_order_times(DATA, &quot;America/New_York&quot;)
-        row = next(item for item in report[&quot;rows&quot;] if item[&quot;order_id&quot;] == &quot;O1001&quot;)
-        self.assertEqual(row[&quot;business_local_time&quot;], &quot;2026-01-05 02:00:00&quot;)
-
-    def test_invalid_timezone_is_rejected(self) -&gt; None:
-        with self.assertRaisesRegex(Exception, &quot;TimeZone|timezone&quot;):
-            TIME.normalize_order_times(DATA, &quot;Not/A_Zone&quot;)
-
-    def test_cli_prints_json(self) -&gt; None:
-        result = subprocess.run(
-            [sys.executable, ARTIFACT, &quot;--orders&quot;, DATA],
-            check=False,
-            capture_output=True,
-            text=True,
+    def test_calendar_step_and_elapsed_duration_are_not_synonyms(self) -&gt; None:
+        columns, types, rows = LESSON.execute_temporal_experiment(self.connection)
+        self.assertEqual(
+            types,
+            [&quot;TIMESTAMP&quot;, &quot;TIMESTAMP&quot;, &quot;INTERVAL&quot;, &quot;TIMESTAMP&quot;, &quot;BIGINT&quot;, &quot;BIGINT&quot;],
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)[&quot;summary&quot;][&quot;parsed_timestamps&quot;], 11)
+        row = rows[0]
+        self.assertEqual(row[columns.index(&quot;elapsed_duration&quot;)], timedelta(hours=23))
+        self.assertEqual(
+            row[columns.index(&quot;after_24_hours_local_time&quot;)],
+            datetime(2026, 3, 29, 13, 0),
+        )
+        self.assertEqual(row[columns.index(&quot;calendar_day_boundaries&quot;)], 1)
+        self.assertEqual(row[columns.index(&quot;month_boundaries&quot;)], 1)
+
+    def test_half_open_business_period_has_one_owner_for_each_boundary(self) -&gt; None:
+        selected = self.connection.execute(
+            &quot;&quot;&quot;
+            WITH examples(order_id, ordered_at_instant) AS (
+                VALUES
+                    (&#x27;before&#x27;, TIMESTAMPTZ &#x27;2026-01-31 20:59:59+00&#x27;),
+                    (&#x27;at-start&#x27;, TIMESTAMPTZ &#x27;2026-01-31 21:00:00+00&#x27;),
+                    (&#x27;inside&#x27;, TIMESTAMPTZ &#x27;2026-02-15 12:00:00+00&#x27;),
+                    (&#x27;at-end&#x27;, TIMESTAMPTZ &#x27;2026-02-28 21:00:00+00&#x27;)
+            )
+            SELECT order_id
+            FROM examples
+            WHERE ordered_at_instant
+                    &gt;= TIMESTAMP &#x27;2026-02-01 00:00:00&#x27;
+                        AT TIME ZONE &#x27;Europe/Moscow&#x27;
+              AND ordered_at_instant
+                    &lt; TIMESTAMP &#x27;2026-03-01 00:00:00&#x27;
+                        AT TIME ZONE &#x27;Europe/Moscow&#x27;
+            ORDER BY order_id
+            &quot;&quot;&quot;
+        ).fetchall()
+        self.assertEqual(selected, [(&quot;at-start&quot;,), (&quot;inside&quot;,)])
+
+    def test_duplicate_source_key_is_rejected(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders_source
+            SELECT * FROM orders_source WHERE order_id = &#x27;O1001&#x27;
+            &quot;&quot;&quot;
+        )
+        with self.assertRaisesRegex(ValueError, &quot;grain violation&quot;):
+            LESSON.validate_source(self.connection)
+
+    def test_sql_artifact_owns_transformation_not_file_loading_or_formatting(self) -&gt; None:
+        sql = re.sub(r&quot;\s+&quot;, &quot; &quot;, MODEL_SQL_PATH.read_text(encoding=&quot;utf-8&quot;).lower())
+        self.assertIn(&quot;try_cast&quot;, sql)
+        self.assertIn(&quot;&#x27;missing&#x27;&quot;, sql)
+        self.assertIn(&quot;&#x27;invalid&#x27;&quot;, sql)
+        self.assertIn(&quot;regexp_matches&quot;, sql)
+        self.assertIn(&quot;&#x27;europe/moscow&#x27;::varchar as business_timezone&quot;, sql)
+        self.assertIn(&quot;timezone(&quot;, sql)
+        self.assertIn(&quot;date_trunc(&#x27;month&#x27;&quot;, sql)
+        for forbidden in (&quot;read_csv&quot;, &quot;read_parquet&quot;, &quot;strftime&quot;, &quot;argparse&quot;):
+            self.assertNotIn(forbidden, sql)
+
+    def test_named_artifact_is_sql_and_runner_is_not_a_cli(self) -&gt; None:
+        lesson = json.loads(LESSON_PATH.read_text(encoding=&quot;utf-8&quot;))
+        artifact = json.loads(ARTIFACT_PATH.read_text(encoding=&quot;utf-8&quot;))
+        runner = CODE_PATH.read_text(encoding=&quot;utf-8&quot;)
+        self.assertEqual(lesson[&quot;artifact&quot;][&quot;type&quot;], &quot;sql&quot;)
+        self.assertEqual(lesson[&quot;artifact&quot;][&quot;path&quot;], &quot;outputs/order_time_model.sql&quot;)
+        self.assertEqual(artifact[&quot;path&quot;], &quot;outputs/order_time_model.sql&quot;)
+        self.assertNotIn(&quot;argparse&quot;, runner)
+        self.assertNotIn(&quot;sys.argv&quot;, runner)
+
+    def test_quiz_activates_prerequisites_and_varies_answer_positions(self) -&gt; None:
+        quiz = json.loads(QUIZ_PATH.read_text(encoding=&quot;utf-8&quot;))
+        pre = [question for question in quiz[&quot;questions&quot;] if question[&quot;stage&quot;] == &quot;pre&quot;]
+        post = [question for question in quiz[&quot;questions&quot;] if question[&quot;stage&quot;] == &quot;post&quot;]
+        self.assertGreaterEqual(len(pre), 2)
+        self.assertGreaterEqual(len(post), 6)
+        self.assertGreater(len({question[&quot;correct&quot;] for question in post}), 2)
+        joined_pre = &quot; &quot;.join(question[&quot;question&quot;].lower() for question in pre)
+        self.assertIn(&quot;offset&quot;, joined_pre)
+        self.assertIn(&quot;пропущ&quot;, joined_pre)
+        joined_post = &quot; &quot;.join(question[&quot;question&quot;].lower() for question in post)
+        for term in (&quot;timestamptz&quot;, &quot;time zone&quot;, &quot;date_diff&quot;, &quot;границ&quot;):
+            self.assertIn(term, joined_post)
 
 
 if __name__ == &quot;__main__&quot;:
     unittest.main()
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
-import importlib.util
 import json
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;time_model.py&quot;
-DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
-
-
-def load_artifact():
-    spec = importlib.util.spec_from_file_location(&quot;time_model&quot;, ARTIFACT)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def main() -&gt; None:
-    manual_o1001 = {
-        &quot;source&quot;: &quot;2026-01-05T10:00:00+03:00&quot;,
-        &quot;utc&quot;: &quot;2026-01-05T07:00:00Z&quot;,
-        &quot;moscow&quot;: &quot;2026-01-05 10:00:00&quot;,
-    }
-    report = load_artifact().normalize_order_times(DATA)
-    print(
-        json.dumps({&quot;manual_o1001&quot;: manual_o1001, &quot;duckdb&quot;: report}, ensure_ascii=False, indent=2)
-    )
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
-  &quot;name&quot;: &quot;sql-time-model&quot;,
-  &quot;type&quot;: &quot;cli&quot;,
-  &quot;path&quot;: &quot;outputs/time_model.py&quot;,
-  &quot;description&quot;: &quot;Нормализует offsets к UTC и строит даты и месяцы в заданной бизнес-временной зоне.&quot;,
-  &quot;usage&quot;: &quot;python outputs/time_model.py --orders ../data/tiny/orders.csv --business-timezone Europe/Moscow&quot;
-}
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/time_model.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
-
-import argparse
-import json
-from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import duckdb
 
+ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+MODEL_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;order_time_model.sql&quot;
+EXPERIMENT_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;temporal_semantics_experiment.sql&quot;
 
-def normalize_order_times(
-    orders_path: Path,
-    business_timezone: str = &quot;Europe/Moscow&quot;,
-) -&gt; dict[str, Any]:
-    query = &quot;&quot;&quot;
-        WITH orders AS (
-            SELECT
-                order_id,
-                ordered_at,
-                ordered_at::TIMESTAMPTZ AS ordered_at_instant
-            FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-        )
+EXPECTED_MODEL_COLUMNS = [
+    &quot;order_id&quot;,
+    &quot;source_timestamp&quot;,
+    &quot;timestamp_status&quot;,
+    &quot;ordered_at_instant&quot;,
+    &quot;business_timezone&quot;,
+    &quot;business_local_time&quot;,
+    &quot;business_date&quot;,
+    &quot;business_month&quot;,
+]
+EXPECTED_MODEL_TYPES = [
+    &quot;VARCHAR&quot;,
+    &quot;VARCHAR&quot;,
+    &quot;VARCHAR&quot;,
+    &quot;TIMESTAMP WITH TIME ZONE&quot;,
+    &quot;VARCHAR&quot;,
+    &quot;TIMESTAMP&quot;,
+    &quot;DATE&quot;,
+    &quot;DATE&quot;,
+]
+
+
+def prepare_orders_source(
+    connection: duckdb.DuckDBPyConnection,
+    orders_path: Path = DATA_PATH,
+) -&gt; None:
+    &quot;&quot;&quot;Load the raw strings; file ingestion is infrastructure, not the SQL artifact.&quot;&quot;&quot;
+    connection.execute(
+        &quot;&quot;&quot;
+        CREATE OR REPLACE TABLE orders_source AS
         SELECT
-            order_id,
-            ordered_at AS source_timestamp,
-            strftime(
-                timezone(&#x27;UTC&#x27;, ordered_at_instant),
-                &#x27;%Y-%m-%dT%H:%M:%SZ&#x27;
-            ) AS ordered_at_utc,
-            strftime(
-                timezone(?, ordered_at_instant),
-                &#x27;%Y-%m-%d %H:%M:%S&#x27;
-            ) AS business_local_time,
-            cast(timezone(?, ordered_at_instant) AS DATE)::VARCHAR AS business_date,
-            strftime(
-                date_trunc(&#x27;month&#x27;, timezone(?, ordered_at_instant)),
-                &#x27;%Y-%m-01&#x27;
-            ) AS business_month
-        FROM orders
-        ORDER BY order_id
-    &quot;&quot;&quot;
-    connection = duckdb.connect()
-    try:
-        relation = connection.execute(
-            query,
-            [
-                str(orders_path),
-                business_timezone,
-                business_timezone,
-                business_timezone,
-            ],
-        )
-        columns = [column[0] for column in relation.description]
-        rows = [dict(zip(columns, row, strict=True)) for row in relation.fetchall()]
-    finally:
-        connection.close()
-    month_counts = Counter(
-        row[&quot;business_month&quot;] for row in rows if row[&quot;business_month&quot;] is not None
+            CAST(order_id AS VARCHAR) AS order_id,
+            CAST(ordered_at AS VARCHAR) AS ordered_at
+        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        &quot;&quot;&quot;,
+        [str(orders_path)],
     )
-    return {
-        &quot;business_timezone&quot;: business_timezone,
-        &quot;grain&quot;: [&quot;order_id&quot;],
-        &quot;rows&quot;: rows,
-        &quot;summary&quot;: {
-            &quot;source_rows&quot;: len(rows),
-            &quot;parsed_timestamps&quot;: sum(row[&quot;ordered_at_utc&quot;] is not None for row in rows),
-            &quot;missing_timestamps&quot;: sum(row[&quot;ordered_at_utc&quot;] is None for row in rows),
-            &quot;orders_by_business_month&quot;: dict(sorted(month_counts.items())),
-        },
+
+
+def validate_source(connection: duckdb.DuckDBPyConnection) -&gt; None:
+    schema = {
+        row[0]: str(row[1]) for row in connection.execute(&quot;DESCRIBE orders_source&quot;).fetchall()
     }
+    expected = {&quot;order_id&quot;: &quot;VARCHAR&quot;, &quot;ordered_at&quot;: &quot;VARCHAR&quot;}
+    if schema != expected:
+        raise ValueError(f&quot;orders_source schema must be {expected}, got {schema}&quot;)
+
+    missing_id = connection.execute(
+        &quot;&quot;&quot;
+        SELECT count(*)
+        FROM orders_source
+        WHERE order_id IS NULL OR trim(order_id) = &#x27;&#x27;
+        &quot;&quot;&quot;
+    ).fetchone()[0]
+    if missing_id:
+        raise ValueError(&quot;orders_source.order_id must be populated&quot;)
+
+    duplicate_id = connection.execute(
+        &quot;&quot;&quot;
+        SELECT order_id
+        FROM orders_source
+        GROUP BY order_id
+        HAVING count(*) &gt; 1
+        LIMIT 1
+        &quot;&quot;&quot;
+    ).fetchone()
+    if duplicate_id is not None:
+        raise ValueError(f&quot;orders_source grain violation for order_id: {duplicate_id[0]}&quot;)
+
+
+def execute_sql(
+    connection: duckdb.DuckDBPyConnection,
+    query_path: Path,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    relation = connection.execute(query_path.read_text(encoding=&quot;utf-8&quot;))
+    columns = [description[0] for description in relation.description]
+    types = [str(description[1]) for description in relation.description]
+    return columns, types, relation.fetchall()
+
+
+def execute_time_model(
+    connection: duckdb.DuckDBPyConnection,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    return execute_sql(connection, MODEL_SQL_PATH)
+
+
+def execute_temporal_experiment(
+    connection: duckdb.DuckDBPyConnection,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    return execute_sql(connection, EXPERIMENT_SQL_PATH)
+
+
+def validate_time_model(
+    columns: list[str],
+    types: list[str],
+    rows: list[tuple[Any, ...]],
+) -&gt; None:
+    if columns != EXPECTED_MODEL_COLUMNS:
+        raise ValueError(f&quot;time model columns must be {EXPECTED_MODEL_COLUMNS}, got {columns}&quot;)
+    if types != EXPECTED_MODEL_TYPES:
+        raise ValueError(f&quot;time model types must be {EXPECTED_MODEL_TYPES}, got {types}&quot;)
+
+    order_id_at = columns.index(&quot;order_id&quot;)
+    if len(rows) != 12 or len({row[order_id_at] for row in rows}) != len(rows):
+        raise ValueError(&quot;time model must preserve twelve unique order_id rows&quot;)
+
+    status_at = columns.index(&quot;timestamp_status&quot;)
+    statuses = [row[status_at] for row in rows]
+    if statuses.count(&quot;valid&quot;) != 11 or statuses.count(&quot;missing&quot;) != 1:
+        raise ValueError(&quot;reference data must contain eleven valid and one missing timestamp&quot;)
+
+    instant_at = columns.index(&quot;ordered_at_instant&quot;)
+    local_at = columns.index(&quot;business_local_time&quot;)
+    date_at = columns.index(&quot;business_date&quot;)
+    month_at = columns.index(&quot;business_month&quot;)
+    for row in rows:
+        temporal_values = (row[instant_at], row[local_at], row[date_at], row[month_at])
+        if row[status_at] == &quot;valid&quot; and any(value is None for value in temporal_values):
+            raise ValueError(&quot;valid timestamps must produce every typed temporal field&quot;)
+        if row[status_at] != &quot;valid&quot; and any(value is not None for value in temporal_values):
+            raise ValueError(&quot;missing or invalid timestamps must keep temporal fields NULL&quot;)
 
 
 def main() -&gt; None:
-    parser = argparse.ArgumentParser(description=&quot;Normalize SQL timestamps and periods&quot;)
-    parser.add_argument(&quot;--orders&quot;, type=Path, required=True)
-    parser.add_argument(&quot;--business-timezone&quot;, default=&quot;Europe/Moscow&quot;)
-    args = parser.parse_args()
+    connection = duckdb.connect()
     try:
-        report = normalize_order_times(args.orders, args.business_timezone)
-    except (duckdb.Error, OSError, ValueError) as error:
-        parser.error(str(error))
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+        connection.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+        prepare_orders_source(connection)
+        validate_source(connection)
+        columns, types, rows = execute_time_model(connection)
+        validate_time_model(columns, types, rows)
+        experiment_columns, experiment_types, experiment_rows = execute_temporal_experiment(
+            connection
+        )
+    finally:
+        connection.close()
+
+    report = {
+        &quot;model&quot;: {
+            &quot;columns&quot;: columns,
+            &quot;types&quot;: types,
+            &quot;rows&quot;: [dict(zip(columns, row, strict=True)) for row in rows],
+        },
+        &quot;duration_vs_calendar&quot;: {
+            &quot;columns&quot;: experiment_columns,
+            &quot;types&quot;: experiment_types,
+            &quot;row&quot;: dict(zip(experiment_columns, experiment_rows[0], strict=True)),
+        },
+    }
+    print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
 
 
 if __name__ == &quot;__main__&quot;:
     main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/outputs/time_model.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;order-time-model&quot;,
+  &quot;type&quot;: &quot;sql&quot;,
+  &quot;path&quot;: &quot;outputs/order_time_model.sql&quot;,
+  &quot;description&quot;: &quot;Сохраняет grain заказов, различает корректные, пропущенные и поврежденные строки времени и строит типизированные момент, локальное время, бизнес-день и бизнес-месяц в явно заданной timezone.&quot;,
+  &quot;usage&quot;: &quot;Создать в DuckDB таблицу orders_source(order_id VARCHAR, ordered_at VARCHAR), при необходимости изменить business_timezone в CTE settings и выполнить outputs/order_time_model.sql; outputs/temporal_semantics_experiment.sql отдельно показывает различие длительности и календарного шага.&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/order_time_model.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- Input contract:
+-- orders_source has grain one row per unique non-NULL order_id;
+-- ordered_at is VARCHAR and may contain an ISO 8601 timestamp with an explicit
+-- UTC offset, a missing value or a malformed value.
+--
+-- Output contract:
+-- every source order remains one row;
+-- ordered_at_instant is the parsed TIMESTAMPTZ and does not preserve the
+-- source offset as metadata;
+-- business calendar fields are derived only after the instant is displayed
+-- in the explicit business_timezone;
+-- missing and invalid source values remain distinguishable;
+-- dates and timestamps stay typed rather than being formatted as strings.
+
+WITH settings AS (
+    SELECT &#x27;Europe/Moscow&#x27;::VARCHAR AS business_timezone
+),
+classified_orders AS (
+    SELECT
+        order_id,
+        ordered_at,
+        ordered_at IS NULL OR trim(ordered_at) = &#x27;&#x27; AS source_is_missing,
+        coalesce(
+            regexp_matches(
+                trim(ordered_at),
+                &#x27;(Z|[+-][0-9]{2}:[0-9]{2})$&#x27;,
+                &#x27;i&#x27;
+            ),
+            false
+        ) AS source_has_explicit_offset
+    FROM orders_source
+),
+normalized_orders AS (
+    SELECT
+        order_id,
+        ordered_at AS source_timestamp,
+        CASE
+            WHEN source_is_missing THEN &#x27;missing&#x27;
+            WHEN NOT source_has_explicit_offset THEN &#x27;invalid&#x27;
+            WHEN try_cast(ordered_at AS TIMESTAMPTZ) IS NULL THEN &#x27;invalid&#x27;
+            ELSE &#x27;valid&#x27;
+        END AS timestamp_status,
+        CASE
+            WHEN source_has_explicit_offset
+                THEN try_cast(ordered_at AS TIMESTAMPTZ)
+        END AS ordered_at_instant
+    FROM classified_orders
+),
+localized_orders AS (
+    SELECT
+        normalized_orders.order_id,
+        normalized_orders.source_timestamp,
+        normalized_orders.timestamp_status,
+        normalized_orders.ordered_at_instant,
+        settings.business_timezone,
+        timezone(
+            settings.business_timezone,
+            normalized_orders.ordered_at_instant
+        ) AS business_local_time
+    FROM normalized_orders
+    CROSS JOIN settings
+)
+SELECT
+    order_id,
+    source_timestamp,
+    timestamp_status,
+    ordered_at_instant,
+    business_timezone,
+    business_local_time,
+    cast(business_local_time AS DATE) AS business_date,
+    cast(date_trunc(&#x27;month&#x27;, business_local_time) AS DATE) AS business_month
+FROM localized_orders
+ORDER BY order_id;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/outputs/order_time_model.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/temporal_semantics_experiment.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- A calendar step and an elapsed duration answer different questions.
+-- Europe/Berlin switches from UTC+01 to UTC+02 on 2026-03-29.
+
+WITH local_noons AS (
+    SELECT
+        TIMESTAMP &#x27;2026-03-28 12:00:00&#x27; AS start_local_time,
+        TIMESTAMP &#x27;2026-03-29 12:00:00&#x27; AS next_calendar_noon
+),
+instants AS (
+    SELECT
+        start_local_time,
+        next_calendar_noon,
+        start_local_time AT TIME ZONE &#x27;Europe/Berlin&#x27; AS start_instant,
+        next_calendar_noon AT TIME ZONE &#x27;Europe/Berlin&#x27; AS end_instant
+    FROM local_noons
+)
+SELECT
+    start_local_time,
+    next_calendar_noon,
+    end_instant - start_instant AS elapsed_duration,
+    (start_instant + INTERVAL &#x27;24 hours&#x27;)
+        AT TIME ZONE &#x27;Europe/Berlin&#x27; AS after_24_hours_local_time,
+    date_diff(
+        &#x27;day&#x27;,
+        cast(start_local_time AS DATE),
+        cast(next_calendar_noon AS DATE)
+    ) AS calendar_day_boundaries,
+    date_diff(
+        &#x27;month&#x27;,
+        DATE &#x27;2026-01-31&#x27;,
+        DATE &#x27;2026-02-01&#x27;
+    ) AS month_boundaries
+FROM instants;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/outputs/temporal_semantics_experiment.sql" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/09-dates" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/window-aggregates-and-frames/"><span>← Предыдущий урок</span><strong>Оконные агрегаты и рамки: накопительные и скользящие расчёты</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/cohorts/"><span>Следующий урок →</span><strong>Когорты на SQL</strong></a></nav>
       </div>
