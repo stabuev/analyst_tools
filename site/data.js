@@ -4,8 +4,8 @@ window.COURSE_DATA = {
     "title": "Инструменты аналитика",
     "version": "0.1.0",
     "hours": {
-      "min": 238,
-      "max": 327
+      "min": 239,
+      "max": 329
     }
   },
   "repository": {
@@ -45,8 +45,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 160,
-        "max": 225
+        "min": 161,
+        "max": 227
       },
       "phases": [
         {
@@ -139,8 +139,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 172,
-        "max": 241
+        "min": 173,
+        "max": 243
       },
       "phases": [
         {
@@ -237,8 +237,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 158,
-        "max": 223
+        "min": 159,
+        "max": 225
       },
       "phases": [
         {
@@ -329,8 +329,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 148,
-        "max": 209
+        "min": 149,
+        "max": 211
       },
       "phases": [
         {
@@ -418,8 +418,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 174,
-        "max": 243
+        "min": 175,
+        "max": 245
       },
       "phases": [
         {
@@ -522,8 +522,8 @@ window.COURSE_DATA = {
         18
       ],
       "hours": {
-        "min": 238,
-        "max": 327
+        "min": 239,
+        "max": 329
       },
       "phases": [
         {
@@ -1317,8 +1317,8 @@ window.COURSE_DATA = {
         3
       ],
       "hours": {
-        "min": 14,
-        "max": 18
+        "min": 15,
+        "max": 20
       },
       "artifact": "Набор проверенных SQL-витрин",
       "completion": "Студент строит SQL-витрину, проверяет ключи и объясняет план выполнения критичного запроса.",
@@ -1453,6 +1453,24 @@ window.COURSE_DATA = {
         },
         {
           "number": 8,
+          "slug": "window-aggregates-and-frames",
+          "title": "Оконные агрегаты и рамки: накопительные и скользящие расчёты",
+          "status": "complete",
+          "time_minutes": 90,
+          "outcome": "Сохраняет grain заказов, строит общий, накопительный и скользящий агрегаты с явной рамкой, контролирует включение текущей строки и NULL-знаменатель и объясняет различие ROWS, RANGE и рамки по умолчанию.",
+          "artifact": "Проверяемые SQL-расчёты по заказам с явными рамками и экспериментом ROWS / RANGE",
+          "type": "build",
+          "tracks": [
+            "core"
+          ],
+          "path": "phases/04-sql-and-duckdb/08-window-aggregates-and-frames",
+          "available": true,
+          "site_url": "lessons/sql-and-duckdb/window-aggregates-and-frames/",
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/docs/ru.md"
+        },
+        {
+          "number": 9,
           "slug": "dates",
           "title": "Время и даты в SQL",
           "status": "complete",
@@ -1463,14 +1481,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/04-sql-and-duckdb/08-dates",
+          "path": "phases/04-sql-and-duckdb/09-dates",
           "available": true,
           "site_url": "lessons/sql-and-duckdb/dates/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/08-dates",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-dates/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/09-dates",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-dates/docs/ru.md"
         },
         {
-          "number": 9,
+          "number": 10,
           "slug": "cohorts",
           "title": "Когорты на SQL",
           "status": "complete",
@@ -1481,14 +1499,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/04-sql-and-duckdb/09-cohorts",
+          "path": "phases/04-sql-and-duckdb/10-cohorts",
           "available": true,
           "site_url": "lessons/sql-and-duckdb/cohorts/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/09-cohorts",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/09-cohorts/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/10-cohorts",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/10-cohorts/docs/ru.md"
         },
         {
-          "number": 10,
+          "number": 11,
           "slug": "duckdb-python",
           "title": "DuckDB из Python",
           "status": "complete",
@@ -1499,14 +1517,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/04-sql-and-duckdb/10-duckdb-python",
+          "path": "phases/04-sql-and-duckdb/11-duckdb-python",
           "available": true,
           "site_url": "lessons/sql-and-duckdb/duckdb-python/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/10-duckdb-python",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/10-duckdb-python/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/11-duckdb-python",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/11-duckdb-python/docs/ru.md"
         },
         {
-          "number": 11,
+          "number": 12,
           "slug": "query-plans",
           "title": "Планы запросов и стоимость",
           "status": "complete",
@@ -1517,14 +1535,14 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/04-sql-and-duckdb/11-query-plans",
+          "path": "phases/04-sql-and-duckdb/12-query-plans",
           "available": true,
           "site_url": "lessons/sql-and-duckdb/query-plans/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/11-query-plans",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/11-query-plans/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-query-plans",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/docs/ru.md"
         },
         {
-          "number": 12,
+          "number": 13,
           "slug": "sql-vs-dataframes",
           "title": "SQL или DataFrame: выбор инструмента",
           "status": "complete",
@@ -1535,11 +1553,11 @@ window.COURSE_DATA = {
           "tracks": [
             "core"
           ],
-          "path": "phases/04-sql-and-duckdb/12-sql-vs-dataframes",
+          "path": "phases/04-sql-and-duckdb/13-sql-vs-dataframes",
           "available": true,
           "site_url": "lessons/sql-and-duckdb/sql-vs-dataframes/",
-          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes",
-          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-sql-vs-dataframes/docs/ru.md"
+          "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/13-sql-vs-dataframes",
+          "docs_url": "https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/13-sql-vs-dataframes/docs/ru.md"
         }
       ]
     },
@@ -4829,11 +4847,11 @@ window.COURSE_DATA = {
   ],
   "stats": {
     "phases": 19,
-    "lessons": 199,
-    "complete_lessons": 199,
+    "lessons": 200,
+    "complete_lessons": 200,
     "hours": {
-      "min": 238,
-      "max": 327
+      "min": 239,
+      "max": 329
     }
   }
 };

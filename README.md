@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1f2937?style=flat-square" alt="Лицензия MIT"></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/phases-19-2563eb?style=flat-square" alt="19 фаз"></a>
-  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-199-2563eb?style=flat-square" alt="199 уроков"></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/lessons-200-2563eb?style=flat-square" alt="200 уроков"></a>
   <a href="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml"><img src="https://github.com/stabuev/analyst_tools/actions/workflows/pages.yml/badge.svg" alt="Проверка и публикация сайта"></a>
 </p>
 
@@ -133,12 +133,12 @@ CLI перемешивает вопросы и варианты и показы�
 
 | Маршрут | Рекомендуемые фазы | Часы | Результат |
 |---|---|---:|---|
-| Аналитик данных | `0-10`, `17`, `18` | 159-222 | Исследование, эксперимент и готовый отчет |
-| Продуктовый аналитик | `0-10`, `13`, `17`, `18` | 171-238 | Метрики, эксперименты и причинные выводы |
-| Аналитик временных рядов | `0-9`, `14`, `17`, `18` | 157-220 | Прогноз, backtesting, интервалы и anomaly policy |
-| Analytics Engineer | `0-7`, `11-12`, `17`, `18` | 147-206 | Проверенные витрины и производительные пайплайны |
-| ML-аналитик | `0-7`, `9`, `12`, `15-18` | 173-240 | Честный baseline, интерпретация и доставка модели |
-| Полный | `0-18` | 237-324 | Все специализации курса |
+| Аналитик данных | `0-10`, `17`, `18` | 161-227 | Исследование, эксперимент и готовый отчет |
+| Продуктовый аналитик | `0-10`, `13`, `17`, `18` | 173-243 | Метрики, эксперименты и причинные выводы |
+| Аналитик временных рядов | `0-9`, `14`, `17`, `18` | 159-225 | Прогноз, backtesting, интервалы и anomaly policy |
+| Analytics Engineer | `0-7`, `11-12`, `17`, `18` | 149-211 | Проверенные витрины и производительные пайплайны |
+| ML-аналитик | `0-7`, `9`, `12`, `15-18` | 175-245 | Честный baseline, интерпретация и доставка модели |
+| Полный | `0-18` | 239-329 | Все специализации курса |
 
 Полная программа и зависимости находятся в [ROADMAP.md](ROADMAP.md).
 
@@ -207,7 +207,7 @@ python3 -m http.server 8000 --directory site
 ## Текущий статус
 
 Архитектура курса, полная дорожная карта и standalone-сайт зафиксированы. Завершены все
-фазы `00-18`: 199 из 199 уроков. Готовы общее ядро, продуктовая
+фазы `00-18`: 200 из 200 уроков. Готовы общее ядро, продуктовая
 аналитика и эксперименты, analytics engineering, performance, causal analysis, time
 series, прикладной и табличный ML, а также доставка результата через memo, workbook,
 reproducible report, приложение, CLI/schedule и handoff package.

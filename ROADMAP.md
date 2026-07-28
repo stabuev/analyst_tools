@@ -3,7 +3,7 @@
 # Дорожная карта: Инструменты аналитика
 
 **Версия:** 0.1.0  
-**Полный маршрут:** ~238-327 часов
+**Полный маршрут:** ~239-329 часов
 
 ## Обзор
 
@@ -13,7 +13,7 @@
 | 01 | [Воспроизводимый проект](phases/01-reproducible-project) | core | 00 | 7-8 |
 | 02 | [NumPy и численные данные](phases/02-numpy) | core | 01 | 9-13 |
 | 03 | [pandas и табличные данные](phases/03-pandas) | core | 02 | 14-18 |
-| 04 | [SQL и DuckDB](phases/04-sql-and-duckdb) | core | 03 | 14-18 |
+| 04 | [SQL и DuckDB](phases/04-sql-and-duckdb) | core | 03 | 15-20 |
 | 05 | [Источники и форматы данных](phases/05-sources-and-formats) | core | 04 | 10-14 |
 | 06 | [EDA и визуальное мышление](phases/06-eda-and-visualization) | core | 05 | 12-16 |
 | 07 | [Надежная аналитика](phases/07-reliable-analytics) | core | 06 | 10-14 |
@@ -31,12 +31,12 @@
 
 ## Маршруты
 
-- **Аналитик данных**: `00-10 -> 17 -> 18` (~160-225 часов)
-- **Продуктовый аналитик**: `00-10 -> 13 -> 17 -> 18` (~172-241 часов)
-- **Аналитик временных рядов**: `00-09 -> 14 -> 17 -> 18` (~158-223 часов)
-- **Analytics Engineer**: `00-07 -> 11-12 -> 17 -> 18` (~148-209 часов)
-- **ML-аналитик**: `00-07 -> 09 -> 12 -> 15-18` (~174-243 часов)
-- **Полный маршрут**: `00-18` (~238-327 часов)
+- **Аналитик данных**: `00-10 -> 17 -> 18` (~161-227 часов)
+- **Продуктовый аналитик**: `00-10 -> 13 -> 17 -> 18` (~173-243 часов)
+- **Аналитик временных рядов**: `00-09 -> 14 -> 17 -> 18` (~159-225 часов)
+- **Analytics Engineer**: `00-07 -> 11-12 -> 17 -> 18` (~149-211 часов)
+- **ML-аналитик**: `00-07 -> 09 -> 12 -> 15-18` (~175-245 часов)
+- **Полный маршрут**: `00-18` (~239-329 часов)
 
 ## Граф зависимостей
 
@@ -130,7 +130,7 @@ flowchart LR
 
 - **Треки:** core
 - **Пререквизиты:** Фаза 03
-- **Время:** ~14-18 часов
+- **Время:** ~15-20 часов
 - **Итоговый артефакт:** Набор проверенных SQL-витрин
 
 | № | Урок | Статус |
@@ -142,11 +142,12 @@ flowchart LR
 | 05 | [Joins без размножения метрик](phases/04-sql-and-duckdb/05-joins) | complete |
 | 06 | [CTE, подзапросы и композиция](phases/04-sql-and-duckdb/06-cte-and-subqueries) | complete |
 | 07 | [Оконные функции: разделы, порядок и соседние строки](phases/04-sql-and-duckdb/07-window-functions) | complete |
-| 08 | [Время и даты в SQL](phases/04-sql-and-duckdb/08-dates) | complete |
-| 09 | [Когорты на SQL](phases/04-sql-and-duckdb/09-cohorts) | complete |
-| 10 | [DuckDB из Python](phases/04-sql-and-duckdb/10-duckdb-python) | complete |
-| 11 | [Планы запросов и стоимость](phases/04-sql-and-duckdb/11-query-plans) | complete |
-| 12 | [SQL или DataFrame: выбор инструмента](phases/04-sql-and-duckdb/12-sql-vs-dataframes) | complete |
+| 08 | [Оконные агрегаты и рамки: накопительные и скользящие расчёты](phases/04-sql-and-duckdb/08-window-aggregates-and-frames) | complete |
+| 09 | [Время и даты в SQL](phases/04-sql-and-duckdb/09-dates) | complete |
+| 10 | [Когорты на SQL](phases/04-sql-and-duckdb/10-cohorts) | complete |
+| 11 | [DuckDB из Python](phases/04-sql-and-duckdb/11-duckdb-python) | complete |
+| 12 | [Планы запросов и стоимость](phases/04-sql-and-duckdb/12-query-plans) | complete |
+| 13 | [SQL или DataFrame: выбор инструмента](phases/04-sql-and-duckdb/13-sql-vs-dataframes) | complete |
 
 ## Фаза 05: Источники и форматы данных
 

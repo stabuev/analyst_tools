@@ -218,4 +218,4 @@ incomplete windows have blank activity_rate.
 - [Mixpanel Retention](https://docs.mixpanel.com/docs/reports/retention) - официальный разбор retention behavior, cohort buckets и incomplete buckets; полезно перед следующим уроком про возвращаемость.
 - [Amplitude: Build a retention analysis](https://amplitude.com/docs/analytics/charts/retention-analysis/retention-analysis-build) - посмотрите, как starting event, return event и user segment превращаются в retention query.
 - [Mixpanel Cohorts](https://docs.mixpanel.com/docs/users/cohorts) - про сохраненные пользовательские когорты, shared definitions и verified cohorts; сравните с machine-readable `cohort_spec.json`.
-- [Когорты на SQL](../../../04-sql-and-duckdb/09-cohorts/docs/ru.md) - предыдущий урок курса про cohort-period matrix, fixed denominator и полную grid в SQL.
+- [Когорты на SQL](../../../04-sql-and-duckdb/10-cohorts/docs/ru.md) - предыдущий урок курса про cohort-period matrix, fixed denominator и полную grid в SQL.

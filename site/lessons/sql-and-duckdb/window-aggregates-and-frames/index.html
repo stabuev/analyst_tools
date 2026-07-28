@@ -1,0 +1,2118 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Таблица orders имеет grain:">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-aggregates-and-frames/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Инструменты аналитика">
+  <meta property="og:title" content="Оконные агрегаты и рамки: накопительные и скользящие расчёты">
+  <meta property="og:description" content="Таблица orders имеет grain:">
+  <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-aggregates-and-frames/">
+  <meta name="twitter:card" content="summary">
+  <title>Оконные агрегаты и рамки: накопительные и скользящие расчёты — Инструменты аналитика</title>
+  <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../style.css?v=20260714c">
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Оконные агрегаты и рамки: накопительные и скользящие расчёты", "description": "Таблица orders имеет grain:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-aggregates-and-frames/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Оконные агрегаты и рамки: накопительные и скользящие расчёты", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/window-aggregates-and-frames/"}]}]</script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../../index.html"><span class="brand-mark" aria-hidden="true"></span> analyst_tools</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="../../../index.html">Курс</a>
+        <a href="../../../catalog.html">Каталог</a>
+        <a href="../../../routes.html">Маршруты</a>
+        <a href="../../../glossary.html">Глоссарий</a>
+        <a href="https://github.com/stabuev/analyst_tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="header-actions">
+        <button class="quiet-button" id="themeToggle" type="button">Тьма</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">Меню</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="lesson-page">
+    <div class="container lesson-layout">
+      <aside class="lesson-sidebar"><p class="eyebrow">Фаза 04</p><h2>SQL и DuckDB</h2><nav aria-label="Уроки фазы"><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/grain-keys-relations/"><span>01</span>Grain, ключи и связи</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/select-and-expressions/"><span>02</span>SELECT и выражения</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/null-semantics/"><span>03</span>NULL и трёхзначная логика</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/aggregations/"><span>04</span>Агрегации и уровни детализации</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/joins/"><span>05</span>Joins без размножения метрик</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cte-and-subqueries/"><span>06</span>CTE, подзапросы и композиция</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/window-functions/"><span>07</span>Оконные функции: разделы, порядок и соседние строки</a><a class="lesson-sidebar-link is-active" href="../../../lessons/sql-and-duckdb/window-aggregates-and-frames/"><span>08</span>Оконные агрегаты и рамки: накопительные и скользящие расчёты</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/dates/"><span>09</span>Время и даты в SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/cohorts/"><span>10</span>Когорты на SQL</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>11</span>DuckDB из Python</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/query-plans/"><span>12</span>Планы запросов и стоимость</a><a class="lesson-sidebar-link" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>13</span>SQL или DataFrame: выбор инструмента</a></nav></aside>
+      <div class="lesson-main">
+        <nav class="lesson-breadcrumbs" aria-label="Хлебные крошки">
+          <a href="../../../catalog.html">← Каталог</a>
+          <span>Фаза 04 · SQL и DuckDB</span>
+        </nav>
+        <section class="lesson-toolbar" aria-label="Информация об уроке">
+          <span>Урок 41 из 200</span>
+          <span>90 минут</span>
+          <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/08-window-aggregates-and-frames" type="button">Отметить пройденным</button>
+          <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
+        </section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что задают PARTITION BY currency и ORDER BY ordered_at, order_id внутри уже знакомого оконного контракта?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Новый grain результата и физический порядок файла</button><button type="button" class="quiz-option" data-choice="1">Независимые валютные разделы и однозначное положение строки внутри каждого раздела</button><button type="button" class="quiz-option" data-choice="2">Фильтр валют и порядок строк финальной выдачи</button><button type="button" class="quiz-option" data-choice="3">Тип суммы и правило обработки NULL</button></div><p class="quiz-feedback" hidden>PARTITION BY выбирает независимые разделы расчёта, а оконный ORDER BY задаёт положение строк внутри них. Они не меняют grain сами по себе и не гарантируют порядок финальной выдачи.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">02</p><h3>В группе находятся три заказа с amount 100, NULL и 50. Что вернут COUNT(*) и COUNT(amount)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">2 и 2</button><button type="button" class="quiz-option" data-choice="1">3 и 3</button><button type="button" class="quiz-option" data-choice="2">3 и 2</button><button type="button" class="quiz-option" data-choice="3">2 и 3</button></div><p class="quiz-feedback" hidden>COUNT(*) считает все три строки, а COUNT(amount) — только два известных значения. То же различие сохраняется внутри оконной рамки.</p></article></section>
+        <article class="lesson-article"><h1 id="оконные-агрегаты-и-рамки-накопительные-и-скользящие-расчёты">Оконные агрегаты и рамки: накопительные и скользящие расчёты</h1>
+<blockquote>
+<p>Раздел отвечает, какие строки относятся к одной задаче; порядок — где находится
+текущая строка; рамка — какие строки относительно неё прямо сейчас входят в агрегат.</p>
+</blockquote>
+<p><strong>Тип:</strong> Build
+<strong>Треки:</strong> Core
+<strong>Пререквизиты:</strong> 04/07
+<strong>Время:</strong> ~90 минут
+<strong>Результат:</strong> сохраняет grain заказов, строит общий, накопительный и скользящий агрегаты
+с явной рамкой, контролирует включение текущей строки и <code>NULL</code>-знаменатель и объясняет
+различие <code>ROWS</code>, <code>RANGE</code> и рамки по умолчанию.</p>
+<h2 id="цели-обучения">Цели обучения</h2>
+<p>После урока вы сможете:</p>
+<ul>
+<li>превратить знакомые <code>SUM</code>, <code>AVG</code> и <code>COUNT</code> в оконные агрегаты, не сворачивая строки;</li>
+<li>отдельно сформулировать partition, order и frame для рабочего вопроса;</li>
+<li>отличить итог всей partition от накопительного итога до текущей строки;</li>
+<li>построить скользящий расчёт по последним N строкам через <code>ROWS</code>;</li>
+<li>явно решить, входит ли текущая строка в её собственный baseline;</li>
+<li>объяснить, почему рамка на начале или конце partition может содержать меньше N строк;</li>
+<li>публиковать размер frame и число известных значений рядом со средним;</li>
+<li>предсказать скачок неявной <code>RANGE</code>-рамки на строках-peers;</li>
+<li>выбрать между позиционной семантикой <code>ROWS</code> и диапазоном значений <code>RANGE</code>;</li>
+<li>проверить, что оконный расчёт сохранил grain, типы, единицы измерения и порядок.</li>
+</ul>
+<h3 id="на-что-опирается-урок">На что опирается урок</h3>
+<p>Это не второй независимый обзор оконных функций. Урок продолжает конкретные механизмы,
+которые уже были построены:</p>
+<table>
+<thead>
+<tr>
+<th>Что уже известно</th>
+<th>Где пройдено</th>
+<th>Как используется сейчас</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>grain описывает смысл одной строки</td>
+<td>03/01, 04/01</td>
+<td>до и после окна остаётся одна строка на оплаченный <code>order_id</code></td>
+</tr>
+<tr>
+<td><code>NULL</code> не равен нулю или пустой строке</td>
+<td>04/03</td>
+<td>неизвестная сумма не подменяется нулём внутри rolling average</td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code> и <code>COUNT(amount)</code> имеют разные знаменатели</td>
+<td>04/04</td>
+<td>различаем размер frame и число известных сумм</td>
+</tr>
+<tr>
+<td><code>SUM</code> и <code>AVG</code> пропускают <code>NULL</code>-аргументы</td>
+<td>04/04</td>
+<td>рядом с агрегатом публикуем число известных значений</td>
+</tr>
+<tr>
+<td>суммы разных валют нельзя складывать вместе</td>
+<td>04/04, 04/05</td>
+<td>денежные окна разделяются по <code>currency</code></td>
+</tr>
+<tr>
+<td>CTE — именованный этап со своим population и grain</td>
+<td>04/06</td>
+<td>сначала выбираем оплаченные заказы, затем добавляем оконные столбцы</td>
+</tr>
+<tr>
+<td>окно сохраняет строки, а <code>PARTITION BY</code> задаёт независимые разделы</td>
+<td>04/07</td>
+<td>агрегаты добавляются к заказам без <code>GROUP BY</code></td>
+</tr>
+<tr>
+<td>оконный <code>ORDER BY</code> задаёт положение, но не порядок выдачи</td>
+<td>04/07</td>
+<td>расчёт и опубликованная сортировка проверяются отдельно</td>
+</tr>
+<tr>
+<td>peers равны по всем ключам оконного порядка</td>
+<td>04/07</td>
+<td>объясняем, почему <code>RANGE</code> может включить несколько строк одновременно</td>
+</tr>
+<tr>
+<td>tie-breaker делает позиционную последовательность однозначной</td>
+<td>04/07</td>
+<td><code>ROWS</code> использует порядок <code>ordered_at, order_id</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>ordered_at</code> снова приходит в артефакт уже типизированным как <code>TIMESTAMPTZ</code>. Мы используем
+его только как сравнимый ключ порядка. Разбор строк, выбор бизнес-timezone и календарные
+дни начнутся в следующем уроке. Поэтому здесь нет временных рамок вроде
+<code>RANGE BETWEEN INTERVAL 7 DAYS PRECEDING ...</code>: сначала нужно понять frame без второй
+одновременно новой темы.</p>
+<h2 id="проблема">Проблема</h2>
+<p>Таблица <code>orders</code> имеет grain:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">одна строка = один order_id
+</code></pre></div><p>Для каждой оплаченной покупки нужно сохранить сам заказ и добавить:</p>
+<ol>
+<li>общую известную сумму оплаченных заказов в той же валюте;</li>
+<li>накопительную известную сумму к моменту текущего заказа;</li>
+<li>среднюю известную сумму текущего и двух предыдущих заказов в валюте;</li>
+<li>среднюю сумму трёх <strong>предыдущих</strong> заказов, не включая текущий;</li>
+<li>количество строк и известных сумм в каждом скользящем расчёте.</li>
+</ol>
+<p>Здесь независимый поток задаёт <code>PARTITION BY currency</code>. Поэтому «предыдущие заказы» —
+это предыдущие оплаченные заказы <strong>всего магазина в той же валюте</strong>, независимо от
+покупателя. <code>user_id</code> остаётся в результате для идентификации заказа, но не входит в
+partition. Такой расчёт описывает недавний уровень заказов магазина, а не личную историю
+пользователя.</p>
+<p>Для вопроса о предыдущих покупках конкретного человека понадобился бы другой контракт,
+например <code>PARTITION BY user_id, currency</code>, и достаточная история каждого пользователя.
+Менять partition незаметно нельзя: вместе с ним меняется смысл метрики.</p>
+<p>Эти вопросы похожи, но используют разные множества строк:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">вся currency partition
+начало partition ... текущая строка
+две предыдущие строки ... текущая строка
+три предыдущие строки ... одна предыдущая строка
+</code></pre></div><h3 id="почему-group-by-недостаточно">Почему <code>GROUP BY</code> недостаточно</h3>
+<p>Так можно получить итог по валюте:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
+    currency,
+    sum(amount) AS total_known_amount
+FROM orders
+WHERE status = &#x27;paid&#x27;
+GROUP BY currency;
+</code></pre></div><p>Но grain изменится:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">до:    одна строка на order_id
+после: одна строка на currency
+</code></pre></div><p>У результата больше нет <code>order_id</code>, времени и текущей суммы. Такой итог полезен как
+отдельная витрина, но не позволяет показать, каким был накопительный результат на каждой
+строке.</p>
+<p>Оконный агрегат использует знакомую функцию, но добавляет <code>OVER</code>:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+) AS currency_total_known_amount
+</code></pre></div><p>Теперь итог валюты повторяется рядом с каждой строкой этой валюты. Заказы не
+сворачиваются.</p>
+<h3 id="почему-одного-partition-и-order-уже-недостаточно">Почему одного partition и order уже недостаточно</h3>
+<p>Из предыдущего урока знакомо окно:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">PARTITION BY currency
+ORDER BY ordered_at, order_id
+</code></pre></div><p>Оно отвечает:</p>
+<ul>
+<li>какие строки не смешиваются между собой;</li>
+<li>какая строка первая, вторая и следующая.</li>
+</ul>
+<p>Но оно ещё не отвечает, что должен увидеть <code>AVG</code>:</p>
+<ul>
+<li>всю валютную partition;</li>
+<li>всё от начала до текущего заказа;</li>
+<li>только последние три заказа;</li>
+<li>только три заказа перед текущим;</li>
+<li>текущую строку и одну следующую;</li>
+<li>строки в определённом диапазоне значений времени или другого ключа.</li>
+</ul>
+<p>Эту третью часть контракта задаёт <strong>window frame — рамка окна</strong>.</p>
+<h3 id="правдоподобные-ошибки">Правдоподобные ошибки</h3>
+<p>Ошибки frame опасны тем, что SQL выполняется и возвращает аккуратные числа:</p>
+<ul>
+<li>накопительная сумма без явной рамки скачком включает все строки с одинаковым ключом;</li>
+<li>«последние три заказа» на первой строке фактически содержат одну строку, но публикуются
+как полноценное трёхстрочное окно;</li>
+<li><code>AVG(amount)</code> по трём строкам получает знаменатель два из-за одного <code>NULL</code>, а название
+говорит «среднее трёх заказов»;</li>
+<li>baseline «предыдущие три заказа» включает текущий заказ и становится зависимым от
+значения, с которым его сравнивают;</li>
+<li>без <code>PARTITION BY currency</code> складываются рубли, доллары, евро и тенге;</li>
+<li><code>last_value(order_id)</code> считается последней строкой пользователя, хотя функция видит
+только frame до текущей строки;</li>
+<li><code>ROWS</code> и <code>RANGE</code> используются как взаимозаменяемые варианты синтаксиса, хотя отвечают
+на разные вопросы.</li>
+</ul>
+<p>Поэтому в этом уроке рамка является частью бизнес-контракта, а не необязательной
+настройкой функции.</p>
+<h2 id="концепция">Концепция</h2>
+<h3 id="1-обычный-агрегат-и-оконный-агрегат-используют-одну-функцию-по-разному">1. Обычный агрегат и оконный агрегат используют одну функцию по-разному</h3>
+<p>Сравните две формы:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">-- Новый grain: одна строка на currency
+SELECT
+    currency,
+    sum(amount)
+FROM paid_orders
+GROUP BY currency;
+</code></pre></div><div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">-- Исходный grain: одна строка на order_id
+SELECT
+    order_id,
+    currency,
+    amount,
+    sum(amount) OVER (
+        PARTITION BY currency
+    ) AS currency_total_known_amount
+FROM paid_orders;
+</code></pre></div><p>Во втором запросе <code>SUM</code> не стал другой арифметической функцией. Изменился контекст:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">GROUP BY:
+несколько строк -&gt; одна строка результата
+
+SUM(...) OVER (...):
+для каждой текущей строки определить контекст
+-&gt; посчитать агрегат по этому контексту
+-&gt; записать значение к текущей строке
+</code></pre></div><p>Поэтому оконные <code>SUM</code>, <code>AVG</code>, <code>COUNT</code>, <code>MIN</code> и <code>MAX</code> сохраняют строки, если другие части
+запроса не меняют их. Но они не исправляют grain входа: если предыдущий <code>JOIN</code> уже
+размножил заказ по товарным позициям, окно честно агрегирует размноженные строки.</p>
+<h3 id="2-у-оконного-агрегата-три-независимых-вопроса">2. У оконного агрегата три независимых вопроса</h3>
+<p>Полный контракт удобно читать сверху вниз:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">avg(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+)
+</code></pre></div><table>
+<thead>
+<tr>
+<th>Часть</th>
+<th>Вопрос</th>
+<th>Ответ примера</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PARTITION BY</code></td>
+<td>какие строки относятся к независимым задачам?</td>
+<td>заказы одной валюты</td>
+</tr>
+<tr>
+<td><code>ORDER BY</code></td>
+<td>где находится текущая строка?</td>
+<td>хронология с tie-breaker <code>order_id</code></td>
+</tr>
+<tr>
+<td><code>ROWS BETWEEN ...</code></td>
+<td>какие позиции около текущей участвуют?</td>
+<td>текущая и две предыдущие</td>
+</tr>
+</tbody>
+</table>
+<p>Короткая модель:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">partition = весь отдельный коридор
+order     = координата строки в коридоре
+frame     = подвижный участок коридора для текущего расчёта
+</code></pre></div><p>Partition обычно одна для многих строк. Frame пересчитывается для каждой текущей строки.</p>
+<h3 id="3-frame-движется-вместе-с-текущей-строкой">3. Frame движется вместе с текущей строкой</h3>
+<p>Пусть внутри одной currency строки уже упорядочены:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">A -&gt; B -&gt; C -&gt; D -&gt; E
+</code></pre></div><p>Для:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+</code></pre></div><p>рамки будут:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">current=A: [A]
+current=B: [A, B]
+current=C: [A, B, C]
+current=D: [B, C, D]
+current=E: [C, D, E]
+</code></pre></div><p>Это не один общий набор из трёх строк. Для каждой текущей строки окно сдвигается.</p>
+<p>На границе partition рамка <strong>обрезается</strong>. SQL не создаёт две вымышленные строки перед
+<code>A</code>. Поэтому первые строки имеют неполную историю:</p>
+<table>
+<thead>
+<tr>
+<th>Текущая строка</th>
+<th style="text-align:right">Запрошенный размер</th>
+<th style="text-align:right">Реальный размер</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">3</td>
+</tr>
+</tbody>
+</table>
+<p>Если полнота истории важна для сравнения, её нужно проверить явно:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*) OVER recent_3_rows AS recent_3_order_rows
+</code></pre></div><h3 id="4-границы-frame-читаются-относительно-текущей-строки">4. Границы frame читаются относительно текущей строки</h3>
+<p>Основные обозначения:</p>
+<table>
+<thead>
+<tr>
+<th>Граница</th>
+<th>Обычный смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UNBOUNDED PRECEDING</code></td>
+<td>самое начало partition</td>
+</tr>
+<tr>
+<td><code>3 PRECEDING</code></td>
+<td>позиция или значение на расстоянии три назад</td>
+</tr>
+<tr>
+<td><code>1 PRECEDING</code></td>
+<td>непосредственно предыдущая позиция или диапазон</td>
+</tr>
+<tr>
+<td><code>CURRENT ROW</code></td>
+<td>текущая позиция; для <code>RANGE</code> также её peers</td>
+</tr>
+<tr>
+<td><code>1 FOLLOWING</code></td>
+<td>следующая позиция или диапазон</td>
+</tr>
+<tr>
+<td><code>UNBOUNDED FOLLOWING</code></td>
+<td>самый конец partition</td>
+</tr>
+</tbody>
+</table>
+<p>Frame задаётся началом и концом:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN &lt;начало&gt; AND &lt;конец&gt;
+</code></pre></div><p>Начало не может находиться после конца. Например, конструкция от <code>1 FOLLOWING</code> до
+<code>CURRENT ROW</code> противоречива.</p>
+<h3 id="5-четыре-полезных-контракта-не-являются-синонимами">5. Четыре полезных контракта не являются синонимами</h3>
+<h4 id="итог-всей-partition">Итог всей partition</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+)
+</code></pre></div><p>При отсутствии оконного <code>ORDER BY</code> default frame охватывает всю partition. Все строки
+одной валюты получают один и тот же итог.</p>
+<h4 id="накопительный-итог">Накопительный итог</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Каждая строка видит всё от начала валютной последовательности до себя.</p>
+<h4 id="текущая-и-две-предыдущие-строки">Текущая и две предыдущие строки</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">avg(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Текущий <code>amount</code> входит в своё скользящее среднее.</p>
+<h4 id="только-три-предыдущие-строки">Только три предыдущие строки</h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">avg(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
+)
+</code></pre></div><p>Текущая строка исключена. В нашем контракте такой frame сравнивает покупку с недавним
+потоком заказов магазина в той же валюте. Иначе baseline уже содержит проверяемое
+значение. Это не baseline личного поведения покупателя: для него нужна partition по
+<code>user_id</code>.</p>
+<h3 id="6-rows-считает-позиции">6. <code>ROWS</code> считает позиции</h3>
+<p><code>ROWS</code> выбирает физические позиции в логическом оконном порядке:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+</code></pre></div><p>означает:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">не более двух предыдущих строк + текущая строка
+</code></pre></div><p>Это <strong>не</strong> означает:</p>
+<ul>
+<li>два предыдущих дня;</li>
+<li>значения ключа в пределах двух единиц;</li>
+<li>две предыдущие группы peers;</li>
+<li>обязательно три строки на границе partition.</li>
+</ul>
+<p>Позиционная рамка требует однозначного порядка. Поэтому основной артефакт использует:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY ordered_at, order_id
+</code></pre></div><p><code>ordered_at</code> задаёт бизнес-хронологию, а уникальный <code>order_id</code> разрешает одинаковые
+timestamps. Без tie-breaker непонятно, какая из равных строк является «предыдущей
+позицией».</p>
+<h3 id="7-range-выбирает-диапазон-значений-порядка">7. <code>RANGE</code> выбирает диапазон значений порядка</h3>
+<p>Для маленького числового примера:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY sort_key
+RANGE BETWEEN 1 PRECEDING AND CURRENT ROW
+</code></pre></div><p>строка с <code>sort_key = 4</code> видит строки, у которых:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sort_key находится от 3 до 4
+</code></pre></div><p>Если в данных нет ключа 3, предыдущая физическая строка с ключом 2 не входит.</p>
+<p>При тех же данных:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+</code></pre></div><p>возьмёт текущую строку с ключом 4 и физически предыдущую строку с ключом 2.</p>
+<p>Следовательно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ROWS  -&gt; расстояние в позициях
+RANGE -&gt; расстояние в значениях ORDER BY
+</code></pre></div><p>Для <code>RANGE</code> с числовым или временным смещением DuckDB требует ровно одно выражение
+порядка, поддерживающее вычитание. Несколько выражений допустимы, когда используются
+только границы <code>UNBOUNDED PRECEDING</code>, <code>UNBOUNDED FOLLOWING</code> и <code>CURRENT ROW</code>. Поэтому в
+эксперименте <code>RANGE</code> со смещением использует только <code>sort_key</code>; <code>row_id</code> нельзя добавить
+как косметический tie-breaker — он изменил бы смысл peers и не соответствовал бы
+контракту диапазона.</p>
+<h3 id="8-current-row-ведёт-себя-по-разному-для-rows-и-range">8. <code>CURRENT ROW</code> ведёт себя по-разному для <code>ROWS</code> и <code>RANGE</code></h3>
+<p>Пусть есть:</p>
+<table>
+<thead>
+<tr>
+<th>row_id</th>
+<th style="text-align:right">sort_key</th>
+<th style="text-align:right">amount</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">10</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">20</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">5</td>
+</tr>
+</tbody>
+</table>
+<p><code>A</code> и <code>B</code> — peers по единственному ключу <code>sort_key</code>.</p>
+<p>Для <code>ROWS ... CURRENT ROW</code> текущая строка означает одну конкретную позицию. Если порядок
+дополнен <code>row_id</code>, накопительная сумма может быть:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">A -&gt; 10
+B -&gt; 30
+C -&gt; 35
+</code></pre></div><p>Для <code>RANGE ... CURRENT ROW</code> текущая граница включает всех peers:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">A -&gt; 30
+B -&gt; 30
+C -&gt; 35
+</code></pre></div><p>Оба результата корректны, но отвечают на разные вопросы:</p>
+<ul>
+<li><code>ROWS</code>: итог после каждой отдельной, однозначно упорядоченной записи;</li>
+<li><code>RANGE</code>: итог на уровне значения ключа, общий для равных ключей.</li>
+</ul>
+<h3 id="9-default-frame-зависит-от-наличия-order-by">9. Default frame зависит от наличия <code>ORDER BY</code></h3>
+<p>Это правило нельзя оставлять скрытым.</p>
+<h4 id="без-оконного-order-by">Без оконного <code>ORDER BY</code></h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+)
+</code></pre></div><p>Default frame — вся partition.</p>
+<h4 id="с-оконным-order-by">С оконным <code>ORDER BY</code></h4>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at
+)
+</code></pre></div><p>В DuckDB default frame соответствует:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+</code></pre></div><p>Текущая граница включает peers. Поэтому две покупки с одинаковым <code>ordered_at</code> могут
+войти в накопительный итог одновременно.</p>
+<p>Если в <code>ORDER BY</code> добавить уникальный <code>order_id</code>, peers исчезнут и на текущих данных
+default <code>RANGE</code> может дать те же числа, что явный <code>ROWS</code>. Но это совпадение результата не
+делает контракты одинаковыми. Удаление tie-breaker или изменение бизнес-вопроса снова
+проявит разницу.</p>
+<p>Правило артефакта:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">если порядок влияет на агрегат, frame записывается явно
+</code></pre></div><p>Так ревьюер видит не только число, но и намерение автора.</p>
+<h3 id="10-размер-frame-и-знаменатель-агрегата-разные-величины">10. Размер frame и знаменатель агрегата — разные величины</h3>
+<p>Пусть frame содержит:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">1200, NULL, 1500
+</code></pre></div><p>Тогда:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">COUNT(*)      = 3
+COUNT(amount) = 2
+SUM(amount)   = 2700
+AVG(amount)   = 1350
+</code></pre></div><p>Среднее не равно:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">2700 / 3 = 900
+</code></pre></div><p>Потому что <code>AVG(amount)</code> пропускает неизвестный аргумент и использует:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">SUM известных amount / COUNT известных amount
+</code></pre></div><p>Если опубликовать только <code>AVG</code>, читатель не знает:</p>
+<ul>
+<li>frame действительно содержал две строки;</li>
+<li>frame содержал три строки, но одна сумма неизвестна;</li>
+<li>frame был обрезан границей partition;</li>
+<li>все суммы в frame неизвестны.</li>
+</ul>
+<p>Поэтому артефакт выпускает рядом:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*)     OVER recent_3_rows AS recent_3_order_rows,
+count(amount) OVER recent_3_rows AS recent_3_known_amounts,
+avg(amount)  OVER recent_3_rows AS recent_3_known_amount_avg
+</code></pre></div><p><code>COALESCE(amount, 0)</code> здесь не является техническим исправлением. Нулевая покупка и
+неизвестная сумма имеют разный смысл.</p>
+<h4 id="тип-результата-avg-нужно-проверить-отдельно">Тип результата <code>AVG</code> нужно проверить отдельно</h4>
+<p>Входной <code>amount</code> имеет точный фиксированный тип <code>DECIMAL(18, 2)</code>. В DuckDB:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">SUM(amount) -&gt; DECIMAL(38, 2)
+AVG(amount) -&gt; DOUBLE
+</code></pre></div><p>Среднее содержит деление, а деление фиксированных десятичных чисел не всегда даёт
+конечную десятичную дробь. Поэтому DuckDB возвращает приближённый floating-point
+результат <code>DOUBLE</code>. Это не повод превращать исходный <code>amount</code> в <code>DOUBLE</code>: точный тип
+по-прежнему нужен для хранения сумм и сложения денег.</p>
+<p>Артефакт сохраняет вычислительное среднее без скрытого округления. Поэтому значение
+<code>1625 / 3</code> равно примерно <code>541.67</code>, а не точно <code>541.67</code>. Если результат поставляется как
+денежное число с двумя знаками, правило публикации нужно согласовать отдельно и записать
+явно, например:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">cast(
+    round(avg(amount) OVER currency_recent_3_rows, 2)
+    AS DECIMAL(18, 2)
+) AS recent_3_known_amount_avg_rounded
+</code></pre></div><p>Так ревьюер видит границу между расчётом среднего и его представлением в отчёте.</p>
+<h3 id="11-накопительная-сумма-на-null-не-доказывает-нулевой-вклад">11. Накопительная сумма на <code>NULL</code> не доказывает нулевой вклад</h3>
+<p>Если текущий <code>amount</code> неизвестен, <code>SUM(amount)</code> пропустит его. Накопительный итог может
+остаться равным предыдущему:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">до строки с NULL:    1200
+на строке с NULL:    1200
+</code></pre></div><p>Это не означает, что заказ добавил ноль. Значит только:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">сумма известных значений пока не изменилась
+</code></pre></div><p>Поэтому рядом с running sum сохраняются:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*) OVER currency_running_rows AS currency_running_order_rows,
+count(amount) OVER currency_running_rows AS currency_running_known_amounts
+</code></pre></div><p>Разница этих счётчиков показывает, сколько строк не вошло в денежный итог из-за
+неизвестного значения.</p>
+<h3 id="12-именованное-окно-может-включать-frame">12. Именованное окно может включать frame</h3>
+<p>В предыдущем уроке одно имя связывало partition и order. Здесь имя фиксирует полный
+контракт:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WINDOW currency_recent_3_rows AS (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Затем несколько агрегатов используют ровно один набор строк:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*)      OVER currency_recent_3_rows,
+count(amount) OVER currency_recent_3_rows,
+avg(amount)   OVER currency_recent_3_rows
+</code></pre></div><p>Это важно: если среднее и его знаменатель случайно используют разные frames, проверка
+перестаёт описывать сам расчёт.</p>
+<p>В артефакте четыре имени:</p>
+<table>
+<thead>
+<tr>
+<th>Имя</th>
+<th>Смысл</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>currency_partition</code></td>
+<td>вся валюта без порядка</td>
+</tr>
+<tr>
+<td><code>currency_running_rows</code></td>
+<td>от начала валюты до текущего заказа</td>
+</tr>
+<tr>
+<td><code>currency_recent_3_rows</code></td>
+<td>текущий и два предыдущих заказа</td>
+</tr>
+<tr>
+<td><code>currency_prior_3_rows</code></td>
+<td>три заказа перед текущим, без текущего</td>
+</tr>
+</tbody>
+</table>
+<h3 id="необязательное-углубление-last-value-возвращает-последнюю-строку-frame">Необязательное углубление: <code>last_value</code> возвращает последнюю строку frame</h3>
+<p>На однозначном порядке:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">last_value(order_id) OVER (
+    ORDER BY sort_key, row_id
+)
+</code></pre></div><p>default frame заканчивается на текущей строке. Поэтому для <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code> функция
+может вернуть:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">A, B, C, D
+</code></pre></div><p>Чтобы увидеть последнюю строку всей partition, frame должен доходить до конца:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">last_value(order_id) OVER (
+    ORDER BY sort_key, row_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+)
+</code></pre></div><p>Теперь каждая строка видит <code>D</code>.</p>
+<p>Это не обязательный новый инструмент и не результат, который нужно запоминать после
+урока. Пример можно разобрать после основной практики как дополнительное доказательство:
+функции <code>first_value</code>, <code>last_value</code> и оконные агрегаты зависят не только от partition и
+order, но и от frame.</p>
+<h3 id="13-входной-контракт-остаётся-обязательным">13. Входной контракт остаётся обязательным</h3>
+<p>Основной SQL ожидает:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Контракт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>order_id</code></td>
+<td>заполненный уникальный ключ</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>каноническое значение <code>cancelled</code>, <code>paid</code>, <code>pending</code> или <code>refunded</code></td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>заполнен для оплаченного заказа</td>
+</tr>
+<tr>
+<td><code>ordered_at</code></td>
+<td>заполненный <code>TIMESTAMPTZ</code> для оплаченного заказа</td>
+</tr>
+<tr>
+<td><code>currency</code></td>
+<td>заполнена для оплаченного заказа</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td><code>DECIMAL(18, 2)</code>, может быть неизвестна</td>
+</tr>
+</tbody>
+</table>
+<p>Почему:</p>
+<ul>
+<li>дубликат <code>order_id</code> создаст лишнюю позицию в <code>ROWS</code>;</li>
+<li>пустое время не имеет честного места в хронологии;</li>
+<li>пустая валюта смешает несопоставимые суммы в диагностической <code>NULL</code>-partition;</li>
+<li>неканонический <code>status</code> незаметно изменит population;</li>
+<li>строковый <code>amount</code> не является готовой денежной мерой;</li>
+<li>исходный <code>DOUBLE</code> вместо <code>DECIMAL</code> может изменить точность денежных сумм;</li>
+<li>выходной <code>AVG(DECIMAL)</code> отдельно требует осознанной политики округления.</li>
+</ul>
+<p>Артефакт не загружает и не чистит данные. Эти обязанности остаются у внешнего слоя.</p>
+<h3 id="что-сознательно-остаётся-за-границей">Что сознательно остаётся за границей</h3>
+<p>В обязательный результат не входят:</p>
+<ul>
+<li><code>GROUPS</code> frames — расстояние в группах peers;</li>
+<li><code>EXCLUDE CURRENT ROW</code>, <code>EXCLUDE GROUP</code> и другие варианты исключения;</li>
+<li><code>DISTINCT</code> и <code>FILTER</code> внутри оконных агрегатов;</li>
+<li><code>nth_value</code>, percentile- и distribution-функции;</li>
+<li>временные <code>RANGE</code> с <code>INTERVAL</code>;</li>
+<li>centered rolling windows;</li>
+<li>sessionization;</li>
+<li>оптимизация и стоимость оконного оператора;</li>
+<li>rolling features для прогнозирования и защита от temporal leakage.</li>
+</ul>
+<p>После текущего урока эти темы можно понять, но они не нужны для минимальной уверенной
+работы аналитика с накопительными и скользящими SQL-расчётами. Календарные интервалы
+появятся после времени в SQL, а leakage-free rolling features — в фазе временных рядов.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала рассчитаем два маленьких результата вручную. Первый показывает движение frame,
+второй связывает механизм с заказами.</p>
+<h3 id="шаг-1-постройте-frame-experiment">Шаг 1. Постройте frame experiment</h3>
+<p>Даны четыре строки:</p>
+<table>
+<thead>
+<tr>
+<th>row_id</th>
+<th style="text-align:right">sort_key</th>
+<th style="text-align:right">amount</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">10</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">20</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">5</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">40</td>
+</tr>
+</tbody>
+</table>
+<p>У данных есть две особенности:</p>
+<ul>
+<li><code>A</code> и <code>B</code> — peers по <code>sort_key</code>;</li>
+<li>между ключами 2 и 4 есть разрыв.</li>
+</ul>
+<p>Они нужны не для сложности, а чтобы <code>ROWS</code> и <code>RANGE</code> перестали случайно давать один
+ответ.</p>
+<h3 id="шаг-2-накопите-сумму-по-позициям">Шаг 2. Накопите сумму по позициям</h3>
+<p>Для однозначного порядка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">sort_key, row_id
+</code></pre></div><p>и frame:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+</code></pre></div><p>получаем:</p>
+<table>
+<thead>
+<tr>
+<th>current</th>
+<th>Строки frame</th>
+<th style="text-align:right">Сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>A</td>
+<td style="text-align:right">10</td>
+</tr>
+<tr>
+<td>B</td>
+<td>A, B</td>
+<td style="text-align:right">30</td>
+</tr>
+<tr>
+<td>C</td>
+<td>A, B, C</td>
+<td style="text-align:right">35</td>
+</tr>
+<tr>
+<td>D</td>
+<td>A, B, C, D</td>
+<td style="text-align:right">75</td>
+</tr>
+</tbody>
+</table>
+<h3 id="шаг-3-накопите-сумму-по-диапазону">Шаг 3. Накопите сумму по диапазону</h3>
+<p>Для:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY sort_key
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+</code></pre></div><p>получаем:</p>
+<table>
+<thead>
+<tr>
+<th>current</th>
+<th>Значения sort_key</th>
+<th>Строки frame</th>
+<th style="text-align:right">Сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>до 1 включительно</td>
+<td>A, B</td>
+<td style="text-align:right">30</td>
+</tr>
+<tr>
+<td>B</td>
+<td>до 1 включительно</td>
+<td>A, B</td>
+<td style="text-align:right">30</td>
+</tr>
+<tr>
+<td>C</td>
+<td>до 2 включительно</td>
+<td>A, B, C</td>
+<td style="text-align:right">35</td>
+</tr>
+<tr>
+<td>D</td>
+<td>до 4 включительно</td>
+<td>A, B, C, D</td>
+<td style="text-align:right">75</td>
+</tr>
+</tbody>
+</table>
+<p>Первая строка сразу получает 30, потому что <code>CURRENT ROW</code> для <code>RANGE</code> включает peer
+<code>B</code>.</p>
+<h3 id="шаг-4-сравните-расстояние-1">Шаг 4. Сравните расстояние 1</h3>
+<p>Теперь два контракта:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+</code></pre></div><div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">RANGE BETWEEN 1 PRECEDING AND CURRENT ROW
+</code></pre></div><p>Ручной oracle:</p>
+<table>
+<thead>
+<tr>
+<th>row_id</th>
+<th style="text-align:right"><code>ROWS</code> сумма</th>
+<th style="text-align:right"><code>RANGE</code> сумма</th>
+<th>Почему различаются</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align:right">10</td>
+<td style="text-align:right">30</td>
+<td><code>RANGE</code> включает peer B</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align:right">30</td>
+<td style="text-align:right">30</td>
+<td>обе строки с ключом 1 входят</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align:right">25</td>
+<td style="text-align:right">35</td>
+<td><code>ROWS</code> берёт B и C, <code>RANGE</code> — все ключи 1 и 2</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align:right">45</td>
+<td style="text-align:right">40</td>
+<td><code>ROWS</code> берёт C и D, в диапазоне ключей 3..4 есть только D</td>
+</tr>
+</tbody>
+</table>
+<p>Если эта таблица понятна до запуска SQL, различие механизмов уже не сводится к
+запоминанию синтаксиса.</p>
+<h3 id="шаг-5-постройте-oracle-для-заказов-eur">Шаг 5. Постройте oracle для заказов EUR</h3>
+<p>В оплаченной EUR-partition:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th>ordered_at</th>
+<th style="text-align:right">amount</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1006</td>
+<td>2026-02-20</td>
+<td style="text-align:right">25</td>
+</tr>
+<tr>
+<td>O1009</td>
+<td>2026-03-07</td>
+<td style="text-align:right">900</td>
+</tr>
+<tr>
+<td>O1012</td>
+<td>2026-04-05</td>
+<td style="text-align:right">700</td>
+</tr>
+</tbody>
+</table>
+<p>Общая известная сумма:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">25 + 900 + 700 = 1625
+</code></pre></div><p>Ручной результат:</p>
+<table>
+<thead>
+<tr>
+<th>order_id</th>
+<th style="text-align:right">total</th>
+<th style="text-align:right">running</th>
+<th style="text-align:right">recent rows</th>
+<th style="text-align:right">recent avg</th>
+<th style="text-align:right">prior rows</th>
+<th style="text-align:right">prior avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1006</td>
+<td style="text-align:right">1625</td>
+<td style="text-align:right">25</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">25</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right"><code>NULL</code></td>
+</tr>
+<tr>
+<td>O1009</td>
+<td style="text-align:right">1625</td>
+<td style="text-align:right">925</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">462.5</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">25</td>
+</tr>
+<tr>
+<td>O1012</td>
+<td style="text-align:right">1625</td>
+<td style="text-align:right">1625</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">≈ 541.67</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">462.5</td>
+</tr>
+</tbody>
+</table>
+<p>Проверьте смысл:</p>
+<ul>
+<li><code>total</code> одинаков на всех строках partition;</li>
+<li><code>running</code> растёт вместе с текущей позицией;</li>
+<li><code>recent</code> включает текущую строку;</li>
+<li><code>prior</code> заканчивается на предыдущей строке;</li>
+<li>первые frames меньше трёх строк;</li>
+<li>отсутствие предыдущих строк даёт <code>COUNT(*) = 0</code> и <code>AVG = NULL</code>.</li>
+</ul>
+<h3 id="шаг-6-зафиксируйте-четыре-оконных-контракта">Шаг 6. Зафиксируйте четыре оконных контракта</h3>
+<p>До запуска заполните:</p>
+<table>
+<thead>
+<tr>
+<th>Выход</th>
+<th>Partition</th>
+<th>Order</th>
+<th>Frame</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>общий итог</td>
+<td><code>currency</code></td>
+<td>нет</td>
+<td>вся partition</td>
+</tr>
+<tr>
+<td>накопительный итог</td>
+<td><code>currency</code></td>
+<td><code>ordered_at, order_id</code></td>
+<td>от начала до текущей</td>
+</tr>
+<tr>
+<td>среднее текущего и двух предыдущих</td>
+<td><code>currency</code></td>
+<td><code>ordered_at, order_id</code></td>
+<td>две предыдущие и текущая</td>
+</tr>
+<tr>
+<td>среднее трёх предыдущих</td>
+<td><code>currency</code></td>
+<td><code>ordered_at, order_id</code></td>
+<td>три предыдущие до одной предыдущей</td>
+</tr>
+</tbody>
+</table>
+<h2 id="используйте-это">Используйте это</h2>
+<h3 id="основной-sql-артефакт">Основной SQL-артефакт</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/order_amount_frames.sql
+</code></pre></div><p>Его этапы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">orders
+-&gt; paid_orders
+-&gt; framed_orders
+-&gt; явная проекция и финальный ORDER BY
+</code></pre></div><h3 id="этап-1-зафиксировать-population">Этап 1. Зафиксировать population</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">WITH paid_orders AS (
+    SELECT
+        order_id,
+        user_id,
+        ordered_at,
+        currency,
+        amount
+    FROM orders
+    WHERE status = &#x27;paid&#x27;
+)
+</code></pre></div><p>Population и grain:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">9 оплаченных заказов
+9 уникальных order_id
+</code></pre></div><h3 id="этап-2-получить-итог-всей-partition">Этап 2. Получить итог всей partition</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER currency_partition AS currency_total_known_amount
+</code></pre></div><p>Именованное окно:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">currency_partition AS (
+    PARTITION BY currency
+)
+</code></pre></div><p>Оконного порядка нет, потому что итог всей валюты не должен зависеть от позиции заказа.
+Здесь «валюта» означает общий поток заказов магазина: строки разных пользователей входят
+в одну последовательность, если <code>currency</code> совпадает.</p>
+<h3 id="этап-3-получить-накопительный-итог">Этап 3. Получить накопительный итог</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER currency_running_rows AS currency_running_known_amount,
+count(*) OVER currency_running_rows AS currency_running_order_rows,
+count(amount) OVER currency_running_rows AS currency_running_known_amounts
+</code></pre></div><p>Окно:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">currency_running_rows AS (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Три столбца вместе отвечают:</p>
+<ul>
+<li>сколько строк прошло;</li>
+<li>для скольких была известна сумма;</li>
+<li>чему равна сумма известных значений.</li>
+</ul>
+<h3 id="этап-4-получить-rolling-3-с-текущей-строкой">Этап 4. Получить rolling-3 с текущей строкой</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*) OVER currency_recent_3_rows AS recent_3_order_rows,
+count(amount) OVER currency_recent_3_rows AS recent_3_known_amounts,
+avg(amount) OVER currency_recent_3_rows AS recent_3_known_amount_avg
+</code></pre></div><div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">currency_recent_3_rows AS (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Название говорит именно «последние три заказа», а не «последние три дня».</p>
+<h3 id="этап-5-получить-prior-3-без-текущей-строки">Этап 5. Получить prior-3 без текущей строки</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">count(*) OVER currency_prior_3_rows AS prior_3_order_rows,
+count(amount) OVER currency_prior_3_rows AS prior_3_known_amounts,
+avg(amount) OVER currency_prior_3_rows AS prior_3_known_amount_avg
+</code></pre></div><div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">currency_prior_3_rows AS (
+    PARTITION BY currency
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
+)
+</code></pre></div><p>Это baseline для сравнения текущей покупки с предыдущими заказами магазина в той же
+валюте. Он не описывает историю конкретного пользователя. На первой строке partition
+frame пуст, поэтому оба счётчика равны 0, а среднее — <code>NULL</code>.</p>
+<h3 id="этап-6-опубликовать-детерминированный-результат">Этап 6. Опубликовать детерминированный результат</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY currency, ordered_at, order_id
+</code></pre></div><p>Финальный порядок не меняет frames. Он только позволяет читателю увидеть валютные
+последовательности в том же удобном порядке.</p>
+<h3 id="эксперимент-с-семантикой-frame">Эксперимент с семантикой frame</h3>
+<p>Второй SQL:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/frame_semantics_experiment.sql
+</code></pre></div><p>одновременно выводит:</p>
+<ul>
+<li>default running sum;</li>
+<li>явную накопительную сумму <code>ROWS</code>;</li>
+<li>явную накопительную сумму <code>RANGE</code>;</li>
+<li>рамки расстояния 1 для <code>ROWS</code> и <code>RANGE</code>;</li>
+<li><code>last_value</code> на default frame;</li>
+<li><code>last_value</code> на всей partition.</li>
+</ul>
+<p>Это не второй production-артефакт. Это маленький воспроизводимый oracle для ревью
+оконного контракта.</p>
+<h3 id="запуск-reference-примера">Запуск reference-примера</h3>
+<p>Из корня репозитория:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python \
+  phases/04-sql-and-duckdb/08-window-aggregates-and-frames/code/main.py
+</code></pre></div><p>Python-файл:</p>
+<ol>
+<li>загружает общий tiny fixture в типизированную таблицу <code>orders</code>;</li>
+<li>проверяет входной контракт;</li>
+<li>выполняет два SQL-файла;</li>
+<li>проверяет схему, grain, frame counts и знаменатели;</li>
+<li>печатает значения для ручной сверки.</li>
+</ol>
+<p>Он не является CLI и не добавляет новый способ применения SQL. В рабочем редакторе
+нужны сами запросы из <code>outputs/</code>.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="ошибка-1-заменить-окно-на-group-by">Ошибка 1. Заменить окно на <code>GROUP BY</code></h3>
+<p>Итог по валюте станет корректным, но <code>order_id</code> исчезнет. Это другая витрина с другим
+grain.</p>
+<p>Проверка:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">число оплаченных строк до окна = число строк после окна
+order_id остаётся уникальным
+</code></pre></div><h3 id="ошибка-2-положиться-на-default-frame">Ошибка 2. Положиться на default frame</h3>
+<p>Хрупкая форма:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    PARTITION BY currency
+    ORDER BY ordered_at
+)
+</code></pre></div><p>На уникальных timestamps она может выглядеть как обычный running sum. После добавления
+двух peer-строк один timestamp получит общий скачок.</p>
+<p>Исправление: сначала решить, нужен <code>ROWS</code> или <code>RANGE</code>, затем записать frame явно.</p>
+<h3 id="ошибка-3-убрать-partition-по-валюте">Ошибка 3. Убрать partition по валюте</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">sum(amount) OVER (
+    ORDER BY ordered_at, order_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+</code></pre></div><p>Такой запрос складывает числа с разными единицами. Результат не становится осмысленным
+только потому, что тип всех сумм — <code>DECIMAL</code>.</p>
+<p>Исправление текущей задачи:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">PARTITION BY currency
+</code></pre></div><h3 id="ошибка-4-использовать-rows-без-полного-порядка">Ошибка 4. Использовать <code>ROWS</code> без полного порядка</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY ordered_at
+ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+</code></pre></div><p>При двух заказах в один момент неизвестно, какая строка является предыдущей позицией.
+Разные планы могут менять rolling average.</p>
+<p>Исправление:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ORDER BY ordered_at, order_id
+</code></pre></div><p>Это детерминированная договорённость, но не доказательство истинной очередности
+одновременных событий.</p>
+<h3 id="ошибка-5-считать-rows-7-preceding-семью-днями">Ошибка 5. Считать <code>ROWS 7 PRECEDING</code> семью днями</h3>
+<p><code>ROWS</code> считает строки. Если в один день было 100 заказов, семь позиций могут покрыть
+несколько минут. Если заказов не было неделю, соседние строки могут быть разделены
+десятью днями.</p>
+<p>Для календарного вопроса нужна временная модель и <code>RANGE</code> с интервалом либо предварительно
+построенный полный календарный ряд. Это будет осмысленно после урока о датах.</p>
+<h3 id="ошибка-6-считать-начальную-рамку-полной">Ошибка 6. Считать начальную рамку полной</h3>
+<p>На первой строке:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+</code></pre></div><p>содержит одну строку, а не три.</p>
+<p>Исправление: публиковать <code>COUNT(*) OVER same_frame</code> и вводить политику полноты там, где
+она влияет на сравнение.</p>
+<h3 id="ошибка-7-назвать-avg-amount-средним-всех-строк-frame">Ошибка 7. Назвать <code>AVG(amount)</code> средним всех строк frame</h3>
+<p>При одном <code>NULL</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">frame rows   = 3
+known values = 2
+AVG denominator = 2
+</code></pre></div><p>Исправление: выпускать <code>COUNT(*)</code>, <code>COUNT(amount)</code> и <code>AVG(amount)</code> из одного именованного
+окна.</p>
+<h3 id="ошибка-8-подменить-неизвестную-сумму-нулём">Ошибка 8. Подменить неизвестную сумму нулём</h3>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">avg(coalesce(amount, 0)) OVER (...)
+</code></pre></div><p>Так среднее отвечает на новую задачу, где отсутствие измерения объявлено реальным нулём.
+Это допустимо только при отдельном бизнес-правиле, а не как автоматическая очистка.</p>
+<h3 id="ошибка-9-включить-текущую-строку-в-prior-baseline">Ошибка 9. Включить текущую строку в prior baseline</h3>
+<p>Если текущий заказ сравнивается с:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+</code></pre></div><p>его собственная сумма уже влияет на baseline.</p>
+<p>Для трёх предыдущих заказов:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
+</code></pre></div><p>Эта граница особенно важна позже для аномалий, прогнозов и признаков моделей.</p>
+<h3 id="необязательный-пример-принять-last-value-за-конец-partition">Необязательный пример. Принять <code>last_value</code> за конец partition</h3>
+<p>Default frame с <code>ORDER BY</code> обычно заканчивается на текущей строке или её peers.
+<code>last_value</code> возвращает конец именно этого frame.</p>
+<p>Проверка: сравнить default-вариант с явным:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+</code></pre></div><h3 id="ошибка-10-запустить-окно-после-fanout">Ошибка 10. Запустить окно после fanout</h3>
+<p>Если заказ размножен по позициям, <code>ROWS 2 PRECEDING</code> считает позиции товара, а не три
+заказа.</p>
+<p>Перед окном:</p>
+<ul>
+<li>назовите grain;</li>
+<li>проверьте уникальность <code>order_id</code>;</li>
+<li>при необходимости сначала агрегируйте позиции до заказа;</li>
+<li>затем применяйте оконный расчёт.</li>
+</ul>
+<h3 id="ошибка-11-спрятать-пустое-время-через-nulls-last">Ошибка 11. Спрятать пустое время через <code>NULLS LAST</code></h3>
+<p>Заказ без <code>ordered_at</code> не имеет честной позиции в хронологии. <code>NULLS LAST</code> технически
+разместит его, но не объяснит, когда он произошёл и какие rows должны попасть в frame.</p>
+<p>Текущий входной контракт отклоняет оплаченный заказ без времени.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Поведенческие тесты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">phases/04-sql-and-duckdb/08-window-aggregates-and-frames/tests/test_main.py
+</code></pre></div><h3 id="позитивные-инварианты">Позитивные инварианты</h3>
+<ul>
+<li>девять оплаченных заказов остаются девятью уникальными <code>order_id</code>;</li>
+<li>схема и SQL-типы результата стабильны;</li>
+<li>общий итог постоянен внутри валюты;</li>
+<li>накопительная сумма следует порядку <code>ordered_at, order_id</code>;</li>
+<li>первые rolling frames содержат одну и две строки, а не фиктивные три;</li>
+<li>prior-frame не включает текущий заказ;</li>
+<li><code>COUNT(*)</code> и <code>COUNT(amount)</code> используют то же окно, что <code>AVG</code>;</li>
+<li>default frame и явный <code>RANGE</code> одновременно включают peers;</li>
+<li><code>ROWS</code> и <code>RANGE</code> различаются и на peers, и на разрыве значений;</li>
+<li>в необязательном companion-эксперименте полный frame до <code>UNBOUNDED FOLLOWING</code> меняет
+смысл <code>last_value</code>.</li>
+</ul>
+<h3 id="негативные-fixtures">Негативные fixtures</h3>
+<ul>
+<li>дубликат <code>order_id</code> блокируется до оконного расчёта;</li>
+<li>неканонический <code>status</code> отклоняется;</li>
+<li>оплаченный заказ без <code>user_id</code>, <code>currency</code> или <code>ordered_at</code> отклоняется;</li>
+<li>две строки с одним timestamp упорядочиваются <code>order_id</code> для <code>ROWS</code>;</li>
+<li>неизвестный <code>amount</code> увеличивает число строк frame, но не
+<code>COUNT(amount)</code>;</li>
+<li>непустой frame только с неизвестными суммами даёт <code>COUNT(*) &gt; 0</code>,
+<code>COUNT(amount) = 0</code> и <code>AVG(amount) = NULL</code>;</li>
+<li>среднее остаётся рассчитанным только по известным значениям;</li>
+<li>основной артефакт не использует неявную ordered frame.</li>
+</ul>
+<h3 id="проверки-границы-урока">Проверки границы урока</h3>
+<p>SQL-артефакты не:</p>
+<ul>
+<li>читают CSV или Parquet;</li>
+<li>приводят строки к timestamp;</li>
+<li>строят календарные периоды;</li>
+<li>используют <code>QUALIFY</code>;</li>
+<li>предоставляют Python API или CLI;</li>
+<li>вводят <code>GROUPS</code>, <code>EXCLUDE</code> или временные интервалы.</li>
+</ul>
+<p>Запуск только текущих тестов:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/08-window-aggregates-and-frames/tests
+</code></pre></div><p>Ручная сверка:</p>
+<ol>
+<li>Назовите grain входа и выхода.</li>
+<li>Для EUR вручную заполните total, running, recent и prior.</li>
+<li>Объясните, почему у первого заказа <code>recent_3_order_rows = 1</code>.</li>
+<li>Для <code>A, B, C, D</code> предскажите обе рамки расстояния 1.</li>
+<li>Объясните, почему <code>COUNT(*) = 3</code>, а <code>COUNT(amount) = 2</code>.</li>
+<li>Покажите, входит ли текущая строка в каждый из трёх ordered frames.</li>
+</ol>
+<p>Необязательное углубление: объясните, почему <code>last_value</code> зависит от конца frame.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Именованный артефакт:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/order_amount_frames.sql
+</code></pre></div><p>Он поставляет:</p>
+<ul>
+<li>явный входной и выходной контракт;</li>
+<li>CTE оплаченных заказов;</li>
+<li>общий итог по валюте без оконного порядка;</li>
+<li>накопительную сумму известных значений;</li>
+<li>число строк и известных сумм в накопительном frame;</li>
+<li>rolling average текущего и двух предыдущих заказов;</li>
+<li>prior average трёх предыдущих заказов;</li>
+<li>отдельные row counts и known-value counts для обоих средних;</li>
+<li>три явных <code>ROWS</code> frames;</li>
+<li>детерминированный оконный и финальный порядок.</li>
+</ul>
+<p>Companion:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">outputs/frame_semantics_experiment.sql
+</code></pre></div><p>поставляет маленький воспроизводимый эксперимент для <code>ROWS</code>, <code>RANGE</code>, default frame,
+peers, разрывов ключа и <code>last_value</code>.</p>
+<h3 id="как-переиспользовать">Как переиспользовать</h3>
+<ol>
+<li>Подготовьте типизированную таблицу с grain одной строки на сущность.</li>
+<li>Назовите независимую единицу partition и единицы агрегируемого значения.</li>
+<li>Если нужен <code>ROWS</code>, задайте полный детерминированный порядок.</li>
+<li>Запишите границы frame словами до SQL.</li>
+<li>Добавьте <code>COUNT(*)</code> и <code>COUNT(expression)</code> для rolling aggregate.</li>
+<li>На трёх-пяти строках вручную постройте oracle.</li>
+<li>Выполните запрос и проверьте grain, типы, порядок, границы и <code>NULL</code>.</li>
+<li>Если нужен календарный диапазон, сначала подготовьте корректную временную ось.</li>
+</ol>
+<h2 id="упражнения">Упражнения</h2>
+<h3 id="основное-закрепление">Основное закрепление</h3>
+<p>В рамках 90 минут выполните хотя бы два задания из первых четырёх.</p>
+<ol>
+<li>Для RUB вручную рассчитайте общий итог, running sum, recent average и prior average.
+Сравните с SQL.</li>
+<li>Измените recent frame с трёх на два заказа. Сначала предскажите новые row counts и
+средние для EUR.</li>
+<li>Добавьте EUR-заказ с неизвестным <code>amount</code> между <code>O1009</code> и <code>O1012</code>. Проверьте, какие
+счётчики изменились и почему running sum не означает нулевой заказ.</li>
+<li>Добавьте два заказа с одинаковым <code>ordered_at</code>. Подтвердите детерминированный <code>ROWS</code>
+через <code>order_id</code>, затем объясните, почему это правило не восстанавливает истинную
+очередность.</li>
+</ol>
+<h3 id="углубление">Углубление</h3>
+<ol start="5">
+<li>Постройте среднее пяти <strong>предыдущих</strong> заказов без текущего. Назовите обе границы до
+написания SQL.</li>
+<li>Добавьте политику <code>is_complete_recent_3</code>, которая равна <code>TRUE</code> только при трёх строках
+и трёх известных суммах. Объясните, почему эти два условия различаются.</li>
+<li>Перенесите артефакт на обращения поддержки: partition по очереди, order по времени и
+<code>ticket_id</code>, rolling average по трём последним известным временам ответа.</li>
+<li>Для значений ключа <code>1, 1, 2, 4</code> добавьте <code>RANGE BETWEEN 2 PRECEDING AND CURRENT ROW</code>.
+Заполните результат вручную до запуска.</li>
+<li>Сравните текущую сумму с <code>prior_3_known_amount_avg</code>. Не вычисляйте отклонение, если
+prior-frame пуст или содержит меньше двух известных сумм.</li>
+<li>После прохождения урока о датах вернитесь к этому артефакту и отдельно сформулируйте
+задачу «последние семь календарных дней». Не заменяйте её механически на семь строк.</li>
+</ol>
+<h2 id="ключевые-термины">Ключевые термины</h2>
+<table>
+<thead>
+<tr>
+<th>Термин</th>
+<th>Распространённое заблуждение</th>
+<th>Точное значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Оконный агрегат</td>
+<td>агрегат, который возвращает одну строку</td>
+<td>агрегат, вычисленный в контексте каждой строки и сохраняющий её в результате</td>
+</tr>
+<tr>
+<td>Partition</td>
+<td>текущий frame</td>
+<td>весь независимый раздел строк, внутри которого движется frame</td>
+</tr>
+<tr>
+<td>Frame</td>
+<td>вся partition</td>
+<td>подмножество partition относительно текущей строки</td>
+</tr>
+<tr>
+<td>Текущая строка</td>
+<td>последняя строка файла</td>
+<td>строка, для которой сейчас вычисляется оконное значение</td>
+</tr>
+<tr>
+<td><code>UNBOUNDED PRECEDING</code></td>
+<td>бесконечное число пустых строк</td>
+<td>начало текущей partition</td>
+</tr>
+<tr>
+<td><code>UNBOUNDED FOLLOWING</code></td>
+<td>конец всей таблицы</td>
+<td>конец текущей partition</td>
+</tr>
+<tr>
+<td><code>ROWS</code></td>
+<td>диапазон дней или значений</td>
+<td>расстояние в позициях оконного порядка</td>
+</tr>
+<tr>
+<td><code>RANGE</code></td>
+<td>другое написание <code>ROWS</code></td>
+<td>диапазон значений выражения оконного порядка с включением peers</td>
+</tr>
+<tr>
+<td>Default frame</td>
+<td>всегда вся partition</td>
+<td>вся partition без <code>ORDER BY</code>, но range-like frame до текущей peer group при наличии <code>ORDER BY</code></td>
+</tr>
+<tr>
+<td>Partial frame</td>
+<td>ошибка данных</td>
+<td>рамка, обрезанная границей partition и потому содержащая меньше запрошенных позиций</td>
+</tr>
+<tr>
+<td>Frame size</td>
+<td>знаменатель любого агрегата</td>
+<td>число строк frame; агрегат по nullable-выражению может использовать меньше значений</td>
+</tr>
+<tr>
+<td><code>AVG(DECIMAL)</code> в DuckDB</td>
+<td>обязательно остаётся <code>DECIMAL</code></td>
+<td>возвращает <code>DOUBLE</code>; округление поставляемого результата задаётся отдельно</td>
+</tr>
+<tr>
+<td>Prior-only frame</td>
+<td>frame с текущей строкой</td>
+<td>контекст, конечная граница которого находится до текущей строки</td>
+</tr>
+<tr>
+<td>Running total</td>
+<td>итог partition</td>
+<td>накопительный агрегат от начала до текущей границы</td>
+</tr>
+<tr>
+<td>Rolling aggregate</td>
+<td>обязательно календарная метрика</td>
+<td>агрегат по движущемуся frame; его единицей могут быть строки, значения или время</td>
+</tr>
+<tr>
+<td><code>last_value</code></td>
+<td>последняя строка partition</td>
+<td>значение последней строки текущего frame</td>
+</tr>
+</tbody>
+</table>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<ul>
+<li><a href="https://duckdb.org/docs/current/sql/functions/window_functions" target="_blank" rel="noopener">DuckDB: Window Functions</a> — начните с разделов <code>Evaluation</code>, <code>Framing</code> и <code>Aggregate Window Functions</code>: сверьте default frame, поведение <code>CURRENT ROW</code>, обрезание рамки у границ partition и ограничение одного выражения порядка для <code>RANGE</code> со смещением.</li>
+<li><a href="https://antonz.ru/window-functions/" target="_blank" rel="noopener">Антон Жиянов: «Оконные функции SQL»</a> — пройдите русскоязычные главы «Скользящие агрегаты», «Фрейм», «Фрейм по умолчанию» и блоки <code>ROWS</code>/<code>RANGE</code>; интерактивные примеры полезны, чтобы ещё раз увидеть движение рамки, а не только прочитать синтаксис.</li>
+<li><a href="https://postgrespro.ru/docs/postgrespro/current/tutorial-window" target="_blank" rel="noopener">Postgres Pro: «Оконные функции»</a> — перечитайте короткое русскоязычное введение от обычного агрегата к оконному и пример накопительной суммы с равными значениями порядка; он закрепляет, почему peers получают общий результат при default frame.</li>
+<li><a href="https://duckdb.org/docs/current/sql/functions/aggregates" target="_blank" rel="noopener">DuckDB: Aggregate Functions</a> — изучите <code>Handling NULL Values</code> и строки <code>avg</code>, <code>count</code>, <code>sum</code>: сопоставьте правило пропуска <code>NULL</code>, результат пустой группы и различие <code>count()</code>/<code>count(arg)</code> с опубликованными знаменателями урока.</li>
+<li><a href="https://duckdb.org/docs/current/sql/data_types/numeric" target="_blank" rel="noopener">DuckDB: Numeric Types</a> — прочитайте <code>Fixed-Point Decimals</code> и <code>Floating-Point Types</code>, затем объясните, почему денежные суммы хранятся и складываются как <code>DECIMAL</code>, а деление внутри <code>AVG</code> приводит к приближённому результату и отдельной политике округления.</li>
+<li><a href="https://postgrespro.ru/docs/postgresql/current/functions-window" target="_blank" rel="noopener">Postgres Pro: «Оконные функции общего назначения»</a> — используйте русскоязычное предупреждение о default frame у <code>first_value</code>, <code>last_value</code> и <code>nth_value</code> как необязательное закрепление того, что функция видит frame, а не автоматически всю partition.</li>
+<li><a href="https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS" target="_blank" rel="noopener">PostgreSQL: Window Function Calls</a> — разберите точный <code>frame_clause</code>: допустимый порядок границ, смысл <code>CURRENT ROW</code> для разных режимов и требования к смещению <code>RANGE</code>; это справочник для ревью SQL, а не материал для заучивания.</li>
+<li><a href="https://www.sqlite.org/windowfunctions.html#frame_specifications" target="_blank" rel="noopener">SQLite: Window Functions</a> — прочитайте только раздел <code>2.2. Frame Specifications</code>: подробные таблицы хорошо показывают различие позиций, peer-групп и диапазонов значений; примеры выполняются в другом диалекте, поэтому переносите контракт, а не код вслепую.</li>
+<li><a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls" target="_blank" rel="noopener">BigQuery: Window function calls</a> — сравните правила numeric <code>RANGE</code>, именованных окон и допустимых границ в распространённом облачном диалекте; зафиксируйте различия до переноса DuckDB-запроса в production.</li>
+<li><a href="https://duckdb.org/2025/02/10/window-catchup" target="_blank" rel="noopener">DuckDB: Catching up with Windowing</a> — после основной практики прочитайте объяснения <code>ROWS</code>, <code>RANGE</code>, peers, <code>GROUPS</code> и frame exclusion; последние две возможности нужны только как карта дальнейшего развития и не входят в результат урока.</li>
+</ul>
+</article>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 6 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Что вычисляет SUM(amount) OVER (PARTITION BY currency), если в OVER нет ORDER BY?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Один и тот же итог известных сумм всей валютной partition для каждой её строки</button><button type="button" class="quiz-option" data-choice="1">Накопительный итог до текущей строки</button><button type="button" class="quiz-option" data-choice="2">Сумму текущей и предыдущей строки</button><button type="button" class="quiz-option" data-choice="3">Одну итоговую строку на валюту</button></div><p class="quiz-feedback" hidden>Без оконного ORDER BY рамка по умолчанию охватывает всю partition. Оконный агрегат повторяет её итог на каждой строке и не сворачивает grain.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">02</p><h3>Первая строка раздела использует ROWS BETWEEN 2 PRECEDING AND CURRENT ROW. Сколько строк реально попадёт в рамку?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Три строки, две из них будут NULL</button><button type="button" class="quiz-option" data-choice="1">Ни одной, потому что двух предыдущих строк нет</button><button type="button" class="quiz-option" data-choice="2">Ровно две строки</button><button type="button" class="quiz-option" data-choice="3">Одна текущая строка: рамка обрезается границей раздела</button></div><p class="quiz-feedback" hidden>Рамка не создаёт отсутствующие строки. На начале partition она обрезается, поэтому в расчёте участвует только текущая строка.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Две строки имеют одинаковый единственный ключ оконного ORDER BY. Почему накопительная сумма с default frame может сразу включить обе?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">SUM всегда просматривает всю таблицу</button><button type="button" class="quiz-option" data-choice="1">Неявная RANGE-рамка включает peers текущего значения порядка</button><button type="button" class="quiz-option" data-choice="2">PARTITION BY автоматически объединяет равные суммы</button><button type="button" class="quiz-option" data-choice="3">Финальный ORDER BY выполняется раньше окна</button></div><p class="quiz-feedback" hidden>При наличии ORDER BY default frame в DuckDB ведёт себя как RANGE от начала partition до CURRENT ROW, а CURRENT ROW включает peers с тем же ключом порядка.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">04</p><h3>Как посчитать среднее только по трём заказам перед текущим, не включая текущий заказ?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW</button><button type="button" class="quiz-option" data-choice="1">ROWS BETWEEN CURRENT ROW AND 3 FOLLOWING</button><button type="button" class="quiz-option" data-choice="2">ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING</button><button type="button" class="quiz-option" data-choice="3">RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</button></div><p class="quiz-feedback" hidden>Начальная граница берёт до трёх предшествующих строк, а конечная 1 PRECEDING останавливает рамку до текущей строки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>В рамке три строки, но amount известен только у двух. Как честно опубликовать AVG(amount)?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Показать AVG вместе с COUNT(*) = 3 и COUNT(amount) = 2</button><button type="button" class="quiz-option" data-choice="1">Заменить неизвестный amount нулём без отдельного правила</button><button type="button" class="quiz-option" data-choice="2">Удалить строку с NULL до построения окна</button><button type="button" class="quiz-option" data-choice="3">Назвать знаменателем три строки, потому что размер frame равен трём</button></div><p class="quiz-feedback" hidden>AVG(amount) использует только известные значения. Пара COUNT(*) и COUNT(amount) показывает одновременно размер рамки и фактический знаменатель среднего.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">06</p><h3>Для строк (A, 1, 10), (B, 1, 20), (C, 2, 5), (D, 4, 40) вычисляется сумма для D. Что вернут ROWS BETWEEN 1 PRECEDING AND CURRENT ROW и RANGE BETWEEN 1 PRECEDING AND CURRENT ROW?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">75 и 75: обе рамки видят все предыдущие строки</button><button type="button" class="quiz-option" data-choice="1">45 и 40: ROWS берёт предыдущую позицию C, а в RANGE значений от 3 до 4 входит только D</button><button type="button" class="quiz-option" data-choice="2">40 и 45: ROWS учитывает только D, а RANGE обязательно берёт предыдущую строку</button><button type="button" class="quiz-option" data-choice="3">45 и 45: ROWS и RANGE — два написания одного контракта</button></div><p class="quiz-feedback" hidden>ROWS измеряет расстояние в позициях и берёт C плюс D. RANGE измеряет расстояние в значениях sort_key: для текущего ключа 4 диапазон равен 3..4, а строки с ключом 3 нет.</p></article></section>
+        <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+import json
+import re
+import unittest
+from decimal import Decimal
+from pathlib import Path
+
+import duckdb
+
+ROOT = Path(__file__).resolve().parents[1]
+CODE_PATH = ROOT / &quot;code&quot; / &quot;main.py&quot;
+FRAMES_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;order_amount_frames.sql&quot;
+EXPERIMENT_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;frame_semantics_experiment.sql&quot;
+ARTIFACT_PATH = ROOT / &quot;outputs&quot; / &quot;artifact.json&quot;
+LESSON_PATH = ROOT / &quot;lesson.json&quot;
+QUIZ_PATH = ROOT / &quot;quiz.json&quot;
+
+SPEC = importlib.util.spec_from_file_location(&quot;frame_lesson&quot;, CODE_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f&quot;cannot load {CODE_PATH}&quot;)
+LESSON = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(LESSON)
+
+
+class WindowAggregateFrameTest(unittest.TestCase):
+    def setUp(self) -&gt; None:
+        self.connection = duckdb.connect()
+        LESSON.prepare_orders(self.connection)
+        LESSON.validate_input(self.connection)
+
+    def tearDown(self) -&gt; None:
+        self.connection.close()
+
+    def frames(
+        self,
+    ) -&gt; tuple[list[str], list[str], list[tuple]]:
+        return LESSON.execute_frames(self.connection)
+
+    def frame_rows(self) -&gt; tuple[list[str], dict[str, tuple]]:
+        columns, _, rows = self.frames()
+        order_id_at = columns.index(&quot;order_id&quot;)
+        return columns, {row[order_id_at]: row for row in rows}
+
+    def experiment_rows(self) -&gt; tuple[list[str], dict[str, tuple]]:
+        columns, _, rows = LESSON.execute_experiment(self.connection)
+        row_id_at = columns.index(&quot;row_id&quot;)
+        return columns, {row[row_id_at]: row for row in rows}
+
+    def test_window_aggregates_preserve_paid_order_grain(self) -&gt; None:
+        columns, types, rows = self.frames()
+        LESSON.validate_frames(columns, types, rows)
+        order_ids = [row[columns.index(&quot;order_id&quot;)] for row in rows]
+        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(set(order_ids)), 9)
+
+    def test_schema_and_types_are_stable(self) -&gt; None:
+        columns, types, _ = self.frames()
+        self.assertEqual(columns, LESSON.EXPECTED_FRAME_COLUMNS)
+        self.assertEqual(types, LESSON.EXPECTED_FRAME_TYPES)
+
+    def test_partition_total_is_constant_without_window_order(self) -&gt; None:
+        columns, by_order = self.frame_rows()
+        total_at = columns.index(&quot;currency_total_known_amount&quot;)
+        self.assertEqual(by_order[&quot;O1006&quot;][total_at], Decimal(&quot;1625.00&quot;))
+        self.assertEqual(by_order[&quot;O1009&quot;][total_at], Decimal(&quot;1625.00&quot;))
+        self.assertEqual(by_order[&quot;O1012&quot;][total_at], Decimal(&quot;1625.00&quot;))
+        self.assertEqual(by_order[&quot;O1001&quot;][total_at], Decimal(&quot;2700.00&quot;))
+        self.assertEqual(by_order[&quot;O1003&quot;][total_at], Decimal(&quot;180.00&quot;))
+
+    def test_running_sum_uses_currency_partition_and_order(self) -&gt; None:
+        columns, by_order = self.frame_rows()
+        running_at = columns.index(&quot;currency_running_known_amount&quot;)
+        self.assertEqual(by_order[&quot;O1006&quot;][running_at], Decimal(&quot;25.00&quot;))
+        self.assertEqual(by_order[&quot;O1009&quot;][running_at], Decimal(&quot;925.00&quot;))
+        self.assertEqual(by_order[&quot;O1012&quot;][running_at], Decimal(&quot;1625.00&quot;))
+        self.assertEqual(by_order[&quot;O1003&quot;][running_at], Decimal(&quot;75.00&quot;))
+        self.assertEqual(by_order[&quot;O1010&quot;][running_at], Decimal(&quot;135.00&quot;))
+        self.assertEqual(by_order[&quot;O1011&quot;][running_at], Decimal(&quot;180.00&quot;))
+
+    def test_recent_frame_is_cropped_at_partition_start(self) -&gt; None:
+        columns, by_order = self.frame_rows()
+        rows_at = columns.index(&quot;recent_3_order_rows&quot;)
+        avg_at = columns.index(&quot;recent_3_known_amount_avg&quot;)
+        self.assertEqual(by_order[&quot;O1006&quot;][rows_at], 1)
+        self.assertEqual(by_order[&quot;O1009&quot;][rows_at], 2)
+        self.assertEqual(by_order[&quot;O1012&quot;][rows_at], 3)
+        self.assertAlmostEqual(by_order[&quot;O1006&quot;][avg_at], 25.0)
+        self.assertAlmostEqual(by_order[&quot;O1009&quot;][avg_at], 462.5)
+        self.assertAlmostEqual(by_order[&quot;O1012&quot;][avg_at], 1625 / 3)
+
+    def test_prior_frame_excludes_current_row(self) -&gt; None:
+        columns, by_order = self.frame_rows()
+        rows_at = columns.index(&quot;prior_3_order_rows&quot;)
+        avg_at = columns.index(&quot;prior_3_known_amount_avg&quot;)
+        self.assertEqual(by_order[&quot;O1006&quot;][rows_at], 0)
+        self.assertIsNone(by_order[&quot;O1006&quot;][avg_at])
+        self.assertEqual(by_order[&quot;O1009&quot;][rows_at], 1)
+        self.assertAlmostEqual(by_order[&quot;O1009&quot;][avg_at], 25.0)
+        self.assertEqual(by_order[&quot;O1012&quot;][rows_at], 2)
+        self.assertAlmostEqual(by_order[&quot;O1012&quot;][avg_at], 462.5)
+
+    def test_missing_amount_changes_known_denominator_not_frame_size(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders
+            VALUES (
+                &#x27;O1013&#x27;,
+                &#x27;U008&#x27;,
+                TIMESTAMPTZ &#x27;2026-01-20 10:00:00+00&#x27;,
+                &#x27;paid&#x27;,
+                &#x27;RUB&#x27;,
+                NULL
+            )
+            &quot;&quot;&quot;
+        )
+        LESSON.validate_input(self.connection)
+        columns, by_order = self.frame_rows()
+
+        running_rows_at = columns.index(&quot;currency_running_order_rows&quot;)
+        running_known_at = columns.index(&quot;currency_running_known_amounts&quot;)
+        running_amount_at = columns.index(&quot;currency_running_known_amount&quot;)
+        recent_rows_at = columns.index(&quot;recent_3_order_rows&quot;)
+        recent_known_at = columns.index(&quot;recent_3_known_amounts&quot;)
+        recent_avg_at = columns.index(&quot;recent_3_known_amount_avg&quot;)
+        prior_rows_at = columns.index(&quot;prior_3_order_rows&quot;)
+        prior_known_at = columns.index(&quot;prior_3_known_amounts&quot;)
+        prior_avg_at = columns.index(&quot;prior_3_known_amount_avg&quot;)
+
+        self.assertEqual(by_order[&quot;O1005&quot;][running_rows_at], 3)
+        self.assertEqual(by_order[&quot;O1005&quot;][running_known_at], 2)
+        self.assertEqual(by_order[&quot;O1005&quot;][running_amount_at], Decimal(&quot;2700.00&quot;))
+        self.assertEqual(by_order[&quot;O1005&quot;][recent_rows_at], 3)
+        self.assertEqual(by_order[&quot;O1005&quot;][recent_known_at], 2)
+        self.assertAlmostEqual(by_order[&quot;O1005&quot;][recent_avg_at], 1350.0)
+        self.assertEqual(by_order[&quot;O1005&quot;][prior_rows_at], 2)
+        self.assertEqual(by_order[&quot;O1005&quot;][prior_known_at], 1)
+        self.assertAlmostEqual(by_order[&quot;O1005&quot;][prior_avg_at], 1200.0)
+
+    def test_nonempty_frame_with_only_unknown_amount_has_null_average(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders
+            VALUES (
+                &#x27;O1013&#x27;,
+                &#x27;U008&#x27;,
+                TIMESTAMPTZ &#x27;2026-05-01 10:00:00+00&#x27;,
+                &#x27;paid&#x27;,
+                &#x27;GBP&#x27;,
+                NULL
+            )
+            &quot;&quot;&quot;
+        )
+        LESSON.validate_input(self.connection)
+        columns, by_order = self.frame_rows()
+        row = by_order[&quot;O1013&quot;]
+
+        self.assertEqual(row[columns.index(&quot;currency_running_order_rows&quot;)], 1)
+        self.assertEqual(row[columns.index(&quot;currency_running_known_amounts&quot;)], 0)
+        self.assertIsNone(row[columns.index(&quot;currency_running_known_amount&quot;)])
+        self.assertEqual(row[columns.index(&quot;recent_3_order_rows&quot;)], 1)
+        self.assertEqual(row[columns.index(&quot;recent_3_known_amounts&quot;)], 0)
+        self.assertIsNone(row[columns.index(&quot;recent_3_known_amount_avg&quot;)])
+        self.assertEqual(row[columns.index(&quot;prior_3_order_rows&quot;)], 0)
+        self.assertEqual(row[columns.index(&quot;prior_3_known_amounts&quot;)], 0)
+        self.assertIsNone(row[columns.index(&quot;prior_3_known_amount_avg&quot;)])
+
+    def test_order_id_makes_rows_frame_deterministic_for_equal_timestamps(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders
+            VALUES
+                (
+                    &#x27;O1013&#x27;,
+                    &#x27;U008&#x27;,
+                    TIMESTAMPTZ &#x27;2026-05-01 10:00:00+00&#x27;,
+                    &#x27;paid&#x27;,
+                    &#x27;EUR&#x27;,
+                    10.00
+                ),
+                (
+                    &#x27;O1014&#x27;,
+                    &#x27;U009&#x27;,
+                    TIMESTAMPTZ &#x27;2026-05-01 10:00:00+00&#x27;,
+                    &#x27;paid&#x27;,
+                    &#x27;EUR&#x27;,
+                    20.00
+                )
+            &quot;&quot;&quot;
+        )
+        LESSON.validate_input(self.connection)
+        columns, by_order = self.frame_rows()
+        running_at = columns.index(&quot;currency_running_known_amount&quot;)
+        self.assertEqual(by_order[&quot;O1013&quot;][running_at], Decimal(&quot;1635.00&quot;))
+        self.assertEqual(by_order[&quot;O1014&quot;][running_at], Decimal(&quot;1655.00&quot;))
+
+    def test_default_frame_and_explicit_range_include_peers_together(self) -&gt; None:
+        columns, by_id = self.experiment_rows()
+        default_at = columns.index(&quot;default_running_sum&quot;)
+        range_at = columns.index(&quot;range_running_sum&quot;)
+        rows_at = columns.index(&quot;rows_running_sum&quot;)
+        self.assertEqual(by_id[&quot;A&quot;][default_at], 30)
+        self.assertEqual(by_id[&quot;A&quot;][range_at], 30)
+        self.assertEqual(by_id[&quot;A&quot;][rows_at], 10)
+        self.assertEqual(by_id[&quot;B&quot;][default_at], 30)
+        self.assertEqual(by_id[&quot;B&quot;][rows_at], 30)
+
+    def test_rows_distance_and_range_distance_answer_different_questions(self) -&gt; None:
+        columns, by_id = self.experiment_rows()
+        rows_at = columns.index(&quot;rows_distance_1_sum&quot;)
+        range_at = columns.index(&quot;range_distance_1_sum&quot;)
+        self.assertEqual(by_id[&quot;C&quot;][rows_at], 25)
+        self.assertEqual(by_id[&quot;C&quot;][range_at], 35)
+        self.assertEqual(by_id[&quot;D&quot;][rows_at], 45)
+        self.assertEqual(by_id[&quot;D&quot;][range_at], 40)
+
+    def test_last_value_depends_on_frame_end(self) -&gt; None:
+        columns, by_id = self.experiment_rows()
+        default_at = columns.index(&quot;default_last_value&quot;)
+        partition_at = columns.index(&quot;partition_last_value&quot;)
+        self.assertEqual(by_id[&quot;A&quot;][default_at], &quot;A&quot;)
+        self.assertEqual(by_id[&quot;C&quot;][default_at], &quot;C&quot;)
+        self.assertTrue(all(row[partition_at] == &quot;D&quot; for row in by_id.values()))
+
+    def test_duplicate_order_id_is_rejected_before_windowing(self) -&gt; None:
+        self.connection.execute(
+            &quot;&quot;&quot;
+            INSERT INTO orders
+            SELECT * FROM orders WHERE order_id = &#x27;O1001&#x27;
+            &quot;&quot;&quot;
+        )
+        with self.assertRaisesRegex(ValueError, &quot;grain violation&quot;):
+            LESSON.validate_input(self.connection)
+
+    def test_paid_order_requires_currency(self) -&gt; None:
+        self.connection.execute(&quot;UPDATE orders SET currency = NULL WHERE order_id = &#x27;O1001&#x27;&quot;)
+        with self.assertRaisesRegex(ValueError, &quot;orders.currency&quot;):
+            LESSON.validate_input(self.connection)
+
+    def test_status_must_be_canonical(self) -&gt; None:
+        self.connection.execute(&quot;UPDATE orders SET status = &#x27;completed&#x27; WHERE order_id = &#x27;O1001&#x27;&quot;)
+        with self.assertRaisesRegex(ValueError, &quot;canonical values&quot;):
+            LESSON.validate_input(self.connection)
+
+    def test_paid_order_requires_user_id(self) -&gt; None:
+        self.connection.execute(&quot;UPDATE orders SET user_id = &#x27;&#x27; WHERE order_id = &#x27;O1001&#x27;&quot;)
+        with self.assertRaisesRegex(ValueError, &quot;orders.user_id&quot;):
+            LESSON.validate_input(self.connection)
+
+    def test_paid_order_requires_ordered_at(self) -&gt; None:
+        self.connection.execute(&quot;UPDATE orders SET ordered_at = NULL WHERE order_id = &#x27;O1001&#x27;&quot;)
+        with self.assertRaisesRegex(ValueError, &quot;require ordered_at&quot;):
+            LESSON.validate_input(self.connection)
+
+    def test_main_artifact_uses_explicit_rows_frames(self) -&gt; None:
+        sql = re.sub(r&quot;\s+&quot;, &quot; &quot;, FRAMES_SQL_PATH.read_text(encoding=&quot;utf-8&quot;).lower())
+        self.assertGreaterEqual(sql.count(&quot; rows between &quot;), 3)
+        self.assertNotIn(&quot; range between &quot;, sql)
+        self.assertIn(&quot;2 preceding and current row&quot;, sql)
+        self.assertIn(&quot;3 preceding and 1 preceding&quot;, sql)
+        self.assertIn(&quot;count(*) over currency_recent_3_rows&quot;, sql)
+        self.assertIn(&quot;count(amount) over currency_recent_3_rows&quot;, sql)
+
+    def test_experiment_keeps_default_rows_and_range_visible(self) -&gt; None:
+        sql = re.sub(
+            r&quot;\s+&quot;,
+            &quot; &quot;,
+            EXPERIMENT_SQL_PATH.read_text(encoding=&quot;utf-8&quot;).lower(),
+        )
+        self.assertIn(&quot;order by sort_key ) as default_running_sum&quot;, sql)
+        self.assertIn(&quot;rows between 1 preceding and current row&quot;, sql)
+        self.assertIn(&quot;range between 1 preceding and current row&quot;, sql)
+        self.assertIn(
+            &quot;rows between unbounded preceding and unbounded following&quot;,
+            sql,
+        )
+
+    def test_sql_artifacts_do_not_take_over_loading_or_date_normalization(self) -&gt; None:
+        sql = (
+            FRAMES_SQL_PATH.read_text(encoding=&quot;utf-8&quot;)
+            + EXPERIMENT_SQL_PATH.read_text(encoding=&quot;utf-8&quot;)
+        ).lower()
+        for forbidden in (
+            &quot;read_csv&quot;,
+            &quot;read_parquet&quot;,
+            &quot;::timestamp&quot;,
+            &quot;::timestamptz&quot;,
+            &quot;date_trunc&quot;,
+            &quot;timezone(&quot;,
+            &quot;qualify&quot;,
+        ):
+            self.assertNotIn(forbidden, sql)
+
+    def test_named_artifact_is_sql_and_runner_is_not_a_cli(self) -&gt; None:
+        lesson = json.loads(LESSON_PATH.read_text(encoding=&quot;utf-8&quot;))
+        artifact = json.loads(ARTIFACT_PATH.read_text(encoding=&quot;utf-8&quot;))
+        runner = CODE_PATH.read_text(encoding=&quot;utf-8&quot;)
+        self.assertEqual(lesson[&quot;artifact&quot;][&quot;path&quot;], &quot;outputs/order_amount_frames.sql&quot;)
+        self.assertEqual(artifact[&quot;path&quot;], &quot;outputs/order_amount_frames.sql&quot;)
+        self.assertNotIn(&quot;argparse&quot;, runner)
+        self.assertNotIn(&quot;sys.argv&quot;, runner)
+
+    def test_quiz_activates_prerequisites_and_varies_answer_positions(self) -&gt; None:
+        quiz = json.loads(QUIZ_PATH.read_text(encoding=&quot;utf-8&quot;))
+        pre = [question for question in quiz[&quot;questions&quot;] if question[&quot;stage&quot;] == &quot;pre&quot;]
+        post = [question for question in quiz[&quot;questions&quot;] if question[&quot;stage&quot;] == &quot;post&quot;]
+        self.assertGreaterEqual(len(pre), 2)
+        self.assertGreaterEqual(len(post), 5)
+        self.assertGreater(len({question[&quot;correct&quot;] for question in post}), 2)
+        joined_pre = &quot; &quot;.join(question[&quot;question&quot;].lower() for question in pre)
+        self.assertIn(&quot;partition&quot;, joined_pre)
+        self.assertIn(&quot;null&quot;, joined_pre)
+        joined_post = &quot; &quot;.join(question[&quot;question&quot;].lower() for question in post)
+        self.assertIn(&quot;rows&quot;, joined_post)
+        self.assertIn(&quot;range&quot;, joined_post)
+        self.assertNotIn(&quot;last_value&quot;, joined_post)
+
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import json
+from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;orders.csv&quot;
+FRAMES_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;order_amount_frames.sql&quot;
+EXPERIMENT_SQL_PATH = ROOT / &quot;outputs&quot; / &quot;frame_semantics_experiment.sql&quot;
+CANONICAL_ORDER_STATUSES = (&quot;cancelled&quot;, &quot;paid&quot;, &quot;pending&quot;, &quot;refunded&quot;)
+
+EXPECTED_FRAME_COLUMNS = [
+    &quot;order_id&quot;,
+    &quot;user_id&quot;,
+    &quot;ordered_at&quot;,
+    &quot;currency&quot;,
+    &quot;amount&quot;,
+    &quot;currency_total_known_amount&quot;,
+    &quot;currency_running_known_amount&quot;,
+    &quot;currency_running_order_rows&quot;,
+    &quot;currency_running_known_amounts&quot;,
+    &quot;recent_3_order_rows&quot;,
+    &quot;recent_3_known_amounts&quot;,
+    &quot;recent_3_known_amount_avg&quot;,
+    &quot;prior_3_order_rows&quot;,
+    &quot;prior_3_known_amounts&quot;,
+    &quot;prior_3_known_amount_avg&quot;,
+]
+EXPECTED_FRAME_TYPES = [
+    &quot;VARCHAR&quot;,
+    &quot;VARCHAR&quot;,
+    &quot;TIMESTAMP WITH TIME ZONE&quot;,
+    &quot;VARCHAR&quot;,
+    &quot;DECIMAL(18,2)&quot;,
+    &quot;DECIMAL(38,2)&quot;,
+    &quot;DECIMAL(38,2)&quot;,
+    &quot;BIGINT&quot;,
+    &quot;BIGINT&quot;,
+    &quot;BIGINT&quot;,
+    &quot;BIGINT&quot;,
+    &quot;DOUBLE&quot;,
+    &quot;BIGINT&quot;,
+    &quot;BIGINT&quot;,
+    &quot;DOUBLE&quot;,
+]
+
+
+def prepare_orders(
+    connection: duckdb.DuckDBPyConnection,
+    orders_path: Path = DATA_PATH,
+) -&gt; None:
+    &quot;&quot;&quot;Prepare a typed fixture; file loading is infrastructure, not the SQL artifact.&quot;&quot;&quot;
+    connection.execute(
+        &quot;&quot;&quot;
+        CREATE OR REPLACE TABLE orders AS
+        SELECT
+            CAST(order_id AS VARCHAR) AS order_id,
+            CAST(user_id AS VARCHAR) AS user_id,
+            CAST(ordered_at AS TIMESTAMPTZ) AS ordered_at,
+            CAST(status AS VARCHAR) AS status,
+            CAST(currency AS VARCHAR) AS currency,
+            CAST(amount AS DECIMAL(18, 2)) AS amount
+        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
+        &quot;&quot;&quot;,
+        [str(orders_path)],
+    )
+
+
+def _schema(connection: duckdb.DuckDBPyConnection, relation: str) -&gt; dict[str, str]:
+    return {row[0]: str(row[1]) for row in connection.execute(f&quot;DESCRIBE {relation}&quot;).fetchall()}
+
+
+def _require_populated_text(
+    connection: duckdb.DuckDBPyConnection,
+    column: str,
+    *,
+    where: str = &quot;TRUE&quot;,
+) -&gt; None:
+    missing = connection.execute(
+        f&quot;&quot;&quot;
+        SELECT count(*)
+        FROM orders
+        WHERE ({where})
+          AND ({column} IS NULL OR trim({column}) = &#x27;&#x27;)
+        &quot;&quot;&quot;
+    ).fetchone()[0]
+    if missing:
+        raise ValueError(f&quot;orders.{column} contains {missing} NULL or blank values where {where}&quot;)
+
+
+def validate_input(connection: duckdb.DuckDBPyConnection) -&gt; None:
+    expected_schema = {
+        &quot;order_id&quot;: &quot;VARCHAR&quot;,
+        &quot;user_id&quot;: &quot;VARCHAR&quot;,
+        &quot;ordered_at&quot;: &quot;TIMESTAMP WITH TIME ZONE&quot;,
+        &quot;status&quot;: &quot;VARCHAR&quot;,
+        &quot;currency&quot;: &quot;VARCHAR&quot;,
+        &quot;amount&quot;: &quot;DECIMAL(18,2)&quot;,
+    }
+    actual_schema = _schema(connection, &quot;orders&quot;)
+    for column, expected_type in expected_schema.items():
+        actual_type = actual_schema.get(column)
+        if actual_type is None:
+            raise ValueError(f&quot;orders is missing required column {column}&quot;)
+        if actual_type != expected_type:
+            raise ValueError(f&quot;orders.{column} must be {expected_type}, got {actual_type}&quot;)
+
+    _require_populated_text(connection, &quot;order_id&quot;)
+    _require_populated_text(connection, &quot;status&quot;)
+
+    placeholders = &quot;, &quot;.join(&quot;?&quot; for _ in CANONICAL_ORDER_STATUSES)
+    unknown_statuses = [
+        row[0]
+        for row in connection.execute(
+            f&quot;&quot;&quot;
+            SELECT DISTINCT status
+            FROM orders
+            WHERE status NOT IN ({placeholders})
+            ORDER BY status
+            &quot;&quot;&quot;,
+            list(CANONICAL_ORDER_STATUSES),
+        ).fetchall()
+    ]
+    if unknown_statuses:
+        raise ValueError(
+            &quot;orders.status must use canonical values &quot;
+            f&quot;{CANONICAL_ORDER_STATUSES}, got {unknown_statuses}&quot;
+        )
+
+    duplicate = connection.execute(
+        &quot;&quot;&quot;
+        SELECT order_id
+        FROM orders
+        GROUP BY order_id
+        HAVING count(*) &gt; 1
+        LIMIT 1
+        &quot;&quot;&quot;
+    ).fetchone()
+    if duplicate is not None:
+        raise ValueError(f&quot;orders grain violation for order_id: {duplicate[0]}&quot;)
+
+    _require_populated_text(connection, &quot;user_id&quot;, where=&quot;status = &#x27;paid&#x27;&quot;)
+    _require_populated_text(connection, &quot;currency&quot;, where=&quot;status = &#x27;paid&#x27;&quot;)
+    missing_ordered_at = connection.execute(
+        &quot;&quot;&quot;
+        SELECT count(*)
+        FROM orders
+        WHERE status = &#x27;paid&#x27; AND ordered_at IS NULL
+        &quot;&quot;&quot;
+    ).fetchone()[0]
+    if missing_ordered_at:
+        raise ValueError(&quot;paid orders require ordered_at before an ordered frame can be built&quot;)
+
+
+def execute_sql(
+    connection: duckdb.DuckDBPyConnection,
+    query_path: Path,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    relation = connection.execute(query_path.read_text(encoding=&quot;utf-8&quot;))
+    columns = [description[0] for description in relation.description]
+    types = [str(description[1]) for description in relation.description]
+    return columns, types, relation.fetchall()
+
+
+def execute_frames(
+    connection: duckdb.DuckDBPyConnection,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    return execute_sql(connection, FRAMES_SQL_PATH)
+
+
+def execute_experiment(
+    connection: duckdb.DuckDBPyConnection,
+) -&gt; tuple[list[str], list[str], list[tuple[Any, ...]]]:
+    return execute_sql(connection, EXPERIMENT_SQL_PATH)
+
+
+def validate_frames(
+    columns: list[str],
+    types: list[str],
+    rows: list[tuple[Any, ...]],
+) -&gt; None:
+    if columns != EXPECTED_FRAME_COLUMNS:
+        raise ValueError(f&quot;frame columns must be {EXPECTED_FRAME_COLUMNS}, got {columns}&quot;)
+    if types != EXPECTED_FRAME_TYPES:
+        raise ValueError(f&quot;frame types must be {EXPECTED_FRAME_TYPES}, got {types}&quot;)
+
+    order_id_at = columns.index(&quot;order_id&quot;)
+    if len(rows) != 9 or len({row[order_id_at] for row in rows}) != len(rows):
+        raise ValueError(&quot;window aggregates must preserve nine unique paid order_id rows&quot;)
+
+    total_at = columns.index(&quot;currency_total_known_amount&quot;)
+    currency_at = columns.index(&quot;currency&quot;)
+    totals_by_currency: dict[str, set[Decimal | None]] = {}
+    for row in rows:
+        totals_by_currency.setdefault(row[currency_at], set()).add(row[total_at])
+    if any(len(totals) != 1 for totals in totals_by_currency.values()):
+        raise ValueError(&quot;partition total must be constant inside each currency&quot;)
+
+    for row in rows:
+        recent_rows = row[columns.index(&quot;recent_3_order_rows&quot;)]
+        recent_known = row[columns.index(&quot;recent_3_known_amounts&quot;)]
+        recent_avg = row[columns.index(&quot;recent_3_known_amount_avg&quot;)]
+        prior_rows = row[columns.index(&quot;prior_3_order_rows&quot;)]
+        prior_known = row[columns.index(&quot;prior_3_known_amounts&quot;)]
+        prior_avg = row[columns.index(&quot;prior_3_known_amount_avg&quot;)]
+
+        if not 1 &lt;= recent_rows &lt;= 3 or not 0 &lt;= recent_known &lt;= recent_rows:
+            raise ValueError(&quot;recent frame row and known-value counts are inconsistent&quot;)
+        if not 0 &lt;= prior_rows &lt;= 3 or not 0 &lt;= prior_known &lt;= prior_rows:
+            raise ValueError(&quot;prior frame row and known-value counts are inconsistent&quot;)
+        if (recent_avg is None) != (recent_known == 0):
+            raise ValueError(&quot;recent average must expose an empty known-value denominator&quot;)
+        if (prior_avg is None) != (prior_known == 0):
+            raise ValueError(&quot;prior average must expose an empty known-value denominator&quot;)
+
+
+def _json_value(value: Any) -&gt; Any:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
+def _records(
+    columns: list[str],
+    rows: list[tuple[Any, ...]],
+) -&gt; list[dict[str, Any]]:
+    return [
+        {column: _json_value(value) for column, value in zip(columns, row, strict=True)}
+        for row in rows
+    ]
+
+
+def run_example() -&gt; dict[str, Any]:
+    connection = duckdb.connect()
+    try:
+        prepare_orders(connection)
+        validate_input(connection)
+        frame_columns, frame_types, frame_rows = execute_frames(connection)
+        validate_frames(frame_columns, frame_types, frame_rows)
+        experiment_columns, _, experiment_rows = execute_experiment(connection)
+    finally:
+        connection.close()
+
+    return {
+        &quot;grain&quot;: [&quot;order_id&quot;],
+        &quot;rows&quot;: _records(frame_columns, frame_rows),
+        &quot;frame_experiment&quot;: _records(experiment_columns, experiment_rows),
+        &quot;checks&quot;: {
+            &quot;paid_order_rows&quot;: len(frame_rows),
+            &quot;order_id_unique&quot;: True,
+            &quot;ordered_aggregates_use_explicit_frames&quot;: True,
+        },
+    }
+
+
+def main() -&gt; None:
+    print(json.dumps(run_example(), ensure_ascii=False, indent=2))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
+  &quot;name&quot;: &quot;order-amount-frames&quot;,
+  &quot;type&quot;: &quot;sql&quot;,
+  &quot;path&quot;: &quot;outputs/order_amount_frames.sql&quot;,
+  &quot;description&quot;: &quot;Сохраняет одну строку на оплаченный заказ и добавляет проверяемые итоги по общему потоку заказов магазина внутри валюты, накопительную сумму и средние по текущим и предшествующим трём заказам с явными рамками и знаменателями.&quot;,
+  &quot;usage&quot;: &quot;Выполнить запрос в DuckDB после подготовки типизированной таблицы orders; для проверки семантики одинаковых ключей отдельно выполнить frame_semantics_experiment.sql.&quot;
+}
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/frame_semantics_experiment.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- A deliberately small oracle for frame semantics.
+-- sort_key has peers (A and B) and a gap before D.
+--
+-- default_running_sum demonstrates the implicit RANGE-like frame.
+-- rows_running_sum counts deterministic row positions.
+-- range_running_sum includes all peers at the current sort_key.
+-- rows_distance_1_sum selects one preceding row position.
+-- range_distance_1_sum selects values whose sort_key is within one unit.
+-- default_last_value stops at the current frame; partition_last_value sees the full
+-- partition because its frame ends at UNBOUNDED FOLLOWING.
+
+WITH frame_events(row_id, sort_key, amount) AS (
+    VALUES
+        (&#x27;A&#x27;, 1, 10),
+        (&#x27;B&#x27;, 1, 20),
+        (&#x27;C&#x27;, 2, 5),
+        (&#x27;D&#x27;, 4, 40)
+)
+SELECT
+    row_id,
+    sort_key,
+    amount,
+    sum(amount) OVER (
+        ORDER BY sort_key
+    ) AS default_running_sum,
+    sum(amount) OVER (
+        ORDER BY sort_key, row_id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS rows_running_sum,
+    sum(amount) OVER (
+        ORDER BY sort_key
+        RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS range_running_sum,
+    sum(amount) OVER (
+        ORDER BY sort_key, row_id
+        ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+    ) AS rows_distance_1_sum,
+    sum(amount) OVER (
+        ORDER BY sort_key
+        RANGE BETWEEN 1 PRECEDING AND CURRENT ROW
+    ) AS range_distance_1_sum,
+    last_value(row_id) OVER (
+        ORDER BY sort_key, row_id
+    ) AS default_last_value,
+    last_value(row_id) OVER (
+        ORDER BY sort_key, row_id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS partition_last_value
+FROM frame_events
+ORDER BY sort_key, row_id;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/outputs/frame_semantics_experiment.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/order_amount_frames.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- Input contract:
+-- orders has grain one row per unique non-NULL order_id;
+-- status is one of cancelled, paid, pending or refunded for every order;
+-- paid orders have non-NULL user_id, ordered_at TIMESTAMPTZ and currency;
+-- amount is DECIMAL(18, 2) and may be NULL.
+--
+-- Output contract:
+-- one row per paid order_id;
+-- monetary aggregates never mix currencies;
+-- every ordered aggregate has an explicit ROWS frame;
+-- row and known-value counts make partial frames and NULL denominators visible;
+-- AVG(DECIMAL) is delivered as unrounded DOUBLE; presentation rounding is a separate
+-- explicit policy.
+
+WITH paid_orders AS (
+    SELECT
+        order_id,
+        user_id,
+        ordered_at,
+        currency,
+        amount
+    FROM orders
+    WHERE status = &#x27;paid&#x27;
+),
+framed_orders AS (
+    SELECT
+        order_id,
+        user_id,
+        ordered_at,
+        currency,
+        amount,
+        sum(amount) OVER currency_partition AS currency_total_known_amount,
+        sum(amount) OVER currency_running_rows AS currency_running_known_amount,
+        count(*) OVER currency_running_rows AS currency_running_order_rows,
+        count(amount) OVER currency_running_rows AS currency_running_known_amounts,
+        count(*) OVER currency_recent_3_rows AS recent_3_order_rows,
+        count(amount) OVER currency_recent_3_rows AS recent_3_known_amounts,
+        avg(amount) OVER currency_recent_3_rows AS recent_3_known_amount_avg,
+        count(*) OVER currency_prior_3_rows AS prior_3_order_rows,
+        count(amount) OVER currency_prior_3_rows AS prior_3_known_amounts,
+        avg(amount) OVER currency_prior_3_rows AS prior_3_known_amount_avg
+    FROM paid_orders
+    WINDOW
+        currency_partition AS (
+            PARTITION BY currency
+        ),
+        currency_running_rows AS (
+            PARTITION BY currency
+            ORDER BY ordered_at, order_id
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ),
+        currency_recent_3_rows AS (
+            PARTITION BY currency
+            ORDER BY ordered_at, order_id
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ),
+        currency_prior_3_rows AS (
+            PARTITION BY currency
+            ORDER BY ordered_at, order_id
+            ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
+        )
+)
+SELECT
+    order_id,
+    user_id,
+    ordered_at,
+    currency,
+    amount,
+    currency_total_known_amount,
+    currency_running_known_amount,
+    currency_running_order_rows,
+    currency_running_known_amounts,
+    recent_3_order_rows,
+    recent_3_known_amounts,
+    recent_3_known_amount_avg,
+    prior_3_order_rows,
+    prior_3_known_amounts,
+    prior_3_known_amount_avg
+FROM framed_orders
+ORDER BY currency, ordered_at, order_id;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames/outputs/order_amount_frames.sql" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/08-window-aggregates-and-frames" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
+        <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/window-functions/"><span>← Предыдущий урок</span><strong>Оконные функции: разделы, порядок и соседние строки</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/dates/"><span>Следующий урок →</span><strong>Время и даты в SQL</strong></a></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><span>Инструменты аналитика · MIT License</span><a href="../../../catalog.html">Все уроки</a></div>
+  </footer>
+  <script src="../../../common.js"></script>
+  <script src="../../../progress.js"></script>
+  <script src="../../../lesson.js"></script>
+</body>
+</html>
