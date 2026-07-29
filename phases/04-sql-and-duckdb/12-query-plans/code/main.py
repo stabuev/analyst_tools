@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import duckdb
+
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "outputs" / "plan_report.py"
 DATA = ROOT.parent / "data" / "tiny" / "events.csv"
@@ -19,12 +21,29 @@ def load_artifact():
 
 
 def main() -> None:
-    report = load_artifact().compare_plans(DATA)
+    plan_report = load_artifact()
+    connection = duckdb.connect()
+    try:
+        report = plan_report.build_plan_report(connection, DATA)
+    finally:
+        connection.close()
+
+    baseline, candidate = report["variants"]
     compact = {
-        "results": [query["result"] for query in report["queries"]],
-        "scan_nodes": [query["scan_nodes"] for query in report["queries"]],
-        "times": [query["total_time_seconds"] for query in report["queries"]],
-        "checks": report["checks"],
+        "results": [baseline["result"], candidate["result"]],
+        "estimated_rows": [
+            baseline["explain"]["estimated_row_markers"],
+            candidate["explain"]["estimated_row_markers"],
+        ],
+        "actual_rows": [
+            baseline["explain_analyze"]["actual_row_markers"],
+            candidate["explain_analyze"]["actual_row_markers"],
+        ],
+        "source_read_nodes": [
+            baseline["explain"]["source_read_nodes"],
+            candidate["explain"]["source_read_nodes"],
+        ],
+        "comparison": report["comparison"],
     }
     print(json.dumps(compact, ensure_ascii=False, indent=2))
 

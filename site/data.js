@@ -1529,8 +1529,8 @@ window.COURSE_DATA = {
           "title": "Планы запросов и стоимость",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Читает EXPLAIN и EXPLAIN ANALYZE, находит лишние scans и сравнивает планы на sample-данных.",
-          "artifact": "CLI-отчет сравнения планов и фактической стоимости запросов",
+          "outcome": "Проверяет эквивалентность SQL-вариантов, читает план DuckDB снизу вверх, отличает оценки EXPLAIN от фактов EXPLAIN ANALYZE и формулирует ограниченный данными вывод о лишней работе.",
+          "artifact": "CLI-аудит эквивалентности, планов и границ performance-вывода",
           "type": "learn",
           "tracks": [
             "core"
