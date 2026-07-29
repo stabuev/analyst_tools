@@ -74,6 +74,8 @@
 <li>построить условный столбец через <code>CASE</code> с понятной граничной точкой;</li>
 <li>записать составной фильтр через <code>AND</code>, <code>OR</code> и скобки без изменения бизнес-смысла;</li>
 <li>задать воспроизводимый порядок через <code>ORDER BY</code> и полный tie-breaker;</li>
+<li>перенести знакомое добавление однотипных партий из <code>pandas.concat</code> в <code>UNION ALL</code>,
+сохранив схему, provenance и проверку пересечения ключей;</li>
 <li>сверить SQL с полной ручной таблицей, а не только с количеством строк;</li>
 <li>отличить SQL-артефакт урока от Python runner, который будет изучаться позднее.</li>
 </ul>
@@ -145,6 +147,11 @@ WHERE status = &#x27;paid&#x27;;
 <td>задаём <code>ORDER BY</code> с tie-breaker</td>
 </tr>
 <tr>
+<td>добавление однотипных партий и provenance</td>
+<td><code>03/07</code></td>
+<td><code>UNION ALL</code> складывает строки совместимых relations и сохраняет источник обычным столбцом</td>
+</tr>
+<tr>
 <td>проверяемый handoff</td>
 <td><code>03/12</code></td>
 <td>SQL и контракт результата передаются вместе</td>
@@ -156,6 +163,9 @@ WHERE status = &#x27;paid&#x27;;
 frame.loc[mask]               -&gt; WHERE &lt;predicate&gt;
 frame.assign(total=...)       -&gt; &lt;expression&gt; AS total
 frame.sort_values(...)        -&gt; ORDER BY ...
+pd.concat([january, february]) -&gt; SELECT ... FROM january
+                                  UNION ALL
+                                  SELECT ... FROM february
 </code></pre></div><p>Это не утверждение, что Pandas и SQL устроены одинаково. Карта нужна только как мост:
 знакомое аналитическое действие получает новый синтаксис и новые границы.</p>
 <h2 id="концепция">Концепция</h2>
@@ -334,6 +344,53 @@ currency является RUB
 LIMIT 10
 </code></pre></div><p><code>LIMIT 10</code> без <code>ORDER BY</code> обещает не «десять крупнейших» и не «первые по времени», а
 только не более десяти строк неопределённого состава.</p>
+<h3 id="10-union-all-переносит-concat-на-relations">10. <code>UNION ALL</code> переносит <code>concat</code> на relations</h3>
+<p><code>JOIN</code> сопоставляет столбцы разных ролей по ключу. <code>UNION ALL</code> добавляет строки
+однотипных relations друг под другом. Это прямой перенос задачи <code>03/07</code>, где январская и
+февральская партии имели один grain и одну схему.</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
+    order_id,
+    user_id,
+    amount,
+    &#x27;2026-01&#x27; AS source_batch
+FROM january_orders
+
+UNION ALL
+
+SELECT
+    order_id,
+    user_id,
+    amount,
+    &#x27;2026-02&#x27; AS source_batch
+FROM february_orders
+
+ORDER BY source_batch, order_id;
+</code></pre></div><p>До объединения проверьте три контракта:</p>
+<ol>
+<li>обе ветви возвращают одинаковое число столбцов в одинаковом смысловом порядке;</li>
+<li>типы соответствующих столбцов совместимы;</li>
+<li>обе relations описывают строки одного grain.</li>
+</ol>
+<p><code>source_batch</code> сохраняет provenance. Без него после объединения нельзя восстановить,
+откуда пришла строка, и исследовать пересечение бизнес-ключей.</p>
+<p><code>UNION ALL</code> сохраняет все строки, включая одинаковые. Обычный <code>UNION</code> дополнительно
+удаляет дубликаты <strong>всей выходной строки</strong>. Это не проверка ключа:</p>
+<ul>
+<li>две партии с одним <code>order_id</code>, но разными значениями останутся двумя строками;</li>
+<li>две полностью одинаковые ошибочные доставки исчезнут из evidence;</li>
+<li>стоимость дедупликации появится даже тогда, когда бизнес-контракт разрешает повторы.</li>
+</ul>
+<p>Поэтому безопасный базовый выбор для партий — <code>UNION ALL</code>, а пересечение ключей
+проверяется отдельно. Если ключ <code>order_id</code> должен быть глобально уникальным:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
+    order_id,
+    count(*) AS rows_per_key
+FROM combined_orders
+GROUP BY order_id
+HAVING count(*) &gt; 1;
+</code></pre></div><p><code>GROUP BY</code> и <code>HAVING</code> подробно появятся в <code>04/04</code>; сейчас достаточно понимать контракт
+проверки. Финальный <code>ORDER BY</code> относится ко всему объединённому результату. Порядок строк
+в отдельных ветвях не является порядком поставки.</p>
 <h2 id="соберите-это">Соберите это</h2>
 <p>Сначала решим задачу вручную. Код пока не нужен.</p>
 <p>Возьмём четыре строки, достаточные для проверки фильтра:</p>
@@ -566,7 +623,7 @@ ORDER BY amount DESC, order_id ASC;
 </ol>
 <p>Python DB API, параметры и управление connection не являются материалом этого урока.
 Здесь достаточно запустить runner и изучать SQL-артефакт. Программную границу DuckDB
-разберём в <code>04/10</code>.</p>
+разберём в <code>04/11</code>.</p>
 <p>Успешный запуск заканчивается:</p>
 <div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
   &quot;matches_manual&quot;: true
@@ -666,8 +723,8 @@ outputs/select_result_contract.json
 <li>проверьте результат по JSON-контракту;</li>
 <li>при изменении бизнес-правила обновите SQL, контракт и контрольный пример вместе.</li>
 </ol>
-<p>Отдельный CLI здесь не нужен: поставляемым механизмом является запрос. Универсальный
-Python runner для SQL появится в <code>04/10</code>.</p>
+<p>Отдельный CLI здесь не нужен: поставляемым механизмом является запрос. Явную программную
+границу DuckDB ↔ pandas разберём в <code>04/11</code>.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
 <li>Постройте ручную и SQL-таблицу для оплаченных USD-заказов. Сначала выпишите ожидаемые
@@ -682,6 +739,9 @@ Python runner для SQL появится в <code>04/10</code>.</p>
 воспроизводимый порядок.</li>
 <li>Создайте две строки одного <code>order_id</code>, которые различаются <code>ordered_at</code>. Объясните,
 почему <code>DISTINCT</code> не восстанавливает контракт «одна строка на заказ».</li>
+<li>Разделите четыре заказа на две однотипные партии, добавьте пересекающийся <code>order_id</code>
+и объедините их через <code>UNION ALL</code>. Сохраните <code>source_batch</code>, предскажите число строк и
+объясните, почему замена на <code>UNION</code> не является исправлением ключа.</li>
 </ol>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
@@ -743,6 +803,16 @@ Python runner для SQL появится в <code>04/10</code>.</p>
 <td>Автоматическое исправление дублей</td>
 <td>Операция уникализации полной проекции, не доказательство правильного grain</td>
 </tr>
+<tr>
+<td><code>UNION ALL</code></td>
+<td>SQL-вариант <code>JOIN</code></td>
+<td>Добавление строк совместимых relations без удаления повторов</td>
+</tr>
+<tr>
+<td><code>UNION</code></td>
+<td>Безопасная версия <code>UNION ALL</code></td>
+<td>Set operation с дедупликацией полной выходной строки, которая может скрыть evidence</td>
+</tr>
 </tbody>
 </table>
 <h2 id="что-сознательно-оставляем-следующим-урокам">Что сознательно оставляем следующим урокам</h2>
@@ -751,8 +821,9 @@ Python runner для SQL появится в <code>04/10</code>.</p>
 <li><code>COUNT</code>, <code>SUM</code>, <code>GROUP BY</code> и изменение grain — <code>04/04</code>;</li>
 <li>соединение relations и fanout — <code>04/05</code>;</li>
 <li>CTE и композиция нескольких стадий — <code>04/06</code>;</li>
-<li>Python DB API, параметры, connection и CLI — <code>04/10</code>;</li>
-<li>планы выполнения и оптимизация — <code>04/11</code>.</li>
+<li>Python DB API, параметры и connection — <code>04/11</code>;</li>
+<li>планы выполнения и оптимизация — <code>04/12</code>;</li>
+<li>поставляемый CLI для SQL-витрин — <code>04/13</code>.</li>
 </ul>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
 <ol>
@@ -768,7 +839,7 @@ Python runner для SQL появится в <code>04/10</code>.</p>
 <li><a href="https://www.jooq.org/doc/latest/manual/sql-building/sql-statements/select-statement/select-lexical-vs-logical-order/" target="_blank" rel="noopener">jOOQ: Lexical and Logical <code>SELECT</code> Clause Order</a> — прочитайте вводную часть и список в разделе <code>Logical SELECT Clause Order</code> до <code>LIMIT</code>: он на одной странице противопоставляет порядок записи запроса порядку получения результата. Продвинутые стадии пока просто пропустите и восстановите только цепочку текущего урока: <code>FROM → WHERE → SELECT → ORDER BY → LIMIT</code>.</li>
 </ol>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 6 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>В каком порядке полезно логически предсказывать результат простого запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">SELECT → ORDER BY → FROM → WHERE</button><button type="button" class="quiz-option" data-choice="1">WHERE → SELECT → FROM → ORDER BY</button><button type="button" class="quiz-option" data-choice="2">ORDER BY → FROM → SELECT → WHERE</button><button type="button" class="quiz-option" data-choice="3">FROM → WHERE → SELECT → ORDER BY</button></div><p class="quiz-feedback" hidden>Сначала определяется источник строк, затем фильтр, после него проекция и вычисления, а готовый результат упорядочивается.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Почему SELECT * является слабым контрактом поставляемого результата?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он всегда удаляет ключ</button><button type="button" class="quiz-option" data-choice="1">Новый исходный столбец может незаметно попасть в результат</button><button type="button" class="quiz-option" data-choice="2">Он запрещает WHERE</button><button type="button" class="quiz-option" data-choice="3">Он автоматически сортирует строки</button></div><p class="quiz-feedback" hidden>Звездочка связывает выходную схему со всей текущей схемой источника. Явный select list сохраняет только осознанно выбранные поля.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Какую категорию должен вернуть CASE с условием amount &gt;= 1300 для amount = 1300.00?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">regular, потому что граница исключена</button><button type="button" class="quiz-option" data-choice="1">NULL, потому что CASE не сравнивает числа</button><button type="button" class="quiz-option" data-choice="2">large, потому что оператор &gt;= включает границу</button><button type="button" class="quiz-option" data-choice="3">Обе категории одновременно</button></div><p class="quiz-feedback" hidden>Оператор &gt;= включает точку 1300.00 в ветку large. Граничные значения нужно фиксировать в ручном примере и тесте.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Как записать правило «оплаченный заказ и валюта RUB или EUR» без пропуска отмененных EUR-заказов?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">status = &#x27;paid&#x27; AND (currency = &#x27;RUB&#x27; OR currency = &#x27;EUR&#x27;)</button><button type="button" class="quiz-option" data-choice="1">(status = &#x27;paid&#x27; AND currency = &#x27;RUB&#x27;) OR currency = &#x27;EUR&#x27;</button><button type="button" class="quiz-option" data-choice="2">status = &#x27;paid&#x27; OR currency = &#x27;RUB&#x27; OR currency = &#x27;EUR&#x27;</button><button type="button" class="quiz-option" data-choice="3">status = &#x27;paid&#x27; AND currency = &#x27;RUB&#x27; AND currency = &#x27;EUR&#x27;</button></div><p class="quiz-feedback" hidden>Скобки объединяют допустимые валюты в одну часть условия. Без них ветка EUR может пройти независимо от статуса.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">05</p><h3>Как получить воспроизводимые десять крупнейших заказов, если суммы могут совпадать?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">LIMIT 10 без сортировки</button><button type="button" class="quiz-option" data-choice="1">ORDER BY amount DESC LIMIT 10</button><button type="button" class="quiz-option" data-choice="2">ORDER BY amount DESC, order_id ASC LIMIT 10</button><button type="button" class="quiz-option" data-choice="3">SELECT DISTINCT LIMIT 10</button></div><p class="quiz-feedback" hidden>Сортировка по сумме задает основной приоритет, а уникальный order_id однозначно разрешает равенство перед LIMIT.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">06</p><h3>Что доказывает исчезновение точного дубля после SELECT DISTINCT?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что исходный primary key выбран правильно</button><button type="button" class="quiz-option" data-choice="1">Что строка с меньшим временем была ошибочной</button><button type="button" class="quiz-option" data-choice="2">Что grain результата автоматически восстановлен</button><button type="button" class="quiz-option" data-choice="3">Только то, что две строки совпали по всем выражениям текущей проекции</button></div><p class="quiz-feedback" hidden>DISTINCT уникализирует полную проекцию, но не объясняет происхождение дубля и не выбирает правильную версию сущности.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 7 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>В каком порядке полезно логически предсказывать результат простого запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">SELECT → ORDER BY → FROM → WHERE</button><button type="button" class="quiz-option" data-choice="1">WHERE → SELECT → FROM → ORDER BY</button><button type="button" class="quiz-option" data-choice="2">ORDER BY → FROM → SELECT → WHERE</button><button type="button" class="quiz-option" data-choice="3">FROM → WHERE → SELECT → ORDER BY</button></div><p class="quiz-feedback" hidden>Сначала определяется источник строк, затем фильтр, после него проекция и вычисления, а готовый результат упорядочивается.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Почему SELECT * является слабым контрактом поставляемого результата?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он всегда удаляет ключ</button><button type="button" class="quiz-option" data-choice="1">Новый исходный столбец может незаметно попасть в результат</button><button type="button" class="quiz-option" data-choice="2">Он запрещает WHERE</button><button type="button" class="quiz-option" data-choice="3">Он автоматически сортирует строки</button></div><p class="quiz-feedback" hidden>Звездочка связывает выходную схему со всей текущей схемой источника. Явный select list сохраняет только осознанно выбранные поля.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Какую категорию должен вернуть CASE с условием amount &gt;= 1300 для amount = 1300.00?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">regular, потому что граница исключена</button><button type="button" class="quiz-option" data-choice="1">NULL, потому что CASE не сравнивает числа</button><button type="button" class="quiz-option" data-choice="2">large, потому что оператор &gt;= включает границу</button><button type="button" class="quiz-option" data-choice="3">Обе категории одновременно</button></div><p class="quiz-feedback" hidden>Оператор &gt;= включает точку 1300.00 в ветку large. Граничные значения нужно фиксировать в ручном примере и тесте.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">04</p><h3>Как записать правило «оплаченный заказ и валюта RUB или EUR» без пропуска отмененных EUR-заказов?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">status = &#x27;paid&#x27; AND (currency = &#x27;RUB&#x27; OR currency = &#x27;EUR&#x27;)</button><button type="button" class="quiz-option" data-choice="1">(status = &#x27;paid&#x27; AND currency = &#x27;RUB&#x27;) OR currency = &#x27;EUR&#x27;</button><button type="button" class="quiz-option" data-choice="2">status = &#x27;paid&#x27; OR currency = &#x27;RUB&#x27; OR currency = &#x27;EUR&#x27;</button><button type="button" class="quiz-option" data-choice="3">status = &#x27;paid&#x27; AND currency = &#x27;RUB&#x27; AND currency = &#x27;EUR&#x27;</button></div><p class="quiz-feedback" hidden>Скобки объединяют допустимые валюты в одну часть условия. Без них ветка EUR может пройти независимо от статуса.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">05</p><h3>Как получить воспроизводимые десять крупнейших заказов, если суммы могут совпадать?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">LIMIT 10 без сортировки</button><button type="button" class="quiz-option" data-choice="1">ORDER BY amount DESC LIMIT 10</button><button type="button" class="quiz-option" data-choice="2">ORDER BY amount DESC, order_id ASC LIMIT 10</button><button type="button" class="quiz-option" data-choice="3">SELECT DISTINCT LIMIT 10</button></div><p class="quiz-feedback" hidden>Сортировка по сумме задает основной приоритет, а уникальный order_id однозначно разрешает равенство перед LIMIT.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">06</p><h3>Что доказывает исчезновение точного дубля после SELECT DISTINCT?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что исходный primary key выбран правильно</button><button type="button" class="quiz-option" data-choice="1">Что строка с меньшим временем была ошибочной</button><button type="button" class="quiz-option" data-choice="2">Что grain результата автоматически восстановлен</button><button type="button" class="quiz-option" data-choice="3">Только то, что две строки совпали по всем выражениям текущей проекции</button></div><p class="quiz-feedback" hidden>DISTINCT уникализирует полную проекцию, но не объясняет происхождение дубля и не выбирает правильную версию сущности.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">07</p><h3>Как объединить две месячные партии одного grain, сохранить все строки и сделать пересечение order_id наблюдаемым?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Использовать UNION, потому что удаление повторов автоматически восстанавливает primary key</button><button type="button" class="quiz-option" data-choice="1">Использовать UNION ALL, добавить source_batch и отдельно проверить частоты order_id</button><button type="button" class="quiz-option" data-choice="2">Использовать INNER JOIN по order_id и считать число строк после него</button><button type="button" class="quiz-option" data-choice="3">Применить SELECT DISTINCT к каждой партии и не сохранять её происхождение</button></div><p class="quiz-feedback" hidden>UNION ALL переносит все строки совместимых партий, source_batch сохраняет provenance, а отдельная проверка ключа не позволяет дедупликации скрыть пересечение.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util

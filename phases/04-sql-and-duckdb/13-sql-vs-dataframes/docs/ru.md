@@ -40,10 +40,92 @@
 | Условная агрегация | 04/04 | Paid revenue считается отдельно по валютам без удаления остальных заказов |
 | Cardinality и unmatched keys | 04/05 | Позиции агрегируются до JOIN, неизвестный пользователь сохраняется |
 | CTE и decomposition | 04/06 | SQL assets читаются как последовательность именованных отношений |
-| Доказательства качества | 04/07 | Source- и mart-инварианты образуют publish gate |
-| Агрегаты и временные границы | 04/08–04/10 | Summary строится из order grain, дата — в явной business timezone |
+| Доказательства качества | 04/01–04/06 | Source- и mart-инварианты образуют publish gate |
+| Оконный порядок и frames | 04/07–04/08 | Проверяются отдельными phase-exit сценариями, а не вставляются в mart без бизнес-вопроса |
+| Временные границы | 04/09 | Business date строится после явного преобразования timezone |
+| Когортная модель | 04/10 | Проверяется отдельным phase-exit сценарием; order mart не подменяет cohort grid |
 | Явное соединение и параметры | 04/11 | Python связывает значения, а SQL остаётся отдельным доверенным asset |
-| План и граница performance-вывода | 04/12 | Решение фиксирует наблюдавшиеся rows/bytes и прямо называет ограничения |
+| План и граница performance-вывода | 04/12 | Перед сборкой package студент подтверждает plan shape отдельным отчётом |
+
+### Входной phase-exit: подтвердите четыре механизма
+
+Финальная витрина не должна искусственно использовать окно или когорту только ради
+демонстрации синтаксиса. Но без отдельной проверки её можно собрать, пропустив значительную
+часть фазы. Работая из корня репозитория, подготовьте локальный каталог и создайте заметку:
+
+```bash
+mkdir -p work
+# затем откройте в редакторе work/phase-04-exit-check.md
+```
+
+Для каждой проверки сначала запишите прогноз, затем выполните точечный тест и сохраните
+наблюдаемое evidence. Одного слова `OK` недостаточно.
+
+#### 1. Оконный порядок — `04/07`
+
+До запуска ответьте:
+
+- какая колонка делает последовательность заказов пользователя детерминированной;
+- изменится ли `rank`, если тот же tie-breaker добавить в peer-order;
+- чем `NULL` на границе partition отличается от неизвестного `amount`.
+
+Затем выполните:
+
+```bash
+uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/07-window-functions/tests \
+  -k tie_breaker
+uv run --locked python phases/04-sql-and-duckdb/07-window-functions/code/main.py
+```
+
+В заметке укажите конкретные строки или колонки, подтвердившие прогноз.
+
+#### 2. Оконный frame — `04/08`
+
+Для ключей `1, 1, 2, 4` вручную предскажите состав frame для `ROWS` и `RANGE` на строках
+`A` и `D`. Затем выполните:
+
+```bash
+uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/08-window-aggregates-and-frames/tests \
+  -k frame
+uv run --locked python \
+  phases/04-sql-and-duckdb/08-window-aggregates-and-frames/code/main.py
+```
+
+Запишите, где различие вызвано peers, а где — разрывом значений. Отдельно назовите
+знаменатель rolling average при неизвестном `amount`.
+
+#### 3. Когортный горизонт — `04/10`
+
+До запуска объясните, почему отсутствие событий в завершённом месяце должно дать нулевую
+ячейку, а будущий месяц не должен появляться в grid. Затем выполните:
+
+```bash
+uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/10-cohorts/tests \
+  -k cutoff
+uv run --locked python phases/04-sql-and-duckdb/10-cohorts/code/main.py
+```
+
+Сохраните grain ячейки, правило знаменателя и evidence наблюдаемого нуля.
+
+#### 4. План запроса — `04/12`
+
+Сначала предскажите число чтений источника в baseline и candidate. Затем выполните:
+
+```bash
+uv run --locked python phases/04-sql-and-duckdb/12-query-plans/outputs/plan_report.py \
+  --events phases/04-sql-and-duckdb/data/tiny/events.csv \
+  --event-name order_paid \
+  --output work/phase-04-plan-report.json
+```
+
+В заметке укажите plan signal, подтверждающий устранение повторного чтения, и отдельно
+напишите, почему один tiny timing не доказывает устойчивое ускорение.
+
+Phase-exit завершён, если четыре раздела содержат прогноз, наблюдение и объяснение
+механизма. Это учебная самопроверка, а не автоматическая сдача или сертификат.
 
 Новая задача урока — **граница инструментов**. Она отвечает сразу на три вопроса:
 
@@ -380,9 +462,9 @@ Hash идентифицирует точные исходные байты, а �
 | Типизация orders | `order_id` | `order_id` | DuckDB SQL | relation |
 | Агрегация items | `(order_id, product_id)` | `order_id` | DuckDB SQL | relation |
 | JOIN users/items | `order_id` | `order_id` | DuckDB SQL | relation |
-| User summary | `order_id` | `user_id` | DuckDB SQL | relation |
+| User summary | `order_id` | `(user_id, currency)` | DuckDB SQL | relation |
 | Package metadata | файлы | manifest | Python | маленький dict |
-| Ad hoc preview | `user_id` | `user_id` | pandas | checked summary |
+| Ad hoc preview | `(user_id, currency)` | `(user_id, currency)` | pandas | checked summary |
 
 Если вы не можете назвать grain, ещё рано выбирать API.
 
@@ -678,6 +760,10 @@ SHA-256 подтверждает идентичность байтов, но н�
 Не называйте package «production-ready» только потому, что тесты tiny-набора зелёные.
 Для production ещё потребуются политика доступа, наблюдаемость, representative load test,
 версионирование схемы и согласованный канал публикации.
+
+`work/phase-04-exit-check.md` и `work/phase-04-plan-report.json` остаются учебным evidence
+освоения фазы. Не добавляйте их в delivery package: получателю витрин нужны только
+заявленные данные, SQL, provenance и проверки поставки.
 
 ## Упражнения
 

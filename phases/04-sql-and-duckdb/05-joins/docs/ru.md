@@ -801,8 +801,8 @@ outputs/item_totals.sql
 
 - CTE и подзапросы — `04/06`;
 - порядок выполнения и оконные расчёты — `04/07`;
-- Python API DuckDB — `04/10`;
-- физические алгоритмы и стоимость JOIN — `04/11`;
+- Python API DuckDB — `04/11`;
+- физический план и стоимость JOIN — `04/12`;
 - `ASOF`, `POSITIONAL`, `LATERAL` и другие специальные соединения — дополнительное
   чтение и будущая практическая потребность;
 - автоматическая конвертация валют — это отдельное бизнес-правило, которого в данных
@@ -828,7 +828,7 @@ outputs/item_totals.sql
 1. [RU · Postgres Pro: Соединения таблиц — вводный учебник](https://postgrespro.ru/docs/postgresql/current/tutorial-join) — прочитайте всю короткую главу 2.6 и на каждом примере сначала предскажите пары и число строк, а затем сравните старую запись через несколько таблиц в `FROM` с явным `JOIN ... ON`; это самое компактное закрепление основной модели урока.
 2. [EN · DuckDB: `FROM` and `JOIN` Clauses](https://duckdb.org/docs/current/sql/query_syntax/from) — изучите обычные, outer, semi и anti joins и сопоставьте их с политиками matched/unmatched из урока; разделы `Lateral`, `Positional` и `As-Of Joins` пока пропустите, чтобы не превращать базовую модель в каталог специальных операций.
 3. [RU · Postgres Pro: Соединённые таблицы](https://postgrespro.ru/docs/postgresql/current/queries-table-expressions#QUERIES-JOIN) — сосредоточьтесь на подразделе 7.2.1.1: сравните `INNER`, `LEFT`, `RIGHT`, `FULL`, `ON` и `USING`, отдельно разберите различие выходных столбцов при `ON` и `USING` и предупреждение о том, что `NATURAL JOIN` зависит от всех одноимённых полей.
-4. [RU · Microsoft Learn: Соединения SQL Server](https://learn.microsoft.com/ru-ru/sql/relational-databases/performance/joins?view=sql-server-ver17) — прочитайте только «Основы присоединения» и «Значения NULL и соединения»: первый раздел закрепляет явные aliases, квалифицированные столбцы и совместимость типов ключа, второй показывает, почему два `NULL` не совпадают; физические hash, merge, nested loops и adaptive joins оставьте уроку `04/11`.
+4. [RU · Microsoft Learn: Соединения SQL Server](https://learn.microsoft.com/ru-ru/sql/relational-databases/performance/joins?view=sql-server-ver17) — прочитайте только «Основы присоединения» и «Значения NULL и соединения»: первый раздел закрепляет явные aliases, квалифицированные столбцы и совместимость типов ключа, второй показывает, почему два `NULL` не совпадают; физические hash, merge, nested loops и adaptive joins оставьте дополнительному чтению после базового plan-аудита `04/12`.
 5. [EN · PostgreSQL: Joined Tables](https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-JOIN) — используйте раздел 7.2.1.1 как переносимый справочник: особенно важны точные правила «одна выходная строка на каждое совпадение» и «как минимум одна строка на левую строку» для `LEFT JOIN`, а также различие условия `ON` и фильтра `WHERE` при outer join.
 6. [EN · PostgreSQL: Comparison Functions and Operators](https://www.postgresql.org/docs/current/functions-comparison.html) — прочитайте абзацы об обычных сравнениях с `NULL` и `IS [NOT] DISTINCT FROM`; материал помогает осознанно решить, должны ли отсутствующие ключи считаться совпавшими, но не превращает null-safe equality в автоматическую замену обычному `=`.
 7. [EN · Looker: Understanding symmetric aggregates](https://cloud.google.com/looker/docs/best-practices/understanding-symmetric-aggregates) — разберите разделы `Why symmetric aggregates are needed` и `How symmetric aggregates work`: пример `orders` и `order_items` воспроизводит тот же fanout и отдельно показывает, почему `SUM(DISTINCT amount)` не спасает два разных заказа с одинаковой суммой.

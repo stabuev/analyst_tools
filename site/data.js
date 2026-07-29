@@ -5,7 +5,7 @@ window.COURSE_DATA = {
     "version": "0.1.0",
     "hours": {
       "min": 239,
-      "max": 329
+      "max": 330
     }
   },
   "repository": {
@@ -46,7 +46,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 161,
-        "max": 227
+        "max": 228
       },
       "phases": [
         {
@@ -140,7 +140,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 173,
-        "max": 243
+        "max": 244
       },
       "phases": [
         {
@@ -238,7 +238,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 159,
-        "max": 225
+        "max": 226
       },
       "phases": [
         {
@@ -330,7 +330,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 149,
-        "max": 211
+        "max": 212
       },
       "phases": [
         {
@@ -419,7 +419,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 175,
-        "max": 245
+        "max": 246
       },
       "phases": [
         {
@@ -523,7 +523,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 239,
-        "max": 329
+        "max": 330
       },
       "phases": [
         {
@@ -1318,7 +1318,7 @@ window.COURSE_DATA = {
       ],
       "hours": {
         "min": 15,
-        "max": 20
+        "max": 21
       },
       "artifact": "Набор проверенных SQL-витрин",
       "completion": "Студент строит SQL-витрину, проверяет ключи и объясняет план выполнения критичного запроса.",
@@ -1456,7 +1456,7 @@ window.COURSE_DATA = {
           "slug": "window-aggregates-and-frames",
           "title": "Оконные агрегаты и рамки: накопительные и скользящие расчёты",
           "status": "complete",
-          "time_minutes": 90,
+          "time_minutes": 120,
           "outcome": "Сохраняет grain заказов, строит общий, накопительный и скользящий агрегаты с явной рамкой, контролирует включение текущей строки и NULL-знаменатель и объясняет различие ROWS, RANGE и рамки по умолчанию.",
           "artifact": "Проверяемые SQL-расчёты по заказам с явными рамками и экспериментом ROWS / RANGE",
           "type": "build",
@@ -4851,7 +4851,7 @@ window.COURSE_DATA = {
     "complete_lessons": 200,
     "hours": {
       "min": 239,
-      "max": 329
+      "max": 330
     }
   }
 };

@@ -118,13 +118,23 @@ blockers;</li>
 </tr>
 <tr>
 <td>Доказательства качества</td>
-<td>04/07</td>
+<td>04/01–04/06</td>
 <td>Source- и mart-инварианты образуют publish gate</td>
 </tr>
 <tr>
-<td>Агрегаты и временные границы</td>
-<td>04/08–04/10</td>
-<td>Summary строится из order grain, дата — в явной business timezone</td>
+<td>Оконный порядок и frames</td>
+<td>04/07–04/08</td>
+<td>Проверяются отдельными phase-exit сценариями, а не вставляются в mart без бизнес-вопроса</td>
+</tr>
+<tr>
+<td>Временные границы</td>
+<td>04/09</td>
+<td>Business date строится после явного преобразования timezone</td>
+</tr>
+<tr>
+<td>Когортная модель</td>
+<td>04/10</td>
+<td>Проверяется отдельным phase-exit сценарием; order mart не подменяет cohort grid</td>
 </tr>
 <tr>
 <td>Явное соединение и параметры</td>
@@ -134,10 +144,59 @@ blockers;</li>
 <tr>
 <td>План и граница performance-вывода</td>
 <td>04/12</td>
-<td>Решение фиксирует наблюдавшиеся rows/bytes и прямо называет ограничения</td>
+<td>Перед сборкой package студент подтверждает plan shape отдельным отчётом</td>
 </tr>
 </tbody>
 </table>
+<h3 id="входной-phase-exit-подтвердите-четыре-механизма">Входной phase-exit: подтвердите четыре механизма</h3>
+<p>Финальная витрина не должна искусственно использовать окно или когорту только ради
+демонстрации синтаксиса. Но без отдельной проверки её можно собрать, пропустив значительную
+часть фазы. Работая из корня репозитория, подготовьте локальный каталог и создайте заметку:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">mkdir -p work
+# затем откройте в редакторе work/phase-04-exit-check.md
+</code></pre></div><p>Для каждой проверки сначала запишите прогноз, затем выполните точечный тест и сохраните
+наблюдаемое evidence. Одного слова <code>OK</code> недостаточно.</p>
+<h4 id="1-оконный-порядок-04-07">1. Оконный порядок — <code>04/07</code></h4>
+<p>До запуска ответьте:</p>
+<ul>
+<li>какая колонка делает последовательность заказов пользователя детерминированной;</li>
+<li>изменится ли <code>rank</code>, если тот же tie-breaker добавить в peer-order;</li>
+<li>чем <code>NULL</code> на границе partition отличается от неизвестного <code>amount</code>.</li>
+</ul>
+<p>Затем выполните:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/07-window-functions/tests \
+  -k tie_breaker
+uv run --locked python phases/04-sql-and-duckdb/07-window-functions/code/main.py
+</code></pre></div><p>В заметке укажите конкретные строки или колонки, подтвердившие прогноз.</p>
+<h4 id="2-оконный-frame-04-08">2. Оконный frame — <code>04/08</code></h4>
+<p>Для ключей <code>1, 1, 2, 4</code> вручную предскажите состав frame для <code>ROWS</code> и <code>RANGE</code> на строках
+<code>A</code> и <code>D</code>. Затем выполните:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/08-window-aggregates-and-frames/tests \
+  -k frame
+uv run --locked python \
+  phases/04-sql-and-duckdb/08-window-aggregates-and-frames/code/main.py
+</code></pre></div><p>Запишите, где различие вызвано peers, а где — разрывом значений. Отдельно назовите
+знаменатель rolling average при неизвестном <code>amount</code>.</p>
+<h4 id="3-когортный-горизонт-04-10">3. Когортный горизонт — <code>04/10</code></h4>
+<p>До запуска объясните, почему отсутствие событий в завершённом месяце должно дать нулевую
+ячейку, а будущий месяц не должен появляться в grid. Затем выполните:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/04-sql-and-duckdb/10-cohorts/tests \
+  -k cutoff
+uv run --locked python phases/04-sql-and-duckdb/10-cohorts/code/main.py
+</code></pre></div><p>Сохраните grain ячейки, правило знаменателя и evidence наблюдаемого нуля.</p>
+<h4 id="4-план-запроса-04-12">4. План запроса — <code>04/12</code></h4>
+<p>Сначала предскажите число чтений источника в baseline и candidate. Затем выполните:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/04-sql-and-duckdb/12-query-plans/outputs/plan_report.py \
+  --events phases/04-sql-and-duckdb/data/tiny/events.csv \
+  --event-name order_paid \
+  --output work/phase-04-plan-report.json
+</code></pre></div><p>В заметке укажите plan signal, подтверждающий устранение повторного чтения, и отдельно
+напишите, почему один tiny timing не доказывает устойчивое ускорение.</p>
+<p>Phase-exit завершён, если четыре раздела содержат прогноз, наблюдение и объяснение
+механизма. Это учебная самопроверка, а не автоматическая сдача или сертификат.</p>
 <p>Новая задача урока — <strong>граница инструментов</strong>. Она отвечает сразу на три вопроса:</p>
 <ol>
 <li>где выполняются преобразования;</li>
@@ -496,7 +555,7 @@ warning  → пакет можно публиковать, но неполнот
 <tr>
 <td>User summary</td>
 <td><code>order_id</code></td>
-<td><code>user_id</code></td>
+<td><code>(user_id, currency)</code></td>
 <td>DuckDB SQL</td>
 <td>relation</td>
 </tr>
@@ -509,8 +568,8 @@ warning  → пакет можно публиковать, но неполнот
 </tr>
 <tr>
 <td>Ad hoc preview</td>
-<td><code>user_id</code></td>
-<td><code>user_id</code></td>
+<td><code>(user_id, currency)</code></td>
+<td><code>(user_id, currency)</code></td>
 <td>pandas</td>
 <td>checked summary</td>
 </tr>
@@ -717,6 +776,9 @@ SHA-256 подтверждает идентичность байтов, но н�
 </code></pre></div><p>Не называйте package «production-ready» только потому, что тесты tiny-набора зелёные.
 Для production ещё потребуются политика доступа, наблюдаемость, representative load test,
 версионирование схемы и согласованный канал публикации.</p>
+<p><code>work/phase-04-exit-check.md</code> и <code>work/phase-04-plan-report.json</code> остаются учебным evidence
+освоения фазы. Не добавляйте их в delivery package: получателю витрин нужны только
+заявленные данные, SQL, provenance и проверки поставки.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
 <li>Сгенерируйте <code>sample</code>-профиль, соберите package и сравните rows/bytes в

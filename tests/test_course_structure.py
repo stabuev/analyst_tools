@@ -371,7 +371,7 @@ class CourseStructureTest(TestCase):
 
         self.assertEqual(phase["slug"], "sql-and-duckdb")
         self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
-        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1200)
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 1230)
         self.assertEqual(
             sum(bool(lesson.get("integration_project")) for lesson in lessons),
             1,
