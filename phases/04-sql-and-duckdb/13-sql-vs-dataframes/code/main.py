@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "outputs" / "sql_mart_builder.py"
@@ -19,18 +22,32 @@ def load_artifact():
 
 
 def main() -> None:
-    result = load_artifact().build_marts(
-        DATA / "users.csv",
-        DATA / "orders.csv",
-        DATA / "order_items.csv",
-    )
-    compact = {
-        "checks": result["checks"],
-        "boundary": result["boundary"],
-        "order_sample": result["order_mart"]["records"][:2],
-        "user_sample": result["user_summary"]["records"][:2],
-    }
-    print(json.dumps(compact, ensure_ascii=False, indent=2))
+    builder = load_artifact()
+    with TemporaryDirectory() as directory:
+        package = Path(directory) / "sql-marts"
+        manifest = builder.build_package(
+            DATA / "users.csv",
+            DATA / "orders.csv",
+            DATA / "order_items.csv",
+            package,
+        )
+
+        # DataFrame появляется только после SQL-сборки, на требуемом grain.
+        summary = pd.read_csv(
+            package / "user_summary.csv",
+            dtype={"user_id": "string"},
+        )
+        result = {
+            "quality": manifest["quality"],
+            "verification": builder.verify_package(package),
+            "pandas_handoff": {
+                "grain": ["user_id", "currency"],
+                "rows": len(summary),
+                "columns": summary.columns.tolist(),
+                "preview": summary.head(3).to_dict(orient="records"),
+            },
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

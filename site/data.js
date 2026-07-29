@@ -1546,9 +1546,9 @@ window.COURSE_DATA = {
           "slug": "sql-vs-dataframes",
           "title": "SQL или DataFrame: выбор инструмента",
           "status": "complete",
-          "time_minutes": 90,
-          "outcome": "Собирает проверенную order mart и обосновывает границу между SQL, DuckDB и pandas по измерениям и сопровождению.",
-          "artifact": "CLI сборки набора SQL-витрин с тестами и manifest",
+          "time_minutes": 120,
+          "outcome": "Собирает две проверенные SQL-витрины с revenue по отдельным валютам без материализации полных результатов в Python и защищает границу DuckDB, Python и pandas.",
+          "artifact": "CLI прямого экспорта и независимой проверки переносимого пакета SQL-витрин",
           "type": "case",
           "tracks": [
             "core"

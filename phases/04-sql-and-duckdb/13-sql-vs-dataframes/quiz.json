@@ -3,42 +3,132 @@
     {
       "id": "pre-1",
       "stage": "pre",
-      "question": "Где естественно выполнять крупный JOIN и GROUP BY по CSV?",
-      "options": ["В DuckDB SQL", "В цикле Python", "В JSON", "В argparse"],
-      "correct": 0,
-      "explanation": "DuckDB оптимизирует реляционные операции и pushdown."
+      "question": "Что нужно назвать до выбора между SQL и DataFrame для JOIN?",
+      "options": [
+        "Любимый синтаксис команды",
+        "Grain входов и требуемого результата",
+        "Цвет будущего графика",
+        "Имя локальной переменной"
+      ],
+      "correct": 1,
+      "explanation": "Grain позволяет предсказать cardinality JOIN и увидеть, где предварительно нужна агрегация."
     },
     {
       "id": "pre-2",
       "stage": "pre",
-      "question": "Для чего Python особенно полезен в таком pipeline?",
-      "options": ["Оркестрация, параметры и manifest", "Замена всех SQL joins", "Хранение grain в globals", "Ручная сортировка миллионов строк"],
-      "correct": 0,
-      "explanation": "Python связывает шаги, файлы и проверки вокруг SQL assets."
+      "question": "Что происходит при вызове fetchall() для большого SQL-результата?",
+      "options": [
+        "Результат остаётся только ленивым планом",
+        "DuckDB автоматически пишет Parquet",
+        "Все строки материализуются как Python-объекты",
+        "Создаётся только checksum"
+      ],
+      "correct": 2,
+      "explanation": "fetchall() переносит весь result set из движка в коллекцию Python tuples."
     },
     {
       "id": "post-1",
       "stage": "post",
-      "question": "Почему item rows агрегируются до JOIN?",
-      "options": ["Чтобы сохранить grain order_id", "Чтобы удалить товары", "Чтобы сменить timezone", "Чтобы получить pandas"],
+      "question": "Почему order_items агрегируются до JOIN с orders?",
+      "options": [
+        "Чтобы сохранить grain order_id и не размножить order amount",
+        "Чтобы удалить все неизвестные суммы",
+        "Чтобы pandas вывел меньше колонок",
+        "Чтобы заменить LEFT JOIN на INNER JOIN"
+      ],
       "correct": 0,
-      "explanation": "Одна строка item_totals на заказ предотвращает fanout order metrics."
+      "explanation": "Одна строка item_totals на order_id делает cardinality JOIN совместимой с order-level mart."
     },
     {
       "id": "post-2",
       "stage": "post",
-      "question": "Что доказывает checksum в manifest?",
-      "options": ["Какие именно байты были поставлены", "Что бизнес-логика верна", "Что файл быстрый", "Что нет NULL"],
-      "correct": 0,
-      "explanation": "Checksum обеспечивает идентичность artifact, а смысл подтверждают checks."
+      "question": "Какое условие должно быть publish blocker, а не warning?",
+      "options": [
+        "Известный и задокументированный заказ без даты",
+        "Неизвестный пользователь, сохранённый LEFT JOIN",
+        "Сумма, которую нельзя сверить из-за отсутствующих items",
+        "Две строки orders с одним order_id"
+      ],
+      "correct": 3,
+      "explanation": "Дубликат заявленного primary key разрушает исходный grain; разрешённая неполнота может остаться warning только по явной политике."
     },
     {
       "id": "post-3",
       "stage": "post",
-      "question": "Когда стоит передать результат в pandas?",
-      "options": ["После сокращения до нужного grain для локального анализа", "До любого фильтра", "Всегда вместо SQL", "Только для checksum"],
+      "question": "Почему valid нельзя определять условием order_rows == 12?",
+      "options": [
+        "DuckDB не умеет считать строки",
+        "Это контроль tiny-набора, а не инвариант корректных данных",
+        "Числа запрещены в Python",
+        "Manifest не может хранить integer"
+      ],
+      "correct": 1,
+      "explanation": "Другой корректный вход имеет другое число заказов; gate должен проверять соответствие source rows, уникальность grain и сверки."
+    },
+    {
+      "id": "post-4",
+      "stage": "post",
+      "question": "Что доказывает совпадение SHA-256 файла с manifest?",
+      "options": [
+        "Бизнес-формула причинно верна",
+        "Автор пакета аутентифицирован",
+        "Байты файла совпадают с зафиксированным отпечатком",
+        "В данных нет NULL"
+      ],
+      "correct": 2,
+      "explanation": "Checksum обнаруживает изменение байтов; смысл проверяют contracts/tests, а авторство требует доверенной подписи или канала."
+    },
+    {
+      "id": "post-5",
+      "stage": "post",
+      "question": "Какой handoff в pandas соответствует выбранной границе?",
+      "options": [
+        "Загрузить три сырых CSV и повторить все JOIN",
+        "Преобразовать каждую SQL-строку в dict",
+        "Передать order_items до агрегации",
+        "Прочитать проверенный user_summary на нужном grain для локального ad hoc"
+      ],
+      "correct": 3,
+      "explanation": "pandas появляется после реляционной сборки и quality gate, когда выбран компактный результат требуемого grain."
+    },
+    {
+      "id": "post-6",
+      "stage": "post",
+      "question": "Почему manifest не должен сохранять абсолютный путь автора к orders.csv?",
+      "options": [
+        "Он раскрывает локальную структуру и не разрешается на машине получателя",
+        "SHA-256 работает только с относительными путями",
+        "JSON не поддерживает символ /",
+        "DuckDB запрещает Path"
+      ],
       "correct": 0,
-      "explanation": "Граница должна минимизировать объем и сохранять понятный контракт."
+      "explanation": "Для переносимого provenance достаточно роли, basename, размера и hash точных входных байтов."
+    },
+    {
+      "id": "post-7",
+      "stage": "post",
+      "question": "Какой вывод допустим после успешной сборки tiny-пакета?",
+      "options": [
+        "DuckDB всегда быстрее pandas",
+        "Pipeline production-ready для любого объёма",
+        "На этом входе заявленные инварианты прошли, а marts экспортированы без DataFrame",
+        "Warnings можно удалить из handoff"
+      ],
+      "correct": 2,
+      "explanation": "Evidence относится к конкретному входу, версии и pipeline; универсальные performance и production claims требуют отдельных измерений и контроля."
+    },
+    {
+      "id": "post-8",
+      "stage": "post",
+      "question": "Как корректно сверить paid revenue, если orders содержат RUB, USD, EUR и KZT?",
+      "options": [
+        "Сложить все amount в один общий total",
+        "Перевести DECIMAL во float и округлить",
+        "Удалить currency после JOIN",
+        "Считать и сравнивать revenue отдельно по каждой валюте"
+      ],
+      "correct": 3,
+      "explanation": "Без курса и даты конвертации разные валюты не образуют одну аддитивную метрику, поэтому currency остаётся частью grain и reconciliation."
     }
   ]
 }

@@ -817,49 +817,39 @@ Python в `code/main.py` нужен только репозиторию: он п
 
 ## Дополнительное чтение
 
-1. **[EN] [DuckDB: WITH Clause](https://duckdb.org/docs/current/sql/query_syntax/with)** —
-   обязательное продолжение по диалекту урока. Прочитайте `Basic CTE Examples`: там
+1. **[EN] [DuckDB: WITH Clause](https://duckdb.org/docs/current/sql/query_syntax/with)** — обязательное продолжение по диалекту урока. Прочитайте `Basic CTE Examples`: там
    показаны область действия имени и зависимость одного CTE от другого. Разделы о
    materialization и recursion пока пропустите — они не нужны для композиции обычного
    аналитического запроса.
-2. **[EN] [DuckDB: Subqueries](https://duckdb.org/docs/current/sql/expressions/subqueries)** —
-   прочитайте `Scalar Subquery`, `EXISTS`, `NOT EXISTS`, `IN Operator` и
+2. **[EN] [DuckDB: Subqueries](https://duckdb.org/docs/current/sql/expressions/subqueries)** — прочитайте `Scalar Subquery`, `EXISTS`, `NOT EXISTS`, `IN Operator` и
    `Correlated Subqueries`. Страница закрепляет контракт «одно значение», показывает
    связь `EXISTS` с semi join, `NOT EXISTS` с anti join и явно описывает влияние `NULL`
    на `IN`.
-3. **[RU] [Postgres Pro: запросы WITH](https://postgrespro.ru/docs/postgresql/current/queries-with)** —
-   прочитайте введение и подраздел 7.8.1 `SELECT в WITH`. Сквозной пример с двумя
+3. **[RU] [Postgres Pro: запросы WITH](https://postgrespro.ru/docs/postgresql/current/queries-with)** — прочитайте введение и подраздел 7.8.1 `SELECT в WITH`. Сквозной пример с двумя
    зависимыми CTE помогает увидеть `WITH` не как украшение синтаксиса, а как способ
    разложить большой расчет на именованные отношения. Рекурсивные и изменяющие данные
    CTE оставьте за границей этого урока.
-4. **[RU] [Postgres Pro: выражения подзапросов](https://postgrespro.ru/docs/postgresql/current/functions-subquery)** —
-   сосредоточьтесь на подразделах 9.24.1–9.24.3: `EXISTS`, `IN` и `NOT IN`. Особенно
+4. **[RU] [Postgres Pro: выражения подзапросов](https://postgrespro.ru/docs/postgresql/current/functions-subquery)** — сосредоточьтесь на подразделах 9.24.1–9.24.3: `EXISTS`, `IN` и `NOT IN`. Особенно
    полезно точное объяснение, почему `NOT IN` при наличии `NULL` возвращает `NULL`, а не
    `TRUE`, и почему содержимое списка `SELECT` внутри `EXISTS` обычно не важно.
-5. **[RU] [Microsoft Learn: написание вложенных запросов в T-SQL](https://learn.microsoft.com/ru-ru/training/modules/write-subqueries/)** —
-   пройдите блоки о скалярных, многозначных, автономных и коррелированных подзапросах,
+5. **[RU] [Microsoft Learn: написание вложенных запросов в T-SQL](https://learn.microsoft.com/ru-ru/training/modules/write-subqueries/)** — пройдите блоки о скалярных, многозначных, автономных и коррелированных подзапросах,
    затем выполните упражнение. Синтаксис примеров относится к T-SQL, но учебное деление
    подзапросов по форме результата переносится на DuckDB.
-6. **[RU] [Postgres Professional: «Язык SQL — продолжение»](https://edu.postgrespro.ru/advanced_sql.pdf)** —
-   для углубления прочитайте только главу 2.1, страницы 19–31 PDF. Большой практический
+6. **[RU] [Postgres Professional: «Язык SQL — продолжение»](https://edu.postgrespro.ru/advanced_sql.pdf)** — для углубления прочитайте только главу 2.1, страницы 19–31 PDF. Большой практический
    пример сначала строится через вложенные derived tables, а затем раскладывается на
    несколько CTE; это полезная тренировка чтения зависимостей и предварительной
    агрегации. Остальная часть 445-страничного пособия для текущего урока не нужна.
-7. **[EN] [BigQuery: Subqueries](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/subqueries)** —
-   сравните разделы `Scalar`, `EXISTS`, `Table` и `Correlated subqueries`, затем
+7. **[EN] [BigQuery: Subqueries](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/subqueries)** — сравните разделы `Scalar`, `EXISTS`, `Table` и `Correlated subqueries`, затем
    прочитайте `Evaluation rules`. Документация особенно четко фиксирует поведение
    scalar subquery при нуле, одной и нескольких строках и отделяет логическую
    корреляцию от фактического плана исполнения.
-8. **[EN] [PostgreSQL: Table Expressions](https://www.postgresql.org/docs/current/queries-table-expressions.html)** —
-   прочитайте подразделы 7.2.1.2–7.2.1.3 об aliases и subqueries в `FROM`. Они уточняют,
+8. **[EN] [PostgreSQL: Table Expressions](https://www.postgresql.org/docs/current/queries-table-expressions.html)** — прочитайте подразделы 7.2.1.2–7.2.1.3 об aliases и subqueries в `FROM`. Они уточняют,
    почему результат такого подзапроса является derived table, зачем ему давать имя и
    какие части отношения видны внешнему запросу; `LATERAL` пока можно пропустить.
-9. **[EN] [Oracle: Scalar Subquery Expressions](https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Scalar-Subquery-Expressions.html)** —
-   короткая точная спецификация одного механизма: одна колонка и одна строка дают
+9. **[EN] [Oracle: Scalar Subquery Expressions](https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/Scalar-Subquery-Expressions.html)** — короткая точная спецификация одного механизма: одна колонка и одна строка дают
    значение, ноль строк дает `NULL`, несколько строк дают ошибку. Используйте ее как
    памятку перед тем, как помещать подзапрос в позицию обычного выражения.
-10. **[EN] [dbt Labs: How we style our SQL](https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql)** —
-    прочитайте разделы `Import CTEs` и `Functional CTEs`. Это уже не спецификация SQL,
+10. **[EN] [dbt Labs: How we style our SQL](https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql)** — прочитайте разделы `Import CTEs` и `Functional CTEs`. Это уже не спецификация SQL,
     а применяемые в аналитической инженерии соглашения: один логический шаг на CTE,
     содержательные имена и возможность временно переключить финальный `SELECT` на
     промежуточный этап для проверки.
