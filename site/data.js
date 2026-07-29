@@ -1511,8 +1511,8 @@ window.COURSE_DATA = {
           "title": "DuckDB из Python",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Выполняет параметризованный SQL из Python и передает результаты между DuckDB и pandas без скрытой глобальной связи.",
-          "artifact": "Python runner параметризованных DuckDB-запросов",
+          "outcome": "Выполняет доверенный параметризованный SQL через явную DuckDB connection, регистрирует pandas DataFrame как relation и возвращает результат с проверенными колонками и dtypes.",
+          "artifact": "Функция явного обмена типизированным DataFrame между DuckDB и pandas",
           "type": "build",
           "tracks": [
             "core"
