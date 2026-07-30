@@ -1641,7 +1641,7 @@ window.COURSE_DATA = {
           "title": "HTTP и Requests",
           "status": "complete",
           "time_minutes": 75,
-          "outcome": "Проверяет статус, заголовки, content type и кодировку ответа, задает timeout и потоково сохраняет тело ответа.",
+          "outcome": "Безопасно получает один JSON-ресурс: проверяет status, media type, UTF-8 и redirect policy, ограничивает ожидание и размер и атомарно сохраняет тело ответа.",
           "artifact": "HTTP-инспектор и безопасный потоковый загрузчик",
           "type": "learn",
           "tracks": [

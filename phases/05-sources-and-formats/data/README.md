@@ -34,4 +34,6 @@ uv run --locked python phases/05-sources-and-formats/data/generate_data.py
 uv run --locked python phases/05-sources-and-formats/data/generate_data.py --check
 ```
 
-Тесты HTTP не зависят от внешней сети: они используют fake response.
+Тесты HTTP не зависят от внешней сети: happy path, gzip и CLI проверяются через
+одноразовый loopback-сервер, а недоступные через реальный сервер transport/security
+сценарии — через контролируемые response doubles.
