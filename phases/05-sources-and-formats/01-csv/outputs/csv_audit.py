@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import sys
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -88,14 +89,22 @@ def validate_contract(contract: Any) -> dict[str, Any]:
             raise CsvContractError("column names must be non-empty strings")
         if not isinstance(column, dict):
             raise CsvContractError(f"column contract must be an object: {name}")
-        if column.get("type") not in SUPPORTED_TYPES:
+        column_type = column.get("type")
+        if column_type not in SUPPORTED_TYPES:
             raise CsvContractError(f"unsupported type for {name}: {column.get('type')}")
         if not isinstance(column.get("nullable"), bool):
             raise CsvContractError(f"column {name} must declare nullable")
+        if column_type == "timestamp" and not isinstance(column.get("require_timezone"), bool):
+            raise CsvContractError(f"timestamp column {name} must declare require_timezone")
 
-    expected_rows = contract.get("expected_rows")
-    if not isinstance(expected_rows, int) or expected_rows < 0:
-        raise CsvContractError("expected_rows must be a non-negative integer")
+    row_count = contract.get("row_count")
+    if row_count is not None:
+        if not isinstance(row_count, dict):
+            raise CsvContractError("row_count must be an object when declared")
+        if row_count.get("mode") not in {"exact", "min"}:
+            raise CsvContractError("row_count.mode must be exact or min")
+        if type(row_count.get("value")) is not int or row_count["value"] < 0:
+            raise CsvContractError("row_count.value must be a non-negative integer")
     if contract.get("header") is not True:
         raise CsvContractError("this auditor requires header=true")
     return contract
@@ -114,21 +123,38 @@ def parse_decimal(
     decimal_mark: str,
     thousands: str,
 ) -> Decimal:
+    sign = r"[+-]?"
+    digits = r"[0-9]+"
+    if thousands:
+        grouped = rf"[0-9]{{1,3}}(?:{re.escape(thousands)}[0-9]{{3}})+"
+        integer = rf"(?:{digits}|{grouped})"
+    else:
+        integer = digits
+    fraction = rf"(?:{re.escape(decimal_mark)}[0-9]+)?"
+    if re.fullmatch(rf"{sign}{integer}{fraction}", value) is None:
+        raise ValueError(f"invalid decimal format: {value!r}")
+
     normalized = value.replace(thousands, "") if thousands else value
     if decimal_mark != ".":
         normalized = normalized.replace(decimal_mark, ".")
     try:
-        return Decimal(normalized)
+        parsed = Decimal(normalized)
     except InvalidOperation as error:
         raise ValueError(f"invalid decimal: {value!r}") from error
+    if not parsed.is_finite():
+        raise ValueError(f"decimal must be finite: {value!r}")
+    return parsed
 
 
-def parse_timestamp(value: str) -> datetime:
+def parse_timestamp(value: str, *, require_timezone: bool) -> datetime:
     normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(normalized)
+        parsed = datetime.fromisoformat(normalized)
     except ValueError as error:
         raise ValueError(f"invalid ISO timestamp: {value!r}") from error
+    if require_timezone and parsed.utcoffset() is None:
+        raise ValueError(f"timestamp must contain an explicit UTC offset: {value!r}")
+    return parsed
 
 
 def validate_value(value: str, column: dict[str, Any], contract: dict[str, Any]) -> None:
@@ -147,7 +173,7 @@ def validate_value(value: str, column: dict[str, Any], contract: dict[str, Any])
         )
         return
     if value_type == "timestamp":
-        parse_timestamp(value)
+        parse_timestamp(value, require_timezone=column["require_timezone"])
         return
     raise CsvContractError(f"unsupported type: {value_type}")
 
@@ -200,8 +226,8 @@ def inspect_rows(text: str, contract: dict[str, Any]) -> dict[str, Any]:
         except csv.Error as error:
             parse_errors.append({"line": reader.line_num, "error": str(error)})
 
-    expected_rows = contract["expected_rows"]
-    row_count_matches = data_rows == expected_rows
+    row_count_policy = contract.get("row_count")
+    row_count_matches = check_row_count(data_rows, row_count_policy)
     header_valid = (
         not duplicate_headers and not missing_columns and not unexpected_columns and order_matches
     )
@@ -213,7 +239,7 @@ def inspect_rows(text: str, contract: dict[str, Any]) -> dict[str, Any]:
         "unexpected_columns": unexpected_columns,
         "order_matches": order_matches,
         "data_rows": data_rows,
-        "expected_rows": expected_rows,
+        "row_count_policy": row_count_policy,
         "row_count_matches": row_count_matches,
         "malformed_rows": malformed_rows[:5],
         "parse_errors": parse_errors,
@@ -255,6 +281,14 @@ def inspect_columns(
     return report
 
 
+def check_row_count(actual: int, policy: dict[str, Any] | None) -> bool:
+    if policy is None:
+        return True
+    if policy["mode"] == "exact":
+        return actual == policy["value"]
+    return actual >= policy["value"]
+
+
 def inspect_with_pandas(path: Path, contract: dict[str, Any]) -> dict[str, Any]:
     dialect = contract["dialect"]
     try:
@@ -279,7 +313,7 @@ def inspect_with_pandas(path: Path, contract: dict[str, Any]) -> dict[str, Any]:
         "dtypes": {name: str(dtype) for name, dtype in frame.dtypes.items()},
         "preview": frame.head(3).to_dict(orient="records"),
         "valid": frame.columns.tolist() == list(contract["columns"])
-        and len(frame) == contract["expected_rows"],
+        and check_row_count(len(frame), contract.get("row_count")),
     }
 
 

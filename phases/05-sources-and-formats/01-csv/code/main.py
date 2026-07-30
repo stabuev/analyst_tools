@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -15,8 +16,16 @@ CONTRACT = DATA_ROOT / "contract.json"
 
 
 def normalize_decimal(value: str, decimal_mark: str, thousands: str) -> Decimal:
+    grouped = rf"[0-9]{{1,3}}(?:{re.escape(thousands)}[0-9]{{3}})+"
+    integer = rf"(?:[0-9]+|{grouped})"
+    fraction = rf"(?:{re.escape(decimal_mark)}[0-9]+)?"
+    if re.fullmatch(rf"[+-]?{integer}{fraction}", value) is None:
+        raise ValueError(f"invalid decimal format: {value!r}")
     normalized = value.replace(thousands, "").replace(decimal_mark, ".")
-    return Decimal(normalized)
+    parsed = Decimal(normalized)
+    if not parsed.is_finite():
+        raise ValueError(f"decimal must be finite: {value!r}")
+    return parsed
 
 
 def main() -> None:
