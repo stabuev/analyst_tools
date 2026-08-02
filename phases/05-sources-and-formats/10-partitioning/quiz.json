@@ -3,42 +3,93 @@
     {
       "id": "partitioning-pre-1",
       "stage": "pre",
-      "question": "Должен ли каждый столбец становиться partition key?",
-      "options": ["Да", "Нет, ключ выбирают по частым фильтрам и cardinality", "Только числовые", "Только nullable"],
-      "correct": 1,
-      "explanation": "Лишние ключи создают каталоги и мелкие файлы без пользы для чтения."
+      "question": "Чем dataset partition отличается от Parquet row group?",
+      "options": [
+        "Ничем: это два названия одного блока",
+        "Partition всегда является одним файлом",
+        "Partition группирует dataset по значениям layout keys, а row group находится внутри Parquet-файла",
+        "Row group существует только в CSV"
+      ],
+      "correct": 2,
+      "explanation": "Одна filesystem partition может содержать несколько файлов, а каждый Parquet-файл — несколько row groups."
     },
     {
       "id": "partitioning-pre-2",
       "stage": "pre",
-      "question": "Что такое partition pruning?",
-      "options": ["Удаление строк", "Исключение заведомо ненужных partitions до чтения файлов", "Сжатие", "Сортировка"],
+      "question": "С чего следует начинать выбор partition key?",
+      "options": [
+        "С самого уникального столбца",
+        "С representative filters, ожидаемого объёма и распределения значений",
+        "С алфавитного порядка колонок",
+        "С количества функций в PyArrow"
+      ],
       "correct": 1,
-      "explanation": "Engine использует значения partition keys, чтобы не открывать нерелевантные fragments."
+      "explanation": "Ключ должен отвечать способу чтения и не создавать неоправданную дробность; важность имени колонки этого не доказывает."
     },
     {
       "id": "partitioning-post-1",
       "stage": "post",
-      "question": "Почему partition по дню плох для пяти строк примера?",
-      "options": ["Дата запрещена", "Создает почти файл на строку", "DuckDB не читает даты", "Убирает schema"],
-      "correct": 1,
-      "explanation": "Высокая дробность создает overhead каталогов и маленьких файлов."
+      "question": "Dataset разбит только по `order_month`, а запрос фильтрует месяц и валюту. Как классифицируются условия?",
+      "options": [
+        "Оба являются partition filters",
+        "Оба являются residual filters",
+        "Валюта становится partition filter, месяц — residual",
+        "Месяц является partition filter, валюта — residual filter"
+      ],
+      "correct": 3,
+      "explanation": "Месяц можно проверить по пути; валюту придётся применить к строкам внутри выбранных файлов."
     },
     {
       "id": "partitioning-post-2",
       "stage": "post",
-      "question": "Как доказать pruning в Arrow Dataset?",
-      "options": ["Посмотреть имя root", "Сравнить все fragments и fragments с filter", "Посчитать CSV", "Проверить extension"],
-      "correct": 1,
-      "explanation": "Уменьшение выбранных fragments показывает работу partition filter."
+      "question": "Почему layout по `order_id` опасен для таблицы заказов?",
+      "options": [
+        "Высокая cardinality может приблизить число partitions к числу строк, не поддерживая заявленный workload",
+        "Строковые ключи запрещены Hive",
+        "Уникальный ключ удаляет Parquet schema",
+        "Он автоматически объединяет все файлы"
+      ],
+      "correct": 0,
+      "explanation": "Уникальный business key полезен как grain, но обычно слишком детален как filesystem partition key."
     },
     {
       "id": "partitioning-post-3",
       "stage": "post",
-      "question": "Что делать с редкой EUR-partition из одной строки?",
-      "options": ["Скрыть ее", "Отразить small-file risk и пересмотреть layout на реальном объеме", "Удалить EUR", "Сделать partition по order_id"],
+      "question": "Фильтр по единственному месяцу выбрал все fragments. Какой вывод корректен?",
+      "options": [
+        "Partitioning обязательно сломан",
+        "Результат может быть корректным: на этом input нет другого месяца, который можно исключить",
+        "Запрос гарантированно стал медленнее",
+        "Нужно удалить semantic checks"
+      ],
       "correct": 1,
-      "explanation": "Tiny-данные показывают риск, но решение принимается по production cardinality и workload."
+      "explanation": "Partition filter не обязан уменьшать fragments, если все partitions удовлетворяют условию; значения результата проверяются отдельно."
+    },
+    {
+      "id": "partitioning-post-4",
+      "stage": "post",
+      "question": "Что доказывает `fragment_reduction_observed=true`?",
+      "options": [
+        "Универсальное ускорение всех запросов",
+        "Оптимальный layout для production",
+        "Для этого filter и dataset PyArrow исключил часть candidate file fragments",
+        "Отсутствие row groups в файлах"
+      ],
+      "correct": 2,
+      "explanation": "Это file-level evidence конкретного запуска, а не benchmark и не доказательство row-group pruning."
+    },
+    {
+      "id": "partitioning-post-5",
+      "stage": "post",
+      "question": "Когда итоговый package может появиться у потребителя?",
+      "options": [
+        "Сразу после создания первого Parquet-файла",
+        "До проверки workload, если row count совпал",
+        "После записи data, даже если manifest ещё отсутствует",
+        "Только после semantic roundtrip, workload checks, checksums и готового manifest во временном каталоге"
+      ],
+      "correct": 3,
+      "explanation": "Data и manifest публикуются одним завершённым каталогом; failed verification не оставляет частичный output."
     }
   ]
 }

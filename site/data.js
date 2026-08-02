@@ -1749,8 +1749,8 @@ window.COURSE_DATA = {
           "title": "Партиционирование наборов данных",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Выбирает ключи партиционирования по паттерну чтения, проверяет pruning и избегает мелких файлов и лишних разделов.",
-          "artifact": "Сборщик partitioned dataset с отчетом о layout и pruning",
+          "outcome": "Формализует representative workload, сравнивает candidate Hive layouts, строит выбранный partitioned Parquet dataset во временном пакете и публикует его только после semantic roundtrip, workload checks и checksum manifest.",
+          "artifact": "Проверенный partitioned dataset package с layout decision, workload evidence и manifest",
           "type": "case",
           "tracks": [
             "core"

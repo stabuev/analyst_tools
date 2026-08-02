@@ -5,7 +5,7 @@
 
 **Обновлено:** 2 августа 2026
 **Ветка:** `main`
-**Базовый коммит перед текущим этапом:** `1e8c1095` — переработка урока `05/08`
+**Базовый коммит перед текущим этапом:** `a3dd8147` — переработка урока `05/09`
 
 Все 200 нумерованных уроков курса завершены. Публичный сайт размещён на
 `https://datascience.xyz/courses/analyst-tools/` и публикует отдельную статическую страницу
@@ -2550,7 +2550,20 @@ nullability и не сохраняет process-local addresses. Невалидн
 чтение расширено до десяти проверенных официальных или первичных материалов: трёх на
 русском и семи на английском.
 
-**Следующий содержательный шаг** — аудит `05/10` «Партиционирование наборов данных».
+Урок `05/10` «Партиционирование наборов данных» переработан как layout decision между
+одним проверенным Parquet и immutable package следующего урока. Он явно различает
+filesystem partition, SQL window partition и Parquet row group; начинает решение с
+representative workload и сравнивает четыре candidates по filter coverage, cardinality,
+skew и fragmentation. Строгий внешний contract фиксирует source schema, UTC-derived
+dimensions, candidates, selected layout, workload и null policy. CLI строит выбранный
+Hive dataset в уникальном staging package, проверяет полный semantic roundtrip и все
+workload results, считает checksums и только затем атомарно публикует `data/` вместе с
+manifest. Sample small-partition threshold оставлен честным warning, а fragment pruning
+не называется performance benchmark. Практика покрыта 44 behavioral tests, квиз содержит
+два входных и пять итоговых вопросов. Дополнительное чтение расширено до десяти
+проверенных официальных или первичных материалов: трёх на русском и семи на английском.
+
+**Следующий содержательный шаг** — аудит `05/11` «Кеширование и контроль целостности».
 
 ## Уже принятые решения
 
@@ -2705,6 +2718,15 @@ grain, forced copy, строгий contract, bounded input, UTC session state и
 публикацию. Все десять источников дополнительного чтения открыты и проверены по
 содержанию. Структурный валидатор, три render check и `git diff --check` успешны. Полный
 lesson runner курса не запускался.
+
+После переработки `05/10` пройдены 44 behavioral tests урока, Ruff lint и format check,
+46 корневых тестов, самостоятельный пример и проверка воспроизводимости fixtures фазы.
+Тесты отдельно покрывают строгий layout contract, сравнение candidate layouts по
+workload, различие partition и residual filters, semantic roundtrip, workload results,
+checksum manifest, уникальный staging package, атомарную публикацию и сохранение
+предыдущего результата при ошибке. Все десять источников дополнительного чтения отвечают
+HTTP 200. Структурный валидатор и три render check успешны. Полный lesson runner курса не
+запускался.
 
 ```bash
 uv sync --locked --dev
