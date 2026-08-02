@@ -32,6 +32,32 @@ Parquet version и атомарно переключает `current`.
 | 05/08 | проверить schema, grain и Parquet roundtrip | связать schema contract с конкретным запуском |
 | 05/10 | построить проверенный partitioned package | не пересобирать и не принимать его без проверки |
 
+Это representative route финального CLI, а не единственный допустимый pipeline фазы.
+Полная карта устроена так:
+
+```text
+source adapters
+├── file: CSV 05/01, Excel 05/02
+├── document: nested JSON 05/03, saved HTML 05/06
+└── service: HTTP API 05/04–05/05, database 05/07
+        ↓
+validated records or snapshot with grain, schema and provenance
+        ↓
+typed storage 05/08 → interchange 05/09 → dataset layout 05/10
+        ↓
+replayable immutable delivery 05/11
+```
+
+Эти source adapters являются альтернативными входами, а не обязательными физическими
+стадиями одного процесса. Нельзя сначала «пропустить CSV через Excel», а затем через
+HTML и БД. Каждый адаптер заканчивается одной и той же логической границей: записи
+имеют объявленный grain, schema, provenance и право перейти в typed storage.
+
+CLI 05/11 реализует API-route, потому что именно сеть делает cache, replay и refresh
+наблюдаемыми. Он не обещает напрямую читать workbook, HTML или SQLAlchemy Result. Для
+такого источника сначала используется самостоятельный артефакт соответствующего урока,
+а затем его проверенный snapshot передаётся в storage boundary 05/08.
+
 Следующая фаза начинает EDA. Ей нужен не «последний файл в каталоге», а вход, для
 которого можно ответить: из каких raw bytes он получен, какими контрактами проверен и
 какая версия сейчас разрешена потребителям.
@@ -386,7 +412,70 @@ bytes с объявленным digest», а semantic roundtrip — «предс
 protocol, retention и garbage collection требуют инфраструктурного контекста и не
 объявляются свойствами этого CLI.
 
+## Phase-exit: соберите карту поставки
+
+Эта самопроверка заменяет одно обычное упражнение и использует уже созданные результаты.
+Новый сервис, общий grader или ещё один pipeline писать не нужно.
+
+### 1. Назовите source boundary
+
+Выберите **один** альтернативный адаптер из 05/01, 05/02, 05/06 или 05/07 и заполните
+четыре строки:
+
+```text
+raw representation:
+declared selection contract:
+result grain:
+failure that blocks publication:
+```
+
+Ответ «таблица заказов» недостаточен. Для CSV raw representation — bytes и текстовые
+tokens, для Excel — workbook/sheet/range/formula state, для HTML — сохранённые bytes и
+selector contract, для БД — snapshot/time, trusted query и bound parameters.
+
+### 2. Докажите полноту API snapshot
+
+Используйте report первого запуска 05/11 и покажите:
+
+- цепочка завершилась по `next=null`, а не потому, что закончился локальный список;
+- все пять `order_id` образуют уникальный grain;
+- три page digests входят в один `snapshot_id`;
+- replay проверяет blobs и не обращается к source.
+
+### 3. Разделите четыре проверки поставки
+
+Для одного опубликованного `run_id` найдите в manifest отдельные доказательства:
+
+| Проверка | На какой вопрос отвечает |
+|---|---|
+| Schema/grain | допустимы ли поля, типы, nulls и единица наблюдения |
+| File checksum | совпадают ли Parquet bytes с объявленным digest |
+| Semantic roundtrip | сохранились ли все значения проверенного snapshot |
+| Workload checks | сохранились ли результаты объявленных фильтров потребителя |
+
+Фраза «checksum зелёный, значит данные верны» не проходит phase-exit: checksum не знает
+ожидаемых бизнес-значений.
+
+### 4. Передайте вход в EDA
+
+Сформулируйте короткий handoff коллеге следующей фазы:
+
+```text
+current run_id and manifest:
+logical grain:
+observation window:
+known source limitations:
+checks already passed:
+question that still requires EDA:
+```
+
+Phase-exit завершён, если коллега может выбрать current dataset, проверить его
+происхождение и отличить дефект source/delivery от исследовательского вопроса. Сам
+график и вывод здесь не строятся — это работа фазы 06.
+
 ## Упражнения
+
+Эти расширения необязательны после выполненного phase-exit.
 
 1. **Наблюдение.** Выполните первый run и replay. Сопоставьте каждый счётчик report с
    конкретным файлом в `raw/` или `datasets/`.

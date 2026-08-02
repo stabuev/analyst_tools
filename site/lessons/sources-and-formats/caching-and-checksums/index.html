@@ -106,6 +106,26 @@ Parquet version и атомарно переключает <code>current</code>.
 </tr>
 </tbody>
 </table>
+<p>Это representative route финального CLI, а не единственный допустимый pipeline фазы.
+Полная карта устроена так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source adapters
+├── file: CSV 05/01, Excel 05/02
+├── document: nested JSON 05/03, saved HTML 05/06
+└── service: HTTP API 05/04–05/05, database 05/07
+        ↓
+validated records or snapshot with grain, schema and provenance
+        ↓
+typed storage 05/08 → interchange 05/09 → dataset layout 05/10
+        ↓
+replayable immutable delivery 05/11
+</code></pre></div><p>Эти source adapters являются альтернативными входами, а не обязательными физическими
+стадиями одного процесса. Нельзя сначала «пропустить CSV через Excel», а затем через
+HTML и БД. Каждый адаптер заканчивается одной и той же логической границей: записи
+имеют объявленный grain, schema, provenance и право перейти в typed storage.</p>
+<p>CLI 05/11 реализует API-route, потому что именно сеть делает cache, replay и refresh
+наблюдаемыми. Он не обещает напрямую читать workbook, HTML или SQLAlchemy Result. Для
+такого источника сначала используется самостоятельный артефакт соответствующего урока,
+а затем его проверенный snapshot передаётся в storage boundary 05/08.</p>
 <p>Следующая фаза начинает EDA. Ей нужен не «последний файл в каталоге», а вход, для
 которого можно ответить: из каких raw bytes он получен, какими контрактами проверен и
 какая версия сейчас разрешена потребителям.</p>
@@ -376,7 +396,70 @@ bytes с объявленным digest», а semantic roundtrip — «предс
 <p>Граница артефакта намеренно локальная. Подпись manifest, locks, object-store commit
 protocol, retention и garbage collection требуют инфраструктурного контекста и не
 объявляются свойствами этого CLI.</p>
+<h2 id="phase-exit-соберите-карту-поставки">Phase-exit: соберите карту поставки</h2>
+<p>Эта самопроверка заменяет одно обычное упражнение и использует уже созданные результаты.
+Новый сервис, общий grader или ещё один pipeline писать не нужно.</p>
+<h3 id="1-назовите-source-boundary">1. Назовите source boundary</h3>
+<p>Выберите <strong>один</strong> альтернативный адаптер из 05/01, 05/02, 05/06 или 05/07 и заполните
+четыре строки:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">raw representation:
+declared selection contract:
+result grain:
+failure that blocks publication:
+</code></pre></div><p>Ответ «таблица заказов» недостаточен. Для CSV raw representation — bytes и текстовые
+tokens, для Excel — workbook/sheet/range/formula state, для HTML — сохранённые bytes и
+selector contract, для БД — snapshot/time, trusted query и bound parameters.</p>
+<h3 id="2-докажите-полноту-api-snapshot">2. Докажите полноту API snapshot</h3>
+<p>Используйте report первого запуска 05/11 и покажите:</p>
+<ul>
+<li>цепочка завершилась по <code>next=null</code>, а не потому, что закончился локальный список;</li>
+<li>все пять <code>order_id</code> образуют уникальный grain;</li>
+<li>три page digests входят в один <code>snapshot_id</code>;</li>
+<li>replay проверяет blobs и не обращается к source.</li>
+</ul>
+<h3 id="3-разделите-четыре-проверки-поставки">3. Разделите четыре проверки поставки</h3>
+<p>Для одного опубликованного <code>run_id</code> найдите в manifest отдельные доказательства:</p>
+<table>
+<thead>
+<tr>
+<th>Проверка</th>
+<th>На какой вопрос отвечает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema/grain</td>
+<td>допустимы ли поля, типы, nulls и единица наблюдения</td>
+</tr>
+<tr>
+<td>File checksum</td>
+<td>совпадают ли Parquet bytes с объявленным digest</td>
+</tr>
+<tr>
+<td>Semantic roundtrip</td>
+<td>сохранились ли все значения проверенного snapshot</td>
+</tr>
+<tr>
+<td>Workload checks</td>
+<td>сохранились ли результаты объявленных фильтров потребителя</td>
+</tr>
+</tbody>
+</table>
+<p>Фраза «checksum зелёный, значит данные верны» не проходит phase-exit: checksum не знает
+ожидаемых бизнес-значений.</p>
+<h3 id="4-передайте-вход-в-eda">4. Передайте вход в EDA</h3>
+<p>Сформулируйте короткий handoff коллеге следующей фазы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">current run_id and manifest:
+logical grain:
+observation window:
+known source limitations:
+checks already passed:
+question that still requires EDA:
+</code></pre></div><p>Phase-exit завершён, если коллега может выбрать current dataset, проверить его
+происхождение и отличить дефект source/delivery от исследовательского вопроса. Сам
+график и вывод здесь не строятся — это работа фазы 06.</p>
 <h2 id="упражнения">Упражнения</h2>
+<p>Эти расширения необязательны после выполненного phase-exit.</p>
 <ol>
 <li><strong>Наблюдение.</strong> Выполните первый run и replay. Сопоставьте каждый счётчик report с
 конкретным файлом в <code>raw/</code> или <code>datasets/</code>.</li>

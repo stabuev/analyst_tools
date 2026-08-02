@@ -1565,7 +1565,7 @@ window.COURSE_DATA = {
       "number": 5,
       "slug": "sources-and-formats",
       "title": "Источники и форматы данных",
-      "summary": "Получайте данные устойчиво и сохраняйте их в подходящем формате.",
+      "summary": "Проверяйте внешние источники на их естественной границе и публикуйте воспроизводимые типизированные версии данных.",
       "tracks": [
         "core"
       ],
@@ -1576,8 +1576,8 @@ window.COURSE_DATA = {
         "min": 10,
         "max": 14
       },
-      "artifact": "Устойчивый загрузчик внешних данных",
-      "completion": "Загрузчик повторяет запросы безопасно, кеширует сырье и проверяет схему или checksum результата.",
+      "artifact": "Воспроизводимая поставка из проверенного raw snapshot в immutable partitioned dataset",
+      "completion": "Студент выбирает и проверяет source adapter, фиксирует grain, schema и provenance, сохраняет typed snapshot и переключает current только после checksum, semantic и workload checks.",
       "status": "complete",
       "url": "https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats",
       "lessons": [
