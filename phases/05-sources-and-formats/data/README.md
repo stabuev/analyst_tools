@@ -20,8 +20,9 @@ Committed-набор содержит:
 - `analytics.sqlite` — локальная база пользователей и заказов для SQLAlchemy Core;
 - `orders_typed.csv` — UTF-8 источник с десятичной точкой для конвертации в Parquet;
 - `manifest.json` — размер, число логических строк и SHA-256 каждого файла;
-- `contract.json`, `excel_spec.json`, `json_contract.json`, `html_contract.json` и
-  `db_contract.json` — явные договоры форматов, схем и результатов чтения.
+- `contract.json`, `excel_spec.json`, `json_contract.json`, `html_contract.json`,
+  `db_contract.json` и `parquet_schema.json` — явные договоры форматов, схем и
+  результатов чтения или записи.
 
 Пересоздать набор:
 

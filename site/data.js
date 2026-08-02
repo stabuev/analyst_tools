@@ -1713,8 +1713,8 @@ window.COURSE_DATA = {
           "title": "Parquet и колоночное хранение",
           "status": "complete",
           "time_minutes": 75,
-          "outcome": "Записывает и читает Parquet с явной схемой, nullable-типами и сжатием и сравнивает его контракт с CSV.",
-          "artifact": "CLI-конвертер CSV в Parquet со schema-manifest",
+          "outcome": "Преобразует ограниченный UTF-8 CSV-снимок в Parquet по явному schema, null и grain contract, проверяет roundtrip и физические metadata и поставляет checksum-manifest.",
+          "artifact": "Контрактный CSV-to-Parquet converter с roundtrip verification и checksum-manifest",
           "type": "learn",
           "tracks": [
             "core"

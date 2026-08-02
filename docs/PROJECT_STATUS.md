@@ -2525,7 +2525,20 @@ grain. Только валидный результат атомарно пуб�
 Дополнительное чтение расширено до десяти проверенных официальных или первичных
 материалов: трёх на русском и семи на английском.
 
-**Следующий содержательный шаг** — аудит `05/08` «Parquet и колоночное хранение».
+Урок `05/08` «Parquet и колоночное хранение» переработан как граница между уже
+проверенным текстовым или SQL-срезом и типизированным аналитическим хранением. Урок
+теперь разводит CSV tokens, Arrow Table как вход writer API и Parquet file format,
+объясняет row groups, column chunks, pages, logical types, nullable и compression без
+раннего погружения в Arrow buffers или performance tuning. Строгий contract версии 2
+задаёт field order, types, поколоночную empty-to-null policy, domain, grain и writer
+settings. Converter один раз читает bounded UTF-8 source, проверяет timezone, decimal
+precision/scale, domain и grain, пишет unique temporary candidate и публикует Parquet с
+checksum-manifest только после roundtrip schema/value/null и physical metadata checks.
+Практика покрыта 32 behavioral tests, квиз содержит два входных и пять итоговых
+вопросов. Дополнительное чтение расширено до десяти проверенных официальных или
+первичных материалов: трёх на русском и семи на английском.
+
+**Следующий содержательный шаг** — аудит `05/09` «Arrow как контракт обмена таблицами».
 
 ## Уже принятые решения
 
