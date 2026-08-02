@@ -1659,8 +1659,8 @@ window.COURSE_DATA = {
           "title": "Pagination, timeouts и retries",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Загружает все страницы API с явным условием остановки, ограниченными retries, backoff и поддержкой Retry-After.",
-          "artifact": "Устойчивый клиент пагинированного API с retry-policy",
+          "outcome": "Проходит все страницы одного JSON API по доверенной цепочке next, ограничивает retries общим бюджетом и атомарно публикует результат только после завершения и проверки grain.",
+          "artifact": "Клиент полного пагинированного JSON-снимка с bounded retry-policy",
           "type": "build",
           "tracks": [
             "core"
@@ -1677,8 +1677,8 @@ window.COURSE_DATA = {
           "title": "HTML и Beautiful Soup",
           "status": "complete",
           "time_minutes": 60,
-          "outcome": "Извлекает структурированные записи по устойчивым селекторам и явно обнаруживает изменение HTML-разметки.",
-          "artifact": "HTML-экстрактор с контрактом селекторов и fixture-тестами",
+          "outcome": "Извлекает один проверяемый табличный grain из сохранённого HTML по версионированному selector contract, обнаруживает drift и публикует результат только после успешных проверок.",
+          "artifact": "HTML-экстрактор с версионированным selector contract и атомарным snapshot",
           "type": "case",
           "tracks": [
             "core"
@@ -1695,8 +1695,8 @@ window.COURSE_DATA = {
           "title": "Подключение к БД через SQLAlchemy",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Читает параметризованный срез через SQLAlchemy Core, управляет соединением и не интерполирует значения в SQL.",
-          "artifact": "Параметризованный DB-reader с контрактом схемы и результата",
+          "outcome": "Создаёт проверяемую границу чтения из SQL-БД через SQLAlchemy: связывает values отдельно от trusted SQL, управляет Engine и Connection, проверяет source schema, полноту JOIN и safety limit и публикует только валидный snapshot.",
+          "artifact": "Read-only SQLAlchemy reader с trusted SQL, schema contract и completeness checks",
           "type": "build",
           "tracks": [
             "core"

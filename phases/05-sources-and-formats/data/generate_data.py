@@ -253,11 +253,11 @@ def write_sqlite(path: Path) -> None:
             """
             PRAGMA page_size = 4096;
             CREATE TABLE users (
-                user_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL PRIMARY KEY,
                 segment TEXT NOT NULL
             );
             CREATE TABLE orders (
-                order_id TEXT PRIMARY KEY,
+                order_id TEXT NOT NULL PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 ordered_at TEXT NOT NULL,
                 amount REAL NOT NULL,
@@ -340,27 +340,31 @@ def generate(output_dir: Path) -> dict[str, Any]:
     changed_html_path = output_dir / "orders_changed.html"
     html_path.write_text(
         """<!doctype html>
-<html lang="ru"><body><section data-orders>
+<html lang="ru"><head><meta charset="utf-8"><title>Заказы</title></head><body>
+<section data-orders>
   <article data-order-card data-order-id="O2601">
     <span data-field="user">U001</span><span data-field="amount">1200.50</span>
   </article>
   <article data-order-card data-order-id="O2602">
     <span data-field="user">U002</span><span data-field="amount">950.00</span>
   </article>
-</section></body></html>
+</section>
+</body></html>
 """,
         encoding="utf-8",
     )
     changed_html_path.write_text(
         """<!doctype html>
-<html lang="ru"><body><section data-orders>
+<html lang="ru"><head><meta charset="utf-8"><title>Заказы</title></head><body>
+<section data-orders>
   <article data-order-card data-order-id="O2601">
     <span data-field="user">U001</span><span data-field="amount">1200.50</span>
   </article>
   <article data-order-card data-order-id="O2602">
     <span data-field="user">U002</span><strong data-field="total">950.00</strong>
   </article>
-</section></body></html>
+</section>
+</body></html>
 """,
         encoding="utf-8",
     )

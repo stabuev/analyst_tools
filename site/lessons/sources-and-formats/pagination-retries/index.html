@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Первая страница API успешна, вторая временно отвечает 429, а третья завершает выдачу. Наивный цикл либо теряет страницы, либо повторяет запрос бесконечно. Еще один…">
+  <meta name="description" content="Аналитик запускает ежедневную загрузку заказов. Первая страница вернула 200, вторая после двух попыток ответила 503, а в каталоге уже появились записи с первой…">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Pagination, timeouts и retries">
-  <meta property="og:description" content="Первая страница API успешна, вторая временно отвечает 429, а третья завершает выдачу. Наивный цикл либо теряет страницы, либо повторяет запрос бесконечно. Еще один…">
+  <meta property="og:description" content="Аналитик запускает ежедневную загрузку заказов. Первая страница вернула 200, вторая после двух попыток ответила 503, а в каталоге уже появились записи с первой…">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/">
   <meta name="twitter:card" content="summary">
   <title>Pagination, timeouts и retries — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Pagination, timeouts и retries", "description": "Первая страница API успешна, вторая временно отвечает 429, а третья завершает выдачу. Наивный цикл либо теряет страницы, либо повторяет запрос бесконечно. Еще один…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Pagination, timeouts и retries", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Pagination, timeouts и retries", "description": "Аналитик запускает ежедневную загрузку заказов. Первая страница вернула 200, вторая после двух попыток ответила 503, а в каталоге уже появились записи с первой…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Pagination, timeouts и retries", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/pagination-retries/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,153 +50,427 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/05-pagination-retries" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Какое условие окончания pagination надежнее?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Ровно десять страниц</button><button type="button" class="quiz-option" data-choice="1">Явный next=null или documented end condition</button><button type="button" class="quiz-option" data-choice="2">Пустой лог</button><button type="button" class="quiz-option" data-choice="3">Timeout</button></div><p class="quiz-feedback" hidden>Клиент должен следовать контракту API, а не случайному числу страниц.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Все ли HTTP-ошибки нужно повторять?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, только временные и безопасные для повтора</button><button type="button" class="quiz-option" data-choice="2">Только 400</button><button type="button" class="quiz-option" data-choice="3">Только 404</button></div><p class="quiz-feedback" hidden>Повтор постоянной ошибки увеличивает задержку и нагрузку без шанса на успех.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Клиент из 05/04 использует read timeout 10 секунд. Что это гарантирует при загрузке нескольких страниц?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Весь обход завершится за 10 секунд</button><button type="button" class="quiz-option" data-choice="1">Каждая страница будет получена не более чем за 10 секунд по wall clock</button><button type="button" class="quiz-option" data-choice="2">Клиент не будет ждать следующую порцию bytes дольше заданного интервала в одной попытке</button><button type="button" class="quiz-option" data-choice="3">После 10 секунд Requests автоматически повторит любую ошибку</button></div><p class="quiz-feedback" hidden>Read timeout ограничивает ожидание данных внутри одной попытки, а не общее время страницы или всего многостраничного обхода. Политику повторов клиент задаёт отдельно.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Первые две страницы прошли проверки, третья окончательно ответила 503. Что допустимо опубликовать под контрактом полного снимка?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Первые две страницы с warning о третьей</button><button type="button" class="quiz-option" data-choice="1">Ничего нового: сохранить предыдущий снимок и вернуть наблюдаемый отказ</button><button type="button" class="quiz-option" data-choice="2">Только идентификаторы записей первых двух страниц</button><button type="button" class="quiz-option" data-choice="3">Пустой файл с exit code 0</button></div><p class="quiz-feedback" hidden>Пока договорный конец не достигнут, накопленные записи являются диагностическим буфером. Их публикация под контрактом полноты создаёт правдоподобный неверный результат.</p></article></section>
         <article class="lesson-article"><h1 id="pagination-timeouts-и-retries">Pagination, timeouts и retries</h1>
 <blockquote>
-<p>Устойчивый клиент умеет закончить работу и ограничивает цену каждого повторения.</p>
+<p>Многостраничная загрузка завершена только тогда, когда клиент дошёл до договорного
+конца, проверил общий grain и опубликовал весь снимок целиком.</p>
 </blockquote>
 <p><strong>Тип:</strong> Build<br />
 <strong>Треки:</strong> Core<br />
 <strong>Пререквизиты:</strong> 05/04<br />
 <strong>Время:</strong> ~90 минут<br />
-<strong>Результат:</strong> загружает все страницы API с явным условием остановки, ограниченными
-retries, backoff и поддержкой Retry-After.</p>
+<strong>Результат:</strong> проходит все страницы одного JSON API по доверенной цепочке <code>next</code>,
+ограничивает retries общим бюджетом и атомарно публикует результат только после
+доказанного завершения и проверки grain.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
 <ul>
-<li>Следовать <code>next</code> до документированного окончания.</li>
-<li>Отличать временные ошибки от постоянных.</li>
-<li>Применять bounded exponential backoff и <code>Retry-After</code>.</li>
-<li>Обнаруживать циклы pagination и дубликаты ключей.</li>
+<li>Отличать страницу ответа от полного набора данных.</li>
+<li>Следовать только договорному <code>next</code> до явного <code>null</code>, не угадывая число страниц.</li>
+<li>Разделять попытку, timeout, повтор страницы и общий retry budget загрузки.</li>
+<li>Повторять только безопасный <code>GET</code> при временной ошибке, учитывая <code>Retry-After</code> и jitter.</li>
+<li>Отклонять циклы, чужой origin, нарушение page contract и дубли бизнес-ключа.</li>
+<li>Не выдавать накопленные до ошибки записи за полный снимок и сохранять предыдущую поставку.</li>
 </ul>
+<h2 id="как-этот-урок-продолжает-маршрут">Как этот урок продолжает маршрут</h2>
+<p>В <code>05/04</code> вы получили <strong>один</strong> JSON-ресурс и проверили его транспортный контракт:
+точный status, media type, UTF-8, timeout, размер, redirect policy и атомарную запись.
+Теперь сервер намеренно возвращает не все заказы сразу, а небольшие страницы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">GET page=1 -&gt; items O2301, O2302 -&gt; next page=2
+GET page=2 -&gt; items O2303, O2304 -&gt; next page=3
+GET page=3 -&gt; items O2305        -&gt; next null
+</code></pre></div><p>Новый механизм — не ещё один способ разобрать JSON. Клиент должен доказать, что прошёл
+всю цепочку, ограничить цену временных сбоев и проверить единый grain уже <strong>между</strong>
+страницами. Поэтому артефакт сохраняет гарантии <code>05/04</code>: только <code>200</code>, JSON в UTF-8,
+ограниченный размер страницы, запрет автоматических redirects и явные timeouts.</p>
+<p>После урока вы умеете получить полный снимок одного JSON API. В <code>05/06</code> источник станет
+HTML и изменится способ извлечения полей. Кеш, checksum, manifest и повторное использование
+уже загруженного raw-слоя остаются интеграционному уроку <code>05/11</code>.</p>
 <h2 id="проблема">Проблема</h2>
-<p>Первая страница API успешна, вторая временно отвечает 429, а третья завершает выдачу.
-Наивный цикл либо теряет страницы, либо повторяет запрос бесконечно. Еще один дефект
-сервера возвращает ссылку на уже посещенную страницу.</p>
+<p>Аналитик запускает ежедневную загрузку заказов. Первая страница вернула 200, вторая после
+двух попыток ответила 503, а в каталоге уже появились записи с первой страницы.
+Следующий расчёт прочитал файл и сообщил падение выручки. Технически JSON корректен, но
+аналитически это правдоподобный неверный ответ: частичная выборка выглядит как полная.</p>
+<p>Другой источник после редизайна начинает возвращать:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;items&quot;: [{&quot;order_id&quot;: &quot;O2304&quot;}],
+  &quot;next&quot;: &quot;https://api.example.test/orders?page=2&quot;
+}
+</code></pre></div><p>со второй страницы снова на вторую. Без памяти о посещённых ссылках цикл не завершится.
+Если ограничиться <code>max_pages</code>, процесс остановится, но это всё равно не успех: договорный
+конец <code>next: null</code> не достигнут.</p>
 <h2 id="концепция">Концепция</h2>
-<p>У клиента четыре независимых ограничения:</p>
+<h3 id="1-страница-не-полный-набор">1. Страница — не полный набор</h3>
+<p>В уроке используется контракт страницы:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;items&quot;: [
+    {&quot;order_id&quot;: &quot;O2301&quot;},
+    {&quot;order_id&quot;: &quot;O2302&quot;}
+  ],
+  &quot;next&quot;: &quot;https://api.example.test/orders?page=2&quot;
+}
+</code></pre></div><ul>
+<li><code>items</code> — записи только текущей страницы;</li>
+<li><code>next</code> — выданный сервером переход к следующей странице;</li>
+<li><code>next: null</code> — единственное договорное доказательство конца в этом API.</li>
+</ul>
+<p>Пустой <code>items</code> сам по себе не означает конец. Некоторые API способны вернуть пустую
+промежуточную страницу и непустой <code>next</code>. Отсутствующее поле <code>next</code> тоже нельзя молча
+прочитать как <code>null</code>: контракт мог измениться, а клиент потеряет хвост данных.</p>
+<p>У реальных API встречаются page numbers, offset/limit, cursor, page token и HTTP <code>Link</code>.
+Их синтаксис разный, но инвариант один: клиент следует опубликованному механизмом API
+переходу и заканчивает только по документированному признаку.</p>
+<h3 id="2-цепочка-имеет-состояние-и-инварианты">2. Цепочка имеет состояние и инварианты</h3>
+<p>Минимальное состояние обхода:</p>
 <table>
 <thead>
 <tr>
-<th>Ограничение</th>
-<th>Назначение</th>
+<th>Состояние</th>
+<th>Зачем хранить</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>timeout</td>
-<td>ограничить одно ожидание</td>
+<td><code>current_url</code></td>
+<td>знать, какую страницу запросить сейчас</td>
 </tr>
 <tr>
-<td>max retries</td>
-<td>ограничить число повторов страницы</td>
+<td><code>visited</code></td>
+<td>не запросить уже посещённый переход повторно</td>
 </tr>
 <tr>
-<td>max backoff</td>
-<td>ограничить паузу</td>
+<td><code>records</code></td>
+<td>накапливать записи только внутри ещё не опубликованного снимка</td>
 </tr>
 <tr>
-<td>max pages</td>
-<td>ограничить ошибочную pagination</td>
+<td><code>seen_ids</code></td>
+<td>проверять единый grain между всеми страницами</td>
+</tr>
+<tr>
+<td><code>pages</code></td>
+<td>доказать путь и условие завершения</td>
+</tr>
+<tr>
+<td><code>retries</code></td>
+<td>сделать временные сбои и цену восстановления наблюдаемыми</td>
 </tr>
 </tbody>
 </table>
-<p>Повторять безопасно временные статусы вроде 429, 502, 503 и 504. Ошибка 400 обычно
-описывает постоянный дефект запроса и не исправится ожиданием.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<p>Минимальный цикл хранит <code>url</code>, множество visited и список records. После успешного ответа
-он добавляет <code>items</code> и присваивает <code>url = payload[&quot;next&quot;]</code>. Значение <code>None</code> завершает
-загрузку.</p>
-<p>Для повтора без серверной подсказки:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">delay = min(backoff_factor * 2**attempt, max_backoff)
-</code></pre></div><p>Если присутствует <code>Retry-After</code>, используйте его секунды или HTTP-date в пределах
-<code>max_backoff</code>.</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<p>Артефакт применяет один timeout ко всем страницам, закрывает каждый response и записывает
-retry events:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/paginated_client.py \
-  --url https://api.example.org/orders \
-  --output-dir delivery \
-  --max-pages 100 \
-  --max-retries 3
-</code></pre></div><p>Production-адаптер может использовать <code>urllib3.Retry</code>, но условие окончания и проверка
-grain остаются прикладной логикой.</p>
-<h2 id="сломайте-это">Сломайте это</h2>
-<p>Проверьте:</p>
-<ol>
-<li>429 с <code>Retry-After: 2</code>;</li>
-<li>503 без заголовка;</li>
-<li>400, который нельзя повторять;</li>
-<li><code>next</code>, указывающий на текущую страницу;</li>
-<li>отсутствие <code>next=null</code> до <code>max_pages</code>;</li>
-<li>одинаковый <code>order_id</code> на разных страницах.</li>
-</ol>
-<h2 id="проверьте-это">Проверьте это</h2>
+<p>Для учебного набора grain — одна строка на уникальный <code>order_id</code>. Дубликат внутри страницы
+ловится тем же правилом, что дубликат между первой и третьей страницами. Клиент не выбирает
+«последнюю версию» дубликата: без предметного правила это замаскировало бы нестабильную
+pagination или ошибку источника.</p>
+<p>Переход <code>next</code> сначала разрешается относительно текущей страницы, а затем проверяется.
+Артефакт разрешает только тот же scheme, host и port, что у начального URL. Он не следует
+автоматическому HTTP redirect и не переносит сессию на чужой origin. Это прямое применение
+границы безопасности из <code>05/04</code>.</p>
+<h3 id="3-timeout-attempt-и-retry-разные-величины">3. Timeout, attempt и retry — разные величины</h3>
+<p>Пусть <code>max_retries_per_page=2</code>. Тогда одна страница получает не две, а максимум три
+попытки:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">initial attempt -&gt; retry 1 -&gt; retry 2 -&gt; stop
+</code></pre></div><p>Timeout относится к каждой отдельной попытке. Он не ограничивает суммарное время обхода.
+Поэтому нужны независимые пределы:</p>
+<table>
+<thead>
+<tr>
+<th>Предел</th>
+<th>Что ограничивает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>connect/read timeout</td>
+<td>одно сетевое ожидание</td>
+</tr>
+<tr>
+<td><code>max_retries_per_page</code></td>
+<td>повторы одной страницы</td>
+</tr>
+<tr>
+<td><code>max_total_retries</code></td>
+<td>сумму повторов всего снимка</td>
+</tr>
+<tr>
+<td><code>max_backoff</code></td>
+<td>допустимую паузу перед одним повтором</td>
+</tr>
+<tr>
+<td><code>max_pages</code></td>
+<td>длину ошибочной или неожиданной цепочки</td>
+</tr>
+<tr>
+<td><code>max_page_bytes</code></td>
+<td>память на одну декодированную JSON-страницу</td>
+</tr>
+</tbody>
+</table>
+<p>Только page-level предел выглядит конечным, но при 100 страницах и трёх повторах может
+создать 300 дополнительных запросов. Общий бюджет делает верхнюю границу явной для всей
+загрузки.</p>
+<h3 id="4-повтор-зависит-от-метода-и-причины">4. Повтор зависит от метода и причины</h3>
+<p>Урок повторяет только <code>GET</code>. По HTTP semantics он безопасен и идемпотентен: повтор
+запрашивает то же представление и не должен создавать новую сущность. Это не разрешение
+автоматически повторять любой <code>POST</code>: если сервер обработал создание, но ответ потерялся,
+повтор может создать дубль.</p>
+<p>Рабочая allowlist урока:</p>
 <ul>
-<li>три страницы дают пять records;</li>
-<li>каждая страница получает timeout;</li>
-<li><code>Retry-After</code> важнее локального backoff;</li>
-<li>backoff ограничен максимумом;</li>
-<li>400 выполняется один раз;</li>
-<li>цикл обнаруживается до повторного запроса;</li>
-<li>delivery содержит JSONL и report.</li>
+<li>transport failure Requests — временный кандидат для повтора <code>GET</code>;</li>
+<li><code>429</code>, <code>500</code>, <code>502</code>, <code>503</code>, <code>504</code> — временные status по принятой политике;</li>
+<li><code>400</code>, <code>401</code>, <code>403</code>, <code>404</code> — немедленный отказ, потому что ожидание не исправляет
+запрос или доступ;</li>
+<li><code>3xx</code> — отказ, потому что автоматические redirects отключены;</li>
+<li><code>206</code> — отказ: частичный HTTP response не является страницей целиком.</li>
+</ul>
+<p>Allowlist — часть контракта конкретного источника, а не универсальная истина. Например,
+некоторые API используют <code>409</code> как временный сигнал, а другие — как постоянный конфликт.</p>
+<h3 id="5-backoff-retry-after-и-jitter-решают-разные-задачи">5. Backoff, Retry-After и jitter решают разные задачи</h3>
+<p>Если сервер не дал подсказку, базовая пауза растёт экспоненциально:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">ceiling = min(backoff_factor * 2 ** (retry_number - 1), max_backoff)
+</code></pre></div><p>Одинаковый график у тысячи клиентов создаёт новую волну нагрузки. Поэтому артефакт
+случайно выбирает задержку в верхней части интервала:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">[ceiling * (1 - jitter_ratio), ceiling]
+</code></pre></div><p><code>Retry-After</code> имеет иной смысл: сервер сообщает, сколько следует ждать. Значение бывает
+целым числом секунд или HTTP-date. Если оно превышает локальный <code>max_backoff</code>, клиент не
+обрезает его и не повторяет раньше разрешённого времени. Он завершает загрузку ошибкой
+retry budget. Это честнее, чем нарушить ограничение сервера.</p>
+<p>Невалидный <code>Retry-After</code> не превращается в бесконечное ожидание: клиент фиксирует обычный
+локальный backoff. Пауза инъецируется через <code>sleep_fn</code>, а jitter — через <code>random_fn</code>,
+поэтому behavioral tests не ждут реальное время и остаются детерминированными.</p>
+<h3 id="6-дошли-до-конца-не-всегда-означает-стабильный-снимок-источника">6. «Дошли до конца» не всегда означает стабильный снимок источника</h3>
+<p>Если в offset-pagination между запросами добавилась новая запись в начало списка,
+какая-то запись может повториться или сдвинуться на другую страницу. Уникальность
+<code>order_id</code> поймает повтор, но не всегда обнаружит пропуск.</p>
+<p>Клиент может честно доказать:</p>
+<ul>
+<li>прошёл наблюдавшуюся цепочку до <code>next: null</code>;</li>
+<li>не повторял URL;</li>
+<li>не увидел дубликатов ключа;</li>
+<li>каждая страница выполнила transport и page contract.</li>
+</ul>
+<p>Он не может сам доказать неизменность удалённой коллекции. Для сильной гарантии API должен
+дать snapshot token, стабильный cursor, watermark или документированную сортировку.
+Артефакт не делает production-claim о согласованном снимке без такого server contract.</p>
+<h3 id="7-частичные-records-диагностика-а-не-поставка">7. Частичные records — диагностика, а не поставка</h3>
+<p>Во время обхода записи находятся только в памяти. Если третья страница не прошла,
+исключение сообщает <code>completed_pages</code> и <code>buffered_records</code>, но не возвращает records как
+успешный результат и не изменяет output.</p>
+<p>Только после <code>next: null</code> и проверки всех ключей строится один self-contained JSON:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">fetch all pages
+-&gt; validate traversal and grain
+-&gt; write .snapshot.&lt;unique&gt;.part
+-&gt; flush + fsync
+-&gt; os.replace
+-&gt; orders_snapshot.json
+</code></pre></div><p>В одном файле находятся records, page journal, retry journal, policy, checks и summary.
+Поэтому потребитель не может случайно совместить новый <code>orders.jsonl</code> со старым report.
+Checksum и versioned manifest появятся в <code>05/11</code>.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-пройдите-три-сохранённые-страницы-вручную">Шаг 1. Пройдите три сохранённые страницы вручную</h3>
+<p><code>code/main.py</code> сначала обходит словарь из трёх fixture-страниц без Requests. Перед
+запуском предскажите:</p>
+<ul>
+<li>последовательность URL;</li>
+<li>число записей после каждой страницы;</li>
+<li>значение, которое доказывает завершение;</li>
+<li>что произойдёт при повторе <code>order_id</code>.</li>
+</ul>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><p>Прозрачный цикл делает только центральный механизм:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">while url is not None:
+    if url in visited:
+        raise RuntimeError(&quot;cycle&quot;)
+    visited.add(url)
+    payload = pages[url]
+    require(&quot;next&quot; in payload)
+    require_unique(payload[&quot;items&quot;])
+    url = payload[&quot;next&quot;]
+</code></pre></div><p><code>max_pages</code> здесь не показан ради краткости, но standalone-артефакт проверяет его до
+каждого нового запроса.</p>
+<h3 id="шаг-2-отделите-попытку-страницы-от-обхода">Шаг 2. Отделите попытку страницы от обхода</h3>
+<p>Одна функция отвечает за HTTP attempt и bounded retries; внешний цикл отвечает за
+pagination. Это разделение не даёт случайно сбросить <code>visited</code>, общий retry budget или
+список ключей при повторе текущей страницы.</p>
+<p>Успешная попытка принимает только:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">200
+application/json или application/*+json
+UTF-8
+decoded body &lt;= max_page_bytes
+JSON object
+</code></pre></div><p>Status и headers проверяются до разбора JSON. Response закрывается после успеха,
+отклонения и перед retry.</p>
+<h3 id="шаг-3-проверьте-страницу-до-накопления">Шаг 3. Проверьте страницу до накопления</h3>
+<p>Сначала проверяются <code>items</code>, <code>order_id</code> и <code>next</code>; только затем записи присоединяются к
+буферу. Если внутри страницы второй <code>order_id</code> дублирует первый, ни одна запись этой
+страницы не считается принятой.</p>
+<p>Относительный <code>next</code> вроде <code>?page=2</code> превращается в абсолютный URL через <code>urljoin</code>, но
+после этого обязан остаться на исходном origin.</p>
+<h3 id="шаг-4-публикуйте-один-полный-объект">Шаг 4. Публикуйте один полный объект</h3>
+<p><code>download_snapshot</code> выполняет две операции строго по порядку:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">result = fetch_all(start_url, ...)
+publish_snapshot(result, output)
+</code></pre></div><p>При исключении между ними публикация не вызывается. Если по output уже лежит предыдущий
+валидный снимок, он остаётся неизменным.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Самостоятельный CLI предназначен для документированного JSON API с полями <code>items</code> и
+<code>next</code>. Для публичного HTTPS-источника:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/paginated_client.py \
+  --url &#x27;https://api.example.org/orders?limit=100&#x27; \
+  --output work/orders_snapshot.json \
+  --record-id-field order_id \
+  --max-pages 100 \
+  --max-retries-per-page 3 \
+  --max-total-retries 10
+</code></pre></div><p>URL заключён в кавычки, чтобы shell не интерпретировал <code>&amp;</code>. Значения query parameters
+редактируются в отчёте. Credentials нельзя помещать в URL.</p>
+<p>Если API требует bearer token, передайте <strong>имя</strong> переменной окружения:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">export ORDERS_API_TOKEN=&#x27;...&#x27;
+uv run --locked python outputs/paginated_client.py \
+  --url &#x27;https://api.example.org/orders?limit=100&#x27; \
+  --output work/orders_snapshot.json \
+  --bearer-token-env ORDERS_API_TOKEN
+</code></pre></div><p>Token читается из environment, добавляется в Session header и не попадает в report.
+Ключ <code>--trust-env</code> нужен только при осознанном использовании локальных proxy и <code>.netrc</code>.</p>
+<p>Для loopback-fixture разрешён отдельный флаг <code>--allow-http</code>; публичный HTTP он не
+разрешает. Успех возвращает exit code <code>0</code>. Нарушение ответа, page contract, pagination,
+grain или retry budget возвращает <code>1</code>; configuration, transport bootstrap и filesystem
+failure — <code>2</code>. Ни один отказ не сопровождается traceback в обычном CLI-выводе.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<ol>
+<li>Удалите <code>next</code> с последней страницы. Клиент должен отказаться считать отсутствие поля
+окончанием.</li>
+<li>Верните <code>206</code> с синтаксически корректным JSON. Страница всё равно должна быть
+отклонена.</li>
+<li>Сделайте <code>next</code> равным уже посещённому URL. Повторный GET не должен состояться.</li>
+<li>Направьте <code>next</code> на другой host или с HTTPS на HTTP. Переход блокируется до запроса.</li>
+<li>Повторите <code>order_id</code> на двух разных страницах. Полный снимок не публикуется.</li>
+<li>Верните <code>429 Retry-After: 2</code>, затем <code>200</code>. В retry journal должна появиться одна пауза
+от сервера.</li>
+<li>Верните <code>503 Retry-After: 120</code> при <code>max_backoff=30</code>. Клиент должен остановиться, а не
+повторить через 30 секунд вопреки серверу.</li>
+<li>Исчерпайте общий retry budget на второй странице. Первая страница остаётся только
+диагностическим буфером.</li>
+<li>Превысьте <code>max_page_bytes</code> после декомпрессии. Предыдущий snapshot должен сохраниться.</li>
+</ol>
+<p>Самая опасная поломка — не явный exception, а файл с одной успешной страницей и меткой
+«готово». Behavioral tests запрещают такую публикацию.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Тесты используют response/session doubles: они проверяют решения клиента без внешней сети
+и реального ожидания. Fixture JSON остаются теми же данными, что в <code>05/03</code> и <code>05/04</code>.</p>
+<p>Проверяется:</p>
+<ul>
+<li>три страницы, пять записей и точный порядок ключей;</li>
+<li>transport policy на каждой попытке;</li>
+<li>абсолютный и относительный <code>next</code>, same-origin и HTTPS;</li>
+<li>cycle и <code>max_pages</code> до лишнего запроса;</li>
+<li>обязательные <code>items</code>, <code>next</code> и бизнес-ключ;</li>
+<li>дубликат внутри и между страницами;</li>
+<li>точный <code>200</code>, media type, UTF-8 и decoded size;</li>
+<li><code>Retry-After</code> в секундах и HTTP-date;</li>
+<li>jittered backoff, per-page и общий retry budget;</li>
+<li>закрытие response и lifecycle Session;</li>
+<li>атомарная замена полного снимка и сохранение предыдущего при провале;</li>
+<li>редактирование URL и отсутствие traceback при CLI configuration error.</li>
 </ul>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
-<p><code>outputs/paginated_client.py</code> поставляет records и журнал страниц/retries. Отчет доказывает
-условие остановки и позволяет отличить медленный источник от ошибки данных.</p>
+</code></pre></div><p>Успешные тесты доказывают поведение артефакта на заданных сценариях. Они не доказывают,
+что произвольный внешний API стабилен или предоставляет согласованный snapshot.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/paginated_client.py</code> — самостоятельный импортируемый клиент и CLI. Он не зависит
+от <code>code/main.py</code>, тестовых doubles, внешнего учебного сервера или незакоммиченного файла.</p>
+<p>Результат <code>orders_snapshot.json</code> содержит:</p>
+<ul>
+<li>все records только завершённого обхода;</li>
+<li>redacted start URL и имя бизнес-ключа;</li>
+<li>фактически применённую timeout/retry policy;</li>
+<li>журнал страниц и переходов;</li>
+<li>журнал повторов с причиной, номером и источником задержки;</li>
+<li>проверки окончания, уникальности grain и same-origin chain;</li>
+<li>итоговые page, record и retry counts.</li>
+</ul>
+<p>Чтобы адаптировать артефакт к другому API, измените page contract (<code>items</code>, <code>next</code>) и
+<code>record_id_field</code>, но не удаляйте разделение между полным обходом и публикацией.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>Добавьте cursor pagination без URL.</li>
-<li>Реализуйте jitter и протестируйте его границы.</li>
-<li>Сохраняйте checkpoint после каждой страницы для безопасного resume.</li>
+<li>Сделайте вторую страницу один раз ответившей <code>503</code>, а затем успешной. Предскажите
+число attempts и retries и подтвердите его журналом.</li>
+<li>Адаптируйте чистую функцию разбора страницы к API с <code>next_page_token</code>, сохранив все
+остальные инварианты клиента.</li>
+<li>Добавьте в fixtures вставку новой записи между offset-страницами. Покажите сценарий,
+который ловится дубликатом, и отдельно объясните пропуск, который клиент не может
+обнаружить без server-side snapshot contract.</li>
 </ol>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
 <thead>
 <tr>
 <th>Термин</th>
-<th>Распространенное заблуждение</th>
+<th>Распространённое заблуждение</th>
 <th>Точное значение</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Pagination</td>
-<td>Несколько независимых запросов</td>
-<td>Последовательность с договорным переходом и окончанием</td>
+<td>несколько независимых запросов</td>
+<td>договорная последовательность страниц с явным переходом и концом</td>
 </tr>
 <tr>
-<td>Retry</td>
-<td>Повтор любой ошибки</td>
-<td>Ограниченный повтор временного безопасного запроса</td>
+<td>Cursor / page token</td>
+<td>номер страницы, который можно вычислить</td>
+<td>непрозрачное значение сервера для продолжения того же обхода</td>
 </tr>
 <tr>
-<td>Backoff</td>
-<td>Постоянная пауза</td>
-<td>Растущее ожидание между попытками</td>
+<td>Attempt</td>
+<td>то же, что retry</td>
+<td>любой запрос страницы; retry — только повтор после неудачной попытки</td>
+</tr>
+<tr>
+<td>Retry budget</td>
+<td>число повторов одной страницы</td>
+<td>верхняя граница повторов одной страницы и/или всей операции</td>
+</tr>
+<tr>
+<td>Exponential backoff</td>
+<td>гарантия восстановления</td>
+<td>растущая пауза, которая ограничивает нагрузку, но не делает постоянную ошибку временной</td>
+</tr>
+<tr>
+<td>Jitter</td>
+<td>случайная потеря времени</td>
+<td>разброс пауз, уменьшающий синхронную волну повторов клиентов</td>
 </tr>
 <tr>
 <td>Retry-After</td>
-<td>Timeout</td>
-<td>Серверная рекомендация времени следующей попытки</td>
+<td>timeout запроса</td>
+<td>серверная рекомендация, когда допустима следующая попытка</td>
 </tr>
 <tr>
-<td>Retry storm</td>
-<td>Быстрый recovery</td>
-<td>Синхронные повторы, усиливающие перегрузку</td>
+<td>Partial result</td>
+<td>допустимый fallback полного снимка</td>
+<td>диагностический буфер, который нельзя публиковать под контрактом полноты</td>
+</tr>
+<tr>
+<td>Snapshot consistency</td>
+<td>факт достижения <code>next: null</code></td>
+<td>гарантия стабильной коллекции, которую должен предоставить server contract</td>
 </tr>
 </tbody>
 </table>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
 <ul>
-<li><a href="https://urllib3.readthedocs.io/en/stable/reference/urllib3.util.html#urllib3.util.Retry" target="_blank" rel="noopener">urllib3: <code>Retry</code></a> — изучите status allowlist, backoff, jitter и <code>respect_retry_after_header</code>.</li>
-<li><a href="https://requests.readthedocs.io/en/latest/api/#requests.adapters.HTTPAdapter" target="_blank" rel="noopener">Requests: HTTPAdapter</a> — разберите подключение retry-policy к Session.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9110#field.retry-after" target="_blank" rel="noopener">RFC 9110: Retry-After</a> — сравните delay-seconds и HTTP-date.</li>
-<li><a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" target="_blank" rel="noopener">AWS: Exponential Backoff and Jitter</a> — поймите, почему одинаковый backoff множества клиентов создает пики.</li>
+<li><a href="https://learn.microsoft.com/ru-ru/azure/architecture/patterns/retry" target="_blank" rel="noopener">Microsoft Learn: шаблон повторной попытки</a> — прочитайте разделы «Стратегии повтора», «Идемпотентность» и «Проблемы»: они связывают временную ошибку с ограниченной политикой, а не с безусловным циклом.</li>
+<li><a href="https://learn.microsoft.com/ru-ru/azure/architecture/best-practices/transient-faults" target="_blank" rel="noopener">Microsoft Learn: обработка временных сбоев</a> — разберите рекомендации о единственном уровне retries и общем лимите: вложенные политики незаметно умножают число запросов.</li>
+<li><a href="https://learn.microsoft.com/ru-ru/azure/architecture/antipatterns/retry-storm/" target="_blank" rel="noopener">Microsoft Learn: антипаттерн «шторм повторных попыток»</a> — изучите признаки retry storm и способы остановки; материал объясняет цену слишком агрессивного восстановления.</li>
+<li><a href="https://google.aip.dev/158" target="_blank" rel="noopener">Google AIP-158: Pagination</a> — прочитайте Guidance и Opacity: <code>next_page_token</code> является непрозрачным продолжением, а пустой token — договорным концом, не приглашением вычислить следующий offset.</li>
+<li><a href="https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api" target="_blank" rel="noopener">GitHub Docs: Using pagination in the REST API</a> — сравните JSON <code>next</code> урока с HTTP <code>Link rel=&quot;next&quot;</code> и посмотрите, почему клиент следует опубликованной ссылке API.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110#section-9.2" target="_blank" rel="noopener">RFC 9110: Safe and idempotent methods</a> — прочитайте §§9.2.1–9.2.2 и §10.2.3: стандарт задаёт границу автоматического повтора и две формы <code>Retry-After</code>.</li>
+<li><a href="https://requests.readthedocs.io/en/latest/user/quickstart/#timeouts" target="_blank" rel="noopener">Requests: Quickstart — Timeouts, errors and streaming</a> — повторите точный смысл timeout и соседние разделы об ошибках и <code>iter_content</code>, которые артефакт наследует из <code>05/04</code>.</li>
+<li><a href="https://requests.readthedocs.io/en/stable/user/advanced/#example-automatic-retries" target="_blank" rel="noopener">Requests: Advanced Usage — Automatic Retries</a> — изучите подключение <code>urllib3.Retry</code> через <code>HTTPAdapter</code>; применяйте его как transport policy, оставляя pagination и grain прикладному коду.</li>
+<li><a href="https://urllib3.readthedocs.io/en/stable/reference/urllib3.util.html#urllib3.util.Retry" target="_blank" rel="noopener">urllib3: <code>Retry</code></a> — разберите <code>allowed_methods</code>, <code>status_forcelist</code>, <code>backoff_max</code>, jitter и <code>respect_retry_after_header</code>, прежде чем заменять учебный механизм библиотечным.</li>
+<li><a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" target="_blank" rel="noopener">Amazon Builders' Library: Timeouts, retries and backoff with jitter</a> — прочитайте разделы Retries and backoff и Jitter: первичный инженерный разбор показывает, как локально полезный retry усиливает общую перегрузку.</li>
 </ul>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что означает Retry-After?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Размер страницы</button><button type="button" class="quiz-option" data-choice="1">Рекомендованное сервером время ожидания</button><button type="button" class="quiz-option" data-choice="2">Число records</button><button type="button" class="quiz-option" data-choice="3">Новый URL</button></div><p class="quiz-feedback" hidden>Заголовок задает секунды или HTTP-date, после которых повтор уместен.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Зачем ограничивать max_retries и max_backoff?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для форматирования</button><button type="button" class="quiz-option" data-choice="1">Чтобы pipeline имел конечную стоимость и время</button><button type="button" class="quiz-option" data-choice="2">Чтобы удалить timeout</button><button type="button" class="quiz-option" data-choice="3">Чтобы изменить JSON</button></div><p class="quiz-feedback" hidden>Bounded policy предотвращает бесконечное ожидание и retry storm.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Как обнаружить ошибочный цикл pagination?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Считать суммы</button><button type="button" class="quiz-option" data-choice="1">Хранить множество посещенных URL/cursor</button><button type="button" class="quiz-option" data-choice="2">Увеличить timeout</button><button type="button" class="quiz-option" data-choice="3">Игнорировать next</button></div><p class="quiz-feedback" hidden>Повтор уже посещенного указателя означает, что завершение недостижимо.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>Страница содержит пустой items и непустой next. Как должен поступить клиент этого урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Завершить обход, потому что пустая страница всегда последняя</button><button type="button" class="quiz-option" data-choice="1">Повторить ту же страницу без учёта retry budget</button><button type="button" class="quiz-option" data-choice="2">Удалить уже накопленные записи и начать сначала</button><button type="button" class="quiz-option" data-choice="3">Принять пустую страницу и перейти по next</button></div><p class="quiz-feedback" hidden>Условие конца задаёт поле next, а не размер items. Пустая промежуточная страница допустима, если page contract оставляет продолжение.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>На третьей странице снова появился order_id с первой страницы. Какой результат соответствует grain «один заказ на order_id»?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Отклонить весь новый снимок и назвать дублирующийся ключ</button><button type="button" class="quiz-option" data-choice="1">Оставить последнюю строку, потому что она загружена позже</button><button type="button" class="quiz-option" data-choice="2">Сложить числовые поля двух строк</button><button type="button" class="quiz-option" data-choice="3">Удалить обе строки и завершить успешно</button></div><p class="quiz-feedback" hidden>Без предметного правила выбора версии дедупликация маскирует нестабильную pagination или дефект источника. Нарушение общего grain блокирует публикацию.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>Сервер вернул 503 и Retry-After: 120, а локальная политика разрешает ждать не более 30 секунд. Какое решение безопаснее?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Повторить сразу, потому что локальная политика важнее сервера</button><button type="button" class="quiz-option" data-choice="1">Подождать 30 секунд и повторить раньше указанного сервером срока</button><button type="button" class="quiz-option" data-choice="2">Остановить загрузку как исчерпавшую допустимый бюджет ожидания</button><button type="button" class="quiz-option" data-choice="3">Игнорировать 503 и разобрать body как успешную страницу</button></div><p class="quiz-feedback" hidden>Клиент не должен нарушать Retry-After и одновременно не обязан ждать дольше локального бюджета. Честный выход — завершить попытку отказом без раннего retry.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">04</p><h3>Почему max_total_retries нужен дополнительно к max_retries_per_page?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он проверяет JSON schema каждой записи</button><button type="button" class="quiz-option" data-choice="1">Он ограничивает сумму повторов длинного обхода, а не только одной страницы</button><button type="button" class="quiz-option" data-choice="2">Он заменяет connect и read timeout</button><button type="button" class="quiz-option" data-choice="3">Он гарантирует стабильность удалённой коллекции</button></div><p class="quiz-feedback" hidden>Небольшой лимит на каждой из множества страниц всё ещё допускает сотни запросов. Общий budget задаёт верхнюю границу стоимости одной загрузки.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">05</p><h3>API вернул next на другой host. Что должен сделать same-origin клиент до следующего GET?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Перейти по ссылке и удалить Authorization только после ответа</button><button type="button" class="quiz-option" data-choice="1">Считать цепочку завершённой и опубликовать накопленное</button><button type="button" class="quiz-option" data-choice="2">Преобразовать чужой host в исходный без проверки документации</button><button type="button" class="quiz-option" data-choice="3">Отклонить переход и не отправлять следующий запрос</button></div><p class="quiz-feedback" hidden>next является входными данными. Same-origin policy проверяется до запроса, чтобы не отправить сессию и credentials неожиданному получателю.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util
@@ -205,6 +479,9 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;paginated_client.py&quot;
@@ -216,115 +493,458 @@ CLIENT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CLIENT)
 
 
+def page(number: int) -&gt; dict:
+    return json.loads((DATA / f&quot;api_page_{number}.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+
+
 class Response:
-    def __init__(self, status: int, payload=None, retry_after: str | None = None):
+    def __init__(
+        self,
+        status: int,
+        payload: object | None = None,
+        *,
+        body: bytes | None = None,
+        content_type: str = &quot;application/json; charset=utf-8&quot;,
+        retry_after: str | None = None,
+        stream_error: Exception | None = None,
+    ) -&gt; None:
         self.status_code = status
-        self.payload = payload
-        self.headers = {&quot;Content-Type&quot;: &quot;application/json&quot;}
+        self.body = body if body is not None else json.dumps(payload).encode(&quot;utf-8&quot;)
+        self.headers = {&quot;Content-Type&quot;: content_type}
         if retry_after is not None:
             self.headers[&quot;Retry-After&quot;] = retry_after
         self.closed = False
+        self.stream_error = stream_error
 
-    def json(self):
-        return self.payload
+    def iter_content(self, chunk_size: int):
+        if self.stream_error is not None:
+            raise self.stream_error
+        for start in range(0, len(self.body), chunk_size):
+            yield self.body[start : start + chunk_size]
 
-    def close(self):
+    def close(self) -&gt; None:
         self.closed = True
 
 
 class Session:
-    def __init__(self, responses):
+    def __init__(self, responses: dict[str, list[Response | Exception]]) -&gt; None:
         self.responses = {url: list(values) for url, values in responses.items()}
-        self.calls = []
+        self.calls: list[tuple[str, dict]] = []
+        self.closed = False
+        self.trust_env = True
 
     def get(self, url: str, **kwargs):
         self.calls.append((url, kwargs))
-        return self.responses[url].pop(0)
+        outcome = self.responses[url].pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    def close(self) -&gt; None:
+        self.closed = True
 
 
-def page(number: int) -&gt; dict:
-    return json.loads((DATA / f&quot;api_page_{number}.json&quot;).read_text())
+def fixture_session() -&gt; tuple[str, Session]:
+    urls = [f&quot;https://api.example.test/orders?page={number}&quot; for number in (1, 2, 3)]
+    return urls[0], Session(
+        {url: [Response(200, page(index + 1))] for index, url in enumerate(urls)}
+    )
 
 
-class PaginatedClientTest(unittest.TestCase):
-    def test_loads_until_next_is_null(self) -&gt; None:
-        urls = [f&quot;https://api.example.test/orders?page={number}&quot; for number in (1, 2, 3)]
-        session = Session({url: [Response(200, page(index + 1))] for index, url in enumerate(urls)})
-        result = CLIENT.fetch_all(urls[0], session=session, sleep_fn=lambda delay: None)
+class TraversalTest(unittest.TestCase):
+    def test_loads_until_explicit_next_null(self) -&gt; None:
+        start_url, session = fixture_session()
+        result = CLIENT.fetch_all(start_url, session=session, sleep_fn=lambda delay: None)
+
         self.assertTrue(result[&quot;summary&quot;][&quot;valid&quot;])
+        self.assertFalse(result[&quot;summary&quot;][&quot;published&quot;])
         self.assertEqual(result[&quot;summary&quot;][&quot;page_count&quot;], 3)
         self.assertEqual(result[&quot;summary&quot;][&quot;record_count&quot;], 5)
-
-    def test_timeout_is_passed_on_every_request(self) -&gt; None:
-        url = &quot;https://api.example.test/orders?page=3&quot;
-        session = Session({url: [Response(200, page(3))]})
-        CLIENT.fetch_all(url, session=session, timeout=(1.0, 2.0), sleep_fn=lambda delay: None)
-        self.assertEqual(session.calls[0][1][&quot;timeout&quot;], (1.0, 2.0))
-
-    def test_retry_after_overrides_exponential_backoff(self) -&gt; None:
-        url = &quot;https://api.example.test/orders?page=3&quot;
-        delays = []
-        session = Session({url: [Response(429, retry_after=&quot;2&quot;), Response(200, page(3))]})
-        result = CLIENT.fetch_all(url, session=session, sleep_fn=delays.append)
-        self.assertEqual(delays, [2.0])
-        self.assertEqual(result[&quot;retries&quot;][0][&quot;reason&quot;], &quot;HTTP 429&quot;)
-
-    def test_exponential_backoff_is_bounded(self) -&gt; None:
         self.assertEqual(
-            CLIENT.retry_delay(
-                None,
-                attempt=5,
-                backoff_factor=1.0,
-                max_backoff=10.0,
-            ),
-            10.0,
+            [row[&quot;order_id&quot;] for row in result[&quot;records&quot;]],
+            [
+                &quot;O2301&quot;,
+                &quot;O2302&quot;,
+                &quot;O2303&quot;,
+                &quot;O2304&quot;,
+                &quot;O2305&quot;,
+            ],
         )
+        self.assertTrue(result[&quot;checks&quot;][&quot;terminated_by_next_null&quot;])
+
+    def test_transport_contract_is_applied_to_every_page(self) -&gt; None:
+        start_url, session = fixture_session()
+        CLIENT.fetch_all(start_url, session=session, timeout=(1.0, 2.0), sleep_fn=lambda _: None)
+
+        self.assertEqual(len(session.calls), 3)
+        for _, kwargs in session.calls:
+            self.assertEqual(kwargs[&quot;timeout&quot;], (1.0, 2.0))
+            self.assertTrue(kwargs[&quot;stream&quot;])
+            self.assertFalse(kwargs[&quot;allow_redirects&quot;])
+            self.assertEqual(kwargs[&quot;headers&quot;], {&quot;Accept&quot;: &quot;application/json&quot;})
+
+    def test_relative_next_is_resolved_within_same_origin(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        second = &quot;https://api.example.test/orders?page=2&quot;
+        first_payload = {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: &quot;?page=2&quot;}
+        second_payload = {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O2&quot;}], &quot;next&quot;: None}
+        session = Session(
+            {first: [Response(200, first_payload)], second: [Response(200, second_payload)]}
+        )
+
+        result = CLIENT.fetch_all(first, session=session, sleep_fn=lambda _: None)
+
+        self.assertEqual([call[0] for call in session.calls], [first, second])
+        self.assertEqual(result[&quot;summary&quot;][&quot;record_count&quot;], 2)
+
+    def test_explicit_default_https_port_is_the_same_origin(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        second = &quot;https://api.example.test:443/orders?page=2&quot;
+        session = Session(
+            {
+                first: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: second})],
+                second: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O2&quot;}], &quot;next&quot;: None})],
+            }
+        )
+
+        result = CLIENT.fetch_all(first, session=session, sleep_fn=lambda _: None)
+
+        self.assertEqual(result[&quot;summary&quot;][&quot;page_count&quot;], 2)
+
+    def test_cross_origin_next_is_rejected_before_second_request(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        payload = {
+            &quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}],
+            &quot;next&quot;: &quot;https://evil.example/orders?page=2&amp;token=secret&quot;,
+        }
+        session = Session({first: [Response(200, payload)]})
+
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;outside&quot;) as caught:
+            CLIENT.fetch_all(first, session=session, sleep_fn=lambda _: None)
+
+        self.assertEqual(len(session.calls), 1)
+        self.assertNotIn(&quot;secret&quot;, json.dumps(caught.exception.as_report()))
+
+    def test_https_to_http_next_is_rejected(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        payload = {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: &quot;http://api.example.test/p2&quot;}
+        session = Session({first: [Response(200, payload)]})
+
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;HTTP&quot;):
+            CLIENT.fetch_all(first, session=session, sleep_fn=lambda _: None)
+
+    def test_invalid_port_is_a_controlled_configuration_error(self) -&gt; None:
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;invalid port&quot;) as caught:
+            CLIENT.fetch_all(&quot;https://api.example.test:bad/orders&quot;)
+        self.assertEqual(caught.exception.kind, &quot;configuration&quot;)
+
+    def test_cycle_is_detected_before_repeated_request(self) -&gt; None:
+        url = &quot;https://api.example.test/orders?page=1&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: url})]})
+
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;cycle&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+        self.assertEqual(len(session.calls), 1)
+
+    def test_max_pages_blocks_unproven_completion(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        second = &quot;https://api.example.test/orders?page=2&quot;
+        session = Session(
+            {
+                first: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: second})],
+                second: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O2&quot;}], &quot;next&quot;: None})],
+            }
+        )
+
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;max_pages&quot;) as caught:
+            CLIENT.fetch_all(first, session=session, max_pages=1, sleep_fn=lambda _: None)
+
+        self.assertEqual(len(session.calls), 1)
+        self.assertEqual(caught.exception.details[&quot;buffered_records&quot;], 1)
+
+    def test_query_values_are_redacted_in_success_report(self) -&gt; None:
+        url = &quot;https://api.example.test/orders?page=1&amp;token=top-secret&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})]})
+
+        result = CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+        serialized = json.dumps(result)
+        self.assertNotIn(&quot;top-secret&quot;, serialized)
+        self.assertIn(&quot;redacted&quot;, serialized)
+
+
+class PageContractTest(unittest.TestCase):
+    def test_missing_next_is_not_treated_as_end(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}]})]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;must contain next&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+    def test_items_must_be_a_list(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: {}, &quot;next&quot;: None})]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;items must be a list&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+    def test_every_record_must_have_the_declared_key(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;amount&quot;: 10}], &quot;next&quot;: None})]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;order_id&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+    def test_duplicate_key_within_one_page_is_rejected(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        payload = {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}, {&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None}
+        session = Session({url: [Response(200, payload)]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;duplicate&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+    def test_duplicate_key_across_pages_is_rejected(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        second = &quot;https://api.example.test/orders?page=2&quot;
+        session = Session(
+            {
+                first: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: second})],
+                second: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})],
+            }
+        )
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;duplicate&quot;):
+            CLIENT.fetch_all(first, session=session, sleep_fn=lambda _: None)
+
+    def test_exact_200_is_required_instead_of_any_2xx(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(206, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})
+        session = Session({url: [response]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;HTTP 206&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+        self.assertTrue(response.closed)
+
+    def test_vendor_json_media_type_is_allowed(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(
+            200,
+            {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None},
+            content_type=&quot;application/vnd.example+json&quot;,
+        )
+        result = CLIENT.fetch_all(url, session=Session({url: [response]}), sleep_fn=lambda _: None)
+        self.assertTrue(result[&quot;summary&quot;][&quot;valid&quot;])
+
+    def test_html_error_body_is_rejected_before_json_parsing(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(200, body=b&quot;&lt;html&gt;error&lt;/html&gt;&quot;, content_type=&quot;text/html&quot;)
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;not JSON&quot;):
+            CLIENT.fetch_all(url, session=Session({url: [response]}), sleep_fn=lambda _: None)
+
+    def test_invalid_utf8_is_rejected(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(200, body=b&#x27;{&quot;items&quot;: [&quot;\xff&quot;], &quot;next&quot;: null}&#x27;)
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;UTF-8&quot;):
+            CLIENT.fetch_all(url, session=Session({url: [response]}), sleep_fn=lambda _: None)
+
+    def test_decoded_page_size_is_bounded(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;max_page_bytes&quot;):
+            CLIENT.fetch_all(
+                url,
+                session=Session({url: [response]}),
+                max_page_bytes=10,
+                sleep_fn=lambda _: None,
+            )
+
+
+class RetryPolicyTest(unittest.TestCase):
+    def test_retry_after_seconds_overrides_local_backoff(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        delays: list[float] = []
+        first = Response(429, {}, retry_after=&quot;2&quot;)
+        session = Session(
+            {url: [first, Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})]}
+        )
+
+        result = CLIENT.fetch_all(url, session=session, sleep_fn=delays.append)
+
+        self.assertEqual(delays, [2.0])
+        self.assertEqual(result[&quot;retries&quot;][0][&quot;delay_source&quot;], &quot;retry-after&quot;)
+        self.assertTrue(first.closed)
 
     def test_http_date_retry_after_is_supported(self) -&gt; None:
         now = datetime(2026, 5, 1, tzinfo=UTC)
         target = (now + timedelta(seconds=4)).strftime(&quot;%a, %d %b %Y %H:%M:%S GMT&quot;)
-        delay = CLIENT.retry_delay(
-            target,
-            attempt=0,
-            backoff_factor=0.5,
-            max_backoff=30.0,
-            now=now,
-        )
+        delay = CLIENT.parse_retry_after(target, now=now)
         self.assertEqual(delay, 4.0)
 
-    def test_non_retryable_status_fails_immediately(self) -&gt; None:
-        url = &quot;https://api.example.test/orders?page=1&quot;
+    def test_invalid_retry_after_falls_back_to_jittered_backoff(self) -&gt; None:
+        delay, source = CLIENT.retry_delay(
+            &quot;not-a-date&quot;,
+            retry_number=2,
+            backoff_factor=1.0,
+            max_backoff=10.0,
+            jitter_ratio=0.25,
+            random_fn=lambda low, high: low,
+        )
+        self.assertEqual((delay, source), (1.5, &quot;backoff&quot;))
+
+    def test_retry_after_above_wait_budget_stops_instead_of_retrying_early(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        response = Response(503, {}, retry_after=&quot;120&quot;)
+        session = Session({url: [response]})
+
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;refusing to retry early&quot;):
+            CLIENT.fetch_all(url, session=session, max_backoff=30, sleep_fn=lambda _: None)
+
+        self.assertEqual(len(session.calls), 1)
+        self.assertTrue(response.closed)
+
+    def test_non_retryable_400_fails_after_one_attempt(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
         session = Session({url: [Response(400, {})]})
-        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;not recoverable&quot;):
-            CLIENT.fetch_all(url, session=session, sleep_fn=lambda delay: None)
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;HTTP 400&quot;):
+            CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
         self.assertEqual(len(session.calls), 1)
 
-    def test_pagination_cycle_is_detected(self) -&gt; None:
-        url = &quot;https://api.example.test/orders?page=1&quot;
-        payload = {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: url}
-        session = Session({url: [Response(200, payload)]})
-        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;cycle&quot;):
-            CLIENT.fetch_all(url, session=session, sleep_fn=lambda delay: None)
-
-    def test_export_writes_records_and_report(self) -&gt; None:
-        url = &quot;https://api.example.test/orders?page=3&quot;
+    def test_transport_error_is_retried_for_get(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session(
+            {
+                url: [
+                    requests.ReadTimeout(&quot;late page&quot;),
+                    Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None}),
+                ]
+            }
+        )
         result = CLIENT.fetch_all(
             url,
-            session=Session({url: [Response(200, page(3))]}),
-            sleep_fn=lambda delay: None,
+            session=session,
+            jitter_ratio=0,
+            sleep_fn=lambda _: None,
         )
+        self.assertEqual(result[&quot;summary&quot;][&quot;retry_count&quot;], 1)
+        self.assertEqual(result[&quot;retries&quot;][0][&quot;reason&quot;], &quot;transport:ReadTimeout&quot;)
+
+    def test_stream_read_timeout_is_retried_and_response_is_closed(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        timed_out = Response(200, {}, stream_error=requests.ReadTimeout(&quot;late body&quot;))
+        session = Session(
+            {
+                url: [
+                    timed_out,
+                    Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None}),
+                ]
+            }
+        )
+
+        result = CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+
+        self.assertTrue(timed_out.closed)
+        self.assertEqual(result[&quot;summary&quot;][&quot;retry_count&quot;], 1)
+        self.assertEqual(result[&quot;retries&quot;][0][&quot;reason&quot;], &quot;transport:ReadTimeout&quot;)
+
+    def test_per_page_retry_budget_is_enforced(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(503, {}), Response(503, {})]})
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;budget exhausted&quot;) as caught:
+            CLIENT.fetch_all(
+                url,
+                session=session,
+                max_retries_per_page=1,
+                sleep_fn=lambda _: None,
+            )
+        self.assertEqual(len(session.calls), 2)
+        self.assertEqual(caught.exception.details[&quot;page_retries&quot;], 1)
+
+    def test_total_retry_budget_is_shared_by_all_pages(self) -&gt; None:
+        first = &quot;https://api.example.test/orders?page=1&quot;
+        second = &quot;https://api.example.test/orders?page=2&quot;
+        session = Session(
+            {
+                first: [
+                    Response(503, {}),
+                    Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: second}),
+                ],
+                second: [Response(503, {})],
+            }
+        )
+        with self.assertRaisesRegex(CLIENT.PaginationError, &quot;budget exhausted&quot;) as caught:
+            CLIENT.fetch_all(
+                first,
+                session=session,
+                max_total_retries=1,
+                sleep_fn=lambda _: None,
+            )
+        self.assertEqual(caught.exception.details[&quot;completed_pages&quot;], 1)
+        self.assertEqual(caught.exception.details[&quot;buffered_records&quot;], 1)
+
+
+class PublicationTest(unittest.TestCase):
+    def test_snapshot_is_self_contained_and_atomically_replaces_previous_file(self) -&gt; None:
+        start_url, session = fixture_session()
+        result = CLIENT.fetch_all(start_url, session=session, sleep_fn=lambda _: None)
         with TemporaryDirectory() as directory:
-            CLIENT.export_result(result, directory)
-            output = Path(directory)
-            self.assertEqual(len((output / &quot;orders.jsonl&quot;).read_text().splitlines()), 1)
-            self.assertTrue((output / &quot;report.json&quot;).is_file())
+            output = Path(directory) / &quot;orders_snapshot.json&quot;
+            output.write_text(&quot;previous&quot;, encoding=&quot;utf-8&quot;)
+
+            CLIENT.publish_snapshot(result, output)
+
+            published = json.loads(output.read_text(encoding=&quot;utf-8&quot;))
+            self.assertTrue(published[&quot;summary&quot;][&quot;published&quot;])
+            self.assertEqual(len(published[&quot;records&quot;]), 5)
+            self.assertEqual(published[&quot;pages&quot;][-1][&quot;next&quot;], None)
+            self.assertEqual(list(output.parent.glob(&quot;*.part&quot;)), [])
+
+    def test_failed_traversal_preserves_previous_snapshot(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(400, {})]})
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / &quot;orders_snapshot.json&quot;
+            output.write_text(&quot;previous&quot;, encoding=&quot;utf-8&quot;)
+
+            with self.assertRaises(CLIENT.PaginationError):
+                CLIENT.download_snapshot(url, output, session=session, sleep_fn=lambda _: None)
+
+            self.assertEqual(output.read_text(encoding=&quot;utf-8&quot;), &quot;previous&quot;)
+
+    def test_supplied_session_is_not_closed_by_fetch_all(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})]})
+        CLIENT.fetch_all(url, session=session, sleep_fn=lambda _: None)
+        self.assertFalse(session.closed)
+
+    def test_owned_session_disables_environment_and_is_closed(self) -&gt; None:
+        url = &quot;https://api.example.test/orders&quot;
+        session = Session({url: [Response(200, {&quot;items&quot;: [{&quot;order_id&quot;: &quot;O1&quot;}], &quot;next&quot;: None})]})
+        with patch.object(CLIENT.requests, &quot;Session&quot;, return_value=session):
+            CLIENT.fetch_all(url, sleep_fn=lambda _: None)
+        self.assertFalse(session.trust_env)
+        self.assertTrue(session.closed)
+
+    def test_cli_configuration_failure_has_no_traceback(self) -&gt; None:
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / &quot;snapshot.json&quot;
+            with patch.dict(CLIENT.os.environ, {}, clear=True), patch(&quot;builtins.print&quot;) as printer:
+                exit_code = CLIENT.main(
+                    [
+                        &quot;--url&quot;,
+                        &quot;https://api.example.test/orders&quot;,
+                        &quot;--output&quot;,
+                        str(output),
+                        &quot;--bearer-token-env&quot;,
+                        &quot;MISSING_TOKEN&quot;,
+                    ]
+                )
+        self.assertEqual(exit_code, 2)
+        self.assertIn(&quot;missing&quot;, printer.call_args.args[0])
 
 
 if __name__ == &quot;__main__&quot;:
     unittest.main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import importlib.util
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
 import json
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;paginated_client.py&quot;
@@ -335,82 +955,442 @@ if SPEC is None or SPEC.loader is None:
 CLIENT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CLIENT)
 
+URLS = [f&quot;https://api.example.test/orders?page={number}&quot; for number in (1, 2, 3)]
+PAGES = {
+    url: json.loads((DATA / f&quot;api_page_{number}.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+    for number, url in enumerate(URLS, start=1)
+}
+
+
+def transparent_walk(start_url: str, pages: dict[str, dict[str, Any]]) -&gt; list[str]:
+    &quot;&quot;&quot;Small mechanism: follow next, prove termination, preserve one order_id grain.&quot;&quot;&quot;
+
+    url: str | None = start_url
+    visited: set[str] = set()
+    order_ids: list[str] = []
+    while url is not None:
+        if url in visited:
+            raise RuntimeError(f&quot;cycle at {url}&quot;)
+        visited.add(url)
+        payload = pages[url]
+        if &quot;next&quot; not in payload:
+            raise RuntimeError(&quot;next is missing: completion is not proven&quot;)
+        for item in payload[&quot;items&quot;]:
+            if item[&quot;order_id&quot;] in order_ids:
+                raise RuntimeError(f&quot;duplicate order_id: {item[&#x27;order_id&#x27;]}&quot;)
+            order_ids.append(item[&quot;order_id&quot;])
+        print(
+            {
+                &quot;page&quot;: len(visited),
+                &quot;items&quot;: len(payload[&quot;items&quot;]),
+                &quot;next&quot;: payload[&quot;next&quot;],
+            }
+        )
+        url = payload[&quot;next&quot;]
+    return order_ids
+
 
 class Response:
     status_code = 200
-    headers = {&quot;Content-Type&quot;: &quot;application/json&quot;}
+    headers = {&quot;Content-Type&quot;: &quot;application/json; charset=utf-8&quot;}
 
-    def __init__(self, page: int):
-        self.page = page
+    def __init__(self, payload: dict[str, Any]) -&gt; None:
+        self.body = json.dumps(payload).encode(&quot;utf-8&quot;)
 
-    def json(self):
-        return json.loads((DATA / f&quot;api_page_{self.page}.json&quot;).read_text())
+    def iter_content(self, chunk_size: int):
+        for start in range(0, len(self.body), chunk_size):
+            yield self.body[start : start + chunk_size]
 
-    def close(self):
+    def close(self) -&gt; None:
         pass
 
 
 class Session:
-    def get(self, url: str, **kwargs):
-        return Response(int(url.rsplit(&quot;=&quot;, 1)[-1]))
+    def get(self, url: str, **kwargs: Any) -&gt; Response:
+        return Response(PAGES[url])
 
 
+print(&quot;Прозрачный обход:&quot;)
+manual_ids = transparent_walk(URLS[0], PAGES)
+print({&quot;terminated&quot;: True, &quot;order_ids&quot;: manual_ids})
+
+print(&quot;\nТот же контракт в самостоятельном клиенте:&quot;)
 result = CLIENT.fetch_all(
-    &quot;https://api.example.test/orders?page=1&quot;,
+    URLS[0],
     session=Session(),
     sleep_fn=lambda delay: None,
+    random_fn=lambda low, high: high,
 )
 print(result[&quot;summary&quot;])
+print(result[&quot;checks&quot;])
 print([record[&quot;order_id&quot;] for record in result[&quot;records&quot;]])
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
   &quot;name&quot;: &quot;resilient-paginated-client&quot;,
   &quot;type&quot;: &quot;cli&quot;,
   &quot;path&quot;: &quot;outputs/paginated_client.py&quot;,
-  &quot;description&quot;: &quot;Загружает страницы API до next=null с bounded retries, backoff, Retry-After и защитой от циклов.&quot;,
-  &quot;usage&quot;: &quot;python outputs/paginated_client.py --url https://api.example.org/orders --output-dir delivery&quot;
+  &quot;description&quot;: &quot;Публикует полный same-origin JSON-снимок только после next=null, bounded retries и проверки уникальности бизнес-ключа.&quot;,
+  &quot;usage&quot;: &quot;python outputs/paginated_client.py --url &#x27;https://api.example.org/orders?limit=100&#x27; --output work/orders_snapshot.json&quot;
 }
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/paginated_client.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import argparse
 import json
+import os
+import random
 import sys
+import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import requests
 
-RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
+RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
+SENSITIVE_QUERY_NAMES = frozenset(
+    {&quot;access_token&quot;, &quot;api_key&quot;, &quot;apikey&quot;, &quot;authorization&quot;, &quot;key&quot;, &quot;signature&quot;, &quot;token&quot;}
+)
+JSON_CHUNK_SIZE = 64 * 1024
 
 
 class PaginationError(RuntimeError):
-    &quot;&quot;&quot;Raised when a paginated API cannot be loaded safely.&quot;&quot;&quot;
+    &quot;&quot;&quot;A complete paginated snapshot cannot be delivered safely.&quot;&quot;&quot;
+
+    def __init__(self, kind: str, message: str, **details: Any) -&gt; None:
+        super().__init__(message)
+        self.kind = kind
+        self.details = details
+
+    def as_report(self) -&gt; dict[str, Any]:
+        return {
+            &quot;schema_version&quot;: 1,
+            &quot;summary&quot;: {&quot;valid&quot;: False, &quot;published&quot;: False},
+            &quot;error&quot;: {&quot;kind&quot;: self.kind, &quot;message&quot;: str(self), &quot;details&quot;: self.details},
+        }
+
+
+def redact_url(url: str) -&gt; str:
+    &quot;&quot;&quot;Keep a URL useful for diagnostics without exposing query values or user info.&quot;&quot;&quot;
+
+    parsed = urlsplit(url)
+    host = parsed.hostname or &quot;&quot;
+    if &quot;:&quot; in host and not host.startswith(&quot;[&quot;):
+        host = f&quot;[{host}]&quot;
+    if parsed.port is not None:
+        host = f&quot;{host}:{parsed.port}&quot;
+    query = urlencode(
+        [
+            (name, &quot;&lt;redacted&gt;&quot; if name.lower() in SENSITIVE_QUERY_NAMES else &quot;&lt;value&gt;&quot;)
+            for name, _ in parse_qsl(parsed.query, keep_blank_values=True)
+        ]
+    )
+    return urlunsplit((parsed.scheme, host, parsed.path, query, &quot;&quot;))
+
+
+def _origin(url: str) -&gt; tuple[str, str, int | None]:
+    parsed = urlsplit(url)
+    scheme = parsed.scheme.lower()
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise PaginationError(&quot;configuration&quot;, &quot;page URL contains an invalid port&quot;) from error
+    if port is None:
+        port = {&quot;http&quot;: 80, &quot;https&quot;: 443}.get(scheme)
+    return scheme, (parsed.hostname or &quot;&quot;).lower(), port
+
+
+def _is_loopback(host: str) -&gt; bool:
+    return host.lower() in {&quot;127.0.0.1&quot;, &quot;::1&quot;, &quot;localhost&quot;}
+
+
+def validate_page_url(
+    url: str,
+    *,
+    expected_origin: tuple[str, str, int | None] | None = None,
+    allow_http: bool = False,
+) -&gt; str:
+    parsed = urlsplit(url)
+    try:
+        parsed_port = parsed.port
+    except ValueError as error:
+        raise PaginationError(&quot;configuration&quot;, &quot;page URL contains an invalid port&quot;) from error
+    if parsed.username is not None or parsed.password is not None:
+        raise PaginationError(&quot;configuration&quot;, &quot;credentials are not allowed in page URLs&quot;)
+    if parsed.fragment:
+        raise PaginationError(&quot;pagination&quot;, &quot;page URLs must not contain fragments&quot;)
+    if not parsed.hostname:
+        raise PaginationError(&quot;configuration&quot;, &quot;page URL must contain a host&quot;)
+    if parsed.scheme == &quot;http&quot;:
+        if not allow_http or not _is_loopback(parsed.hostname):
+            raise PaginationError(
+                &quot;configuration&quot;,
+                &quot;HTTP is allowed only for loopback fixtures with allow_http=True&quot;,
+            )
+    elif parsed.scheme != &quot;https&quot;:
+        raise PaginationError(&quot;configuration&quot;, &quot;page URL must use HTTPS&quot;)
+    if expected_origin is not None and _origin(url) != expected_origin:
+        raise PaginationError(
+            &quot;pagination&quot;,
+            &quot;next points outside the initial API origin&quot;,
+            next_url=redact_url(url),
+        )
+    _ = parsed_port
+    return url
+
+
+def parse_retry_after(value: str | None, *, now: datetime | None = None) -&gt; float | None:
+    &quot;&quot;&quot;Parse RFC 9110 delay-seconds or HTTP-date; return None for an invalid value.&quot;&quot;&quot;
+
+    if value is None:
+        return None
+    stripped = value.strip()
+    if stripped.isascii() and stripped.isdigit():
+        return float(int(stripped))
+    try:
+        target = parsedate_to_datetime(stripped)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=UTC)
+    current = now or datetime.now(UTC)
+    return max((target - current).total_seconds(), 0.0)
 
 
 def retry_delay(
     retry_after: str | None,
     *,
-    attempt: int,
+    retry_number: int,
     backoff_factor: float,
     max_backoff: float,
+    jitter_ratio: float,
+    random_fn: Callable[[float, float], float] = random.uniform,
     now: datetime | None = None,
-) -&gt; float:
-    if retry_after:
+) -&gt; tuple[float, str]:
+    &quot;&quot;&quot;Return a bounded delay and its source without retrying before Retry-After.&quot;&quot;&quot;
+
+    server_delay = parse_retry_after(retry_after, now=now)
+    if server_delay is not None:
+        if server_delay &gt; max_backoff:
+            raise PaginationError(
+                &quot;retry_budget&quot;,
+                &quot;Retry-After exceeds max_backoff; refusing to retry early&quot;,
+                retry_after_seconds=server_delay,
+                max_backoff=max_backoff,
+            )
+        return server_delay, &quot;retry-after&quot;
+
+    ceiling = min(backoff_factor * (2 ** (retry_number - 1)), max_backoff)
+    floor = ceiling * (1.0 - jitter_ratio)
+    return random_fn(floor, ceiling), &quot;backoff&quot;
+
+
+def _validate_limits(
+    *,
+    timeout: tuple[float, float],
+    max_pages: int,
+    max_page_bytes: int,
+    max_retries_per_page: int,
+    max_total_retries: int,
+    backoff_factor: float,
+    max_backoff: float,
+    jitter_ratio: float,
+) -&gt; None:
+    if len(timeout) != 2 or any(value &lt;= 0 for value in timeout):
+        raise PaginationError(&quot;configuration&quot;, &quot;connect and read timeouts must be positive&quot;)
+    if max_pages &lt;= 0 or max_page_bytes &lt;= 0:
+        raise PaginationError(&quot;configuration&quot;, &quot;max_pages and max_page_bytes must be positive&quot;)
+    if max_retries_per_page &lt; 0 or max_total_retries &lt; 0:
+        raise PaginationError(&quot;configuration&quot;, &quot;retry limits must be non-negative&quot;)
+    if backoff_factor &lt; 0 or max_backoff &lt; 0:
+        raise PaginationError(&quot;configuration&quot;, &quot;backoff values must be non-negative&quot;)
+    if not 0.0 &lt;= jitter_ratio &lt;= 1.0:
+        raise PaginationError(&quot;configuration&quot;, &quot;jitter_ratio must be between 0 and 1&quot;)
+
+
+def _media_type(headers: Any) -&gt; tuple[str, str | None]:
+    raw = str(headers.get(&quot;Content-Type&quot;, &quot;&quot;))
+    parts = [part.strip() for part in raw.split(&quot;;&quot;)]
+    media_type = parts[0].lower()
+    charset = None
+    for parameter in parts[1:]:
+        name, separator, value = parameter.partition(&quot;=&quot;)
+        if separator and name.strip().lower() == &quot;charset&quot;:
+            charset = value.strip().strip(&#x27;&quot;&#x27;).lower()
+    return media_type, charset
+
+
+def _read_json_page(response: Any, *, url: str, max_page_bytes: int) -&gt; dict[str, Any]:
+    media_type, charset = _media_type(response.headers)
+    if media_type != &quot;application/json&quot; and not (
+        media_type.startswith(&quot;application/&quot;) and media_type.endswith(&quot;+json&quot;)
+    ):
+        raise PaginationError(
+            &quot;response_policy&quot;,
+            &quot;page response is not JSON&quot;,
+            url=redact_url(url),
+            content_type=media_type or &quot;&lt;missing&gt;&quot;,
+        )
+    if charset not in {None, &quot;utf-8&quot;, &quot;utf8&quot;}:
+        raise PaginationError(
+            &quot;response_policy&quot;,
+            &quot;JSON page declares a non-UTF-8 charset&quot;,
+            url=redact_url(url),
+            charset=charset,
+        )
+
+    body = bytearray()
+    for chunk in response.iter_content(chunk_size=JSON_CHUNK_SIZE):
+        if not chunk:
+            continue
+        body.extend(chunk)
+        if len(body) &gt; max_page_bytes:
+            raise PaginationError(
+                &quot;response_policy&quot;,
+                &quot;decoded JSON page exceeds max_page_bytes&quot;,
+                url=redact_url(url),
+                max_page_bytes=max_page_bytes,
+            )
+    try:
+        text = bytes(body).decode(&quot;utf-8&quot;)
+    except UnicodeDecodeError as error:
+        raise PaginationError(
+            &quot;response_policy&quot;, &quot;JSON page is not valid UTF-8&quot;, url=redact_url(url)
+        ) from error
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise PaginationError(
+            &quot;response_policy&quot;, &quot;page body is not valid JSON&quot;, url=redact_url(url)
+        ) from error
+    if not isinstance(payload, dict):
+        raise PaginationError(&quot;page_contract&quot;, &quot;each page must be a JSON object&quot;)
+    return payload
+
+
+def _validate_items(
+    items: Any,
+    *,
+    record_id_field: str,
+    seen_ids: set[str],
+) -&gt; tuple[list[dict[str, Any]], list[str]]:
+    if not isinstance(items, list):
+        raise PaginationError(&quot;page_contract&quot;, &quot;items must be a list&quot;)
+    validated: list[dict[str, Any]] = []
+    page_ids: list[str] = []
+    local_ids: set[str] = set()
+    for position, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise PaginationError(
+                &quot;page_contract&quot;, &quot;every item must be an object&quot;, item_position=position
+            )
+        record_id = item.get(record_id_field)
+        if not isinstance(record_id, str) or not record_id.strip():
+            raise PaginationError(
+                &quot;grain&quot;,
+                f&quot;every item must have a non-empty string {record_id_field}&quot;,
+                item_position=position,
+            )
+        if record_id in seen_ids or record_id in local_ids:
+            raise PaginationError(
+                &quot;grain&quot;,
+                f&quot;duplicate {record_id_field} across the traversal&quot;,
+                duplicate_id=record_id,
+            )
+        local_ids.add(record_id)
+        page_ids.append(record_id)
+        validated.append(item)
+    return validated, page_ids
+
+
+def _request_page(
+    client: Any,
+    url: str,
+    *,
+    timeout: tuple[float, float],
+    max_page_bytes: int,
+    max_retries_per_page: int,
+    max_total_retries: int,
+    total_retries: int,
+    backoff_factor: float,
+    max_backoff: float,
+    jitter_ratio: float,
+    sleep_fn: Callable[[float], None],
+    random_fn: Callable[[float, float], float],
+) -&gt; tuple[dict[str, Any], list[dict[str, Any]], int]:
+    retry_events: list[dict[str, Any]] = []
+    page_retries = 0
+    while True:
+        response = None
+        retry_after = None
         try:
-            return min(max(float(retry_after), 0.0), max_backoff)
-        except ValueError:
-            try:
-                target = parsedate_to_datetime(retry_after)
-                current = now or datetime.now(UTC)
-                if target.tzinfo is None:
-                    target = target.replace(tzinfo=UTC)
-                return min(max((target - current).total_seconds(), 0.0), max_backoff)
-            except (TypeError, ValueError, OverflowError):
-                pass
-    return min(backoff_factor * (2**attempt), max_backoff)
+            response = client.get(
+                url,
+                timeout=timeout,
+                headers={&quot;Accept&quot;: &quot;application/json&quot;},
+                stream=True,
+                allow_redirects=False,
+            )
+            status = response.status_code
+            if status == 200:
+                payload = _read_json_page(response, url=url, max_page_bytes=max_page_bytes)
+                return payload, retry_events, total_retries
+            if status not in RETRYABLE_STATUSES:
+                raise PaginationError(
+                    &quot;response_policy&quot;,
+                    f&quot;HTTP {status} is not an accepted page response&quot;,
+                    url=redact_url(url),
+                    status=status,
+                )
+            failure = f&quot;HTTP {status}&quot;
+            retry_after = response.headers.get(&quot;Retry-After&quot;)
+        except requests.RequestException as error:
+            failure = f&quot;transport:{type(error).__name__}&quot;
+        finally:
+            if response is not None:
+                response.close()
+
+        if page_retries &gt;= max_retries_per_page or total_retries &gt;= max_total_retries:
+            error_kind = &quot;transport&quot; if failure.startswith(&quot;transport:&quot;) else &quot;retry_budget&quot;
+            raise PaginationError(
+                error_kind,
+                &quot;retry budget exhausted before the page succeeded&quot;,
+                url=redact_url(url),
+                reason=failure,
+                page_retries=page_retries,
+                total_retries=total_retries,
+            )
+
+        page_retries += 1
+        total_retries += 1
+        try:
+            delay, delay_source = retry_delay(
+                retry_after,
+                retry_number=page_retries,
+                backoff_factor=backoff_factor,
+                max_backoff=max_backoff,
+                jitter_ratio=jitter_ratio,
+                random_fn=random_fn,
+            )
+        except PaginationError as error:
+            error.details.setdefault(&quot;url&quot;, redact_url(url))
+            error.details.setdefault(&quot;reason&quot;, failure)
+            error.details.setdefault(&quot;page_retries&quot;, page_retries)
+            error.details.setdefault(&quot;total_retries&quot;, total_retries)
+            raise
+        retry_events.append(
+            {
+                &quot;url&quot;: redact_url(url),
+                &quot;retry_number&quot;: page_retries,
+                &quot;total_retry_number&quot;: total_retries,
+                &quot;reason&quot;: failure,
+                &quot;delay_seconds&quot;: delay,
+                &quot;delay_source&quot;: delay_source,
+            }
+        )
+        sleep_fn(delay)
 
 
 def fetch_all(
@@ -419,116 +1399,150 @@ def fetch_all(
     session: Any | None = None,
     timeout: tuple[float, float] = (3.05, 30.0),
     max_pages: int = 100,
-    max_retries: int = 3,
+    max_page_bytes: int = 5_000_000,
+    max_retries_per_page: int = 3,
+    max_total_retries: int = 10,
     backoff_factor: float = 0.5,
     max_backoff: float = 30.0,
+    jitter_ratio: float = 0.2,
+    record_id_field: str = &quot;order_id&quot;,
+    allow_http: bool = False,
     sleep_fn: Callable[[float], None] = time.sleep,
+    random_fn: Callable[[float, float], float] = random.uniform,
 ) -&gt; dict[str, Any]:
-    if max_pages &lt;= 0 or max_retries &lt; 0:
-        raise PaginationError(&quot;max_pages must be positive and max_retries non-negative&quot;)
+    &quot;&quot;&quot;Load one complete traversal or raise without returning partial records.&quot;&quot;&quot;
+
+    _validate_limits(
+        timeout=timeout,
+        max_pages=max_pages,
+        max_page_bytes=max_page_bytes,
+        max_retries_per_page=max_retries_per_page,
+        max_total_retries=max_total_retries,
+        backoff_factor=backoff_factor,
+        max_backoff=max_backoff,
+        jitter_ratio=jitter_ratio,
+    )
+    if not record_id_field:
+        raise PaginationError(&quot;configuration&quot;, &quot;record_id_field must be non-empty&quot;)
+    current_url = validate_page_url(start_url, allow_http=allow_http)
+    initial_origin = _origin(current_url)
+
     owns_session = session is None
     client = session or requests.Session()
-    url: str | None = start_url
+    if owns_session:
+        client.trust_env = False
+
     visited: set[str] = set()
+    seen_ids: set[str] = set()
     records: list[dict[str, Any]] = []
     pages: list[dict[str, Any]] = []
     retries: list[dict[str, Any]] = []
+    total_retries = 0
     try:
-        while url is not None:
+        while True:
+            if current_url in visited:
+                raise PaginationError(
+                    &quot;pagination&quot;,
+                    &quot;pagination cycle detected before a repeated request&quot;,
+                    url=redact_url(current_url),
+                    completed_pages=len(pages),
+                )
             if len(pages) &gt;= max_pages:
-                raise PaginationError(f&quot;max_pages={max_pages} reached before next became null&quot;)
-            if url in visited:
-                raise PaginationError(f&quot;pagination cycle detected at {url}&quot;)
-            visited.add(url)
-
-            response = None
-            for attempt in range(max_retries + 1):
-                try:
-                    response = client.get(
-                        url,
-                        timeout=timeout,
-                        headers={&quot;Accept&quot;: &quot;application/json&quot;},
-                    )
-                except requests.RequestException as error:
-                    if attempt &gt;= max_retries:
-                        raise PaginationError(f&quot;request failed after retries: {error}&quot;) from error
-                    delay = retry_delay(
-                        None,
-                        attempt=attempt,
-                        backoff_factor=backoff_factor,
-                        max_backoff=max_backoff,
-                    )
-                    retries.append(
-                        {
-                            &quot;url&quot;: url,
-                            &quot;attempt&quot;: attempt + 1,
-                            &quot;delay&quot;: delay,
-                            &quot;reason&quot;: &quot;network&quot;,
-                        }
-                    )
-                    sleep_fn(delay)
-                    continue
-
-                if 200 &lt;= response.status_code &lt; 300:
-                    break
-                retryable = response.status_code in RETRYABLE_STATUSES
-                if not retryable or attempt &gt;= max_retries:
-                    status = response.status_code
-                    response.close()
-                    raise PaginationError(f&quot;HTTP {status} is not recoverable for {url}&quot;)
-                delay = retry_delay(
-                    response.headers.get(&quot;Retry-After&quot;),
-                    attempt=attempt,
+                raise PaginationError(
+                    &quot;pagination&quot;,
+                    &quot;max_pages reached before the documented end condition&quot;,
+                    max_pages=max_pages,
+                    buffered_records=len(records),
+                )
+            visited.add(current_url)
+            try:
+                payload, page_retries, total_retries = _request_page(
+                    client,
+                    current_url,
+                    timeout=timeout,
+                    max_page_bytes=max_page_bytes,
+                    max_retries_per_page=max_retries_per_page,
+                    max_total_retries=max_total_retries,
+                    total_retries=total_retries,
                     backoff_factor=backoff_factor,
                     max_backoff=max_backoff,
+                    jitter_ratio=jitter_ratio,
+                    sleep_fn=sleep_fn,
+                    random_fn=random_fn,
                 )
-                retries.append(
-                    {
-                        &quot;url&quot;: url,
-                        &quot;attempt&quot;: attempt + 1,
-                        &quot;delay&quot;: delay,
-                        &quot;reason&quot;: f&quot;HTTP {response.status_code}&quot;,
-                    }
-                )
-                response.close()
-                response = None
-                sleep_fn(delay)
+            except PaginationError as error:
+                error.details.setdefault(&quot;completed_pages&quot;, len(pages))
+                error.details.setdefault(&quot;buffered_records&quot;, len(records))
+                raise
+            retries.extend(page_retries)
 
-            if response is None:
-                raise PaginationError(f&quot;no response received for {url}&quot;)
             try:
-                media_type = response.headers.get(&quot;Content-Type&quot;, &quot;&quot;).split(&quot;;&quot;, 1)[0].lower()
-                if media_type != &quot;application/json&quot;:
-                    raise PaginationError(f&quot;unexpected content type: {media_type or &#x27;&lt;missing&gt;&#x27;}&quot;)
-                payload = response.json()
-            except (ValueError, requests.JSONDecodeError) as error:
-                raise PaginationError(f&quot;invalid JSON page: {url}&quot;) from error
-            finally:
-                response.close()
-            if not isinstance(payload, dict) or not isinstance(payload.get(&quot;items&quot;), list):
-                raise PaginationError(&quot;each page must be an object with an items list&quot;)
-            next_url = payload.get(&quot;next&quot;)
-            if next_url is not None and not isinstance(next_url, str):
-                raise PaginationError(&quot;next must be a string or null&quot;)
-            records.extend(payload[&quot;items&quot;])
-            pages.append({&quot;url&quot;: url, &quot;items&quot;: len(payload[&quot;items&quot;]), &quot;next&quot;: next_url})
-            url = next_url
+                if &quot;next&quot; not in payload:
+                    raise PaginationError(&quot;page_contract&quot;, &quot;page must contain next, including null&quot;)
+                page_records, page_ids = _validate_items(
+                    payload.get(&quot;items&quot;), record_id_field=record_id_field, seen_ids=seen_ids
+                )
+                next_value = payload[&quot;next&quot;]
+                if next_value is not None and (
+                    not isinstance(next_value, str) or not next_value.strip()
+                ):
+                    raise PaginationError(
+                        &quot;page_contract&quot;, &quot;next must be a non-empty string or null&quot;
+                    )
+
+                next_url = None
+                if next_value is not None:
+                    next_url = validate_page_url(
+                        urljoin(current_url, next_value),
+                        expected_origin=initial_origin,
+                        allow_http=allow_http,
+                    )
+            except PaginationError as error:
+                error.details.setdefault(&quot;completed_pages&quot;, len(pages))
+                error.details.setdefault(&quot;buffered_records&quot;, len(records))
+                raise
+
+            seen_ids.update(page_ids)
+            records.extend(page_records)
+            pages.append(
+                {
+                    &quot;page_number&quot;: len(pages) + 1,
+                    &quot;url&quot;: redact_url(current_url),
+                    &quot;record_count&quot;: len(page_records),
+                    &quot;next&quot;: redact_url(next_url) if next_url is not None else None,
+                }
+            )
+            if next_url is None:
+                break
+            current_url = next_url
     finally:
         if owns_session:
             client.close()
 
-    ids = [record.get(&quot;order_id&quot;) for record in records]
-    duplicate_ids = sorted({value for value in ids if value is not None and ids.count(value) &gt; 1})
     return {
+        &quot;schema_version&quot;: 1,
+        &quot;source&quot;: {&quot;start_url&quot;: redact_url(start_url), &quot;record_id_field&quot;: record_id_field},
+        &quot;policy&quot;: {
+            &quot;timeout&quot;: list(timeout),
+            &quot;max_pages&quot;: max_pages,
+            &quot;max_page_bytes&quot;: max_page_bytes,
+            &quot;max_retries_per_page&quot;: max_retries_per_page,
+            &quot;max_total_retries&quot;: max_total_retries,
+            &quot;backoff_factor&quot;: backoff_factor,
+            &quot;max_backoff&quot;: max_backoff,
+            &quot;jitter_ratio&quot;: jitter_ratio,
+        },
         &quot;records&quot;: records,
         &quot;pages&quot;: pages,
         &quot;retries&quot;: retries,
         &quot;checks&quot;: {
-            &quot;terminated_by_null&quot;: bool(pages) and pages[-1][&quot;next&quot;] is None,
-            &quot;order_id_unique&quot;: not duplicate_ids,
+            &quot;terminated_by_next_null&quot;: pages[-1][&quot;next&quot;] is None,
+            f&quot;{record_id_field}_unique&quot;: len(seen_ids) == len(records),
+            &quot;same_origin_chain&quot;: True,
         },
         &quot;summary&quot;: {
-            &quot;valid&quot;: bool(pages) and pages[-1][&quot;next&quot;] is None and not duplicate_ids,
+            &quot;valid&quot;: True,
+            &quot;published&quot;: False,
             &quot;page_count&quot;: len(pages),
             &quot;record_count&quot;: len(records),
             &quot;retry_count&quot;: len(retries),
@@ -536,52 +1550,111 @@ def fetch_all(
     }
 
 
-def export_result(result: dict[str, Any], output_dir: str | Path) -&gt; None:
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
-    (output / &quot;orders.jsonl&quot;).write_text(
-        &quot;&quot;.join(json.dumps(row, sort_keys=True) + &quot;\n&quot; for row in result[&quot;records&quot;]),
-        encoding=&quot;utf-8&quot;,
-    )
-    report = {key: value for key, value in result.items() if key != &quot;records&quot;}
-    (output / &quot;report.json&quot;).write_text(
-        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;,
-        encoding=&quot;utf-8&quot;,
-    )
+def publish_snapshot(result: dict[str, Any], output: str | Path) -&gt; Path:
+    &quot;&quot;&quot;Atomically replace one self-contained snapshot after all checks passed.&quot;&quot;&quot;
 
-
-def main() -&gt; None:
-    parser = argparse.ArgumentParser(description=&quot;Load all pages from a JSON API&quot;)
-    parser.add_argument(&quot;--url&quot;, required=True)
-    parser.add_argument(&quot;--output-dir&quot;, required=True, type=Path)
-    parser.add_argument(&quot;--max-pages&quot;, type=int, default=100)
-    parser.add_argument(&quot;--max-retries&quot;, type=int, default=3)
-    parser.add_argument(&quot;--backoff-factor&quot;, type=float, default=0.5)
-    args = parser.parse_args()
+    if not result.get(&quot;summary&quot;, {}).get(&quot;valid&quot;):
+        raise PaginationError(&quot;configuration&quot;, &quot;an invalid result cannot be published&quot;)
+    target = Path(output)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    published = json.loads(json.dumps(result))
+    published[&quot;summary&quot;][&quot;published&quot;] = True
+    payload = json.dumps(published, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f&quot;.{target.name}.&quot;, suffix=&quot;.part&quot;, dir=target.parent
+    )
+    temporary = Path(temporary_name)
     try:
-        result = fetch_all(
-            args.url,
-            max_pages=args.max_pages,
-            max_retries=args.max_retries,
-            backoff_factor=args.backoff_factor,
+        with os.fdopen(file_descriptor, &quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;\n&quot;) as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+    return target
+
+
+def download_snapshot(start_url: str, output: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+    result = fetch_all(start_url, **kwargs)
+    publish_snapshot(result, output)
+    result[&quot;summary&quot;][&quot;published&quot;] = True
+    return result
+
+
+def _public_report(result: dict[str, Any]) -&gt; dict[str, Any]:
+    return {key: value for key, value in result.items() if key != &quot;records&quot;}
+
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=&quot;Publish one complete paginated JSON snapshot&quot;)
+    parser.add_argument(&quot;--url&quot;, required=True)
+    parser.add_argument(&quot;--output&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--record-id-field&quot;, default=&quot;order_id&quot;)
+    parser.add_argument(&quot;--connect-timeout&quot;, type=float, default=3.05)
+    parser.add_argument(&quot;--read-timeout&quot;, type=float, default=30.0)
+    parser.add_argument(&quot;--max-pages&quot;, type=int, default=100)
+    parser.add_argument(&quot;--max-page-bytes&quot;, type=int, default=5_000_000)
+    parser.add_argument(&quot;--max-retries-per-page&quot;, type=int, default=3)
+    parser.add_argument(&quot;--max-total-retries&quot;, type=int, default=10)
+    parser.add_argument(&quot;--backoff-factor&quot;, type=float, default=0.5)
+    parser.add_argument(&quot;--max-backoff&quot;, type=float, default=30.0)
+    parser.add_argument(&quot;--jitter-ratio&quot;, type=float, default=0.2)
+    parser.add_argument(&quot;--bearer-token-env&quot;)
+    parser.add_argument(&quot;--allow-http&quot;, action=&quot;store_true&quot;)
+    parser.add_argument(&quot;--trust-env&quot;, action=&quot;store_true&quot;)
+    return parser
+
+
+def main(argv: Iterable[str] | None = None) -&gt; int:
+    arguments = build_parser().parse_args(argv)
+    session = requests.Session()
+    session.trust_env = arguments.trust_env
+    if arguments.bearer_token_env:
+        token = os.environ.get(arguments.bearer_token_env)
+        if not token:
+            error = PaginationError(
+                &quot;configuration&quot;,
+                f&quot;environment variable {arguments.bearer_token_env} is missing or empty&quot;,
+            )
+            print(json.dumps(error.as_report(), ensure_ascii=False, indent=2))
+            session.close()
+            return 2
+        session.headers[&quot;Authorization&quot;] = f&quot;Bearer {token}&quot;
+
+    try:
+        result = download_snapshot(
+            arguments.url,
+            arguments.output,
+            session=session,
+            timeout=(arguments.connect_timeout, arguments.read_timeout),
+            max_pages=arguments.max_pages,
+            max_page_bytes=arguments.max_page_bytes,
+            max_retries_per_page=arguments.max_retries_per_page,
+            max_total_retries=arguments.max_total_retries,
+            backoff_factor=arguments.backoff_factor,
+            max_backoff=arguments.max_backoff,
+            jitter_ratio=arguments.jitter_ratio,
+            record_id_field=arguments.record_id_field,
+            allow_http=arguments.allow_http,
         )
-        export_result(result, args.output_dir)
     except PaginationError as error:
-        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
-        raise SystemExit(2) from error
-    json.dump(
-        {key: value for key, value in result.items() if key != &quot;records&quot;},
-        sys.stdout,
-        ensure_ascii=False,
-        indent=2,
-    )
-    sys.stdout.write(&quot;\n&quot;)
-    if not result[&quot;summary&quot;][&quot;valid&quot;]:
-        raise SystemExit(1)
+        print(json.dumps(error.as_report(), ensure_ascii=False, indent=2))
+        return 2 if error.kind in {&quot;configuration&quot;, &quot;transport&quot;} else 1
+    except OSError as error:
+        report = PaginationError(&quot;filesystem&quot;, f&quot;cannot publish snapshot: {error}&quot;).as_report()
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 2
+    finally:
+        session.close()
+
+    print(json.dumps(_public_report(result), ensure_ascii=False, indent=2))
+    return 0
 
 
 if __name__ == &quot;__main__&quot;:
-    main()
+    sys.exit(main())
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/05-pagination-retries/outputs/paginated_client.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/05-pagination-retries" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/http-requests/"><span>← Предыдущий урок</span><strong>HTTP и Requests</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sources-and-formats/html-parsing/"><span>Следующий урок →</span><strong>HTML и Beautiful Soup</strong></a></nav>

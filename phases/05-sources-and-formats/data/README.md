@@ -15,12 +15,13 @@ Committed-набор содержит:
   позиций и вариант с новым путем и измененным типом;
 - `http_orders.json` — небольшое тело HTTP-ответа для локальных streaming-тестов;
 - `api_page_1.json`–`api_page_3.json` — страницы API с явной ссылкой `next`;
-- `orders.html` и `orders_changed.html` — стабильная HTML-разметка и вариант с
-  нарушенным контрактом селектора;
+- `orders.html` и `orders_changed.html` — сохранённая UTF-8 HTML-разметка с явным
+  контейнером записей и вариант с нарушенным контрактом селектора;
 - `analytics.sqlite` — локальная база пользователей и заказов для SQLAlchemy Core;
 - `orders_typed.csv` — UTF-8 источник с десятичной точкой для конвертации в Parquet;
 - `manifest.json` — размер, число логических строк и SHA-256 каждого файла;
-- `contract.json`, `excel_spec.json` и `json_contract.json` — явные договоры форматов.
+- `contract.json`, `excel_spec.json`, `json_contract.json`, `html_contract.json` и
+  `db_contract.json` — явные договоры форматов, схем и результатов чтения.
 
 Пересоздать набор:
 
