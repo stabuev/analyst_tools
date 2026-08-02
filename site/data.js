@@ -1767,8 +1767,8 @@ window.COURSE_DATA = {
           "title": "Кеширование и контроль целостности",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Собирает повторяемый загрузчик, который кеширует сырые ответы, атомарно обновляет данные и проверяет схему и SHA-256 manifest.",
-          "artifact": "CLI устойчивой загрузки с raw cache, checksum-manifest и partitioned Parquet",
+          "outcome": "Собирает воспроизводимую поставку: сохраняет raw pages по содержимому, связывает snapshot, schema, layout и pipeline version в run_id, проверяет immutable Parquet version и атомарно переключает current.",
+          "artifact": "CLI воспроизводимой поставки с content-addressed raw snapshot, проверенной immutable Parquet version и current pointer",
           "type": "case",
           "tracks": [
             "core"

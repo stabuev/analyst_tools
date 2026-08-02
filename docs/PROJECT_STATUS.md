@@ -5,7 +5,7 @@
 
 **Обновлено:** 2 августа 2026
 **Ветка:** `main`
-**Базовый коммит перед текущим этапом:** `a3dd8147` — переработка урока `05/09`
+**Базовый коммит перед текущим этапом:** `bcb8a366` — переработка урока `05/10`
 
 Все 200 нумерованных уроков курса завершены. Публичный сайт размещён на
 `https://datascience.xyz/courses/analyst-tools/` и публикует отдельную статическую страницу
@@ -2563,7 +2563,19 @@ manifest. Sample small-partition threshold оставлен честным warni
 два входных и пять итоговых вопросов. Дополнительное чтение расширено до десяти
 проверенных официальных или первичных материалов: трёх на русском и семи на английском.
 
-**Следующий содержательный шаг** — аудит `05/11` «Кеширование и контроль целостности».
+Урок `05/11` «Кеширование и контроль целостности» переработан как интеграционный проект
+фазы. Он разделяет content-addressed raw blob, проверяемый cache index, упорядоченный raw
+snapshot, immutable dataset version и атомарный current pointer. Новый строгий delivery
+contract фиксирует source/page/network policy и pipeline version, а `run_id` связывает
+snapshot с digest schema, layout и delivery contracts. Failed refresh не меняет старые
+blobs, index и pointer; существующая version перед reuse проходит provenance, file-list,
+checksum, semantic roundtrip и workload checks. Уникальный staging не удаляет каталоги
+других запусков. Прозрачный пример показывает первый fetch, replay и failed refresh,
+практика покрыта 44 behavioral tests, квиз содержит два входных и пять итоговых вопросов.
+Дополнительное чтение расширено до десяти проверенных официальных или первичных
+материалов: трёх на русском и семи на английском.
+
+**Следующий содержательный шаг** — сквозной аудит мостов и phase-exit фазы 05.
 
 ## Уже принятые решения
 
@@ -2727,6 +2739,15 @@ checksum manifest, уникальный staging package, атомарную пу
 предыдущего результата при ошибке. Все десять источников дополнительного чтения отвечают
 HTTP 200. Структурный валидатор и три render check успешны. Полный lesson runner курса не
 запускался.
+
+После переработки `05/11` пройдены 44 behavioral tests урока, Ruff lint и format check,
+46 корневых тестов, самостоятельный пример и проверка воспроизводимости fixtures фазы.
+Тесты отдельно покрывают content-addressed raw blobs, replay, valid и failed refresh,
+транзакционное обновление cache index и current, snapshot и contract provenance,
+повторную проверку immutable version, checksum и semantic drift, same-origin pagination,
+strict contracts, unique staging и CLI exit codes. Все десять источников дополнительного
+чтения отвечают HTTP 200. Структурный валидатор и три render check успешны. Полный lesson
+runner курса не запускался.
 
 ```bash
 uv sync --locked --dev

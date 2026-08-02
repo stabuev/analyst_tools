@@ -3,42 +3,93 @@
     {
       "id": "cache-pre-1",
       "stage": "pre",
-      "question": "Почему кеш без checksum ненадежен?",
-      "options": ["Он слишком быстрый", "Нельзя отличить корректный hit от поврежденного файла", "Он не имеет пути", "JSON запрещает кеш"],
-      "correct": 1,
-      "explanation": "Наличие файла не доказывает идентичность ожидаемым байтам."
+      "question": "Когда локальную страницу можно считать проверенным cache hit?",
+      "options": [
+        "Когда имя файла содержит URL",
+        "Когда файл новее одного часа",
+        "Когда index указывает ожидаемый digest, а размер и SHA-256 сохранённых bytes совпадают",
+        "Когда JSON можно открыть текстовым редактором"
+      ],
+      "correct": 2,
+      "explanation": "Существование файла не подтверждает его идентичность; hit требует связи index с проверенными bytes."
     },
     {
       "id": "cache-pre-2",
       "stage": "pre",
-      "question": "Что означает атомарная публикация версии?",
-      "options": ["Запись каждого файла напрямую в current", "Переключение видимого указателя только после полной проверки", "Удаление raw", "Один HTTP-запрос"],
-      "correct": 1,
-      "explanation": "Потребитель видит либо старую, либо новую полную версию, но не промежуточную."
+      "question": "Что является commit point локальной поставки с immutable versions?",
+      "options": [
+        "Атомарная смена pointer после завершения всех проверок candidate version",
+        "Создание первого Parquet-файла",
+        "Получение первой HTTP-страницы",
+        "Вычисление checksum schema contract"
+      ],
+      "correct": 0,
+      "explanation": "До смены pointer новая версия остаётся candidate и не должна быть видна потребителю как текущая."
     },
     {
       "id": "cache-post-1",
       "stage": "post",
-      "question": "Зачем immutable version directory?",
-      "options": ["Для красивого имени", "Чтобы опубликованные bytes не менялись под тем же идентификатором", "Чтобы отключить Parquet", "Чтобы хранить пароль"],
+      "question": "Почему raw blob называют content-addressed?",
+      "options": [
+        "Он всегда получен по одному URL",
+        "Его путь выводится из digest содержимого, поэтому новые bytes получают другой адрес",
+        "Он хранится рядом с current.json",
+        "Его имя задаёт дата refresh"
+      ],
       "correct": 1,
-      "explanation": "Run id связывает входные checksums и schema с неизменной поставкой."
+      "explanation": "Content address связывает имя объекта с bytes, а не с местом получения или временем записи."
     },
     {
       "id": "cache-post-2",
       "stage": "post",
-      "question": "Что происходит при повреждении cached page?",
-      "options": ["Она используется", "Checksum не совпадает, страница загружается заново", "Удаляется dataset", "Меняется schema"],
-      "correct": 1,
-      "explanation": "Cache hit допустим только после проверки сохраненного digest."
+      "question": "Вторая страница failed refresh нарушила schema. Что должно остаться опубликованным?",
+      "options": [
+        "Новый index и старый current",
+        "Частичный dataset из первой страницы",
+        "Новый current с отметкой invalid",
+        "Прежние cache index, raw blobs старого snapshot и current pointer"
+      ],
+      "correct": 3,
+      "explanation": "Новые blobs могут остаться orphan, но рабочий index и pointer меняются только после успешной поставки."
     },
     {
       "id": "cache-post-3",
       "stage": "post",
-      "question": "Почему current pointer обновляется последним?",
-      "options": ["Для сортировки", "Чтобы ошибка schema или записи не скрыла предыдущую рабочую версию", "Чтобы уменьшить timeout", "Чтобы изменить URL"],
+      "question": "Почему одного snapshot_id недостаточно для идентичности производного dataset?",
+      "options": [
+        "Одинаковые raw bytes могут дать другой результат при изменении schema, layout или pipeline semantics",
+        "SHA-256 нельзя вычислять для JSON",
+        "Snapshot не содержит URL",
+        "Parquet требует случайный идентификатор"
+      ],
+      "correct": 0,
+      "explanation": "Run identity должна включать не только raw snapshot, но и все контракты преобразования."
+    },
+    {
+      "id": "cache-post-4",
+      "stage": "post",
+      "question": "Файл и его SHA-256 в manifest были заменены согласованно. Какая проверка всё ещё может заметить другой amount?",
+      "options": [
+        "Проверка расширения .parquet",
+        "Повторное вычисление того же нового checksum",
+        "Semantic roundtrip против записей проверенного raw snapshot",
+        "Сравнение длины run_id"
+      ],
+      "correct": 2,
+      "explanation": "Checksum проверяет заявленные bytes, а semantic comparison проверяет значения относительно доверенного входа."
+    },
+    {
+      "id": "cache-post-5",
+      "stage": "post",
+      "question": "Что означает reused_version=true в корректном загрузчике?",
+      "options": [
+        "Каталог существовал, поэтому чтение и проверки пропущены",
+        "Существующий package снова прошёл provenance, file checksum, semantic и workload checks",
+        "Источник обязательно был запрошен по сети",
+        "Current pointer не потребовался"
+      ],
       "correct": 1,
-      "explanation": "Pointer является commit point всей поставки."
+      "explanation": "Immutable не означает автоматически trusted: существующая версия должна быть проверена перед reuse."
     }
   ]
 }

@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…">
+  <meta name="description" content="Загрузчик скачивает три страницы и сразу перезаписывает рабочий dataset. Во время refresh вторая страница приходит с неверным amount, а процесс завершается с ошибкой.">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Кеширование и контроль целостности">
-  <meta property="og:description" content="Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…">
+  <meta property="og:description" content="Загрузчик скачивает три страницы и сразу перезаписывает рабочий dataset. Во время refresh вторая страница приходит с неверным amount, а процесс завершается с ошибкой.">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/">
   <meta name="twitter:card" content="summary">
   <title>Кеширование и контроль целостности — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Кеширование и контроль целостности", "description": "Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Кеширование и контроль целостности", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Кеширование и контроль целостности", "description": "Загрузчик скачивает три страницы и сразу перезаписывает рабочий dataset. Во время refresh вторая страница приходит с неверным amount, а процесс завершается с ошибкой.", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Кеширование и контроль целостности", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/caching-and-checksums/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,159 +50,446 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/11-caching-and-checksums" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Почему кеш без checksum ненадежен?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он слишком быстрый</button><button type="button" class="quiz-option" data-choice="1">Нельзя отличить корректный hit от поврежденного файла</button><button type="button" class="quiz-option" data-choice="2">Он не имеет пути</button><button type="button" class="quiz-option" data-choice="3">JSON запрещает кеш</button></div><p class="quiz-feedback" hidden>Наличие файла не доказывает идентичность ожидаемым байтам.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что означает атомарная публикация версии?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Запись каждого файла напрямую в current</button><button type="button" class="quiz-option" data-choice="1">Переключение видимого указателя только после полной проверки</button><button type="button" class="quiz-option" data-choice="2">Удаление raw</button><button type="button" class="quiz-option" data-choice="3">Один HTTP-запрос</button></div><p class="quiz-feedback" hidden>Потребитель видит либо старую, либо новую полную версию, но не промежуточную.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Когда локальную страницу можно считать проверенным cache hit?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Когда имя файла содержит URL</button><button type="button" class="quiz-option" data-choice="1">Когда файл новее одного часа</button><button type="button" class="quiz-option" data-choice="2">Когда index указывает ожидаемый digest, а размер и SHA-256 сохранённых bytes совпадают</button><button type="button" class="quiz-option" data-choice="3">Когда JSON можно открыть текстовым редактором</button></div><p class="quiz-feedback" hidden>Существование файла не подтверждает его идентичность; hit требует связи index с проверенными bytes.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что является commit point локальной поставки с immutable versions?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Атомарная смена pointer после завершения всех проверок candidate version</button><button type="button" class="quiz-option" data-choice="1">Создание первого Parquet-файла</button><button type="button" class="quiz-option" data-choice="2">Получение первой HTTP-страницы</button><button type="button" class="quiz-option" data-choice="3">Вычисление checksum schema contract</button></div><p class="quiz-feedback" hidden>До смены pointer новая версия остаётся candidate и не должна быть видна потребителю как текущая.</p></article></section>
         <article class="lesson-article"><h1 id="кеширование-и-контроль-целостности">Кеширование и контроль целостности</h1>
 <blockquote>
-<p>Публикуйте не набор перезаписанных файлов, а проверенную неизменную версию с атомарным указателем.</p>
+<p>Сначала зафиксируйте неизменяемый raw snapshot, затем проверьте производную версию и
+только после этого переключайте указатель потребителя.</p>
 </blockquote>
 <p><strong>Тип:</strong> Case<br />
 <strong>Треки:</strong> Core<br />
 <strong>Пререквизиты:</strong> 05/10<br />
 <strong>Время:</strong> ~90 минут<br />
-<strong>Результат:</strong> собирает повторяемый загрузчик, который кеширует сырые ответы, атомарно
-обновляет данные и проверяет схему и SHA-256 manifest.</p>
+<strong>Результат:</strong> собирает воспроизводимую поставку: сохраняет raw pages по содержимому,
+связывает snapshot, schema, layout и pipeline version в <code>run_id</code>, проверяет immutable
+Parquet version и атомарно переключает <code>current</code>.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
 <ul>
-<li>Проверять cache hit по checksum.</li>
-<li>Связывать raw pages, schema и dataset одним run id.</li>
-<li>Публиковать immutable partitioned versions.</li>
-<li>Обновлять current pointer только после полной проверки.</li>
+<li>Отличать HTTP cache, raw replay store, snapshot и опубликованную dataset version.</li>
+<li>Считать cache hit доказанным только после проверки ожидаемого SHA-256.</li>
+<li>Объяснять, почему failed refresh не должен изменять старые raw bytes, cache index и
+<code>current</code>.</li>
+<li>Выводить идентичность запуска из всех входов, которые меняют результат.</li>
+<li>Проверять существующую immutable version перед повторным использованием.</li>
+<li>Публиковать один проверенный package и менять видимый pointer последней операцией.</li>
 </ul>
+<h2 id="мост-от-предыдущих-уроков">Мост от предыдущих уроков</h2>
+<p>Вы уже построили отдельные надёжные границы:</p>
+<table>
+<thead>
+<tr>
+<th>Урок</th>
+<th>Что уже умеете</th>
+<th>Что добавляет 05/11</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>05/04</td>
+<td>безопасно получить один JSON body</td>
+<td>сохранить полученные bytes для replay</td>
+</tr>
+<tr>
+<td>05/05</td>
+<td>пройти доверенную цепочку <code>next</code> до <code>null</code></td>
+<td>зафиксировать всю цепочку одним snapshot</td>
+</tr>
+<tr>
+<td>05/08</td>
+<td>проверить schema, grain и Parquet roundtrip</td>
+<td>связать schema contract с конкретным запуском</td>
+</tr>
+<tr>
+<td>05/10</td>
+<td>построить проверенный partitioned package</td>
+<td>не пересобирать и не принимать его без проверки</td>
+</tr>
+</tbody>
+</table>
+<p>Следующая фаза начинает EDA. Ей нужен не «последний файл в каталоге», а вход, для
+которого можно ответить: из каких raw bytes он получен, какими контрактами проверен и
+какая версия сейчас разрешена потребителям.</p>
 <h2 id="проблема">Проблема</h2>
-<p>Pipeline скачивает три страницы прямо в рабочий каталог и перезаписывает Parquet. На
-второй странице процесс падает. Потребитель видит смесь старых и новых файлов, а повторный
-запуск не знает, каким cached responses можно доверять.</p>
+<p>Загрузчик скачивает три страницы и сразу перезаписывает рабочий dataset. Во время refresh
+вторая страница приходит с неверным <code>amount</code>, а процесс завершается с ошибкой.</p>
+<p>Если raw-файл назван только по URL и уже перезаписан, возникают две разные поломки:</p>
+<ol>
+<li><code>current</code> всё ещё указывает на старый dataset, но raw bytes для его повторной сборки
+потеряны;</li>
+<li>следующий запуск видит файл в кеше и может принять новое повреждённое тело за старый
+проверенный ответ.</li>
+</ol>
+<p>Проверка «файл существует» здесь не отвечает ни на один важный вопрос. Нужны отдельные
+идентичности raw bytes, snapshot и производной версии.</p>
 <h2 id="концепция">Концепция</h2>
-<p>Финальная структура:</p>
+<h3 id="1-blob-хранится-по-содержимому-а-не-по-месту-получения">1. Blob хранится по содержимому, а не по месту получения</h3>
+<p>Для тела страницы <code>body</code> вычисляется:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">digest = SHA-256(body)
+path   = raw/blobs/&lt;digest&gt;.json
+</code></pre></div><p>Одинаковые bytes дают то же имя; изменённые bytes получают другое имя. Старый blob не
+перезаписывается при refresh. Такой способ называют <strong>content-addressed storage</strong>:
+адресом объекта является отпечаток его содержимого.</p>
+<p>SHA-256 здесь проверяет целостность относительно доверенного digest. Он не доказывает,
+кто создал файл, и не заменяет цифровую подпись. Если злоумышленник может одновременно
+подменить bytes и все сохранённые digests, один checksum не установит подлинность.</p>
+<h3 id="2-cache-index-подсказка-а-не-доказательство">2. Cache index — подсказка, а не доказательство</h3>
+<p>Индекс отвечает на вопрос «какой digest последний раз успешно связан с этим URL»:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;entries&quot;: {
+    &quot;https://api.example.test/orders?page=2&quot;: {
+      &quot;sha256&quot;: &quot;...&quot;,
+      &quot;bytes&quot;: 742
+    }
+  }
+}
+</code></pre></div><p>Cache hit допустим, только если:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">index contains URL
+AND blob exists at path derived from digest
+AND observed bytes equal declared bytes
+AND SHA-256(blob) equals declared digest
+</code></pre></div><p>Путь не берётся из индекса. Поэтому повреждённый JSON не может подсунуть
+<code>../../another-file</code> вместо blob.</p>
+<p>Это не полноценный HTTP cache. Здесь нет freshness, <code>Cache-Control</code>, <code>Vary</code>, ETag и
+conditional request. Raw replay store решает более узкую задачу: сохранить точные bytes
+аналитического запуска и воспроизвести преобразование без сети.</p>
+<h3 id="3-snapshot-фиксирует-не-только-множество-blobs-но-и-цепочку">3. Snapshot фиксирует не только множество blobs, но и цепочку</h3>
+<p>Три страницы нельзя описать неупорядоченным набором хешей. Важны URL, порядок,
+завершение по <code>next=null</code> и число записей:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">snapshot = [
+  {url: page=1, sha256: A, items: 2},
+  {url: page=2, sha256: B, items: 2},
+  {url: page=3, sha256: C, items: 1}
+]
+snapshot_id = SHA-256(canonical(snapshot))
+</code></pre></div><p>Если изменилась одна страница, порядок или start URL, изменится <code>snapshot_id</code>. До его
+расчёта каждая страница должна пройти строгий JSON page contract, schema и grain.</p>
+<h3 id="4-run-id-обязан-учитывать-все-входы-результата">4. <code>run_id</code> обязан учитывать все входы результата</h3>
+<p>Одинаковый raw snapshot не гарантирует одинаковый dataset. Результат может измениться
+из-за schema, layout или логики преобразования:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">run_id = SHA-256(
+  snapshot_id
+  + delivery_contract_digest
+  + schema_contract_digest
+  + layout_contract_digest
+  + pipeline_version
+)
+</code></pre></div><p><code>pipeline_version</code> — явная версия семантики кода. Её нужно повысить, если преобразование
+меняет значения или форму результата. Это честнее, чем притворяться, что checksum
+исходных страниц полностью описывает вычисление.</p>
+<h3 id="5-immutable-version-и-current-решают-разные-задачи">5. Immutable version и <code>current</code> решают разные задачи</h3>
+<p>Структура поставки выглядит так:</p>
 <div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">delivery/
 ├── raw/
-│   ├── cache_index.json
-│   └── &lt;url-hash&gt;.json
+│   ├── blobs/&lt;sha256&gt;.json
+│   └── cache_index.json
 ├── datasets/&lt;run-id&gt;/
 │   ├── data/order_month=.../currency=.../*.parquet
 │   └── manifest.json
 └── current.json
-</code></pre></div><p><code>run-id</code> выводится из SHA-256 всех raw pages и schema contract. Dataset version не
-перезаписывается. <code>current.json</code> является commit point и записывается через temporary file
-и <code>os.replace</code>.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<p>Для каждой страницы:</p>
-<ol>
-<li>найдите URL в cache index;</li>
-<li>пересчитайте checksum файла;</li>
-<li>используйте hit только при совпадении;</li>
-<li>иначе загрузите и атомарно запишите raw bytes;</li>
-<li>проверьте JSON shape и schema records.</li>
-</ol>
-<p>После всех страниц создайте Arrow Table, partitioned Parquet и manifest с checksums. Лишь
-затем обновляйте pointer.</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<p>Учебный CLI полностью работает offline:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/resilient_loader.py \
-  --url &#x27;https://api.example.test/orders?page=1&#x27; \
-  --source-dir ../data/tiny \
-  --output-dir delivery \
-  --schema ../data/parquet_schema.json
-</code></pre></div><p>Без <code>--source-dir</code> используется Requests Session с timeout, bounded urllib3 retries,
-<code>Retry-After</code>, HTTPS, content type и size limit.</p>
-<p>Повтор команды использует raw cache и существующую immutable dataset version. <code>--refresh</code>
-принудительно проверяет источник заново.</p>
-<h2 id="сломайте-это">Сломайте это</h2>
-<ol>
-<li>Повредите cached page: checksum должен вызвать refetch.</li>
-<li>Верните строку вместо amount: current не должен измениться.</li>
-<li>Удалите обязательное поле: version не публикуется.</li>
-<li>Создайте pagination cycle.</li>
-<li>Прервите запись staging directory.</li>
-<li>Измените schema contract при тех же raw pages: run id должен измениться.</li>
-</ol>
-<h2 id="проверьте-это">Проверьте это</h2>
-<ul>
-<li>три raw pages дают пять rows;</li>
-<li>повторный запуск не обращается к источнику;</li>
-<li>corrupted cache page загружается заново;</li>
-<li>каждый raw и Parquet файл имеет checksum;</li>
-<li>dataset partitioned по month/currency;</li>
-<li>schema drift не создает current;</li>
-<li>failed refresh сохраняет старый pointer;</li>
-<li>current ссылается на manifest immutable version.</li>
+</code></pre></div><ul>
+<li><code>datasets/&lt;run-id&gt;/</code> хранит неизменяемую проверенную версию;</li>
+<li><code>manifest.json</code> связывает snapshot, contracts, logical schema, files, checksums и
+workload evidence;</li>
+<li><code>current.json</code> говорит потребителю, какую готовую версию читать сейчас.</li>
 </ul>
+<p>Сначала весь version package строится в уникальном соседнем staging-каталоге. После
+semantic roundtrip, workload checks и file checksums каталог переименовывается в
+<code>datasets/&lt;run-id&gt;</code>. Затем атомарно записываются cache index и <code>current</code>.</p>
+<p><code>os.replace</code> даёт атомарную смену одного пути на той же локальной файловой системе:
+читатель увидит старый или новый pointer. Это не обещание crash durability после потери
+питания и не контракт публикации в object storage.</p>
+<h3 id="6-три-запуска-образуют-одну-модель-состояния">6. Три запуска образуют одну модель состояния</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">первый запуск
+  fetch pages → new blobs → validate snapshot → build version → current = run A
+
+replay
+  verify cached blobs → same snapshot → verify version A → current = run A
+
+невалидный refresh
+  fetch to new blobs → validation fails → index unchanged → current = run A
+</code></pre></div><p>Новый blob после неуспешного refresh может остаться ничем не связанным. Это безопасный
+orphan, а не опубликованный результат. Retention таких blobs — отдельная операционная
+политика, которой в обязательной практике нет.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Прозрачный пример использует только словари, JSON и <code>hashlib</code>. Перед запуском
+предскажите:</p>
+<ol>
+<li>сколько fetches будет в первом запуске;</li>
+<li>совпадут ли <code>snapshot_id</code> и <code>run_id</code> при replay;</li>
+<li>изменятся ли cache index и <code>current</code> после невалидного refresh.</li>
+</ol>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><p>В примере четыре операции видны напрямую:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">checksum = sha256(body)
+blobs[checksum] = body
+candidate_index[url] = checksum
+snapshot_id = sha256(canonical(page_journal))
+</code></pre></div><p>Ключевой момент — <code>candidate_index</code> не становится рабочим индексом внутри
+<code>prepare_run</code>. Вызывающий код делает commit только после проверки candidate. Поэтому
+ошибка не требует «откатывать» уже опубликованное состояние.</p>
+<p>Пример не пишет Parquet и не реализует HTTP. Его задача — сделать наблюдаемой
+транзакционную границу, которую рабочий CLI соединит с механизмами предыдущих уроков.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<h3 id="1-прочитайте-внешний-delivery-contract">1. Прочитайте внешний delivery contract</h3>
+<p><code>../data/delivery_contract.json</code> фиксирует:</p>
+<ul>
+<li>start URL и разрешённый HTTPS origin;</li>
+<li>точные имена <code>items</code>, <code>next</code> и <code>page</code>;</li>
+<li><code>max_pages</code>;</li>
+<li>timeout, decoded page size, redirects и per-page retry budget;</li>
+<li><code>pipeline_version</code> и алгоритм целостности.</li>
+</ul>
+<p>Schema и layout не дублируются: CLI принимает актуальные контракты 05/08 и 05/10.
+Все три JSON-файла разбираются строго: duplicate и unknown keys или неизвестная версия
+останавливают запуск.</p>
+<h3 id="2-выполните-первый-offline-run">2. Выполните первый offline run</h3>
+<p>Из корня урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/resilient_loader.py \
+  --contract ../data/delivery_contract.json \
+  --schema ../data/parquet_schema.json \
+  --layout-contract ../data/partition_layout_contract.json \
+  --source-dir ../data/tiny \
+  --output-dir work/delivery
+</code></pre></div><p>Ожидаемый public report содержит:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source.pages        = 3
+source.rows         = 5
+source.fetched_pages = 3
+dataset.partition_by = [order_month, currency]
+summary.valid       = true
+</code></pre></div><p>Пути в report и manifest относительны package root. В них не сохраняются staging paths
+или локальный <code>/Users/...</code>.</p>
+<h3 id="3-повторите-команду">3. Повторите команду</h3>
+<p>Во втором запуске:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">source.reused_pages  = 3
+source.fetched_pages = 0
+dataset.reused_version = true
+</code></pre></div><p><code>reused_version=true</code> не означает «каталог уже был, поэтому мы ему поверили». CLI снова
+проверяет:</p>
+<ul>
+<li>provenance manifest против текущего snapshot и contracts;</li>
+<li>точное множество Parquet files;</li>
+<li>размер и SHA-256 каждого файла;</li>
+<li>logical schema и все значения после Hive discovery;</li>
+<li>grain и результаты workload filters.</li>
+</ul>
+<p>Только после этого версия снова допустима для <code>current</code>.</p>
+<h3 id="4-выполните-refresh">4. Выполните refresh</h3>
+<p>Флаг <code>--refresh</code> запрещает cache hits, но не удаляет старые blobs:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/resilient_loader.py \
+  --contract ../data/delivery_contract.json \
+  --schema ../data/parquet_schema.json \
+  --layout-contract ../data/partition_layout_contract.json \
+  --source-dir ../data/tiny \
+  --output-dir work/delivery \
+  --refresh
+</code></pre></div><p>Если bytes не изменились, получится тот же snapshot и будет проверена та же version.
+Если источник валидно изменился, появятся новый snapshot, новый <code>run_id</code> и новый version
+directory. Если источник невалиден, прежние cache index и <code>current</code> сохранятся byte for
+byte.</p>
+<h3 id="5-отделите-коды-завершения">5. Отделите коды завершения</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Код</th>
+<th>Значение</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right"><code>0</code></td>
+<td>поставка проверена и pointer обновлён</td>
+<td>первый run или replay</td>
+</tr>
+<tr>
+<td style="text-align:right"><code>1</code></td>
+<td>source или candidate нарушил контракт</td>
+<td>schema drift, cycle, checksum mismatch</td>
+</tr>
+<tr>
+<td style="text-align:right"><code>2</code></td>
+<td>конфигурация невалидна</td>
+<td>unknown contract key, path collision</td>
+</tr>
+</tbody>
+</table>
+<p>В network mode CLI дополнительно проверяет HTTPS, same-origin redirects, media type,
+decoded size и bounded per-page retries. Переход <code>next</code> проверяется до следующего fetch.
+Полный эксперимент с общим retry budget уже был в 05/05 и здесь не повторяется.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="повреждённый-raw-blob">Повреждённый raw blob</h3>
+<p>Измените bytes существующего <code>raw/blobs/&lt;sha256&gt;.json</code>. Индекс всё ещё хранит старый
+digest, поэтому hit отклоняется и страница запрашивается заново. При тех же исходных
+bytes blob восстанавливается под тем же content address.</p>
+<h3 id="невалидный-refresh">Невалидный refresh</h3>
+<p>Верните <code>amount=&quot;not-a-number&quot;</code> на второй странице. Новые bytes могут попасть в новый
+blob, но schema validation завершит run до записи cache index и <code>current</code>. Старая
+поставка остаётся воспроизводимой.</p>
+<h3 id="подмена-готового-parquet">Подмена готового Parquet</h3>
+<p>Измените один файл внутри <code>datasets/&lt;run-id&gt;/data</code>. Повторный запуск не должен принимать
+каталог как cache hit: checksum verification блокирует reuse.</p>
+<h3 id="правдоподобная-подмена-с-новым-checksum">Правдоподобная подмена с новым checksum</h3>
+<p>Измените значение, затем перепишите file checksum в manifest. Одного совпавшего checksum
+уже недостаточно: semantic roundtrip сравнивает dataset с проверенным raw snapshot и
+обнаруживает другой <code>amount</code> при том же числе строк.</p>
+<h3 id="изменение-pipeline-без-новой-версии">Изменение pipeline без новой версии</h3>
+<p>Если код изменил семантику, а <code>pipeline_version</code> остался прежним, идентичность запуска
+описана неверно. Это организационная граница content identity: автоматический тест не
+угадает намерение автора. Изменяйте версию вместе с изменением результата.</p>
+<h3 id="параллельный-или-прерванный-staging">Параллельный или прерванный staging</h3>
+<p>Фиксированное имя <code>.run-id.staging</code> опасно: новый процесс может удалить каталог другого
+процесса. CLI создаёт уникальное имя через <code>tempfile.mkdtemp</code>, удаляет только свой
+candidate и не трогает похожие чужие каталоги.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
-<p><code>outputs/resilient_loader.py</code> — интеграционный артефакт фазы. Он объединяет HTTP policy,
-pagination, raw cache, schema validation, Arrow/Parquet, partitioning, manifests и
-атомарную публикацию.</p>
+</code></pre></div><p>44 behavioral tests проверяют:</p>
+<ul>
+<li>первый run, offline CLI, replay cache и повторную проверку version;</li>
+<li>content-addressed blobs и восстановление повреждённого blob;</li>
+<li>новый snapshot при валидном refresh;</li>
+<li>сохранение pointer, index и старых blobs при failed refresh;</li>
+<li>raw provenance, три contract digests, workload evidence и относительные пути;</li>
+<li>изменение <code>run_id</code> при новой pipeline, schema или layout identity;</li>
+<li>checksum, file-list и semantic drift существующей версии;</li>
+<li>unique staging, очистку failed candidate и сохранность похожего каталога;</li>
+<li>relative и absolute same-origin <code>next</code>, HTTPS downgrade, cross-origin и cycle;</li>
+<li>page contract, page number, max pages и max page bytes;</li>
+<li>schema fields, domain, decimal scale, timezone и grain;</li>
+<li>strict JSON contracts, cache index и CLI exit codes.</li>
+</ul>
+<p>Проверка полного значения нужна вместе с checksum. Checksum отвечает «совпадают ли эти
+bytes с объявленным digest», а semantic roundtrip — «представляют ли проверенные bytes
+тот же набор заказов».</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p><code>outputs/resilient_loader.py</code> — самостоятельный CLI <code>replayable-source-delivery</code>. Для
+переноса на другой API передайте четыре внешних входа:</p>
+<ol>
+<li>delivery contract с page и network policy;</li>
+<li>schema contract с grain и допустимыми значениями;</li>
+<li>layout contract с выбранными partitions и workload;</li>
+<li>source adapter: HTTPS по умолчанию или локальная папка для воспроизводимого replay.</li>
+</ol>
+<p>Потребитель начинает с <code>current.json</code>, проверяет <code>manifest_sha256</code>, затем открывает
+указанный immutable dataset. Ему не нужны рабочая директория урока, staging path или
+живой API.</p>
+<p>Граница артефакта намеренно локальная. Подпись manifest, locks, object-store commit
+protocol, retention и garbage collection требуют инфраструктурного контекста и не
+объявляются свойствами этого CLI.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>Добавьте ETag и conditional GET.</li>
-<li>Реализуйте retention policy immutable versions.</li>
-<li>Добавьте подпись manifest и внешний object storage.</li>
+<li><strong>Наблюдение.</strong> Выполните первый run и replay. Сопоставьте каждый счётчик report с
+конкретным файлом в <code>raw/</code> или <code>datasets/</code>.</li>
+<li><strong>Перенос.</strong> Измените только <code>pipeline_version</code>. Объясните, почему raw snapshot тот же,
+а <code>run_id</code> и version directory новые.</li>
+<li><strong>Поломка.</strong> Повредите cached blob. До запуска предскажите, какая одна страница будет
+fetched и почему остальные останутся hits.</li>
+<li><strong>Осознанное расширение.</strong> Спроектируйте ETag/<code>If-None-Match</code> как отдельный network
+optimization. Не заменяйте ответ <code>304</code> отсутствующими raw bytes: он может ссылаться
+только на уже проверенный blob.</li>
 </ol>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
 <thead>
 <tr>
 <th>Термин</th>
-<th>Распространенное заблуждение</th>
+<th>Распространённое заблуждение</th>
 <th>Точное значение</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Content address</td>
+<td>имя файла по URL</td>
+<td>путь, выведенный из digest содержимого</td>
+</tr>
+<tr>
 <td>Cache hit</td>
-<td>Файл существует</td>
-<td>Файл существует и его checksum соответствует index</td>
+<td>запись URL есть в index</td>
+<td>index, размер и checksum указывают на доступный blob</td>
+</tr>
+<tr>
+<td>Raw replay</td>
+<td>повторить HTTP</td>
+<td>повторить преобразование из сохранённых исходных bytes</td>
+</tr>
+<tr>
+<td>Snapshot</td>
+<td>набор последних файлов</td>
+<td>упорядоченный журнал проверенных страниц одного обхода</td>
+</tr>
+<tr>
+<td><code>snapshot_id</code></td>
+<td>идентификатор dataset</td>
+<td>digest raw page journal до преобразования</td>
+</tr>
+<tr>
+<td><code>run_id</code></td>
+<td>время запуска</td>
+<td>digest snapshot и всех контрактов результата</td>
 </tr>
 <tr>
 <td>Immutable version</td>
-<td>Каталог без chmod</td>
-<td>Поставка, bytes которой не меняются под run id</td>
+<td>каталог нельзя chmod</td>
+<td>bytes под данным <code>run_id</code> после публикации не меняются</td>
 </tr>
 <tr>
 <td>Manifest</td>
-<td>Человеческое описание</td>
-<td>Машинная связь inputs, schema, files и checksums</td>
+<td>описание для человека</td>
+<td>машинная связь provenance, contracts, files и checks</td>
 </tr>
 <tr>
-<td>Atomic pointer</td>
-<td>Перезапись dataset</td>
-<td>Единственная атомарная смена ссылки на готовую версию</td>
+<td>Commit point</td>
+<td>первый записанный Parquet</td>
+<td>последняя атомарная смена видимого <code>current</code> pointer</td>
 </tr>
 <tr>
-<td>Replay</td>
-<td>Повтор HTTP</td>
-<td>Пересборка производных данных из сохраненного raw</td>
+<td>Checksum</td>
+<td>цифровая подпись</td>
+<td>контроль идентичности bytes относительно доверенного digest</td>
 </tr>
 </tbody>
 </table>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
-<ul>
-<li><a href="https://docs.python.org/3/library/os.html#os.replace" target="_blank" rel="noopener">Python: <code>os.replace</code></a> — изучите атомарную замену пути на одном filesystem.</li>
-<li><a href="https://docs.python.org/3/library/hashlib.html" target="_blank" rel="noopener">Python: <code>hashlib</code></a> — используйте SHA-256 для идентичности raw и delivery files.</li>
-<li><a href="https://urllib3.readthedocs.io/en/stable/reference/urllib3.util.html#urllib3.util.Retry" target="_blank" rel="noopener">urllib3: Retry</a> — разберите bounded retries и <code>Retry-After</code>.</li>
-<li><a href="https://arrow.apache.org/docs/python/dataset.html" target="_blank" rel="noopener">PyArrow: Datasets</a> — свяжите partitioned write, discovery и filtering с immutable version.</li>
-</ul>
+<ol>
+<li><a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Caching" target="_blank" rel="noopener">RU: Кеширование HTTP — MDN</a> — прочитайте разделы о freshness, validation и <code>Vary</code>: они показывают, чем стандартный HTTP cache шире учебного raw replay store.</li>
+<li><a href="https://yandex.cloud/ru/docs/storage/concepts/versioning" target="_blank" rel="noopener">RU: Версионирование бакета — Yandex Object Storage</a> — прочитайте, как object versions защищают от случайной перезаписи; сравните эту инфраструктурную гарантию с локальными content-addressed blobs урока.</li>
+<li><a href="https://git-scm.com/book/ru/v2/Git-%D0%B8%D0%B7%D0%BD%D1%83%D1%82%D1%80%D0%B8-%D0%9E%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D1%8B-Git" target="_blank" rel="noopener">RU: Объекты Git — Pro Git</a> — изучите content-addressed object database как более крупный пример хранения неизменяемых blobs по содержимому.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9111" target="_blank" rel="noopener">EN: RFC 9111 — HTTP Caching</a> — прочитайте sections 4–5 о cache lookup, freshness и validation; используйте стандарт как границу перед добавлением ETag.</li>
+<li><a href="https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile" target="_blank" rel="noopener">EN: <code>tempfile.NamedTemporaryFile</code> — Python</a> — изучите уникальные временные имена и lifecycle файла, на которых основана безопасная локальная запись pointer и index.</li>
+<li><a href="https://docs.python.org/3/library/os.html#os.replace" target="_blank" rel="noopener">EN: <code>os.replace</code> — Python</a> — проверьте точную семантику атомарной замены и требование одной filesystem; не переносите это обещание автоматически на object storage.</li>
+<li><a href="https://arrow.apache.org/docs/python/dataset.html" target="_blank" rel="noopener">EN: PyArrow Dataset</a> — повторите partitioned write, Hive discovery и filtering, которые CLI проверяет внутри immutable version.</li>
+<li><a href="https://specs.frictionlessdata.io/data-package/" target="_blank" rel="noopener">EN: Data Package specification</a> — разберите <code>resources</code>, metadata и machine-readable package boundary; сравните спецификацию с узким manifest этого урока.</li>
+<li><a href="https://www.w3.org/TR/prov-overview/" target="_blank" rel="noopener">EN: W3C PROV Overview</a> — прочитайте модель entity, activity и agent; она помогает расширить page and contract digests до полноценного provenance без смешения с checksum.</li>
+<li><a href="https://csrc.nist.gov/pubs/fips/180-4/upd1/final" target="_blank" rel="noopener">EN: Secure Hash Standard — NIST FIPS 180-4</a> — используйте первичный стандарт для точного смысла SHA-256 и помните: стандарт hash function сам по себе не задаёт подпись или доверенную доставку digest.</li>
+</ol>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Зачем immutable version directory?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для красивого имени</button><button type="button" class="quiz-option" data-choice="1">Чтобы опубликованные bytes не менялись под тем же идентификатором</button><button type="button" class="quiz-option" data-choice="2">Чтобы отключить Parquet</button><button type="button" class="quiz-option" data-choice="3">Чтобы хранить пароль</button></div><p class="quiz-feedback" hidden>Run id связывает входные checksums и schema с неизменной поставкой.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Что происходит при повреждении cached page?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Она используется</button><button type="button" class="quiz-option" data-choice="1">Checksum не совпадает, страница загружается заново</button><button type="button" class="quiz-option" data-choice="2">Удаляется dataset</button><button type="button" class="quiz-option" data-choice="3">Меняется schema</button></div><p class="quiz-feedback" hidden>Cache hit допустим только после проверки сохраненного digest.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Почему current pointer обновляется последним?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Для сортировки</button><button type="button" class="quiz-option" data-choice="1">Чтобы ошибка schema или записи не скрыла предыдущую рабочую версию</button><button type="button" class="quiz-option" data-choice="2">Чтобы уменьшить timeout</button><button type="button" class="quiz-option" data-choice="3">Чтобы изменить URL</button></div><p class="quiz-feedback" hidden>Pointer является commit point всей поставки.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Почему raw blob называют content-addressed?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Он всегда получен по одному URL</button><button type="button" class="quiz-option" data-choice="1">Его путь выводится из digest содержимого, поэтому новые bytes получают другой адрес</button><button type="button" class="quiz-option" data-choice="2">Он хранится рядом с current.json</button><button type="button" class="quiz-option" data-choice="3">Его имя задаёт дата refresh</button></div><p class="quiz-feedback" hidden>Content address связывает имя объекта с bytes, а не с местом получения или временем записи.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">02</p><h3>Вторая страница failed refresh нарушила schema. Что должно остаться опубликованным?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Новый index и старый current</button><button type="button" class="quiz-option" data-choice="1">Частичный dataset из первой страницы</button><button type="button" class="quiz-option" data-choice="2">Новый current с отметкой invalid</button><button type="button" class="quiz-option" data-choice="3">Прежние cache index, raw blobs старого snapshot и current pointer</button></div><p class="quiz-feedback" hidden>Новые blobs могут остаться orphan, но рабочий index и pointer меняются только после успешной поставки.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Почему одного snapshot_id недостаточно для идентичности производного dataset?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Одинаковые raw bytes могут дать другой результат при изменении schema, layout или pipeline semantics</button><button type="button" class="quiz-option" data-choice="1">SHA-256 нельзя вычислять для JSON</button><button type="button" class="quiz-option" data-choice="2">Snapshot не содержит URL</button><button type="button" class="quiz-option" data-choice="3">Parquet требует случайный идентификатор</button></div><p class="quiz-feedback" hidden>Run identity должна включать не только raw snapshot, но и все контракты преобразования.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">04</p><h3>Файл и его SHA-256 в manifest были заменены согласованно. Какая проверка всё ещё может заметить другой amount?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Проверка расширения .parquet</button><button type="button" class="quiz-option" data-choice="1">Повторное вычисление того же нового checksum</button><button type="button" class="quiz-option" data-choice="2">Semantic roundtrip против записей проверенного raw snapshot</button><button type="button" class="quiz-option" data-choice="3">Сравнение длины run_id</button></div><p class="quiz-feedback" hidden>Checksum проверяет заявленные bytes, а semantic comparison проверяет значения относительно доверенного входа.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">05</p><h3>Что означает reused_version=true в корректном загрузчике?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Каталог существовал, поэтому чтение и проверки пропущены</button><button type="button" class="quiz-option" data-choice="1">Существующий package снова прошёл provenance, file checksum, semantic и workload checks</button><button type="button" class="quiz-option" data-choice="2">Источник обязательно был запрошен по сети</button><button type="button" class="quiz-option" data-choice="3">Current pointer не потребовался</button></div><p class="quiz-feedback" hidden>Immutable не означает автоматически trusted: существующая версия должна быть проверена перед reuse.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
-import pyarrow.dataset as ds
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;resilient_loader.py&quot;
 DATA = ROOT.parent / &quot;data&quot;
 SOURCE = DATA / &quot;tiny&quot;
-SCHEMA = DATA / &quot;parquet_schema.json&quot;
+DELIVERY_SOURCE = DATA / &quot;delivery_contract.json&quot;
+SCHEMA_SOURCE = DATA / &quot;parquet_schema.json&quot;
+LAYOUT_SOURCE = DATA / &quot;partition_layout_contract.json&quot;
 START_URL = &quot;https://api.example.test/orders?page=1&quot;
+
 SPEC = importlib.util.spec_from_file_location(&quot;resilient_loader&quot;, ARTIFACT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
@@ -210,119 +497,489 @@ LOADER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(LOADER)
 
 
+def read_json(path: Path):
+    return json.loads(path.read_text(encoding=&quot;utf-8&quot;))
+
+
+def write_json(path: Path, value) -&gt; None:
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + &quot;\n&quot;,
+        encoding=&quot;utf-8&quot;,
+    )
+
+
+def fixture_pages() -&gt; dict[str, bytes]:
+    return {
+        f&quot;https://api.example.test/orders?page={page}&quot;: (
+            SOURCE / f&quot;api_page_{page}.json&quot;
+        ).read_bytes()
+        for page in (1, 2, 3)
+    }
+
+
+class MappingFetcher:
+    def __init__(self, pages: dict[str, bytes]) -&gt; None:
+        self.pages = pages
+        self.calls: list[str] = []
+
+    def __call__(self, url: str) -&gt; bytes:
+        self.calls.append(url)
+        if url not in self.pages:
+            raise LOADER.DeliveryError(f&quot;missing page: {url}&quot;)
+        return self.pages[url]
+
+
 class FailingFetcher:
     def __call__(self, url: str) -&gt; bytes:
         raise AssertionError(f&quot;unexpected fetch: {url}&quot;)
 
 
-class BadFetcher:
-    def __init__(self, source_dir: Path) -&gt; None:
-        self.good = LOADER.LocalPageFetcher(source_dir)
-
-    def __call__(self, url: str) -&gt; bytes:
-        payload = json.loads(self.good(url))
-        if url.endswith(&quot;page=2&quot;):
-            payload[&quot;items&quot;][0][&quot;amount&quot;] = &quot;not-a-number&quot;
-        return json.dumps(payload).encode()
-
-
 class ResilientLoaderTest(unittest.TestCase):
     def setUp(self) -&gt; None:
         self.directory = TemporaryDirectory()
-        self.output = Path(self.directory.name) / &quot;delivery&quot;
+        self.temp = Path(self.directory.name)
+        self.output = self.temp / &quot;delivery&quot;
+        self.delivery = self.temp / &quot;delivery_contract.json&quot;
+        self.schema = self.temp / &quot;parquet_schema.json&quot;
+        self.layout = self.temp / &quot;partition_layout_contract.json&quot;
+        shutil.copy2(DELIVERY_SOURCE, self.delivery)
+        shutil.copy2(SCHEMA_SOURCE, self.schema)
+        shutil.copy2(LAYOUT_SOURCE, self.layout)
 
     def tearDown(self) -&gt; None:
         self.directory.cleanup()
 
-    def run_valid(self):
-        fetcher = LOADER.LocalPageFetcher(SOURCE)
-        report = LOADER.run_loader(START_URL, self.output, SCHEMA, fetcher)
+    def run_loader(self, fetcher=None, *, refresh: bool = False):
+        if fetcher is None:
+            fetcher = LOADER.LocalPageFetcher(SOURCE)
+        report = LOADER.run_loader(
+            self.output,
+            self.delivery,
+            self.schema,
+            self.layout,
+            fetcher,
+            refresh=refresh,
+        )
         return report, fetcher
 
-    def test_end_to_end_publishes_partitioned_dataset(self) -&gt; None:
-        report, fetcher = self.run_valid()
+    def test_end_to_end_publishes_verified_version(self) -&gt; None:
+        report, fetcher = self.run_loader()
         self.assertTrue(report[&quot;summary&quot;][&quot;valid&quot;])
-        self.assertEqual(report[&quot;summary&quot;][&quot;row_count&quot;], 5)
+        self.assertEqual(
+            report[&quot;source&quot;],
+            {
+                &quot;pages&quot;: 3,
+                &quot;rows&quot;: 5,
+                &quot;reused_pages&quot;: 0,
+                &quot;fetched_pages&quot;: 3,
+            },
+        )
         self.assertEqual(len(fetcher.calls), 3)
-        paths = list(report[&quot;dataset&quot;][&quot;files&quot;])
-        self.assertTrue(any(&quot;currency=EUR&quot; in path for path in paths))
+        self.assertEqual(report[&quot;dataset&quot;][&quot;partition_by&quot;], [&quot;order_month&quot;, &quot;currency&quot;])
+        self.assertTrue(all(report[&quot;checks&quot;].values()))
 
-    def test_second_run_uses_raw_cache_and_existing_version(self) -&gt; None:
-        first, _ = self.run_valid()
-        second = LOADER.run_loader(START_URL, self.output, SCHEMA, FailingFetcher())
+    def test_second_run_replays_cache_and_verifies_existing_version(self) -&gt; None:
+        first, _ = self.run_loader()
+        second, _ = self.run_loader(FailingFetcher())
+        self.assertEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
         self.assertEqual(second[&quot;source&quot;][&quot;reused_pages&quot;], 3)
         self.assertTrue(second[&quot;dataset&quot;][&quot;reused_version&quot;])
-        self.assertEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
 
-    def test_cache_index_contains_verified_checksums(self) -&gt; None:
-        self.run_valid()
-        cache = json.loads((self.output / &quot;raw&quot; / &quot;cache_index.json&quot;).read_text())
-        self.assertEqual(len(cache), 3)
-        for entry in cache.values():
-            path = self.output / &quot;raw&quot; / entry[&quot;file&quot;]
-            self.assertEqual(LOADER.sha256_file(path), entry[&quot;sha256&quot;])
+    def test_raw_cache_is_content_addressed(self) -&gt; None:
+        self.run_loader()
+        cache = read_json(self.output / &quot;raw&quot; / &quot;cache_index.json&quot;)
+        self.assertEqual(cache[&quot;version&quot;], &quot;1.0.0&quot;)
+        self.assertEqual(len(cache[&quot;entries&quot;]), 3)
+        for entry in cache[&quot;entries&quot;].values():
+            blob = self.output / &quot;raw&quot; / &quot;blobs&quot; / f&quot;{entry[&#x27;sha256&#x27;]}.json&quot;
+            self.assertEqual(blob.stat().st_size, entry[&quot;bytes&quot;])
+            self.assertEqual(LOADER.sha256_file(blob), entry[&quot;sha256&quot;])
 
-    def test_corrupted_cache_page_is_refetched(self) -&gt; None:
-        self.run_valid()
-        cache_path = self.output / &quot;raw&quot; / &quot;cache_index.json&quot;
-        cache = json.loads(cache_path.read_text())
+    def test_corrupted_blob_is_refetched_and_repaired(self) -&gt; None:
+        self.run_loader()
+        cache = read_json(self.output / &quot;raw&quot; / &quot;cache_index.json&quot;)[&quot;entries&quot;]
         page_two = cache[&quot;https://api.example.test/orders?page=2&quot;]
-        (self.output / &quot;raw&quot; / page_two[&quot;file&quot;]).write_text(&quot;corrupted&quot;)
+        blob = self.output / &quot;raw&quot; / &quot;blobs&quot; / f&quot;{page_two[&#x27;sha256&#x27;]}.json&quot;
+        blob.write_bytes(b&quot;corrupted&quot;)
         fetcher = LOADER.LocalPageFetcher(SOURCE)
-        report = LOADER.run_loader(START_URL, self.output, SCHEMA, fetcher)
+        report, _ = self.run_loader(fetcher)
         self.assertEqual(fetcher.calls, [&quot;https://api.example.test/orders?page=2&quot;])
         self.assertEqual(report[&quot;source&quot;][&quot;reused_pages&quot;], 2)
+        self.assertEqual(LOADER.sha256_file(blob), page_two[&quot;sha256&quot;])
 
-    def test_failed_refresh_does_not_change_current_pointer(self) -&gt; None:
-        self.run_valid()
+    def test_valid_refresh_creates_new_snapshot_and_version(self) -&gt; None:
+        first, _ = self.run_loader()
+        pages = fixture_pages()
+        changed = json.loads(pages[&quot;https://api.example.test/orders?page=3&quot;])
+        changed[&quot;items&quot;][0][&quot;comment&quot;] = &quot;corrected&quot;
+        pages[&quot;https://api.example.test/orders?page=3&quot;] = json.dumps(changed).encode()
+        second, _ = self.run_loader(MappingFetcher(pages), refresh=True)
+        self.assertNotEqual(second[&quot;snapshot_id&quot;], first[&quot;snapshot_id&quot;])
+        self.assertNotEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
+        self.assertEqual(read_json(self.output / &quot;current.json&quot;)[&quot;run_id&quot;], second[&quot;run_id&quot;])
+
+    def test_failed_refresh_preserves_pointer_index_and_old_blobs(self) -&gt; None:
+        self.run_loader()
         pointer = (self.output / &quot;current.json&quot;).read_bytes()
-        with self.assertRaisesRegex(LOADER.LoaderError, &quot;invalid decimal&quot;):
-            LOADER.run_loader(
-                START_URL,
-                self.output,
-                SCHEMA,
-                BadFetcher(SOURCE),
-                refresh=True,
-            )
+        index = (self.output / &quot;raw&quot; / &quot;cache_index.json&quot;).read_bytes()
+        old_blobs = {
+            path.name: path.read_bytes() for path in (self.output / &quot;raw&quot; / &quot;blobs&quot;).glob(&quot;*.json&quot;)
+        }
+        pages = fixture_pages()
+        bad = json.loads(pages[&quot;https://api.example.test/orders?page=2&quot;])
+        bad[&quot;items&quot;][0][&quot;amount&quot;] = &quot;not-a-number&quot;
+        pages[&quot;https://api.example.test/orders?page=2&quot;] = json.dumps(bad).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;invalid decimal&quot;):
+            self.run_loader(MappingFetcher(pages), refresh=True)
+        self.assertEqual((self.output / &quot;current.json&quot;).read_bytes(), pointer)
+        self.assertEqual((self.output / &quot;raw&quot; / &quot;cache_index.json&quot;).read_bytes(), index)
+        for name, body in old_blobs.items():
+            self.assertEqual((self.output / &quot;raw&quot; / &quot;blobs&quot; / name).read_bytes(), body)
+
+    def test_manifest_links_snapshot_contracts_dataset_and_checks(self) -&gt; None:
+        report, _ = self.run_loader()
+        manifest = read_json(self.output / report[&quot;current&quot;][&quot;manifest&quot;])
+        self.assertEqual(manifest[&quot;snapshot&quot;][&quot;id&quot;], report[&quot;snapshot_id&quot;])
+        self.assertEqual(len(manifest[&quot;snapshot&quot;][&quot;pages&quot;]), 3)
+        self.assertEqual(set(manifest[&quot;contracts&quot;]), {&quot;delivery&quot;, &quot;schema&quot;, &quot;layout&quot;})
+        self.assertEqual(manifest[&quot;dataset&quot;][&quot;rows&quot;], 5)
+        self.assertTrue(all(manifest[&quot;checks&quot;].values()))
+        self.assertEqual(
+            set(manifest[&quot;workload&quot;]),
+            {
+                &quot;monthly_orders&quot;,
+                &quot;currency_orders&quot;,
+                &quot;monthly_currency_orders&quot;,
+            },
+        )
+
+    def test_manifest_and_report_contain_no_absolute_local_paths(self) -&gt; None:
+        report, _ = self.run_loader()
+        manifest = read_json(self.output / report[&quot;current&quot;][&quot;manifest&quot;])
+        rendered = json.dumps({&quot;report&quot;: report, &quot;manifest&quot;: manifest})
+        self.assertNotIn(str(self.temp), rendered)
+        self.assertNotIn(&quot;/Users/&quot;, rendered)
+
+    def test_current_manifest_checksum_is_valid(self) -&gt; None:
+        report, _ = self.run_loader()
+        current = read_json(self.output / &quot;current.json&quot;)
+        manifest = self.output / current[&quot;manifest&quot;]
+        self.assertEqual(current[&quot;manifest_sha256&quot;], LOADER.sha256_file(manifest))
+        self.assertEqual(current, report[&quot;current&quot;])
+
+    def test_pipeline_version_change_changes_run_id(self) -&gt; None:
+        first, _ = self.run_loader()
+        contract = read_json(self.delivery)
+        contract[&quot;pipeline_version&quot;] = &quot;orders-delivery-v2&quot;
+        write_json(self.delivery, contract)
+        second, _ = self.run_loader(FailingFetcher())
+        self.assertNotEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
+
+    def test_schema_digest_change_changes_run_id(self) -&gt; None:
+        first, _ = self.run_loader()
+        contract = read_json(self.schema)
+        contract[&quot;writer&quot;][&quot;row_group_size&quot;] = 4
+        write_json(self.schema, contract)
+        second, _ = self.run_loader(FailingFetcher())
+        self.assertNotEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
+
+    def test_layout_digest_change_changes_run_id(self) -&gt; None:
+        first, _ = self.run_loader()
+        contract = read_json(self.layout)
+        contract[&quot;diagnostics&quot;][&quot;small_partition_rows&quot;] = 3
+        write_json(self.layout, contract)
+        second, _ = self.run_loader(FailingFetcher())
+        self.assertNotEqual(second[&quot;run_id&quot;], first[&quot;run_id&quot;])
+
+    def test_corrupted_existing_parquet_blocks_reuse_and_pointer_change(self) -&gt; None:
+        report, _ = self.run_loader()
+        pointer = (self.output / &quot;current.json&quot;).read_bytes()
+        relative = next(iter(report[&quot;dataset&quot;][&quot;files&quot;]))
+        (self.output / &quot;datasets&quot; / report[&quot;run_id&quot;] / relative).write_bytes(b&quot;broken&quot;)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;checksum verification&quot;):
+            self.run_loader(FailingFetcher())
         self.assertEqual((self.output / &quot;current.json&quot;).read_bytes(), pointer)
 
-    def test_current_points_to_immutable_version_manifest(self) -&gt; None:
-        report, _ = self.run_valid()
-        current = json.loads((self.output / &quot;current.json&quot;).read_text())
-        manifest = self.output / current[&quot;manifest&quot;]
-        self.assertTrue(manifest.is_file())
-        self.assertEqual(current[&quot;manifest_sha256&quot;], LOADER.sha256_file(manifest))
-        self.assertIn(report[&quot;run_id&quot;], current[&quot;dataset&quot;])
+    def test_corrupted_existing_manifest_blocks_reuse(self) -&gt; None:
+        report, _ = self.run_loader()
+        manifest = self.output / report[&quot;current&quot;][&quot;manifest&quot;]
+        value = read_json(manifest)
+        value[&quot;pipeline_version&quot;] = &quot;tampered&quot;
+        write_json(manifest, value)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;does not match&quot;):
+            self.run_loader(FailingFetcher())
 
-    def test_dataset_schema_and_partition_columns_are_readable(self) -&gt; None:
-        report, _ = self.run_valid()
-        dataset = ds.dataset(
-            self.output / report[&quot;current&quot;][&quot;dataset&quot;],
-            format=&quot;parquet&quot;,
-            partitioning=&quot;hive&quot;,
-        )
-        self.assertEqual(dataset.count_rows(), 5)
-        self.assertIn(&quot;order_month&quot;, dataset.schema.names)
-        self.assertIn(&quot;currency&quot;, dataset.schema.names)
+    def test_extra_parquet_file_blocks_reuse(self) -&gt; None:
+        report, _ = self.run_loader()
+        version = self.output / &quot;datasets&quot; / report[&quot;run_id&quot;]
+        source = next((version / &quot;data&quot;).rglob(&quot;*.parquet&quot;))
+        shutil.copy2(source, version / &quot;data&quot; / &quot;extra.parquet&quot;)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;file list differs&quot;):
+            self.run_loader(FailingFetcher())
 
-    def test_schema_drift_is_rejected_before_pointer_update(self) -&gt; None:
-        with self.assertRaisesRegex(LOADER.LoaderError, &quot;invalid decimal&quot;):
-            LOADER.run_loader(START_URL, self.output, SCHEMA, BadFetcher(SOURCE))
+    def test_semantic_drift_is_detected_even_with_updated_file_checksum(self) -&gt; None:
+        report, _ = self.run_loader()
+        version = self.output / &quot;datasets&quot; / report[&quot;run_id&quot;]
+        relative = next(iter(report[&quot;dataset&quot;][&quot;files&quot;]))
+        parquet = version / relative
+        table = pq.ParquetFile(parquet).read()
+        rows = table.to_pylist()
+        rows[0][&quot;amount&quot;] = Decimal(&quot;999.99&quot;)
+        pq.write_table(pa.Table.from_pylist(rows, schema=table.schema), parquet)
+        manifest_path = version / &quot;manifest.json&quot;
+        manifest = read_json(manifest_path)
+        manifest[&quot;dataset&quot;][&quot;files&quot;][relative] = {
+            &quot;bytes&quot;: parquet.stat().st_size,
+            &quot;sha256&quot;: LOADER.sha256_file(parquet),
+        }
+        write_json(manifest_path, manifest)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;values differ&quot;):
+            self.run_loader(FailingFetcher())
+
+    def test_similar_staging_directory_is_not_deleted(self) -&gt; None:
+        marker = self.output / &quot;datasets&quot; / &quot;.manual.staging&quot; / &quot;marker.txt&quot;
+        marker.parent.mkdir(parents=True)
+        marker.write_text(&quot;keep&quot;, encoding=&quot;utf-8&quot;)
+        self.run_loader()
+        self.assertEqual(marker.read_text(encoding=&quot;utf-8&quot;), &quot;keep&quot;)
+
+    def test_failed_candidate_verification_cleans_unique_staging(self) -&gt; None:
+        original = LOADER._verify_package
+        calls = 0
+
+        def fail_first(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise LOADER.DeliveryError(&quot;injected verification failure&quot;)
+            return original(*args, **kwargs)
+
+        with (
+            mock.patch.object(LOADER, &quot;_verify_package&quot;, side_effect=fail_first),
+            self.assertRaisesRegex(LOADER.DeliveryError, &quot;injected&quot;),
+        ):
+            self.run_loader()
+        versions = self.output / &quot;datasets&quot;
+        self.assertEqual(list(versions.glob(&quot;.*.staging&quot;)), [])
         self.assertFalse((self.output / &quot;current.json&quot;).exists())
+
+    def test_relative_same_origin_next_is_accepted(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;next&quot;] = &quot;?page=2&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        report, fetcher = self.run_loader(MappingFetcher(pages))
+        self.assertEqual(report[&quot;source&quot;][&quot;pages&quot;], 3)
+        self.assertEqual(fetcher.calls[1], &quot;https://api.example.test/orders?page=2&quot;)
+
+    def test_cross_origin_next_is_rejected_before_fetch(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;next&quot;] = &quot;https://evil.example/orders?page=2&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        fetcher = MappingFetcher(pages)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;outside&quot;):
+            self.run_loader(fetcher)
+        self.assertEqual(fetcher.calls, [START_URL])
+
+    def test_https_downgrade_next_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;next&quot;] = &quot;http://api.example.test/orders?page=2&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;HTTPS&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_missing_next_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        del first[&quot;next&quot;]
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;missing&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_duplicate_page_json_key_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        pages[START_URL] = b&#x27;{&quot;items&quot;: [], &quot;items&quot;: [], &quot;next&quot;: null, &quot;page&quot;: 1}&#x27;
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;duplicate JSON key&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_page_number_mismatch_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;page&quot;] = 2
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;page number&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_pagination_cycle_is_rejected_before_extra_fetch(self) -&gt; None:
+        pages = fixture_pages()
+        second_url = &quot;https://api.example.test/orders?page=2&quot;
+        second = json.loads(pages[second_url])
+        second[&quot;next&quot;] = START_URL
+        pages[second_url] = json.dumps(second).encode()
+        fetcher = MappingFetcher(pages)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;cycle&quot;):
+            self.run_loader(fetcher)
+        self.assertEqual(fetcher.calls, [START_URL, second_url])
+
+    def test_max_pages_is_enforced(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;source&quot;][&quot;max_pages&quot;] = 2
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;max_pages&quot;):
+            self.run_loader(MappingFetcher(fixture_pages()))
+
+    def test_duplicate_grain_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        second_url = &quot;https://api.example.test/orders?page=2&quot;
+        second = json.loads(pages[second_url])
+        second[&quot;items&quot;][0][&quot;order_id&quot;] = &quot;O2301&quot;
+        pages[second_url] = json.dumps(second).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;grain&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_missing_record_field_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        del first[&quot;items&quot;][0][&quot;currency&quot;]
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;missing&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_domain_drift_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;items&quot;][0][&quot;currency&quot;] = &quot;USD&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;domain&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_naive_timestamp_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;items&quot;][0][&quot;ordered_at&quot;] = &quot;2026-05-01T10:00:00&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;requires Z&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_decimal_scale_drift_is_rejected(self) -&gt; None:
+        pages = fixture_pages()
+        first = json.loads(pages[START_URL])
+        first[&quot;items&quot;][0][&quot;amount&quot;] = &quot;1.999&quot;
+        pages[START_URL] = json.dumps(first).encode()
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;scale&quot;):
+            self.run_loader(MappingFetcher(pages))
+
+    def test_page_size_limit_applies_to_local_fetcher(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;http&quot;][&quot;max_page_bytes&quot;] = 10
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.DeliveryError, &quot;max_page_bytes&quot;):
+            self.run_loader()
+
+    def test_delivery_contract_rejects_unknown_key(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;surprise&quot;] = True
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;unknown&quot;):
+            self.run_loader()
+
+    def test_delivery_contract_rejects_duplicate_key(self) -&gt; None:
+        self.delivery.write_text(
+            &#x27;{&quot;version&quot;:&quot;1.0.0&quot;,&quot;version&quot;:&quot;1.0.0&quot;}&#x27;,
+            encoding=&quot;utf-8&quot;,
+        )
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;duplicate JSON key&quot;):
+            self.run_loader()
+
+    def test_delivery_contract_rejects_version_drift(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;version&quot;] = &quot;2.0.0&quot;
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;unsupported&quot;):
+            self.run_loader()
+
+    def test_delivery_contract_rejects_start_url_outside_origin(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;source&quot;][&quot;start_url&quot;] = &quot;https://evil.example/orders?page=1&quot;
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;outside&quot;):
+            self.run_loader()
+
+    def test_delivery_contract_rejects_secret_query_parameter(self) -&gt; None:
+        contract = read_json(self.delivery)
+        contract[&quot;source&quot;][&quot;start_url&quot;] += &quot;&amp;api_key=secret&quot;
+        write_json(self.delivery, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;secret query&quot;):
+            self.run_loader()
+
+    def test_schema_contract_rejects_old_object_shape(self) -&gt; None:
+        contract = read_json(self.schema)
+        contract[&quot;columns&quot;] = {column[&quot;name&quot;]: column for column in contract[&quot;columns&quot;]}
+        write_json(self.schema, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;non-empty list&quot;):
+            self.run_loader()
+
+    def test_layout_contract_rejects_missing_selected_candidate(self) -&gt; None:
+        contract = read_json(self.layout)
+        contract[&quot;selected&quot;] = &quot;missing&quot;
+        write_json(self.layout, contract)
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;selected&quot;):
+            self.run_loader()
+
+    def test_corrupt_cache_index_is_not_silently_ignored(self) -&gt; None:
+        cache = self.output / &quot;raw&quot; / &quot;cache_index.json&quot;
+        cache.parent.mkdir(parents=True)
+        write_json(
+            cache,
+            {
+                &quot;version&quot;: &quot;1.0.0&quot;,
+                &quot;entries&quot;: {
+                    START_URL: {
+                        &quot;sha256&quot;: &quot;bad&quot;,
+                        &quot;bytes&quot;: 10,
+                    }
+                },
+            },
+        )
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;invalid sha256&quot;):
+            self.run_loader()
+
+    def test_cache_index_cannot_supply_a_path(self) -&gt; None:
+        cache = self.output / &quot;raw&quot; / &quot;cache_index.json&quot;
+        cache.parent.mkdir(parents=True)
+        write_json(
+            cache,
+            {
+                &quot;version&quot;: &quot;1.0.0&quot;,
+                &quot;entries&quot;: {
+                    START_URL: {
+                        &quot;sha256&quot;: &quot;0&quot; * 64,
+                        &quot;bytes&quot;: 10,
+                        &quot;file&quot;: &quot;../../outside&quot;,
+                    }
+                },
+            },
+        )
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;unknown&quot;):
+            self.run_loader()
 
     def test_cli_runs_fully_offline(self) -&gt; None:
         result = subprocess.run(
             [
                 sys.executable,
                 ARTIFACT,
-                &quot;--url&quot;,
-                START_URL,
+                &quot;--contract&quot;,
+                self.delivery,
+                &quot;--schema&quot;,
+                self.schema,
+                &quot;--layout-contract&quot;,
+                self.layout,
                 &quot;--source-dir&quot;,
                 SOURCE,
                 &quot;--output-dir&quot;,
                 self.output,
-                &quot;--schema&quot;,
-                SCHEMA,
             ],
             check=False,
             capture_output=True,
@@ -330,7 +987,40 @@ class ResilientLoaderTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(json.loads(result.stdout)[&quot;summary&quot;][&quot;valid&quot;])
-        self.assertTrue((self.output / &quot;current.json&quot;).is_file())
+
+    def test_cli_returns_two_for_invalid_contract(self) -&gt; None:
+        self.delivery.write_text(&quot;{}&quot;, encoding=&quot;utf-8&quot;)
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--contract&quot;,
+                self.delivery,
+                &quot;--schema&quot;,
+                self.schema,
+                &quot;--layout-contract&quot;,
+                self.layout,
+                &quot;--source-dir&quot;,
+                SOURCE,
+                &quot;--output-dir&quot;,
+                self.output,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&quot;error&quot;, json.loads(result.stderr))
+
+    def test_output_path_collision_is_rejected(self) -&gt; None:
+        with self.assertRaisesRegex(LOADER.ContractError, &quot;output-dir&quot;):
+            LOADER.run_loader(
+                self.delivery,
+                self.delivery,
+                self.schema,
+                self.layout,
+                LOADER.LocalPageFetcher(SOURCE),
+            )
 
 
 if __name__ == &quot;__main__&quot;:
@@ -338,22 +1028,89 @@ if __name__ == &quot;__main__&quot;:
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import hashlib
 import json
 
-pages = [
-    b&#x27;{&quot;page&quot;: 1, &quot;next&quot;: &quot;page-2&quot;}&#x27;,
-    b&#x27;{&quot;page&quot;: 2, &quot;next&quot;: null}&#x27;,
-]
-checksums = [hashlib.sha256(page).hexdigest() for page in pages]
-run_id = hashlib.sha256(json.dumps(checksums, sort_keys=True).encode()).hexdigest()[:16]
 
-print(&quot;Raw checksums:&quot;, checksums)
-print(&quot;Immutable dataset version:&quot;, run_id)
-print(&quot;Atomic pointer:&quot;, {&quot;run_id&quot;: run_id, &quot;dataset&quot;: f&quot;datasets/{run_id}/data&quot;})
+def canonical_bytes(value):
+    return json.dumps(value, sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;)).encode()
+
+
+def digest(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+source = {
+    &quot;page-1&quot;: canonical_bytes({&quot;items&quot;: [&quot;O2301&quot;, &quot;O2302&quot;], &quot;next&quot;: &quot;page-2&quot;}),
+    &quot;page-2&quot;: canonical_bytes({&quot;items&quot;: [&quot;O2303&quot;], &quot;next&quot;: None}),
+}
+blobs = {}
+cache_index = {}
+current = None
+
+
+def prepare_run(*, refresh=False, replacement=None):
+    candidate_index = dict(cache_index)
+    pages = []
+    url = &quot;page-1&quot;
+    fetched = 0
+    while url is not None:
+        if not refresh and url in cache_index:
+            checksum = cache_index[url]
+            body = blobs[checksum]
+        else:
+            body = (replacement or source)[url]
+            checksum = digest(body)
+            blobs[checksum] = body  # immutable blob; old digest remains available
+            candidate_index[url] = checksum
+            fetched += 1
+        payload = json.loads(body)
+        if set(payload) != {&quot;items&quot;, &quot;next&quot;}:
+            raise ValueError(f&quot;invalid page contract: {url}&quot;)
+        pages.append({&quot;url&quot;: url, &quot;sha256&quot;: checksum, &quot;rows&quot;: len(payload[&quot;items&quot;])})
+        url = payload[&quot;next&quot;]
+    snapshot_id = digest(canonical_bytes(pages))
+    run_id = digest(
+        canonical_bytes(
+            {
+                &quot;snapshot_id&quot;: snapshot_id,
+                &quot;schema&quot;: &quot;schema-v2&quot;,
+                &quot;layout&quot;: &quot;month-currency-v1&quot;,
+                &quot;pipeline&quot;: &quot;orders-delivery-v1&quot;,
+            }
+        )
+    )
+    return candidate_index, {
+        &quot;run_id&quot;: run_id,
+        &quot;snapshot_id&quot;: snapshot_id,
+        &quot;fetched&quot;: fetched,
+        &quot;rows&quot;: sum(page[&quot;rows&quot;] for page in pages),
+    }
+
+
+candidate_index, first = prepare_run()
+cache_index = candidate_index
+current = {&quot;run_id&quot;: first[&quot;run_id&quot;]}  # commit point after candidate verification
+print(&quot;first run:&quot;, first)
+
+candidate_index, replay = prepare_run()
+cache_index = candidate_index
+current = {&quot;run_id&quot;: replay[&quot;run_id&quot;]}
+print(&quot;replay:&quot;, replay)
+
+broken_source = dict(source)
+broken_source[&quot;page-2&quot;] = canonical_bytes({&quot;records&quot;: [&quot;O2303&quot;], &quot;next&quot;: None})
+old_index = dict(cache_index)
+old_current = dict(current)
+try:
+    prepare_run(refresh=True, replacement=broken_source)
+except ValueError as error:
+    print(&quot;failed refresh:&quot;, error)
+print(&quot;old cache index preserved:&quot;, cache_index == old_index)
+print(&quot;old current preserved:&quot;, current == old_current)
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
-  &quot;name&quot;: &quot;resilient-source-loader&quot;,
+  &quot;name&quot;: &quot;replayable-source-delivery&quot;,
   &quot;type&quot;: &quot;cli&quot;,
   &quot;path&quot;: &quot;outputs/resilient_loader.py&quot;,
-  &quot;description&quot;: &quot;Кеширует raw API pages, проверяет schema, создает immutable partitioned Parquet version и атомарно обновляет current pointer.&quot;,
-  &quot;usage&quot;: &quot;python outputs/resilient_loader.py --url https://api.example.test/orders?page=1 --source-dir ../data/tiny --output-dir delivery --schema ../data/parquet_schema.json&quot;
+  &quot;description&quot;: &quot;Сохраняет content-addressed raw snapshot, проверяет immutable partitioned Parquet package и атомарно переключает current только после provenance, checksum и semantic checks.&quot;,
+  &quot;usage&quot;: &quot;python outputs/resilient_loader.py --contract ../data/delivery_contract.json --schema ../data/parquet_schema.json --layout-contract ../data/partition_layout_contract.json --source-dir ../data/tiny --output-dir delivery&quot;
 }
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/resilient_loader.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
@@ -361,24 +1118,41 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
-from datetime import datetime
+import tempfile
+import time
+from collections.abc import Callable
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Protocol
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
+
+DELIVERY_VERSION = &quot;1.0.0&quot;
+SCHEMA_VERSION = &quot;2.0.0&quot;
+LAYOUT_VERSION = &quot;1.0.0&quot;
+CACHE_VERSION = &quot;1.0.0&quot;
+MANIFEST_VERSION = &quot;1.0.0&quot;
+MAX_CONTRACT_BYTES = 1_000_000
+SHA256_PATTERN = re.compile(r&quot;[0-9a-f]{64}&quot;)
+DECIMAL_PATTERN = re.compile(r&quot;decimal128\((\d+),\s*(\d+)\)&quot;)
+OFFSET_PATTERN = re.compile(r&quot;(?:Z|[+-]\d{2}:\d{2})$&quot;)
 
 
-class LoaderError(RuntimeError):
-    &quot;&quot;&quot;Raised when raw pages or a dataset version cannot be validated.&quot;&quot;&quot;
+class DeliveryError(RuntimeError):
+    &quot;&quot;&quot;Raised when source data or a delivery candidate cannot be trusted.&quot;&quot;&quot;
+
+
+class ContractError(DeliveryError):
+    &quot;&quot;&quot;Raised when a declared contract or local configuration is invalid.&quot;&quot;&quot;
 
 
 class PageFetcher(Protocol):
@@ -390,21 +1164,413 @@ def sha256_bytes(value: bytes) -&gt; str:
 
 
 def sha256_file(path: Path) -&gt; str:
-    return sha256_bytes(path.read_bytes())
+    try:
+        return sha256_bytes(path.read_bytes())
+    except OSError as error:
+        raise DeliveryError(f&quot;cannot read file for checksum: {path.name}&quot;) from error
 
 
-def atomic_write(path: Path, content: bytes) -&gt; None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f&quot;.{path.name}.part&quot;)
-    temporary.write_bytes(content)
-    os.replace(temporary, path)
+def _canonical_bytes(value: Any) -&gt; bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(&quot;,&quot;, &quot;:&quot;),
+    ).encode(&quot;utf-8&quot;)
 
 
-def atomic_write_json(path: Path, value: Any) -&gt; None:
-    atomic_write(
-        path,
-        (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;).encode(),
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -&gt; dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ContractError(f&quot;duplicate JSON key: {key}&quot;)
+        result[key] = value
+    return result
+
+
+def _reject_constant(value: str) -&gt; None:
+    raise ContractError(f&quot;non-finite JSON number is forbidden: {value}&quot;)
+
+
+def _parse_json(raw: bytes, *, label: str) -&gt; Any:
+    try:
+        text = raw.decode(&quot;utf-8&quot;, errors=&quot;strict&quot;)
+    except UnicodeDecodeError as error:
+        raise ContractError(f&quot;{label} must be valid UTF-8&quot;) from error
+    try:
+        return json.loads(
+            text,
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_constant,
+        )
+    except json.JSONDecodeError as error:
+        raise ContractError(f&quot;invalid {label} JSON: {error.msg}&quot;) from error
+
+
+def _read_bounded(path: Path, *, label: str) -&gt; bytes:
+    if not path.is_file():
+        raise ContractError(f&quot;{label} file does not exist: {path}&quot;)
+    try:
+        size = path.stat().st_size
+        if size &gt; MAX_CONTRACT_BYTES:
+            raise ContractError(f&quot;{label} exceeds {MAX_CONTRACT_BYTES} bytes&quot;)
+        return path.read_bytes()
+    except OSError as error:
+        raise ContractError(f&quot;cannot read {label}: {error}&quot;) from error
+
+
+def _exact_keys(
+    value: dict[str, Any],
+    *,
+    required: set[str],
+    label: str,
+    optional: set[str] | None = None,
+) -&gt; None:
+    optional = optional or set()
+    missing = sorted(required - value.keys())
+    unknown = sorted(value.keys() - required - optional)
+    if missing:
+        raise ContractError(f&quot;{label} misses keys: {missing}&quot;)
+    if unknown:
+        raise ContractError(f&quot;{label} has unknown keys: {unknown}&quot;)
+
+
+def _positive_int(value: Any, label: str) -&gt; int:
+    if type(value) is not int or value &lt;= 0:
+        raise ContractError(f&quot;{label} must be a positive integer&quot;)
+    return value
+
+
+def _positive_number(value: Any, label: str) -&gt; float:
+    if type(value) not in {int, float} or value &lt;= 0:
+        raise ContractError(f&quot;{label} must be a positive number&quot;)
+    return float(value)
+
+
+def _origin(url: str) -&gt; tuple[str, str, int | None]:
+    parsed = urlparse(url)
+    return parsed.scheme.lower(), (parsed.hostname or &quot;&quot;).lower(), parsed.port
+
+
+def _validate_url(url: Any, *, origin: tuple[str, str, int | None], label: str) -&gt; str:
+    if not isinstance(url, str) or not url.strip():
+        raise ContractError(f&quot;{label} must be a non-empty URL&quot;)
+    parsed = urlparse(url)
+    if parsed.scheme.lower() != &quot;https&quot; or not parsed.hostname:
+        raise ContractError(f&quot;{label} must use absolute HTTPS&quot;)
+    if parsed.username or parsed.password or parsed.fragment:
+        raise ContractError(f&quot;{label} must not contain credentials or a fragment&quot;)
+    forbidden_query_keys = {
+        &quot;access_token&quot;,
+        &quot;api_key&quot;,
+        &quot;key&quot;,
+        &quot;password&quot;,
+        &quot;secret&quot;,
+        &quot;sig&quot;,
+        &quot;signature&quot;,
+    }
+    observed_query_keys = {key.lower() for key in parse_qs(parsed.query)}
+    if observed_query_keys &amp; forbidden_query_keys:
+        raise ContractError(f&quot;{label} must not contain a secret query parameter&quot;)
+    if _origin(url) != origin:
+        raise DeliveryError(f&quot;{label} points outside the declared origin&quot;)
+    return url
+
+
+def load_delivery_contract(path: str | Path) -&gt; tuple[dict[str, Any], str]:
+    raw = _read_bounded(Path(path), label=&quot;delivery contract&quot;)
+    value = _parse_json(raw, label=&quot;delivery contract&quot;)
+    if not isinstance(value, dict):
+        raise ContractError(&quot;delivery contract root must be an object&quot;)
+    _exact_keys(
+        value,
+        required={&quot;version&quot;, &quot;pipeline_version&quot;, &quot;source&quot;, &quot;http&quot;, &quot;integrity&quot;},
+        label=&quot;delivery contract&quot;,
     )
+    if value[&quot;version&quot;] != DELIVERY_VERSION:
+        raise ContractError(f&quot;unsupported delivery contract version: {value[&#x27;version&#x27;]!r}&quot;)
+    if not isinstance(value[&quot;pipeline_version&quot;], str) or not value[&quot;pipeline_version&quot;]:
+        raise ContractError(&quot;pipeline_version must be a non-empty string&quot;)
+
+    source = value[&quot;source&quot;]
+    if not isinstance(source, dict):
+        raise ContractError(&quot;source must be an object&quot;)
+    _exact_keys(
+        source,
+        required={
+            &quot;start_url&quot;,
+            &quot;allowed_origin&quot;,
+            &quot;items_field&quot;,
+            &quot;next_field&quot;,
+            &quot;page_number_field&quot;,
+            &quot;max_pages&quot;,
+        },
+        label=&quot;source&quot;,
+    )
+    if not isinstance(source[&quot;allowed_origin&quot;], str):
+        raise ContractError(&quot;allowed_origin must be a string&quot;)
+    origin = _origin(source[&quot;allowed_origin&quot;])
+    if (
+        origin[0] != &quot;https&quot;
+        or not origin[1]
+        or urlparse(source[&quot;allowed_origin&quot;]).path
+        not in {
+            &quot;&quot;,
+            &quot;/&quot;,
+        }
+    ):
+        raise ContractError(&quot;allowed_origin must contain only an HTTPS origin&quot;)
+    try:
+        _validate_url(source[&quot;start_url&quot;], origin=origin, label=&quot;start_url&quot;)
+    except DeliveryError as error:
+        raise ContractError(str(error)) from error
+    fields = [source[name] for name in (&quot;items_field&quot;, &quot;next_field&quot;, &quot;page_number_field&quot;)]
+    if any(not isinstance(name, str) or not name for name in fields) or len(set(fields)) != 3:
+        raise ContractError(&quot;page field names must be three unique non-empty strings&quot;)
+    _positive_int(source[&quot;max_pages&quot;], &quot;source.max_pages&quot;)
+
+    http = value[&quot;http&quot;]
+    if not isinstance(http, dict):
+        raise ContractError(&quot;http must be an object&quot;)
+    _exact_keys(
+        http,
+        required={
+            &quot;connect_timeout_seconds&quot;,
+            &quot;read_timeout_seconds&quot;,
+            &quot;max_page_bytes&quot;,
+            &quot;max_redirects&quot;,
+            &quot;retries_per_page&quot;,
+            &quot;backoff_factor_seconds&quot;,
+            &quot;max_retry_after_seconds&quot;,
+        },
+        label=&quot;http&quot;,
+    )
+    _positive_number(http[&quot;connect_timeout_seconds&quot;], &quot;http.connect_timeout_seconds&quot;)
+    _positive_number(http[&quot;read_timeout_seconds&quot;], &quot;http.read_timeout_seconds&quot;)
+    _positive_int(http[&quot;max_page_bytes&quot;], &quot;http.max_page_bytes&quot;)
+    if type(http[&quot;max_redirects&quot;]) is not int or http[&quot;max_redirects&quot;] &lt; 0:
+        raise ContractError(&quot;http.max_redirects must be a non-negative integer&quot;)
+    if type(http[&quot;retries_per_page&quot;]) is not int or http[&quot;retries_per_page&quot;] &lt; 0:
+        raise ContractError(&quot;http.retries_per_page must be a non-negative integer&quot;)
+    _positive_number(http[&quot;backoff_factor_seconds&quot;], &quot;http.backoff_factor_seconds&quot;)
+    _positive_number(http[&quot;max_retry_after_seconds&quot;], &quot;http.max_retry_after_seconds&quot;)
+
+    integrity = value[&quot;integrity&quot;]
+    if not isinstance(integrity, dict):
+        raise ContractError(&quot;integrity must be an object&quot;)
+    _exact_keys(integrity, required={&quot;algorithm&quot;}, label=&quot;integrity&quot;)
+    if integrity[&quot;algorithm&quot;] != &quot;sha256&quot;:
+        raise ContractError(&quot;only sha256 integrity is supported&quot;)
+    return value, sha256_bytes(raw)
+
+
+def _arrow_type(type_name: Any) -&gt; pa.DataType:
+    if type_name == &quot;string&quot;:
+        return pa.string()
+    if type_name == &quot;timestamp[us, tz=UTC]&quot;:
+        return pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;)
+    if isinstance(type_name, str):
+        match = DECIMAL_PATTERN.fullmatch(type_name)
+        if match:
+            precision, scale = (int(item) for item in match.groups())
+            if 1 &lt;= precision &lt;= 38 and 0 &lt;= scale &lt;= precision:
+                return pa.decimal128(precision, scale)
+    raise ContractError(f&quot;unsupported schema type: {type_name!r}&quot;)
+
+
+def load_schema_contract(path: str | Path) -&gt; tuple[dict[str, Any], pa.Schema, str]:
+    raw = _read_bounded(Path(path), label=&quot;schema contract&quot;)
+    value = _parse_json(raw, label=&quot;schema contract&quot;)
+    if not isinstance(value, dict):
+        raise ContractError(&quot;schema contract root must be an object&quot;)
+    _exact_keys(
+        value,
+        required={&quot;version&quot;, &quot;grain&quot;, &quot;allow_empty&quot;, &quot;columns&quot;, &quot;writer&quot;},
+        label=&quot;schema contract&quot;,
+    )
+    if value[&quot;version&quot;] != SCHEMA_VERSION:
+        raise ContractError(f&quot;unsupported schema contract version: {value[&#x27;version&#x27;]!r}&quot;)
+    if type(value[&quot;allow_empty&quot;]) is not bool:
+        raise ContractError(&quot;allow_empty must be boolean&quot;)
+    columns = value[&quot;columns&quot;]
+    if not isinstance(columns, list) or not columns:
+        raise ContractError(&quot;columns must be a non-empty list&quot;)
+    names: list[str] = []
+    fields: list[pa.Field] = []
+    for position, column in enumerate(columns):
+        label = f&quot;columns[{position}]&quot;
+        if not isinstance(column, dict):
+            raise ContractError(f&quot;{label} must be an object&quot;)
+        _exact_keys(
+            column,
+            required={&quot;name&quot;, &quot;type&quot;, &quot;nullable&quot;, &quot;empty_as_null&quot;},
+            optional={&quot;domain&quot;},
+            label=label,
+        )
+        name = column[&quot;name&quot;]
+        if not isinstance(name, str) or not name or name in names:
+            raise ContractError(f&quot;{label}.name must be unique and non-empty&quot;)
+        names.append(name)
+        if type(column[&quot;nullable&quot;]) is not bool or type(column[&quot;empty_as_null&quot;]) is not bool:
+            raise ContractError(f&quot;{label} null flags must be boolean&quot;)
+        if column[&quot;empty_as_null&quot;] and not column[&quot;nullable&quot;]:
+            raise ContractError(f&quot;{label} cannot map empty to a forbidden null&quot;)
+        if &quot;domain&quot; in column:
+            domain = column[&quot;domain&quot;]
+            if (
+                column[&quot;type&quot;] != &quot;string&quot;
+                or not isinstance(domain, list)
+                or not domain
+                or any(not isinstance(item, str) or not item for item in domain)
+                or len(domain) != len(set(domain))
+            ):
+                raise ContractError(f&quot;{label}.domain must contain unique strings&quot;)
+        fields.append(pa.field(name, _arrow_type(column[&quot;type&quot;]), nullable=column[&quot;nullable&quot;]))
+    grain = value[&quot;grain&quot;]
+    if (
+        not isinstance(grain, list)
+        or not grain
+        or any(not isinstance(name, str) for name in grain)
+        or len(grain) != len(set(grain))
+        or set(grain) - set(names)
+    ):
+        raise ContractError(&quot;grain must contain unique declared column names&quot;)
+    by_name = {column[&quot;name&quot;]: column for column in columns}
+    if any(by_name[name][&quot;nullable&quot;] for name in grain):
+        raise ContractError(&quot;grain columns must be non-null&quot;)
+    writer = value[&quot;writer&quot;]
+    if not isinstance(writer, dict):
+        raise ContractError(&quot;writer must be an object&quot;)
+    _exact_keys(
+        writer,
+        required={&quot;compression&quot;, &quot;write_statistics&quot;, &quot;row_group_size&quot;},
+        label=&quot;writer&quot;,
+    )
+    if writer[&quot;compression&quot;] not in {&quot;zstd&quot;, &quot;snappy&quot;, &quot;none&quot;}:
+        raise ContractError(&quot;unsupported writer compression&quot;)
+    if type(writer[&quot;write_statistics&quot;]) is not bool:
+        raise ContractError(&quot;writer.write_statistics must be boolean&quot;)
+    _positive_int(writer[&quot;row_group_size&quot;], &quot;writer.row_group_size&quot;)
+    return value, pa.schema(fields), sha256_bytes(raw)
+
+
+def load_layout_contract(path: str | Path) -&gt; tuple[dict[str, Any], str]:
+    raw = _read_bounded(Path(path), label=&quot;layout contract&quot;)
+    value = _parse_json(raw, label=&quot;layout contract&quot;)
+    if not isinstance(value, dict):
+        raise ContractError(&quot;layout contract root must be an object&quot;)
+    _exact_keys(
+        value,
+        required={
+            &quot;version&quot;,
+            &quot;source&quot;,
+            &quot;derived_columns&quot;,
+            &quot;candidates&quot;,
+            &quot;selected&quot;,
+            &quot;workload&quot;,
+            &quot;diagnostics&quot;,
+        },
+        label=&quot;layout contract&quot;,
+    )
+    if value[&quot;version&quot;] != LAYOUT_VERSION:
+        raise ContractError(f&quot;unsupported layout contract version: {value[&#x27;version&#x27;]!r}&quot;)
+    rules = value[&quot;derived_columns&quot;]
+    if not isinstance(rules, list) or not rules:
+        raise ContractError(&quot;derived_columns must be a non-empty list&quot;)
+    derived_names: list[str] = []
+    for position, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            raise ContractError(f&quot;derived_columns[{position}] must be an object&quot;)
+        _exact_keys(
+            rule,
+            required={&quot;name&quot;, &quot;source&quot;, &quot;transform&quot;},
+            label=f&quot;derived_columns[{position}]&quot;,
+        )
+        if (
+            any(not isinstance(rule[key], str) or not rule[key] for key in rule)
+            or rule[&quot;name&quot;] in derived_names
+            or rule[&quot;transform&quot;] not in {&quot;utc_month&quot;, &quot;utc_date&quot;}
+        ):
+            raise ContractError(f&quot;invalid derived_columns[{position}]&quot;)
+        derived_names.append(rule[&quot;name&quot;])
+    candidates = value[&quot;candidates&quot;]
+    if not isinstance(candidates, list) or not candidates:
+        raise ContractError(&quot;candidates must be a non-empty list&quot;)
+    by_candidate: dict[str, list[str]] = {}
+    for position, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            raise ContractError(f&quot;candidates[{position}] must be an object&quot;)
+        _exact_keys(
+            candidate,
+            required={&quot;name&quot;, &quot;partition_by&quot;},
+            label=f&quot;candidates[{position}]&quot;,
+        )
+        name = candidate[&quot;name&quot;]
+        keys = candidate[&quot;partition_by&quot;]
+        if (
+            not isinstance(name, str)
+            or not name
+            or name in by_candidate
+            or not isinstance(keys, list)
+            or not keys
+            or any(not isinstance(key, str) or not key for key in keys)
+            or len(keys) != len(set(keys))
+        ):
+            raise ContractError(f&quot;invalid candidates[{position}]&quot;)
+        by_candidate[name] = keys
+    if value[&quot;selected&quot;] not in by_candidate:
+        raise ContractError(&quot;selected must name a declared candidate&quot;)
+    workload = value[&quot;workload&quot;]
+    if not isinstance(workload, list) or not workload:
+        raise ContractError(&quot;workload must be a non-empty list&quot;)
+    names: set[str] = set()
+    for position, query in enumerate(workload):
+        if not isinstance(query, dict):
+            raise ContractError(f&quot;workload[{position}] must be an object&quot;)
+        _exact_keys(query, required={&quot;name&quot;, &quot;filters&quot;}, label=f&quot;workload[{position}]&quot;)
+        if (
+            not isinstance(query[&quot;name&quot;], str)
+            or not query[&quot;name&quot;]
+            or query[&quot;name&quot;] in names
+            or not isinstance(query[&quot;filters&quot;], dict)
+            or not query[&quot;filters&quot;]
+            or any(
+                not isinstance(key, str) or not isinstance(item, str)
+                for key, item in query[&quot;filters&quot;].items()
+            )
+        ):
+            raise ContractError(f&quot;invalid workload[{position}]&quot;)
+        names.add(query[&quot;name&quot;])
+    if not isinstance(value[&quot;source&quot;], dict) or not isinstance(value[&quot;diagnostics&quot;], dict):
+        raise ContractError(&quot;layout source and diagnostics must be objects&quot;)
+    return value, sha256_bytes(raw)
+
+
+def _atomic_write(path: Path, content: bytes) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode=&quot;wb&quot;,
+            dir=path.parent,
+            prefix=f&quot;.{path.name}.&quot;,
+            suffix=&quot;.part&quot;,
+            delete=False,
+        ) as temporary:
+            temporary.write(content)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+            temporary_name = temporary.name
+        os.replace(temporary_name, path)
+    except OSError as error:
+        raise DeliveryError(f&quot;cannot atomically write {path.name}: {error}&quot;) from error
+    finally:
+        if temporary_name is not None:
+            Path(temporary_name).unlink(missing_ok=True)
+
+
+def _atomic_write_json(path: Path, value: Any) -&gt; None:
+    _atomic_write(path, _canonical_bytes(value) + b&quot;\n&quot;)
 
 
 class LocalPageFetcher:
@@ -415,323 +1581,804 @@ class LocalPageFetcher:
     def __call__(self, url: str) -&gt; bytes:
         self.calls.append(url)
         query = parse_qs(urlparse(url).query)
+        raw_page = query.get(&quot;page&quot;, [&quot;1&quot;])[0]
         try:
-            page = int(query.get(&quot;page&quot;, [&quot;1&quot;])[0])
+            page = int(raw_page)
         except ValueError as error:
-            raise LoaderError(f&quot;invalid page in URL: {url}&quot;) from error
+            raise DeliveryError(f&quot;invalid page in URL: {raw_page!r}&quot;) from error
         path = self.source_dir / f&quot;api_page_{page}.json&quot;
         if not path.is_file():
-            raise LoaderError(f&quot;local page fixture does not exist: {path}&quot;)
-        return path.read_bytes()
+            raise DeliveryError(f&quot;local page fixture does not exist: {path.name}&quot;)
+        try:
+            return path.read_bytes()
+        except OSError as error:
+            raise DeliveryError(f&quot;cannot read local page: {path.name}&quot;) from error
 
 
 class RequestsPageFetcher:
     def __init__(
         self,
+        contract: dict[str, Any],
         *,
-        timeout: tuple[float, float] = (3.05, 30.0),
-        max_bytes: int = 10_000_000,
+        sleep: Callable[[float], None] = time.sleep,
     ) -&gt; None:
-        retry = Retry(
-            total=3,
-            backoff_factor=0.5,
-            status_forcelist={429, 500, 502, 503, 504},
-            allowed_methods={&quot;GET&quot;},
-            respect_retry_after_header=True,
-        )
+        self.http = contract[&quot;http&quot;]
+        self.origin = _origin(contract[&quot;source&quot;][&quot;allowed_origin&quot;])
         self.session = requests.Session()
-        self.session.mount(&quot;https://&quot;, HTTPAdapter(max_retries=retry))
-        self.timeout = timeout
-        self.max_bytes = max_bytes
+        self.sleep = sleep
 
-    def __call__(self, url: str) -&gt; bytes:
-        if urlparse(url).scheme != &quot;https&quot;:
-            raise LoaderError(&quot;network source must use HTTPS&quot;)
+    def _retry_after(self, value: str | None) -&gt; float | None:
+        if value is None:
+            return None
         try:
-            with self.session.get(
-                url,
-                timeout=self.timeout,
-                stream=True,
-                headers={&quot;Accept&quot;: &quot;application/json&quot;},
-            ) as response:
-                response.raise_for_status()
+            delay = float(value)
+        except ValueError:
+            try:
+                parsed = parsedate_to_datetime(value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=UTC)
+            delay = max(0.0, (parsed.astimezone(UTC) - datetime.now(UTC)).total_seconds())
+        maximum = float(self.http[&quot;max_retry_after_seconds&quot;])
+        if delay &gt; maximum:
+            raise DeliveryError(f&quot;Retry-After exceeds declared maximum {maximum:g}s&quot;)
+        return max(0.0, delay)
+
+    def _request_once(self, url: str) -&gt; tuple[bytes | None, float | None]:
+        target = url
+        for redirects in range(self.http[&quot;max_redirects&quot;] + 1):
+            _validate_url(target, origin=self.origin, label=&quot;request URL&quot;)
+            try:
+                response = self.session.get(
+                    target,
+                    timeout=(
+                        self.http[&quot;connect_timeout_seconds&quot;],
+                        self.http[&quot;read_timeout_seconds&quot;],
+                    ),
+                    stream=True,
+                    allow_redirects=False,
+                    headers={&quot;Accept&quot;: &quot;application/json&quot;},
+                )
+            except (requests.Timeout, requests.ConnectionError):
+                return None, None
+            except requests.RequestException as error:
+                raise DeliveryError(f&quot;request failed: {error}&quot;) from error
+            with response:
+                if response.status_code in {301, 302, 303, 307, 308}:
+                    location = response.headers.get(&quot;Location&quot;)
+                    if not location:
+                        raise DeliveryError(&quot;redirect response misses Location&quot;)
+                    if redirects &gt;= self.http[&quot;max_redirects&quot;]:
+                        raise DeliveryError(&quot;redirect budget exhausted&quot;)
+                    target = urljoin(target, location)
+                    _validate_url(target, origin=self.origin, label=&quot;redirect URL&quot;)
+                    continue
+                if response.status_code in {429, 500, 502, 503, 504}:
+                    return None, self._retry_after(response.headers.get(&quot;Retry-After&quot;))
+                try:
+                    response.raise_for_status()
+                except requests.RequestException as error:
+                    raise DeliveryError(
+                        f&quot;request failed with status {response.status_code}&quot;
+                    ) from error
                 media_type = response.headers.get(&quot;Content-Type&quot;, &quot;&quot;).split(&quot;;&quot;, 1)[0].lower()
                 if media_type != &quot;application/json&quot;:
-                    raise LoaderError(f&quot;unexpected content type: {media_type}&quot;)
-                chunks = []
+                    raise DeliveryError(f&quot;unexpected content type: {media_type!r}&quot;)
+                chunks: list[bytes] = []
                 size = 0
-                for chunk in response.iter_content(64 * 1024):
-                    if not chunk:
-                        continue
-                    size += len(chunk)
-                    if size &gt; self.max_bytes:
-                        raise LoaderError(f&quot;page exceeds max_bytes={self.max_bytes}&quot;)
-                    chunks.append(chunk)
-                return b&quot;&quot;.join(chunks)
-        except requests.RequestException as error:
-            raise LoaderError(f&quot;request failed: {error}&quot;) from error
+                try:
+                    for chunk in response.iter_content(64 * 1024):
+                        if not chunk:
+                            continue
+                        size += len(chunk)
+                        if size &gt; self.http[&quot;max_page_bytes&quot;]:
+                            raise DeliveryError(
+                                f&quot;page exceeds max_page_bytes={self.http[&#x27;max_page_bytes&#x27;]}&quot;
+                            )
+                        chunks.append(chunk)
+                except requests.RequestException as error:
+                    raise DeliveryError(f&quot;response read failed: {error}&quot;) from error
+                return b&quot;&quot;.join(chunks), None
+        raise DeliveryError(&quot;redirect budget exhausted&quot;)
+
+    def __call__(self, url: str) -&gt; bytes:
+        attempts = self.http[&quot;retries_per_page&quot;] + 1
+        for attempt in range(attempts):
+            body, retry_after = self._request_once(url)
+            if body is not None:
+                return body
+            if attempt + 1 == attempts:
+                break
+            delay = retry_after
+            if delay is None:
+                delay = min(
+                    self.http[&quot;backoff_factor_seconds&quot;] * 2**attempt,
+                    self.http[&quot;max_retry_after_seconds&quot;],
+                )
+            self.sleep(delay)
+        raise DeliveryError(f&quot;retry budget exhausted for {urlparse(url).path}&quot;)
 
     def close(self) -&gt; None:
         self.session.close()
 
 
-def load_schema(path: str | Path) -&gt; tuple[dict[str, Any], pa.Schema]:
-    schema_path = Path(path)
+def _parse_decimal(value: Any, field: pa.Field, location: str) -&gt; Decimal:
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise DeliveryError(f&quot;{location}: expected decimal-compatible value&quot;)
     try:
-        contract = json.loads(schema_path.read_text(encoding=&quot;utf-8&quot;))
-    except (OSError, json.JSONDecodeError) as error:
-        raise LoaderError(f&quot;cannot read schema contract: {error}&quot;) from error
-    fields = []
-    for name, column in contract[&quot;columns&quot;].items():
-        type_name = column[&quot;type&quot;]
-        if type_name == &quot;string&quot;:
-            value_type = pa.string()
-        elif type_name == &quot;timestamp[us, tz=UTC]&quot;:
-            value_type = pa.timestamp(&quot;us&quot;, tz=&quot;UTC&quot;)
-        elif type_name == &quot;decimal128(12, 2)&quot;:
-            value_type = pa.decimal128(12, 2)
-        else:
-            raise LoaderError(f&quot;unsupported schema type: {type_name}&quot;)
-        fields.append(pa.field(name, value_type, nullable=column[&quot;nullable&quot;]))
-    return contract, pa.schema(fields)
+        decimal = Decimal(str(value))
+    except InvalidOperation as error:
+        raise DeliveryError(f&quot;{location}: invalid decimal&quot;) from error
+    if not decimal.is_finite():
+        raise DeliveryError(f&quot;{location}: decimal must be finite&quot;)
+    quantum = Decimal(1).scaleb(-field.type.scale)
+    try:
+        quantized = decimal.quantize(quantum)
+    except InvalidOperation as error:
+        raise DeliveryError(f&quot;{location}: decimal exceeds {field.type}&quot;) from error
+    if decimal != quantized:
+        raise DeliveryError(f&quot;{location}: decimal exceeds declared scale&quot;)
+    digits = format(quantized.copy_abs(), &quot;f&quot;).replace(&quot;.&quot;, &quot;&quot;).lstrip(&quot;0&quot;) or &quot;0&quot;
+    if len(digits) &gt; field.type.precision:
+        raise DeliveryError(f&quot;{location}: decimal exceeds {field.type}&quot;)
+    return quantized
 
 
-def convert_record(record: Any, schema: pa.Schema, location: str) -&gt; dict[str, Any]:
+def _parse_timestamp(value: Any, location: str) -&gt; datetime:
+    if not isinstance(value, str) or OFFSET_PATTERN.search(value) is None:
+        raise DeliveryError(f&quot;{location}: timestamp requires Z or numeric UTC offset&quot;)
+    try:
+        parsed = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    except ValueError as error:
+        raise DeliveryError(f&quot;{location}: invalid timestamp&quot;) from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise DeliveryError(f&quot;{location}: timestamp is timezone-naive&quot;)
+    return parsed.astimezone(UTC)
+
+
+def _convert_record(
+    record: Any,
+    *,
+    schema_contract: dict[str, Any],
+    schema: pa.Schema,
+    location: str,
+) -&gt; dict[str, Any]:
     if not isinstance(record, dict):
-        raise LoaderError(f&quot;{location}: item must be an object&quot;)
-    missing = [field.name for field in schema if field.name not in record]
-    unexpected = sorted(set(record) - set(schema.names))
-    if missing or unexpected:
-        raise LoaderError(f&quot;{location}: missing={missing}, unexpected={unexpected}&quot;)
-    converted = {}
+        raise DeliveryError(f&quot;{location}: record must be an object&quot;)
+    if set(record) != set(schema.names):
+        missing = sorted(set(schema.names) - set(record))
+        unexpected = sorted(set(record) - set(schema.names))
+        raise DeliveryError(f&quot;{location}: missing={missing}, unexpected={unexpected}&quot;)
+    by_name = {column[&quot;name&quot;]: column for column in schema_contract[&quot;columns&quot;]}
+    converted: dict[str, Any] = {}
     for field in schema:
         value = record[field.name]
+        column = by_name[field.name]
+        field_location = f&quot;{location}.{field.name}&quot;
         if value is None:
             if not field.nullable:
-                raise LoaderError(f&quot;{location}.{field.name}: null is forbidden&quot;)
+                raise DeliveryError(f&quot;{field_location}: null is forbidden&quot;)
             converted[field.name] = None
         elif pa.types.is_string(field.type):
             if not isinstance(value, str):
-                raise LoaderError(f&quot;{location}.{field.name}: expected string&quot;)
-            converted[field.name] = value
+                raise DeliveryError(f&quot;{field_location}: expected string&quot;)
+            if value == &quot;&quot; and column[&quot;empty_as_null&quot;]:
+                converted[field.name] = None
+            else:
+                domain = column.get(&quot;domain&quot;)
+                if domain is not None and value not in domain:
+                    raise DeliveryError(f&quot;{field_location}: value outside declared domain&quot;)
+                converted[field.name] = value
         elif pa.types.is_decimal(field.type):
-            try:
-                converted[field.name] = Decimal(str(value))
-            except InvalidOperation as error:
-                raise LoaderError(f&quot;{location}.{field.name}: invalid decimal&quot;) from error
+            converted[field.name] = _parse_decimal(value, field, field_location)
         elif pa.types.is_timestamp(field.type):
-            if not isinstance(value, str):
-                raise LoaderError(f&quot;{location}.{field.name}: expected timestamp string&quot;)
-            try:
-                converted[field.name] = datetime.fromisoformat(value.replace(&quot;Z&quot;, &quot;+00:00&quot;))
-            except ValueError as error:
-                raise LoaderError(f&quot;{location}.{field.name}: invalid timestamp&quot;) from error
+            converted[field.name] = _parse_timestamp(value, field_location)
+        else:  # pragma: no cover - contract parser prevents this branch
+            raise DeliveryError(f&quot;{field_location}: unsupported type&quot;)
     return converted
 
 
-def read_cached_or_fetch(
+def _cache_index(path: Path) -&gt; dict[str, dict[str, Any]]:
+    if not path.exists():
+        return {}
+    raw = _read_bounded(path, label=&quot;cache index&quot;)
+    value = _parse_json(raw, label=&quot;cache index&quot;)
+    if not isinstance(value, dict):
+        raise ContractError(&quot;cache index root must be an object&quot;)
+    _exact_keys(value, required={&quot;version&quot;, &quot;entries&quot;}, label=&quot;cache index&quot;)
+    if value[&quot;version&quot;] != CACHE_VERSION or not isinstance(value[&quot;entries&quot;], dict):
+        raise ContractError(&quot;unsupported or invalid cache index&quot;)
+    entries: dict[str, dict[str, Any]] = {}
+    for url, entry in value[&quot;entries&quot;].items():
+        if not isinstance(url, str) or not isinstance(entry, dict):
+            raise ContractError(&quot;cache index entries must map URLs to objects&quot;)
+        _exact_keys(entry, required={&quot;sha256&quot;, &quot;bytes&quot;}, label=f&quot;cache entry {url!r}&quot;)
+        if not isinstance(entry[&quot;sha256&quot;], str) or not SHA256_PATTERN.fullmatch(entry[&quot;sha256&quot;]):
+            raise ContractError(f&quot;cache entry has invalid sha256: {url!r}&quot;)
+        if type(entry[&quot;bytes&quot;]) is not int or entry[&quot;bytes&quot;] &lt; 0:
+            raise ContractError(f&quot;cache entry has invalid byte count: {url!r}&quot;)
+        entries[url] = entry
+    return entries
+
+
+def _blob_path(raw_dir: Path, digest: str) -&gt; Path:
+    if not SHA256_PATTERN.fullmatch(digest):
+        raise ContractError(&quot;invalid raw blob digest&quot;)
+    return raw_dir / &quot;blobs&quot; / f&quot;{digest}.json&quot;
+
+
+def _put_blob(raw_dir: Path, body: bytes) -&gt; tuple[str, Path]:
+    digest = sha256_bytes(body)
+    path = _blob_path(raw_dir, digest)
+    if not path.is_file() or sha256_file(path) != digest:
+        _atomic_write(path, body)
+    return digest, path
+
+
+def _read_cached_or_fetch(
     url: str,
     *,
     raw_dir: Path,
-    cache_index: dict[str, Any],
+    cache_index: dict[str, dict[str, Any]],
     fetch_page: PageFetcher,
     refresh: bool,
+    max_page_bytes: int,
 ) -&gt; tuple[bytes, bool, dict[str, Any]]:
     entry = cache_index.get(url)
-    if not refresh and entry:
-        path = raw_dir / entry[&quot;file&quot;]
-        if path.is_file() and sha256_file(path) == entry[&quot;sha256&quot;]:
-            return path.read_bytes(), True, entry
+    if not refresh and entry is not None:
+        path = _blob_path(raw_dir, entry[&quot;sha256&quot;])
+        if (
+            path.is_file()
+            and path.stat().st_size == entry[&quot;bytes&quot;]
+            and sha256_file(path) == entry[&quot;sha256&quot;]
+        ):
+            return path.read_bytes(), True, dict(entry)
     body = fetch_page(url)
-    digest = sha256_bytes(body)
-    name = f&quot;{hashlib.sha256(url.encode()).hexdigest()[:16]}.json&quot;
-    atomic_write(raw_dir / name, body)
-    return body, False, {&quot;file&quot;: name, &quot;sha256&quot;: digest, &quot;bytes&quot;: len(body)}
+    if len(body) &gt; max_page_bytes:
+        raise DeliveryError(f&quot;page exceeds max_page_bytes={max_page_bytes}&quot;)
+    digest, _ = _put_blob(raw_dir, body)
+    return body, False, {&quot;sha256&quot;: digest, &quot;bytes&quot;: len(body)}
 
 
-def write_dataset_version(
-    table: pa.Table,
-    versions_dir: Path,
-    run_id: str,
-) -&gt; tuple[Path, dict[str, Any], bool]:
-    version_dir = versions_dir / run_id
-    if version_dir.is_dir():
-        manifest = json.loads((version_dir / &quot;manifest.json&quot;).read_text(encoding=&quot;utf-8&quot;))
-        return version_dir, manifest, True
-    staging = versions_dir / f&quot;.{run_id}.staging&quot;
-    shutil.rmtree(staging, ignore_errors=True)
-    versions_dir.mkdir(parents=True, exist_ok=True)
-    months = pc.strftime(table[&quot;ordered_at&quot;], format=&quot;%Y-%m&quot;)
-    partitioned = table.append_column(&quot;order_month&quot;, months)
-    partition_schema = pa.schema(
-        [pa.field(&quot;order_month&quot;, pa.string()), table.schema.field(&quot;currency&quot;)]
-    )
+def _parse_page(
+    body: bytes,
+    *,
+    url: str,
+    position: int,
+    delivery: dict[str, Any],
+    schema_contract: dict[str, Any],
+    schema: pa.Schema,
+) -&gt; tuple[list[dict[str, Any]], str | None]:
     try:
-        ds.write_dataset(
-            partitioned,
-            staging / &quot;data&quot;,
-            format=&quot;parquet&quot;,
-            partitioning=ds.partitioning(partition_schema, flavor=&quot;hive&quot;),
-            basename_template=&quot;part-{i}.parquet&quot;,
+        payload = _parse_json(body, label=f&quot;page {position}&quot;)
+    except ContractError as error:
+        raise DeliveryError(str(error)) from error
+    if not isinstance(payload, dict):
+        raise DeliveryError(f&quot;page {position}: root must be an object&quot;)
+    source = delivery[&quot;source&quot;]
+    expected_fields = {
+        source[&quot;items_field&quot;],
+        source[&quot;next_field&quot;],
+        source[&quot;page_number_field&quot;],
+    }
+    if set(payload) != expected_fields:
+        missing = sorted(expected_fields - set(payload))
+        unexpected = sorted(set(payload) - expected_fields)
+        raise DeliveryError(f&quot;page {position}: missing={missing}, unexpected={unexpected}&quot;)
+    if payload[source[&quot;page_number_field&quot;]] != position:
+        raise DeliveryError(f&quot;page {position}: page number does not match chain position&quot;)
+    items = payload[source[&quot;items_field&quot;]]
+    if not isinstance(items, list):
+        raise DeliveryError(f&quot;page {position}: items must be a list&quot;)
+    records = [
+        _convert_record(
+            item,
+            schema_contract=schema_contract,
+            schema=schema,
+            location=f&quot;page[{position}].items[{item_position}]&quot;,
         )
-        files = sorted((staging / &quot;data&quot;).rglob(&quot;*.parquet&quot;))
-        manifest = {
-            &quot;run_id&quot;: run_id,
-            &quot;rows&quot;: table.num_rows,
-            &quot;partition_by&quot;: [&quot;order_month&quot;, &quot;currency&quot;],
-            &quot;schema&quot;: [
-                {&quot;name&quot;: field.name, &quot;type&quot;: str(field.type), &quot;nullable&quot;: field.nullable}
-                for field in table.schema
+        for item_position, item in enumerate(items, start=1)
+    ]
+    next_value = payload[source[&quot;next_field&quot;]]
+    if next_value is None:
+        return records, None
+    if not isinstance(next_value, str) or not next_value.strip():
+        raise DeliveryError(f&quot;page {position}: next must be a non-empty string or null&quot;)
+    next_url = urljoin(url, next_value)
+    origin = _origin(source[&quot;allowed_origin&quot;])
+    try:
+        validated_next = _validate_url(next_url, origin=origin, label=&quot;next URL&quot;)
+    except ContractError as error:
+        raise DeliveryError(str(error)) from error
+    return records, validated_next
+
+
+def _schema_manifest(schema: pa.Schema) -&gt; list[dict[str, Any]]:
+    return [
+        {&quot;name&quot;: field.name, &quot;type&quot;: str(field.type), &quot;nullable&quot;: field.nullable}
+        for field in schema
+    ]
+
+
+def _add_derived_columns(table: pa.Table, layout: dict[str, Any]) -&gt; pa.Table:
+    result = table
+    for rule in layout[&quot;derived_columns&quot;]:
+        if rule[&quot;source&quot;] not in result.column_names:
+            raise ContractError(f&quot;derived source is absent: {rule[&#x27;source&#x27;]}&quot;)
+        source = result[rule[&quot;source&quot;]]
+        if not pa.types.is_timestamp(source.type):
+            raise ContractError(f&quot;derived source must be timestamp: {rule[&#x27;source&#x27;]}&quot;)
+        format_string = &quot;%Y-%m&quot; if rule[&quot;transform&quot;] == &quot;utc_month&quot; else &quot;%Y-%m-%d&quot;
+        result = result.append_column(rule[&quot;name&quot;], pc.strftime(source, format=format_string))
+    return result
+
+
+def _selected_partition_by(layout: dict[str, Any]) -&gt; list[str]:
+    for candidate in layout[&quot;candidates&quot;]:
+        if candidate[&quot;name&quot;] == layout[&quot;selected&quot;]:
+            return candidate[&quot;partition_by&quot;]
+    raise ContractError(&quot;selected layout candidate is absent&quot;)
+
+
+def _canonical_value(value: Any) -&gt; Any:
+    if isinstance(value, datetime):
+        return value.astimezone(UTC).isoformat()
+    if isinstance(value, Decimal):
+        return format(value, &quot;f&quot;)
+    return value
+
+
+def _canonical_rows(table: pa.Table, grain: list[str]) -&gt; list[dict[str, Any]]:
+    rows = [
+        {key: _canonical_value(value) for key, value in row.items()} for row in table.to_pylist()
+    ]
+    return sorted(rows, key=lambda row: tuple(str(row[name]) for name in grain))
+
+
+def _filter_table(table: pa.Table, filters: dict[str, str]) -&gt; pa.Table:
+    expression = None
+    for name, value in sorted(filters.items()):
+        if name not in table.column_names:
+            raise ContractError(f&quot;workload filter refers to unknown column: {name}&quot;)
+        predicate = pc.equal(table[name], pa.scalar(value, type=table[name].type))
+        expression = predicate if expression is None else pc.and_(expression, predicate)
+    return table.filter(expression)
+
+
+def _workload_evidence(table: pa.Table, layout: dict[str, Any]) -&gt; dict[str, Any]:
+    grain = layout[&quot;source&quot;].get(&quot;grain&quot;, [&quot;order_id&quot;])
+    return {
+        query[&quot;name&quot;]: {
+            &quot;filters&quot;: query[&quot;filters&quot;],
+            &quot;rows&quot;: _filter_table(table, query[&quot;filters&quot;]).num_rows,
+            &quot;grain_values&quot;: [
+                [row[name] for name in grain]
+                for row in _canonical_rows(_filter_table(table, query[&quot;filters&quot;]), grain)
             ],
+        }
+        for query in layout[&quot;workload&quot;]
+    }
+
+
+def _contract_manifest(
+    delivery: dict[str, Any],
+    delivery_digest: str,
+    schema_contract: dict[str, Any],
+    schema_digest: str,
+    layout: dict[str, Any],
+    layout_digest: str,
+) -&gt; dict[str, Any]:
+    return {
+        &quot;delivery&quot;: {&quot;version&quot;: delivery[&quot;version&quot;], &quot;sha256&quot;: delivery_digest},
+        &quot;schema&quot;: {&quot;version&quot;: schema_contract[&quot;version&quot;], &quot;sha256&quot;: schema_digest},
+        &quot;layout&quot;: {&quot;version&quot;: layout[&quot;version&quot;], &quot;sha256&quot;: layout_digest},
+    }
+
+
+def _build_manifest(
+    *,
+    run_id: str,
+    delivery: dict[str, Any],
+    contracts: dict[str, Any],
+    snapshot: dict[str, Any],
+    table: pa.Table,
+    layout: dict[str, Any],
+    staging: Path,
+) -&gt; dict[str, Any]:
+    files = sorted((staging / &quot;data&quot;).rglob(&quot;*.parquet&quot;))
+    return {
+        &quot;manifest_version&quot;: MANIFEST_VERSION,
+        &quot;run_id&quot;: run_id,
+        &quot;pipeline_version&quot;: delivery[&quot;pipeline_version&quot;],
+        &quot;snapshot&quot;: snapshot,
+        &quot;contracts&quot;: contracts,
+        &quot;dataset&quot;: {
+            &quot;rows&quot;: table.num_rows,
+            &quot;grain&quot;: layout[&quot;source&quot;].get(&quot;grain&quot;, [&quot;order_id&quot;]),
+            &quot;partition_by&quot;: _selected_partition_by(layout),
+            &quot;schema&quot;: _schema_manifest(table.schema),
             &quot;files&quot;: {
-                str(path.relative_to(staging)): {
+                path.relative_to(staging).as_posix(): {
                     &quot;bytes&quot;: path.stat().st_size,
                     &quot;sha256&quot;: sha256_file(path),
                 }
                 for path in files
             },
-        }
-        atomic_write_json(staging / &quot;manifest.json&quot;, manifest)
-        staging.rename(version_dir)
+        },
+        &quot;workload&quot;: _workload_evidence(table, layout),
+        &quot;checks&quot;: {
+            &quot;raw_blobs_verified&quot;: True,
+            &quot;file_checksums_verified&quot;: True,
+            &quot;semantic_roundtrip_verified&quot;: True,
+            &quot;workload_results_verified&quot;: True,
+        },
+    }
+
+
+def _load_manifest(path: Path) -&gt; dict[str, Any]:
+    raw = _read_bounded(path, label=&quot;version manifest&quot;)
+    value = _parse_json(raw, label=&quot;version manifest&quot;)
+    if not isinstance(value, dict):
+        raise DeliveryError(&quot;version manifest root must be an object&quot;)
+    _exact_keys(
+        value,
+        required={
+            &quot;manifest_version&quot;,
+            &quot;run_id&quot;,
+            &quot;pipeline_version&quot;,
+            &quot;snapshot&quot;,
+            &quot;contracts&quot;,
+            &quot;dataset&quot;,
+            &quot;workload&quot;,
+            &quot;checks&quot;,
+        },
+        label=&quot;version manifest&quot;,
+    )
+    if value[&quot;manifest_version&quot;] != MANIFEST_VERSION:
+        raise DeliveryError(&quot;unsupported version manifest&quot;)
+    return value
+
+
+def _verify_package(
+    package_dir: Path,
+    *,
+    expected_manifest: dict[str, Any],
+    expected_table: pa.Table,
+    layout: dict[str, Any],
+) -&gt; None:
+    manifest_path = package_dir / &quot;manifest.json&quot;
+    observed = _load_manifest(manifest_path) if manifest_path.is_file() else expected_manifest
+    if observed != expected_manifest:
+        raise DeliveryError(&quot;version manifest does not match current snapshot and contracts&quot;)
+    declared_files = observed[&quot;dataset&quot;].get(&quot;files&quot;)
+    if not isinstance(declared_files, dict) or not declared_files:
+        raise DeliveryError(&quot;version manifest must declare Parquet files&quot;)
+    actual_files = {
+        path.relative_to(package_dir).as_posix()
+        for path in (package_dir / &quot;data&quot;).rglob(&quot;*.parquet&quot;)
+    }
+    if set(declared_files) != actual_files:
+        raise DeliveryError(&quot;manifest file list differs from package contents&quot;)
+    for relative, metadata in declared_files.items():
+        path = package_dir / relative
+        if (
+            not isinstance(metadata, dict)
+            or set(metadata) != {&quot;bytes&quot;, &quot;sha256&quot;}
+            or path.stat().st_size != metadata[&quot;bytes&quot;]
+            or sha256_file(path) != metadata[&quot;sha256&quot;]
+        ):
+            raise DeliveryError(f&quot;checksum verification failed for {relative}&quot;)
+    partition_schema = pa.schema(
+        [expected_table.schema.field(name) for name in _selected_partition_by(layout)]
+    )
+    dataset = ds.dataset(
+        package_dir / &quot;data&quot;,
+        format=&quot;parquet&quot;,
+        partitioning=ds.partitioning(partition_schema, flavor=&quot;hive&quot;),
+    )
+    try:
+        observed_table = dataset.to_table(columns=expected_table.column_names)
+    except (pa.ArrowInvalid, pa.ArrowTypeError, KeyError) as error:
+        raise DeliveryError(f&quot;cannot read logical dataset: {error}&quot;) from error
+    grain = observed[&quot;dataset&quot;][&quot;grain&quot;]
+    if _schema_manifest(observed_table.schema) != _schema_manifest(expected_table.schema):
+        raise DeliveryError(&quot;logical dataset schema differs from expected schema&quot;)
+    if _canonical_rows(observed_table, grain) != _canonical_rows(expected_table, grain):
+        raise DeliveryError(&quot;logical dataset values differ from validated source&quot;)
+    if _workload_evidence(observed_table, layout) != observed[&quot;workload&quot;]:
+        raise DeliveryError(&quot;logical dataset workload results differ from manifest&quot;)
+
+
+def _publish_or_reuse_version(
+    table: pa.Table,
+    *,
+    versions_dir: Path,
+    run_id: str,
+    delivery: dict[str, Any],
+    contracts: dict[str, Any],
+    snapshot: dict[str, Any],
+    schema_contract: dict[str, Any],
+    layout: dict[str, Any],
+) -&gt; tuple[Path, dict[str, Any], bool]:
+    logical_table = _add_derived_columns(table, layout)
+    version_dir = versions_dir / run_id
+    if version_dir.exists() and not version_dir.is_dir():
+        raise DeliveryError(&quot;immutable version path is not a directory&quot;)
+    partition_by = _selected_partition_by(layout)
+    if any(name not in logical_table.column_names for name in partition_by):
+        raise ContractError(&quot;selected partition columns are absent from logical table&quot;)
+    versions_dir.mkdir(parents=True, exist_ok=True)
+    if version_dir.is_dir():
+        manifest = _load_manifest(version_dir / &quot;manifest.json&quot;)
+        expected = _build_manifest(
+            run_id=run_id,
+            delivery=delivery,
+            contracts=contracts,
+            snapshot=snapshot,
+            table=logical_table,
+            layout=layout,
+            staging=version_dir,
+        )
+        expected[&quot;dataset&quot;][&quot;files&quot;] = manifest[&quot;dataset&quot;].get(&quot;files&quot;)
+        _verify_package(
+            version_dir,
+            expected_manifest=expected,
+            expected_table=logical_table,
+            layout=layout,
+        )
+        return version_dir, manifest, True
+
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix=f&quot;.{run_id[:12]}.&quot;,
+            suffix=&quot;.staging&quot;,
+            dir=versions_dir,
+        )
+    )
+    try:
+        writer = schema_contract[&quot;writer&quot;]
+        partition_schema = pa.schema([logical_table.schema.field(name) for name in partition_by])
+        ds.write_dataset(
+            logical_table,
+            staging / &quot;data&quot;,
+            format=&quot;parquet&quot;,
+            partitioning=ds.partitioning(partition_schema, flavor=&quot;hive&quot;),
+            basename_template=&quot;part-{i}.parquet&quot;,
+            file_options=ds.ParquetFileFormat().make_write_options(
+                compression=writer[&quot;compression&quot;],
+                write_statistics=writer[&quot;write_statistics&quot;],
+            ),
+            max_rows_per_group=writer[&quot;row_group_size&quot;],
+        )
+        manifest = _build_manifest(
+            run_id=run_id,
+            delivery=delivery,
+            contracts=contracts,
+            snapshot=snapshot,
+            table=logical_table,
+            layout=layout,
+            staging=staging,
+        )
+        _atomic_write_json(staging / &quot;manifest.json&quot;, manifest)
+        _verify_package(
+            staging,
+            expected_manifest=manifest,
+            expected_table=logical_table,
+            layout=layout,
+        )
+        try:
+            staging.rename(version_dir)
+        except FileExistsError:
+            _verify_package(
+                version_dir,
+                expected_manifest=manifest,
+                expected_table=logical_table,
+                layout=layout,
+            )
+            return version_dir, manifest, True
+        return version_dir, manifest, False
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    return version_dir, manifest, False
+
+
+def _validate_input_paths(output: Path, inputs: list[Path]) -&gt; None:
+    if output.exists() and not output.is_dir():
+        raise ContractError(&quot;output-dir must be a directory path&quot;)
+    resolved_output = output.resolve()
+    for path in inputs:
+        resolved = path.resolve()
+        if resolved == resolved_output or resolved.is_relative_to(resolved_output):
+            raise ContractError(&quot;input contracts must not be stored inside output-dir&quot;)
 
 
 def run_loader(
-    start_url: str,
     output_dir: str | Path,
-    schema_path: str | Path,
+    delivery_contract_path: str | Path,
+    schema_contract_path: str | Path,
+    layout_contract_path: str | Path,
     fetch_page: PageFetcher,
     *,
     refresh: bool = False,
-    max_pages: int = 100,
 ) -&gt; dict[str, Any]:
     output = Path(output_dir)
+    delivery_path = Path(delivery_contract_path)
+    schema_path = Path(schema_contract_path)
+    layout_path = Path(layout_contract_path)
+    _validate_input_paths(output, [delivery_path, schema_path, layout_path])
+    delivery, delivery_digest = load_delivery_contract(delivery_path)
+    schema_contract, schema, schema_digest = load_schema_contract(schema_path)
+    layout, layout_digest = load_layout_contract(layout_path)
     raw_dir = output / &quot;raw&quot;
     cache_path = raw_dir / &quot;cache_index.json&quot;
-    cache_index = json.loads(cache_path.read_text(encoding=&quot;utf-8&quot;)) if cache_path.is_file() else {}
+    cache_index = _cache_index(cache_path)
     new_cache = dict(cache_index)
-    pages = []
-    records = []
+    origin = _origin(delivery[&quot;source&quot;][&quot;allowed_origin&quot;])
+    url: str | None = _validate_url(
+        delivery[&quot;source&quot;][&quot;start_url&quot;],
+        origin=origin,
+        label=&quot;start_url&quot;,
+    )
     visited: set[str] = set()
-    url: str | None = start_url
+    pages: list[dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
     reused_pages = 0
-    _, schema = load_schema(schema_path)
     while url is not None:
-        if len(pages) &gt;= max_pages:
-            raise LoaderError(f&quot;max_pages={max_pages} reached&quot;)
+        if len(pages) &gt;= delivery[&quot;source&quot;][&quot;max_pages&quot;]:
+            raise DeliveryError(&quot;max_pages reached before next=null&quot;)
         if url in visited:
-            raise LoaderError(f&quot;pagination cycle detected: {url}&quot;)
+            raise DeliveryError(&quot;pagination cycle detected&quot;)
         visited.add(url)
-        body, reused, entry = read_cached_or_fetch(
+        body, reused, entry = _read_cached_or_fetch(
             url,
             raw_dir=raw_dir,
             cache_index=cache_index,
             fetch_page=fetch_page,
             refresh=refresh,
+            max_page_bytes=delivery[&quot;http&quot;][&quot;max_page_bytes&quot;],
         )
-        reused_pages += int(reused)
-        try:
-            payload = json.loads(body)
-        except json.JSONDecodeError as error:
-            raise LoaderError(f&quot;invalid JSON page {url}: {error.msg}&quot;) from error
-        if not isinstance(payload, dict) or not isinstance(payload.get(&quot;items&quot;), list):
-            raise LoaderError(f&quot;invalid page shape: {url}&quot;)
         page_number = len(pages) + 1
-        records.extend(
-            convert_record(record, schema, f&quot;page[{page_number}].items[{position}]&quot;)
-            for position, record in enumerate(payload[&quot;items&quot;], start=1)
+        page_records, next_url = _parse_page(
+            body,
+            url=url,
+            position=page_number,
+            delivery=delivery,
+            schema_contract=schema_contract,
+            schema=schema,
         )
-        next_url = payload.get(&quot;next&quot;)
-        if next_url is not None and not isinstance(next_url, str):
-            raise LoaderError(f&quot;invalid next value: {url}&quot;)
+        pages.append(
+            {
+                &quot;url&quot;: url,
+                &quot;sha256&quot;: entry[&quot;sha256&quot;],
+                &quot;bytes&quot;: entry[&quot;bytes&quot;],
+                &quot;items&quot;: len(page_records),
+            }
+        )
+        records.extend(page_records)
         new_cache[url] = entry
-        pages.append({&quot;url&quot;: url, &quot;sha256&quot;: entry[&quot;sha256&quot;], &quot;items&quot;: len(payload[&quot;items&quot;])})
+        reused_pages += int(reused)
         url = next_url
 
-    ids = [record[&quot;order_id&quot;] for record in records]
-    if len(ids) != len(set(ids)):
-        raise LoaderError(&quot;order_id grain is not unique&quot;)
+    if not records and not schema_contract[&quot;allow_empty&quot;]:
+        raise DeliveryError(&quot;empty source is forbidden by schema contract&quot;)
+    grain = schema_contract[&quot;grain&quot;]
+    grain_values = [tuple(record[name] for name in grain) for record in records]
+    if len(grain_values) != len(set(grain_values)):
+        raise DeliveryError(&quot;source grain is not unique&quot;)
     table = pa.Table.from_pylist(records, schema=schema)
-    contract_digest = sha256_file(Path(schema_path))
-    run_material = json.dumps(
-        {&quot;pages&quot;: [page[&quot;sha256&quot;] for page in pages], &quot;schema&quot;: contract_digest},
-        sort_keys=True,
-    ).encode()
-    run_id = sha256_bytes(run_material)[:16]
-    version_dir, version_manifest, reused_dataset = write_dataset_version(
-        table,
-        output / &quot;datasets&quot;,
-        run_id,
+    snapshot_material = {
+        &quot;start_url&quot;: delivery[&quot;source&quot;][&quot;start_url&quot;],
+        &quot;pages&quot;: pages,
+    }
+    snapshot = {
+        &quot;id&quot;: sha256_bytes(_canonical_bytes(snapshot_material)),
+        **snapshot_material,
+    }
+    contracts = _contract_manifest(
+        delivery,
+        delivery_digest,
+        schema_contract,
+        schema_digest,
+        layout,
+        layout_digest,
     )
-    dataset = ds.dataset(version_dir / &quot;data&quot;, format=&quot;parquet&quot;, partitioning=&quot;hive&quot;)
-    if dataset.count_rows() != table.num_rows:
-        raise LoaderError(&quot;published dataset row count differs from validated table&quot;)
-
-    atomic_write_json(cache_path, new_cache)
+    run_material = {
+        &quot;pipeline_version&quot;: delivery[&quot;pipeline_version&quot;],
+        &quot;snapshot_id&quot;: snapshot[&quot;id&quot;],
+        &quot;contracts&quot;: contracts,
+    }
+    run_id = sha256_bytes(_canonical_bytes(run_material))
+    version_dir, manifest, reused_version = _publish_or_reuse_version(
+        table,
+        versions_dir=output / &quot;datasets&quot;,
+        run_id=run_id,
+        delivery=delivery,
+        contracts=contracts,
+        snapshot=snapshot,
+        schema_contract=schema_contract,
+        layout=layout,
+    )
+    _atomic_write_json(
+        cache_path,
+        {&quot;version&quot;: CACHE_VERSION, &quot;entries&quot;: new_cache},
+    )
     current = {
         &quot;run_id&quot;: run_id,
-        &quot;dataset&quot;: str((Path(&quot;datasets&quot;) / run_id / &quot;data&quot;).as_posix()),
-        &quot;manifest&quot;: str((Path(&quot;datasets&quot;) / run_id / &quot;manifest.json&quot;).as_posix()),
+        &quot;snapshot_id&quot;: snapshot[&quot;id&quot;],
+        &quot;dataset&quot;: (Path(&quot;datasets&quot;) / run_id / &quot;data&quot;).as_posix(),
+        &quot;manifest&quot;: (Path(&quot;datasets&quot;) / run_id / &quot;manifest.json&quot;).as_posix(),
         &quot;manifest_sha256&quot;: sha256_file(version_dir / &quot;manifest.json&quot;),
     }
-    atomic_write_json(output / &quot;current.json&quot;, current)
-    report = {
+    _atomic_write_json(output / &quot;current.json&quot;, current)
+    return {
         &quot;run_id&quot;: run_id,
+        &quot;snapshot_id&quot;: snapshot[&quot;id&quot;],
         &quot;source&quot;: {
-            &quot;start_url&quot;: start_url,
-            &quot;pages&quot;: pages,
+            &quot;pages&quot;: len(pages),
+            &quot;rows&quot;: table.num_rows,
             &quot;reused_pages&quot;: reused_pages,
             &quot;fetched_pages&quot;: len(pages) - reused_pages,
         },
         &quot;dataset&quot;: {
-            &quot;rows&quot;: table.num_rows,
-            &quot;version_dir&quot;: str(version_dir),
-            &quot;reused_version&quot;: reused_dataset,
-            &quot;files&quot;: version_manifest[&quot;files&quot;],
+            &quot;reused_version&quot;: reused_version,
+            &quot;partition_by&quot;: manifest[&quot;dataset&quot;][&quot;partition_by&quot;],
+            &quot;files&quot;: manifest[&quot;dataset&quot;][&quot;files&quot;],
         },
         &quot;current&quot;: current,
-        &quot;summary&quot;: {
-            &quot;valid&quot;: True,
-            &quot;page_count&quot;: len(pages),
-            &quot;row_count&quot;: table.num_rows,
-        },
+        &quot;checks&quot;: manifest[&quot;checks&quot;],
+        &quot;summary&quot;: {&quot;valid&quot;: True, &quot;current_updated&quot;: True},
     }
-    return report
 
 
-def main() -&gt; None:
-    parser = argparse.ArgumentParser(description=&quot;Cache pages and publish verified Parquet&quot;)
-    parser.add_argument(&quot;--url&quot;, required=True)
+def build_parser() -&gt; argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=&quot;Replay raw pages and publish one verified immutable dataset version&quot;
+    )
     parser.add_argument(&quot;--output-dir&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--contract&quot;, required=True, type=Path)
     parser.add_argument(&quot;--schema&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--layout-contract&quot;, required=True, type=Path)
     parser.add_argument(&quot;--source-dir&quot;, type=Path)
     parser.add_argument(&quot;--refresh&quot;, action=&quot;store_true&quot;)
-    args = parser.parse_args()
-    fetcher: Any = LocalPageFetcher(args.source_dir) if args.source_dir else RequestsPageFetcher()
+    return parser
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    args = build_parser().parse_args(argv)
     try:
-        report = run_loader(
-            args.url,
-            args.output_dir,
-            args.schema,
-            fetcher,
-            refresh=args.refresh,
+        delivery, _ = load_delivery_contract(args.contract)
+        fetcher: Any = (
+            LocalPageFetcher(args.source_dir)
+            if args.source_dir is not None
+            else RequestsPageFetcher(delivery)
         )
-    except LoaderError as error:
-        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
-        raise SystemExit(2) from error
-    finally:
-        close = getattr(fetcher, &quot;close&quot;, None)
-        if close:
-            close()
+        try:
+            report = run_loader(
+                args.output_dir,
+                args.contract,
+                args.schema,
+                args.layout_contract,
+                fetcher,
+                refresh=args.refresh,
+            )
+        finally:
+            close = getattr(fetcher, &quot;close&quot;, None)
+            if close is not None:
+                close()
+    except ContractError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False), file=sys.stderr)
+        return 2
+    except DeliveryError as error:
+        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False), file=sys.stderr)
+        return 1
     json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write(&quot;\n&quot;)
+    return 0
 
 
 if __name__ == &quot;__main__&quot;:
-    main()
+    raise SystemExit(main())
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/11-caching-and-checksums/outputs/resilient_loader.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/11-caching-and-checksums" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sources-and-formats/partitioning/"><span>← Предыдущий урок</span><strong>Партиционирование наборов данных</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/eda-and-visualization/question-before-chart/"><span>Следующий урок →</span><strong>Вопрос раньше графика</strong></a></nav>
