@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…">
+  <meta name="description" content="Аналитик прочитал Parquet в Arrow, передал таблицу в pandas, затем зарегистрировал её в DuckDB. Число строк везде равно пяти — значит ли это, что обмен корректен?">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Arrow как контракт обмена таблицами">
-  <meta property="og:description" content="Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…">
+  <meta property="og:description" content="Аналитик прочитал Parquet в Arrow, передал таблицу в pandas, затем зарегистрировал её в DuckDB. Число строк везде равно пяти — значит ли это, что обмен корректен?">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/">
   <meta name="twitter:card" content="summary">
   <title>Arrow как контракт обмена таблицами — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Arrow как контракт обмена таблицами", "description": "Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится float, timezone требует повторного парсинга, а null policy задается заново.…", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT60M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Arrow как контракт обмена таблицами", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Arrow как контракт обмена таблицами", "description": "Аналитик прочитал Parquet в Arrow, передал таблицу в pandas, затем зарегистрировал её в DuckDB. Число строк везде равно пяти — значит ли это, что обмен корректен?", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT60M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 05: Источники и форматы данных", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=5"}, {"@type": "ListItem", "position": 3, "name": "Arrow как контракт обмена таблицами", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sources-and-formats/arrow/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,135 +50,377 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/05-sources-and-formats/09-arrow" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Является ли Arrow файловым форматом, равным Parquet?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, Arrow прежде всего задает in-memory representation и interfaces</button><button type="button" class="quiz-option" data-choice="2">Только в pandas</button><button type="button" class="quiz-option" data-choice="3">Только в DuckDB</button></div><p class="quiz-feedback" hidden>Parquet хранит данные на диске, Arrow стандартизирует типизированное представление и обмен.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Гарантирует ли любой переход pandas -&gt; Arrow отсутствие копии?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Да</button><button type="button" class="quiz-option" data-choice="1">Нет, это зависит от dtype, layout и операции</button><button type="button" class="quiz-option" data-choice="2">Только для CSV</button><button type="button" class="quiz-option" data-choice="3">Копии всегда запрещены</button></div><p class="quiz-feedback" hidden>Zero-copy является свойством конкретного пути обмена, а не общим обещанием.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Как точнее всего различить Parquet и Arrow в этом уроке?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Это два названия одного файла</button><button type="button" class="quiz-option" data-choice="1">Parquet нужен только pandas, Arrow — только DuckDB</button><button type="button" class="quiz-option" data-choice="2">Parquet хранит закодированные столбцы на диске, Arrow задаёт типизированное столбцовое представление в памяти</button><button type="button" class="quiz-option" data-choice="3">Arrow всегда создаётся без выделения памяти</button></div><p class="quiz-feedback" hidden>Чтение Parquet обычно декодирует файл в Arrow-массивы; наличие Arrow не делает весь путь от диска zero-copy.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Две таблицы содержат по пять строк. Что ещё обязательно проверить перед выводом о совместимости?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только версии Python</button><button type="button" class="quiz-option" data-choice="1">Имена и типы полей, значения, пропуски и grain</button><button type="button" class="quiz-option" data-choice="2">Только размер объектов в памяти</button><button type="button" class="quiz-option" data-choice="3">Только сумму одного числового столбца</button></div><p class="quiz-feedback" hidden>Совпавший row count не обнаруживает потерю типа, замену NULL, дубликат ключа или подмену строки.</p></article></section>
         <article class="lesson-article"><h1 id="arrow-как-контракт-обмена-таблицами">Arrow как контракт обмена таблицами</h1>
-<blockquote>
-<p>Arrow полезен не обещанием zero-copy, а возможностью проверить типизированный обмен без CSV.</p>
-</blockquote>
-<p><strong>Тип:</strong> Learn<br />
-<strong>Треки:</strong> Core<br />
-<strong>Пререквизиты:</strong> 05/08<br />
-<strong>Время:</strong> ~60 минут<br />
-<strong>Результат:</strong> передает таблицу между pandas, Arrow и DuckDB и проверяет схему, пропуски и
-факт копирования данных.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
+<p>После урока вы сможете:</p>
 <ul>
-<li>Отличать Arrow memory model от Parquet file format.</li>
-<li>Сохранять Arrow-backed dtypes в pandas.</li>
-<li>Передавать Arrow Table в DuckDB и получать Arrow result.</li>
-<li>Измерять buffer reuse вместо предположения о zero-copy.</li>
+<li>объяснить разницу между Parquet на диске и Arrow в памяти;</li>
+<li>прочитать простые Arrow-буферы: bitmap валидности, значения, offsets и данные;</li>
+<li>передать типизированную таблицу по маршрутам Arrow → pandas → Arrow и
+Arrow → DuckDB → Arrow;</li>
+<li>отделить сохранность данных от сохранности метаданных и от копирования памяти;</li>
+<li>проверить типы, значения, пропуски, grain и политику <code>nullable</code> по явному контракту;</li>
+<li>сформулировать аккуратный вывод о наблюдаемом buffer reuse без обещания
+«Arrow всегда zero-copy».</li>
 </ul>
+<p>Результат урока — CLI-аудитор <code>verified-arrow-interchange</code>. Он принимает Parquet-файл и
+JSON-контракт, проверяет два маршрута обмена и атомарно публикует JSON-отчёт только при
+успешной семантической проверке.</p>
+<h2 id="связь-с-предыдущим-и-следующим-уроками">Связь с предыдущим и следующим уроками</h2>
+<p>В уроке 05/08 вы записали типизированную таблицу в Parquet. Parquet — формат хранения:
+он раскладывает данные по row groups, кодирует и сжимает их. Когда PyArrow читает этот
+файл, библиотека декодирует байты Parquet в Arrow-массивы в памяти. Само это чтение не
+является zero-copy: декодирование и распаковка могут выделять новую память.</p>
+<p>Здесь мы начинаем уже с полученной <code>pyarrow.Table</code> и проверяем её обмен с pandas и
+DuckDB. В следующем уроке 05/10 вы организуете множество Parquet-файлов как
+партиционированный dataset. Там важны пути и pruning файлов; здесь — контракт одной
+таблицы при переходе между вычислительными инструментами.</p>
+<p>Не смешивайте три слоя:</p>
+<ol>
+<li>Parquet отвечает за хранение и передачу байтов как файла.</li>
+<li>Arrow задаёт типизированное столбцовое представление в памяти и интерфейсы обмена.</li>
+<li>pandas и DuckDB выполняют операции над таблицей, но могут по-своему представить
+отдельные метаданные.</li>
+</ol>
+<p>IPC, Flight, реализация C Data Interface и измерение производительности остаются за
+рамками урока. Они нужны в других сценариях, но мешают увидеть базовую проверку
+совместимости.</p>
 <h2 id="проблема">Проблема</h2>
-<p>Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится
-float, timezone требует повторного парсинга, а null policy задается заново. Переход на
-Arrow называют zero-copy, но не проверяют, произошло ли копирование.</p>
-<h2 id="концепция">Концепция</h2>
-<p>Arrow schema описывает fields, types и nullable для in-memory arrays. Parquet использует
-похожие типы, но является форматом хранения.</p>
-<p>Обмен нужно проверять по четырем измерениям:</p>
-<ol>
-<li>schema;</li>
-<li>values;</li>
-<li>null counts;</li>
-<li>memory buffers.</li>
-</ol>
-<p>Zero-copy возможен только при совместимом layout. Конвертация object strings или смена
-типа требует новой памяти. pandas также не переносит field-level <code>nullable=False</code> обратно
-в Arrow schema автоматически: типы и фактические null counts нужно проверять отдельно от
-этого ограничения metadata.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<p>Создайте pandas columns с Arrow-backed dtypes и превратите DataFrame в Table:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">table = pa.Table.from_pandas(frame, preserve_index=False)
-returned = table.to_pandas(types_mapper=pd.ArrowDtype)
-</code></pre></div><p>Для проверки памяти получите <code>buffer.address</code> у chunks до и после roundtrip. Совпадение
-адресов является наблюдаемым фактом reuse; несовпадение не означает ошибку данных.</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<p>DuckDB принимает Arrow Table напрямую:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection.register(&quot;orders_arrow&quot;, table)
-result = connection.execute(&quot;SELECT ... FROM orders_arrow&quot;).arrow().read_all()
-</code></pre></div><p>Артефакт читает Parquet, проходит Arrow -&gt; pandas -&gt; Arrow и Arrow -&gt; DuckDB -&gt; Arrow:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/arrow_compatibility.py \
-  --input orders.parquet \
-  --output compatibility.json
-</code></pre></div><h2 id="сломайте-это">Сломайте это</h2>
-<ol>
-<li>Превратите Arrow-backed string в Python object.</li>
-<li>Сбросьте timezone timestamp.</li>
-<li>Замените Decimal на float.</li>
-<li>Заполните null пустой строкой.</li>
-<li>Добавьте pandas index в Arrow metadata.</li>
-</ol>
-<p>Отчет должен отделять несовместимость данных от допустимого копирования.</p>
-<h2 id="проверьте-это">Проверьте это</h2>
+<p>Аналитик прочитал Parquet в Arrow, передал таблицу в pandas, затем зарегистрировал её в
+DuckDB. Число строк везде равно пяти — значит ли это, что обмен корректен?</p>
+<p>Нет. Одинаковый row count совместим со множеством дефектов:</p>
 <ul>
-<li>пять rows сохраняются во всех системах;</li>
-<li>decimal и UTC timestamp переживают pandas roundtrip;</li>
-<li>два null comment не меняются;</li>
-<li>потеря field-level nullability показана отдельно, а не скрыта;</li>
-<li>pandas dtypes остаются Arrow-backed;</li>
-<li>buffer reuse измеряется по каждому столбцу;</li>
-<li>DuckDB считает сумму <code>3226.59</code>;</li>
-<li>DuckDB возвращает Arrow schema.</li>
+<li><code>decimal128(12, 2)</code> мог превратиться в <code>float64</code>;</li>
+<li>timestamp мог потерять timezone или отобразиться в timezone текущей SQL-сессии;</li>
+<li><code>NULL</code> мог стать пустой строкой;</li>
+<li>pandas мог добавить индекс как отдельное поле;</li>
+<li>уникальный <code>order_id</code> мог задвоиться, а другая строка исчезнуть;</li>
+<li>обязательные поля могли стать nullable;</li>
+<li>обмен мог выполнить полную копию, хотя команда назвала его zero-copy.</li>
 </ul>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><h2 id="поставьте-результат">Поставьте результат</h2>
-<p><code>outputs/arrow_compatibility.py</code> выпускает JSON-отчет совместимости. Его можно запускать
-после обновления pandas, PyArrow или DuckDB, чтобы проверить реальный exchange contract.</p>
+<p>Противоположная ошибка — считать любую копию нарушением данных. DuckDB вправе создать
+новые буферы при материализации результата SQL. Если типы, значения и пропуски
+сохранены, маршрут остаётся семантически корректным. Поведение памяти — отдельное
+наблюдение, а не универсальный критерий валидности.</p>
+<p>Поэтому фраза «мы используем Arrow» ещё не является контрактом. Нужны проверяемые
+ответы на четыре вопроса:</p>
+<ol>
+<li>Сохранились ли имена и логические типы?</li>
+<li>Сохранились ли строки, значения, пропуски и grain?</li>
+<li>Какие метаданные изменились и разрешено ли это политикой маршрута?</li>
+<li>Какие исходные буферы действительно переиспользованы в этом процессе?</li>
+</ol>
+<h2 id="концепция">Концепция</h2>
+<h3 id="от-массива-до-таблицы">От массива до таблицы</h3>
+<p>В PyArrow встречаются четыре близкие структуры:</p>
+<ul>
+<li><code>Array</code> — один типизированный непрерывный фрагмент столбца;</li>
+<li><code>ChunkedArray</code> — логический столбец из одного или нескольких <code>Array</code>;</li>
+<li><code>RecordBatch</code> — набор одинаково длинных массивов с общей схемой;</li>
+<li><code>Table</code> — именованные <code>ChunkedArray</code> с общей схемой.</li>
+</ul>
+<p><code>Table</code> похожа на DataFrame, но их системы типов и метаданных не совпадают полностью.
+Arrow-схема содержит упорядоченные <code>Field</code>: имя, тип и признак <code>nullable</code>. У схемы и
+полей также могут быть произвольные metadata.</p>
+<h3 id="буферы-примитивного-и-строкового-массива">Буферы примитивного и строкового массива</h3>
+<p>Arrow хранит столбец не как последовательность Python-объектов, а как набор буферов.
+Для простого fixed-width массива, например <code>int64</code> или <code>decimal128</code>, обычно нужны:</p>
+<ol>
+<li>bitmap валидности — один бит на позицию, если есть пропуски;</li>
+<li>буфер значений фиксированной ширины.</li>
+</ol>
+<p>Для строки длина каждой ячейки различается, поэтому layout обычно состоит из:</p>
+<ol>
+<li>bitmap валидности;</li>
+<li>массива offsets, задающего границы строк;</li>
+<li>непрерывного буфера UTF-8 байтов.</li>
+</ol>
+<p>Логическое значение <code>NULL</code> задаётся bitmap. Байты на соответствующем месте буфера
+значений не следует интерпретировать как значение. Это одна из причин проверять null
+semantics отдельно.</p>
+<p>Запустите маленький пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python phases/05-sources-and-formats/09-arrow/code/main.py
+</code></pre></div><p>Он печатает размеры буферов decimal и string, затем выполняет pandas roundtrip. Сначала
+посмотрите на layout, и только потом переходите к удобным API <code>Table</code> и <code>DataFrame</code>.</p>
+<h3 id="четыре-независимых-слоя-проверки">Четыре независимых слоя проверки</h3>
+<p><strong>1. Имена и типы.</strong> Порядок полей, имена и логические Arrow-типы должны совпасть. Для
+денег <code>decimal128(12, 2)</code> и <code>double</code> неэквивалентны, даже если пять учебных значений
+выглядят одинаково.</p>
+<p><strong>2. Данные.</strong> Сравниваются row count, значения, null counts и grain. Аудитор сортирует
+таблицы по <code>order_id</code> перед сравнением значений: перестановка строк не маскирует потерю
+или подмену записи. Сам grain предварительно проверяется на <code>NULL</code> и дубликаты.</p>
+<p><strong>3. Метаданные.</strong> pandas и DuckDB в этом маршруте возвращают поля как nullable, даже
+если в исходной Parquet-схеме часть полей была <code>nullable=false</code>. Это не надо ни скрывать,
+ни автоматически объявлять порчей данных. Контракт разрешает только направленное
+ослабление <code>non-null → nullable</code>; обратное изменение или потеря другого типа не проходит.</p>
+<p><strong>4. Память.</strong> Совпавшая пара <code>(address, size)</code> исходного и возвращённого буфера внутри
+одного процесса — положительное свидетельство reuse. Адреса действительны только пока
+живут объекты и процесс, поэтому отчёт сохраняет лишь количества и доли байтов, а не
+сами адреса.</p>
+<p>Эти слои нельзя сворачивать в один расплывчатый флаг «Arrow compatible».</p>
+<h3 id="что-означает-и-чего-не-означает-zero-copy">Что означает и чего не означает zero-copy</h3>
+<p>Zero-copy — свойство конкретной операции для конкретных типов и layout. Это не вечное
+свойство таблицы и не гарантия, возникающая от импорта библиотеки.</p>
+<p>В нашем pandas-маршруте используется:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+returned = pa.Table.from_pandas(frame, preserve_index=False)
+</code></pre></div><p>Arrow-backed dtype позволяет pandas ссылаться на Arrow-представление. В закреплённом
+окружении урока исходные буферы наблюдаемо переиспользуются после roundtrip. Но вывод
+ограничен:</p>
+<ul>
+<li>он относится к этим столбцам и этим версиям библиотек;</li>
+<li>следующая pandas-операция может создать копию;</li>
+<li>объединение chunks, cast, фильтрация или изменение значения могут выделить память;</li>
+<li>чтение Parquet до появления исходной <code>Table</code> уже могло декодировать данные;</li>
+<li>несовпавшие адреса означают «полный reuse не наблюдён», а не доказывают устройство
+всех внутренних аллокаций.</li>
+</ul>
+<p>Корректная формулировка: «для маршрута Arrow → pandas с <code>ArrowDtype</code> → Arrow в этом
+процессе все исходные буферы этих столбцов наблюдаемо переиспользованы». Некорректная:
+«pandas и Arrow всегда работают без копий».</p>
+<h3 id="pandas-типы-индекс-и-nullability">pandas: типы, индекс и nullability</h3>
+<p>Без <code>types_mapper=pd.ArrowDtype</code> pandas может выбрать NumPy-backed или object dtype.
+Тогда decimal и nullable columns проходят другой маршрут, а копирование и типизация
+меняются.</p>
+<p>При обратном преобразовании явно задано <code>preserve_index=False</code>. Иначе индекс может
+попасть в Arrow metadata или стать физическим полем. Для обменного контракта, где grain
+уже задан <code>order_id</code>, неявный pandas index не должен становиться частью данных.</p>
+<p><code>schema.metadata</code> после pandas roundtrip отличается: PyArrow добавляет pandas metadata.
+Аудитор показывает это наблюдение, но валидирует те части контракта, которые объявлены
+явно: поля, типы, значения, nulls и допустимое ослабление nullability.</p>
+<h3 id="duckdb-arrow-вход-arrow-выход-и-состояние-сессии">DuckDB: Arrow-вход, Arrow-выход и состояние сессии</h3>
+<p>DuckDB умеет зарегистрировать <code>pyarrow.Table</code> как read-only relation:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection.register(&quot;source_arrow&quot;, table)
+returned = connection.execute(&quot;SELECT * FROM source_arrow&quot;).to_arrow_table()
+</code></pre></div><p>Результат SQL материализуется как новая Arrow Table. Урок не требует reuse её буферов:
+семантический контракт важнее внутренней стратегии execution engine.</p>
+<p>У timezone есть скрытое состояние. DuckDB может отображать <code>TIMESTAMPTZ</code> в timezone
+текущей сессии. Поэтому перед запросом аудитор выполняет:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SET TimeZone = &#x27;UTC&#x27;;
+</code></pre></div><p>и затем проверяет <code>current_setting('TimeZone')</code>. Без этого один и тот же код способен
+вернуть Arrow timestamp с разным timezone schema на разных машинах, хотя моменты времени
+представляют те же instants.</p>
+<h3 id="явный-exchange-contract">Явный exchange contract</h3>
+<p>Файл <code>data/arrow_exchange_contract.json</code> задаёт:</p>
+<ul>
+<li>версию контракта;</li>
+<li>точные поля, Arrow-типы и nullability источника;</li>
+<li>ожидаемое число строк и null counts;</li>
+<li>grain <code>order_id</code>;</li>
+<li><code>preserve_index=false</code> и требование Arrow-backed pandas dtypes;</li>
+<li>допустимость только field-level nullability loss;</li>
+<li>timezone <code>UTC</code> для DuckDB-сессии.</li>
+</ul>
+<p>Парсер работает строго: неизвестный ключ, повторный JSON-ключ, неизвестная версия,
+nullable grain, неполные null counts или неподдерживаемая timezone завершают CLI с
+кодом 2. Ошибка выполнения маршрута получает код 1. Успех получает код 0.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<h3 id="шаг-1-получите-воспроизводимый-parquet">Шаг 1. Получите воспроизводимый Parquet</h3>
+<p>Из корня репозитория создайте временную рабочую папку и повторите результат 05/08:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">mkdir -p work/05-arrow
+uv run --locked python \
+  phases/05-sources-and-formats/08-parquet/outputs/parquet_converter.py \
+  --input phases/05-sources-and-formats/data/tiny/orders_typed.csv \
+  --schema phases/05-sources-and-formats/data/parquet_schema.json \
+  --output work/05-arrow/orders.parquet
+</code></pre></div><p>Файл в <code>work/</code> — локальный результат, его не надо коммитить.</p>
+<h3 id="шаг-2-прочитайте-контракт-до-кода">Шаг 2. Прочитайте контракт до кода</h3>
+<p>Откройте <code>phases/05-sources-and-formats/data/arrow_exchange_contract.json</code> и ответьте:</p>
+<ul>
+<li>почему <code>amount</code> — decimal, а не float;</li>
+<li>почему <code>comment</code> допускает <code>NULL</code>;</li>
+<li>почему <code>order_id</code> не может быть nullable;</li>
+<li>какая потеря metadata разрешена обоим маршрутам;</li>
+<li>какая настройка DuckDB устраняет скрытую зависимость от машины.</li>
+</ul>
+<p>Контракт — вход программы, а не константы, разбросанные по Python-коду.</p>
+<h3 id="шаг-3-проверьте-источник-до-обмена">Шаг 3. Проверьте источник до обмена</h3>
+<p>Аудитор читает Parquet один раз из bounded byte buffer, считает SHA-256 этих же байтов и
+до запуска pandas или DuckDB проверяет:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">schema == contract.columns
+row_count == contract.row_count
+null_counts == contract.null_counts
+grain contains no NULL or duplicates
+</code></pre></div><p>Это разделяет дефект входа и дефект маршрута. Если источник уже не соответствует
+контракту, сравнивать библиотеки бессмысленно.</p>
+<h3 id="шаг-4-выполните-pandas-roundtrip">Шаг 4. Выполните pandas roundtrip</h3>
+<p>Путь должен быть явным:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Arrow Table
+  → pandas DataFrame with ArrowDtype
+  → Arrow Table without pandas index
+</code></pre></div><p>Для исходной и возвращённой таблиц сравните names/types, canonical rows, null counts и
+field nullability. Отдельно запишите pandas dtypes и evidence переиспользования буферов.</p>
+<h3 id="шаг-5-выполните-duckdb-roundtrip">Шаг 5. Выполните DuckDB roundtrip</h3>
+<p>Создайте отдельное in-memory connection, установите UTC, зарегистрируйте исходную
+Arrow Table, выполните <code>SELECT *</code> и получите весь результат через <code>to_arrow_table()</code>.
+Проверяйте все поля, включая timestamp и nullable comment, а не только удобный агрегат.</p>
+<h3 id="шаг-6-публикуйте-только-валидный-отчёт">Шаг 6. Публикуйте только валидный отчёт</h3>
+<p>Сначала отчёт полностью строится в памяти. Если хотя бы один семантический маршрут
+невалиден, файл не публикуется. Валидный JSON записывается во временный sibling-файл и
+атомарно заменяет целевой путь. Старый корректный отчёт не должен превратиться в
+полуфайл после сбоя записи.</p>
+<h2 id="используйте-это">Используйте это</h2>
+<p>Запустите итоговый CLI:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python \
+  phases/05-sources-and-formats/09-arrow/outputs/arrow_compatibility.py \
+  --input work/05-arrow/orders.parquet \
+  --contract phases/05-sources-and-formats/data/arrow_exchange_contract.json \
+  --output work/05-arrow/arrow_compatibility.json
+</code></pre></div><p>В <code>summary</code> должны появиться:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;semantic_routes_valid&quot;: {
+    &quot;duckdb_roundtrip&quot;: true,
+    &quot;pandas_roundtrip&quot;: true
+  },
+  &quot;valid&quot;: true
+}
+</code></pre></div><p>Затем изучите не только итоговый флаг:</p>
+<ul>
+<li><code>source.schema</code> и <code>source.null_counts</code> фиксируют исходный контракт;</li>
+<li><code>pandas_roundtrip.dtypes</code> показывают Arrow-backed dtypes;</li>
+<li><code>field_nullability.changed_fields</code> не скрывает потерю ограничения <code>not null</code>;</li>
+<li><code>buffer_reuse</code> сообщает долю исходных байтов с наблюдаемым reuse;</li>
+<li><code>duckdb_roundtrip.session_timezone</code> подтверждает UTC;</li>
+<li>SHA-256 входа и контракта связывают отчёт с конкретными байтами;</li>
+<li><code>libraries</code> фиксирует версии, при которых получено наблюдение.</li>
+</ul>
+<p>Отчёт не содержит абсолютных локальных путей и process-local addresses. Поэтому его
+можно передать другому человеку, не раскрывая структуру вашей машины и не выдавая
+бессмысленные после завершения процесса числа за воспроизводимое доказательство.</p>
+<h2 id="сломайте-это">Сломайте это</h2>
+<h3 id="сценарий-1-decimal-превратился-в-float">Сценарий 1. Decimal превратился в float</h3>
+<p>Измените тип <code>amount</code> в тестовой Arrow Table на <code>double</code>. Значения могут выглядеть
+похожими, но <code>names_and_types_preserved</code> станет <code>false</code>. Денежный контракт нарушен.</p>
+<h3 id="сценарий-2-null-заменили-текстом">Сценарий 2. NULL заменили текстом</h3>
+<p>Заполните пустые <code>comment</code> строкой <code>&quot;нет&quot;</code>. Row count не изменится, однако сравнение
+значений и null counts должно упасть. Это пример дефекта, который не виден по форме
+таблицы.</p>
+<h3 id="сценарий-3-появился-pandas-index">Сценарий 3. Появился pandas index</h3>
+<p>Уберите <code>preserve_index=False</code> или создайте именованный пользовательский индекс. Сравните
+Arrow schema и metadata. Решите, является ли индекс частью бизнес-данных; не принимайте
+решение по умолчанию библиотеки.</p>
+<h3 id="сценарий-4-duckdb-наследовал-локальную-timezone">Сценарий 4. DuckDB наследовал локальную timezone</h3>
+<p>Уберите <code>SET TimeZone='UTC'</code> и установите сессии <code>Europe/Moscow</code>. Проверьте тип
+<code>ordered_at</code> в возвращённой Arrow Table. Моменты времени могут остаться теми же, а
+timezone schema изменится — воспроизводимость контракта потеряна.</p>
+<h3 id="сценарий-5-создана-заведомая-копия">Сценарий 5. Создана заведомая копия</h3>
+<p>Преобразуйте исходную Table в Python rows и соберите новую Table:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">copied = pa.Table.from_pylist(source.to_pylist(), schema=source.schema)
+</code></pre></div><p>Значения и схема сохранятся, но полный reuse исходных буферов наблюдаться не должен.
+Семантическая совместимость и memory behavior дадут разные ответы — именно так и
+задуман отчёт.</p>
+<h3 id="сценарий-6-контракт-стал-двусмысленным">Сценарий 6. Контракт стал двусмысленным</h3>
+<p>Добавьте неизвестный ключ или продублируйте <code>version</code> вручную в JSON. Строгий parser
+должен отказаться гадать. Silent fallback опасен: опечатка в policy иначе выглядит как
+принятая настройка.</p>
+<h3 id="сценарий-7-grain-задвоился">Сценарий 7. Grain задвоился</h3>
+<p>Добавьте вторую строку с существующим <code>order_id</code> и скорректируйте только ожидаемый row
+count. Вход всё равно должен быть отвергнут из-за duplicate grain.</p>
+<h2 id="проверьте-это">Проверьте это</h2>
+<p>Запустите behavioral tests урока:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover \
+  -s phases/05-sources-and-formats/09-arrow/tests -v
+</code></pre></div><p>Тесты проверяют happy path и негативные сценарии:</p>
+<ul>
+<li>оба полных маршрута, включая все поля и UTC timestamp;</li>
+<li>Arrow-backed pandas dtypes и отсутствие утечки индекса;</li>
+<li>явную классификацию nullability loss;</li>
+<li>сохранность values, types, nulls, rows и grain;</li>
+<li>обнаружение type drift, null drift и forced copy;</li>
+<li>строгую схему exchange contract;</li>
+<li>missing и oversized input;</li>
+<li>отклонение schema drift и duplicate grain до запуска маршрутов;</li>
+<li>SHA-256 и отсутствие абсолютных путей и адресов в отчёте;</li>
+<li>разные exit codes для ошибки контракта и маршрута;</li>
+<li>запрет публикации невалидного результата и атомарную запись валидного.</li>
+</ul>
+<p>Инвариант итогового отчёта:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">summary.valid
+  = pandas semantic checks
+  AND pandas dtype policy
+  AND DuckDB semantic checks
+  AND DuckDB session policy
+</code></pre></div><p>Buffer reuse не входит в этот Boolean. Это evidence для диагностики и оптимизации, а
+не разрешение объявить корректные данные испорченными из-за внутренней копии.</p>
+<h2 id="поставьте-результат">Поставьте результат</h2>
+<p>Перед передачей другому человеку положите рядом три файла:</p>
+<ol>
+<li>входной <code>orders.parquet</code>;</li>
+<li><code>arrow_exchange_contract.json</code>;</li>
+<li>полученный <code>arrow_compatibility.json</code>.</li>
+</ol>
+<p>Команда приёмки должна быть воспроизводимой без текущей директории Python-процесса,
+глобальной DuckDB connection и ручной настройки timezone. Получателю достаточно
+locked-окружения, входа, контракта и CLI.</p>
+<p>Короткий handoff:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">Проверены два маршрута: Arrow → pandas/Arrow и Arrow → DuckDB/Arrow.
+Имена, типы, строки, значения и пропуски сохранены.
+Field-level not-null metadata ослаблены библиотеками и приняты явной policy.
+DuckDB session timezone закреплена в UTC.
+Переиспользование буферов — локальное наблюдение, не универсальная гарантия.
+Вход и контракт идентифицируются SHA-256 из отчёта.
+</code></pre></div><p>Не пишите «получили ускорение» без benchmark с baseline, размером данных, методикой и
+повторениями. Не пишите «production-ready»: урок проверяет узкий контракт обмена, а не
+нагрузку, отказоустойчивость или эксплуатацию сервиса.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>Сравните обычные pandas dtypes и Arrow-backed dtypes.</li>
-<li>Добавьте dictionary-encoded category.</li>
-<li>Проверьте large string и timestamp другой точности.</li>
+<li><strong>Обязательное.</strong> Объясните своими словами, почему совпавший row count не доказывает
+совместимость таблиц. Приведите три независимых контрпримера из отчёта.</li>
+<li><strong>Обязательное.</strong> Уберите <code>types_mapper=pd.ArrowDtype</code>, повторите roundtrip и сравните
+dtypes, schema и buffer evidence. Не обобщайте результат за пределы вашего запуска.</li>
+<li><strong>Обязательное.</strong> Запретите nullability loss в копии контракта. Объясните, почему
+маршрут становится невалидным, хотя значения не изменились.</li>
+<li><strong>На перенос.</strong> Добавьте новое nullable поле к собственной Parquet-таблице и обновите
+контракт. Убедитесь, что тест на null counts ловит заполнение пропусков.</li>
+<li><strong>На диагностику.</strong> Выполните DuckDB-запрос с перестановкой строк. Почему canonical
+comparison по grain принимает результат? В каком контракте порядок строк пришлось бы
+объявить отдельно?</li>
+<li><strong>Продвинутое.</strong> Сравните <code>to_arrow_table()</code> и <code>to_arrow_reader()</code> на таблице из
+нескольких batches. Не называйте один вариант быстрее без измерения.</li>
 </ol>
 <h2 id="ключевые-термины">Ключевые термины</h2>
-<table>
-<thead>
-<tr>
-<th>Термин</th>
-<th>Распространенное заблуждение</th>
-<th>Точное значение</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Arrow</td>
-<td>Сжатый файл</td>
-<td>In-memory format и набор interfaces для типизированного обмена</td>
-</tr>
-<tr>
-<td>Buffer</td>
-<td>Python list</td>
-<td>Непрерывная область памяти array</td>
-</tr>
-<tr>
-<td>Zero-copy</td>
-<td>Любой быстрый переход</td>
-<td>Повторное использование существующих buffers</td>
-</tr>
-<tr>
-<td>ArrowDtype</td>
-<td>Обычный object</td>
-<td>pandas dtype с Arrow-backed storage</td>
-</tr>
-<tr>
-<td>Interchange contract</td>
-<td>Совпадающий row count</td>
-<td>Сохранение schema, values, nulls и понятного memory behavior</td>
-</tr>
-</tbody>
-</table>
-<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
 <ul>
-<li><a href="https://arrow.apache.org/docs/python/pandas.html" target="_blank" rel="noopener">PyArrow: pandas integration</a> — изучите conversion rules, nullable types и zero-copy conditions.</li>
-<li><a href="https://arrow.apache.org/docs/format/Columnar.html" target="_blank" rel="noopener">Arrow columnar format</a> — разберите validity bitmap, buffers и nested layout.</li>
-<li><a href="https://duckdb.org/docs/stable/clients/python/overview" target="_blank" rel="noopener">DuckDB: Python API</a> — изучите регистрацию Arrow objects и возврат результата.</li>
-<li><a href="https://data-apis.org/dataframe-protocol/latest/index.html" target="_blank" rel="noopener">DataFrame interchange protocol</a> — сравните общий protocol обмена с прямой Arrow integration.</li>
+<li><strong>Apache Arrow</strong> — спецификация столбцового представления данных в памяти и набор
+интерфейсов и реализаций для обмена и вычислений.</li>
+<li><strong>Schema</strong> — упорядоченный набор полей с именами, типами, nullability и metadata.</li>
+<li><strong>Array</strong> — типизированный фрагмент одного столбца.</li>
+<li><strong>ChunkedArray</strong> — логический столбец из нескольких Arrow arrays.</li>
+<li><strong>RecordBatch</strong> — несколько одинаково длинных arrays с общей схемой.</li>
+<li><strong>Table</strong> — набор именованных chunked columns с общей схемой.</li>
+<li><strong>Validity bitmap</strong> — битовая карта, определяющая, какие позиции не являются <code>NULL</code>.</li>
+<li><strong>Offsets buffer</strong> — границы значений переменной длины в общем data buffer.</li>
+<li><strong>ArrowDtype</strong> — pandas dtype, использующий PyArrow как backing representation.</li>
+<li><strong>Roundtrip</strong> — преобразование из представления A в B и обратно в A.</li>
+<li><strong>Grain</strong> — набор полей, однозначно идентифицирующий строку предметной области.</li>
+<li><strong>Metadata loss</strong> — потеря или изменение описательной части схемы при сохранённых
+логических значениях.</li>
+<li><strong>Buffer reuse</strong> — наблюдаемое использование того же участка памяти другим объектом.</li>
+<li><strong>Zero-copy</strong> — выполнение конкретного перехода без копирования определённых буферов;
+не универсальная гарантия всей цепочки.</li>
+<li><strong>Session state</strong> — параметры соединения, способные менять результат одного SQL-текста.</li>
+<li><strong>Atomic publish</strong> — замена целевого файла только после полной успешной записи.</li>
 </ul>
+<h2 id="дополнительное-чтение">Дополнительное чтение</h2>
+<p>Материалы расположены от прикладного русскоязычного контекста к спецификациям и API.</p>
+<ol>
+<li><a href="https://learn.microsoft.com/ru-ru/power-bi/developer/execute-dax-queries-arrow/overview" target="_blank" rel="noopener">RU: Выполнение DAX-запросов через Arrow IPC — Microsoft Learn</a> — практический пример типизированного Arrow-ответа сервиса; полезен, чтобы увидеть обмен как внешний контракт, а не только Python-объект.</li>
+<li><a href="https://clickhouse.com/docs/ru/interfaces/formats/Arrow" target="_blank" rel="noopener">RU: Формат Arrow — ClickHouse</a> — таблица сопоставления Arrow- и ClickHouse-типов и пример file-mode обмена; сравните её с проверкой логических типов в уроке.</li>
+<li><a href="https://clickhouse.com/docs/ru/interfaces/formats/ArrowStream" target="_blank" rel="noopener">RU: Формат ArrowStream — ClickHouse</a> — потоковый вариант Arrow IPC; помогает отличить in-memory layout урока от сериализации между процессами.</li>
+<li><a href="https://arrow.apache.org/docs/format/Columnar.html" target="_blank" rel="noopener">EN: Arrow Columnar Format — Apache Arrow</a> — первичная спецификация типов, validity bitmap и физических buffer layouts.</li>
+<li><a href="https://arrow.apache.org/docs/python/pandas.html" target="_blank" rel="noopener">EN: pandas integration — PyArrow</a> — официальные правила <code>Table.to_pandas()</code> и <code>Table.from_pandas()</code>, включая различия систем типов и index metadata.</li>
+<li><a href="https://pandas.pydata.org/docs/user_guide/pyarrow.html" target="_blank" rel="noopener">EN: PyArrow Functionality — pandas</a> — официальный обзор Arrow-backed pandas arrays и операций, которые они поддерживают.</li>
+<li><a href="https://pandas.pydata.org/docs/reference/api/pandas.ArrowDtype.html" target="_blank" rel="noopener">EN: pandas.ArrowDtype API — pandas</a> — точный контракт dtype, который передаётся через <code>types_mapper</code> в артефакте.</li>
+<li><a href="https://duckdb.org/docs/stable/clients/python/overview" target="_blank" rel="noopener">EN: Python API overview — DuckDB</a> — регистрация Arrow Table как relation, область соединения и рекомендации против скрытой global connection.</li>
+<li><a href="https://duckdb.org/docs/current/clients/python/conversion" target="_blank" rel="noopener">EN: Python result conversion — DuckDB</a> — официальный контракт <code>to_arrow_table()</code> и <code>to_arrow_reader()</code> для материализации SQL-результата.</li>
+<li><a href="https://arrow.apache.org/docs/format/CDataInterface.html" target="_blank" rel="noopener">EN: Arrow C Data Interface — Apache Arrow</a> — первичная спецификация zero-copy обмена в одном процессе; также чётко отделяет C interface от IPC между процессами.</li>
+</ol>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 3 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что нужно сравнивать между системами кроме числа строк?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только имена библиотек</button><button type="button" class="quiz-option" data-choice="1">Schema, nulls, values и memory behavior</button><button type="button" class="quiz-option" data-choice="2">Только размер файла</button><button type="button" class="quiz-option" data-choice="3">Только время запуска</button></div><p class="quiz-feedback" hidden>Одинаковый row count может скрывать потерю типов, timezone или null semantics.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>Как проверить reuse Arrow buffers?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">По имени переменной</button><button type="button" class="quiz-option" data-choice="1">Сравнить адреса underlying buffers до и после</button><button type="button" class="quiz-option" data-choice="2">По размеру CSV</button><button type="button" class="quiz-option" data-choice="3">По SQL-тексту</button></div><p class="quiz-feedback" hidden>Совпадающие buffer addresses дают наблюдаемое свидетельство совместного хранения.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>Зачем DuckDB возвращает Arrow result?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы удалить schema</button><button type="button" class="quiz-option" data-choice="1">Для типизированного обмена без промежуточного CSV</button><button type="button" class="quiz-option" data-choice="2">Чтобы создать HTML</button><button type="button" class="quiz-option" data-choice="3">Чтобы выключить SQL</button></div><p class="quiz-feedback" hidden>Arrow сохраняет табличный контракт между execution engine и Python tools.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 5 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="3"><p class="quiz-number">01</p><h3>Какие буферы обычно использует Arrow-массив строк с пропусками?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только буфер Python-объектов</button><button type="button" class="quiz-option" data-choice="1">Только bitmap и значения фиксированной ширины</button><button type="button" class="quiz-option" data-choice="2">Отдельный файл для каждой строки</button><button type="button" class="quiz-option" data-choice="3">Bitmap валидности, offsets и непрерывный буфер байтов</button></div><p class="quiz-feedback" hidden>Offsets задают границы строк переменной длины, data buffer содержит их байты, а bitmap отмечает NULL.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">02</p><h3>Что доказывает совпадение address и size исходного и возвращённого Arrow-буфера?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Положительное свидетельство reuse этого буфера в этом процессе</button><button type="button" class="quiz-option" data-choice="1">Что вся цепочка от Parquet до SQL всегда zero-copy</button><button type="button" class="quiz-option" data-choice="2">Что следующая pandas-операция не создаст копию</button><button type="button" class="quiz-option" data-choice="3">Что адрес можно воспроизвести после перезапуска</button></div><p class="quiz-feedback" hidden>Адрес — process-local наблюдение конкретного перехода; его нельзя превращать в универсальную гарантию или сохранять как долговечное доказательство.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">03</p><h3>pandas вернул обязательное поле `order_id` как nullable, но значения и null count сохранились. Как поступает контракт урока?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Игнорирует schema полностью</button><button type="button" class="quiz-option" data-choice="1">Удаляет поле</button><button type="button" class="quiz-option" data-choice="2">Явно классифицирует ослабление nullability и принимает его только при разрешающей policy</button><button type="button" class="quiz-option" data-choice="3">Заменяет тип на object</button></div><p class="quiz-feedback" hidden>Потеря field-level ограничения видна в отчёте и допустима только как направленное, заранее объявленное ослабление.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">04</p><h3>Зачем аудитор выполняет `SET TimeZone = &#x27;UTC&#x27;` в DuckDB?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Чтобы скрыть пропуски</button><button type="button" class="quiz-option" data-choice="1">Чтобы результат timestamp schema не зависел от локального состояния SQL-сессии</button><button type="button" class="quiz-option" data-choice="2">Чтобы сжать Arrow-буферы</button><button type="button" class="quiz-option" data-choice="3">Чтобы превратить decimal в float</button></div><p class="quiz-feedback" hidden>DuckDB отображает timezone-aware timestamps с учётом session timezone, поэтому её закрепляют и проверяют.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">05</p><h3>Forced copy сохранила schema, значения и пропуски, но не переиспользовала исходные буферы. Каков итог?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Таблица автоматически считается испорченной</button><button type="button" class="quiz-option" data-choice="1">Отчёт должен удалить результат</button><button type="button" class="quiz-option" data-choice="2">Надо объявить DuckDB неисправным</button><button type="button" class="quiz-option" data-choice="3">Семантический маршрут может быть валиден, а memory evidence отдельно сообщает, что полный reuse не наблюдён</button></div><p class="quiz-feedback" hidden>Корректность данных и стратегия памяти — разные измерения; копия сама по себе не меняет значения.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
+import copy
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -187,12 +429,16 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pyarrow as pa
+import pyarrow.parquet as pq
+
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;arrow_compatibility.py&quot;
 CONVERTER_PATH = ROOT.parent / &quot;08-parquet&quot; / &quot;outputs&quot; / &quot;parquet_converter.py&quot;
 DATA = ROOT.parent / &quot;data&quot;
 CSV = DATA / &quot;tiny&quot; / &quot;orders_typed.csv&quot;
-SCHEMA = DATA / &quot;parquet_schema.json&quot;
+PARQUET_SCHEMA = DATA / &quot;parquet_schema.json&quot;
+EXCHANGE_CONTRACT = DATA / &quot;arrow_exchange_contract.json&quot;
 
 
 def load_module(name: str, path: Path):
@@ -212,102 +458,504 @@ class ArrowCompatibilityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -&gt; None:
         cls.directory = TemporaryDirectory()
-        cls.parquet = Path(cls.directory.name) / &quot;orders.parquet&quot;
-        CONVERTER.convert_csv(CSV, cls.parquet, SCHEMA)
-        cls.report = REPORTER.build_report(cls.parquet)
+        cls.temp = Path(cls.directory.name)
+        cls.parquet = cls.temp / &quot;orders.parquet&quot;
+        CONVERTER.convert_csv(CSV, cls.parquet, PARQUET_SCHEMA)
+        cls.source = pq.read_table(cls.parquet)
+        cls.contract = REPORTER.load_contract(EXCHANGE_CONTRACT)
+        cls.report = REPORTER.build_report(cls.parquet, EXCHANGE_CONTRACT)
 
     @classmethod
     def tearDownClass(cls) -&gt; None:
         cls.directory.cleanup()
 
-    def test_report_is_valid(self) -&gt; None:
+    def write_contract(self, value: dict, name: str = &quot;contract.json&quot;) -&gt; Path:
+        path = self.temp / name
+        path.write_text(json.dumps(value), encoding=&quot;utf-8&quot;)
+        return path
+
+    def test_report_is_valid_for_both_routes(self) -&gt; None:
         self.assertTrue(self.report[&quot;summary&quot;][&quot;valid&quot;])
-        self.assertEqual(self.report[&quot;arrow&quot;][&quot;rows&quot;], 5)
-
-    def test_schema_survives_pandas_roundtrip(self) -&gt; None:
-        self.assertTrue(self.report[&quot;checks&quot;][&quot;pandas_roundtrip_names_types&quot;])
-        amount = next(
-            field for field in self.report[&quot;roundtrip&quot;][&quot;schema&quot;] if field[&quot;name&quot;] == &quot;amount&quot;
+        self.assertEqual(
+            self.report[&quot;summary&quot;][&quot;semantic_routes_valid&quot;],
+            {&quot;pandas_roundtrip&quot;: True, &quot;duckdb_roundtrip&quot;: True},
         )
-        self.assertEqual(amount[&quot;type&quot;], &quot;decimal128(12, 2)&quot;)
-        self.assertFalse(self.report[&quot;roundtrip&quot;][&quot;field_nullability_preserved&quot;])
-        self.assertFalse(self.report[&quot;roundtrip&quot;][&quot;schema_metadata_equal&quot;])
+        self.assertEqual(self.report[&quot;source&quot;][&quot;rows&quot;], 5)
 
-    def test_null_counts_are_preserved(self) -&gt; None:
-        self.assertTrue(self.report[&quot;checks&quot;][&quot;null_counts_preserved&quot;])
-        self.assertEqual(self.report[&quot;pandas&quot;][&quot;null_counts&quot;][&quot;comment&quot;], 2)
+    def test_source_schema_and_null_counts_match_contract(self) -&gt; None:
+        expected = self.contract[&quot;source&quot;]
+        self.assertEqual(self.report[&quot;source&quot;][&quot;schema&quot;], expected[&quot;columns&quot;])
+        self.assertEqual(self.report[&quot;source&quot;][&quot;null_counts&quot;], expected[&quot;null_counts&quot;])
+
+    def test_pandas_preserves_types_values_rows_and_nulls(self) -&gt; None:
+        checks = self.report[&quot;pandas_roundtrip&quot;][&quot;checks&quot;]
+        self.assertTrue(checks[&quot;row_count_preserved&quot;])
+        self.assertTrue(checks[&quot;names_and_types_preserved&quot;])
+        self.assertTrue(checks[&quot;values_preserved&quot;])
+        self.assertTrue(checks[&quot;null_counts_preserved&quot;])
 
     def test_pandas_uses_arrow_backed_dtypes(self) -&gt; None:
-        self.assertIn(&quot;[pyarrow]&quot;, self.report[&quot;pandas&quot;][&quot;dtypes&quot;][&quot;order_id&quot;])
-        self.assertIn(&quot;[pyarrow]&quot;, self.report[&quot;pandas&quot;][&quot;dtypes&quot;][&quot;amount&quot;])
+        route = self.report[&quot;pandas_roundtrip&quot;]
+        self.assertTrue(all(route[&quot;arrow_backed_dtypes&quot;].values()))
+        self.assertEqual(route[&quot;dtypes&quot;][&quot;amount&quot;], &quot;decimal128(12, 2)[pyarrow]&quot;)
 
-    def test_buffer_reuse_is_measured_per_column(self) -&gt; None:
-        buffers = self.report[&quot;roundtrip&quot;][&quot;buffers&quot;]
-        self.assertEqual(set(buffers), set(self.report[&quot;arrow&quot;][&quot;null_counts&quot;]))
-        self.assertIn(&quot;shared_buffer_count&quot;, buffers[&quot;order_id&quot;])
+    def test_pandas_index_does_not_leak_into_schema(self) -&gt; None:
+        names = [field[&quot;name&quot;] for field in self.report[&quot;pandas_roundtrip&quot;][&quot;schema&quot;]]
+        self.assertEqual(names, self.source.column_names)
+        self.assertNotIn(&quot;__index_level_0__&quot;, names)
 
-    def test_duckdb_receives_same_rows_and_aggregate(self) -&gt; None:
-        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;rows&quot;], 5)
-        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;amount_sum&quot;], &quot;3226.59&quot;)
-        self.assertEqual(self.report[&quot;duckdb&quot;][&quot;null_comments&quot;], 2)
+    def test_nullability_loss_is_visible_and_explicitly_allowed(self) -&gt; None:
+        for route_name in (&quot;pandas_roundtrip&quot;, &quot;duckdb_roundtrip&quot;):
+            observation = self.report[route_name][&quot;field_nullability&quot;]
+            self.assertFalse(observation[&quot;exact&quot;])
+            self.assertTrue(observation[&quot;only_relaxed&quot;])
+            self.assertTrue(observation[&quot;allowed&quot;])
+            self.assertIn(
+                &quot;order_id&quot;,
+                {field[&quot;name&quot;] for field in observation[&quot;changed_fields&quot;]},
+            )
 
-    def test_duckdb_can_return_arrow_result(self) -&gt; None:
-        names = [field[&quot;name&quot;] for field in self.report[&quot;duckdb&quot;][&quot;arrow_result_schema&quot;]]
-        self.assertEqual(names, [&quot;order_id&quot;, &quot;amount&quot;])
+    def test_buffer_evidence_has_no_process_addresses(self) -&gt; None:
+        evidence = self.report[&quot;pandas_roundtrip&quot;][&quot;buffer_reuse&quot;]
+        self.assertEqual(set(evidence), set(self.source.column_names))
+        self.assertIn(&quot;shared_source_fraction&quot;, evidence[&quot;order_id&quot;])
+        serialized = json.dumps(evidence)
+        self.assertNotIn(&quot;address&quot;, serialized)
+
+    def test_forced_copy_is_not_reported_as_full_reuse(self) -&gt; None:
+        copied = pa.Table.from_pylist(self.source.to_pylist(), schema=self.source.schema)
+        evidence = REPORTER.buffer_reuse_report(self.source, copied)
+        self.assertTrue(
+            any(not column[&quot;all_source_buffers_reused&quot;] for column in evidence.values())
+        )
+
+    def test_type_drift_invalidates_route(self) -&gt; None:
+        amount_index = self.source.schema.get_field_index(&quot;amount&quot;)
+        drifted = self.source.set_column(
+            amount_index,
+            &quot;amount&quot;,
+            self.source.column(&quot;amount&quot;).cast(pa.decimal128(13, 2)),
+        )
+        route = REPORTER.compare_route(
+            self.source,
+            drifted,
+            grain=[&quot;order_id&quot;],
+            allow_field_nullability_loss=True,
+        )
+        self.assertFalse(route[&quot;checks&quot;][&quot;names_and_types_preserved&quot;])
+        self.assertFalse(route[&quot;valid&quot;])
+
+    def test_null_drift_invalidates_route(self) -&gt; None:
+        comment_index = self.source.schema.get_field_index(&quot;comment&quot;)
+        filled = self.source.set_column(
+            comment_index,
+            &quot;comment&quot;,
+            pa.array([value or &quot;нет&quot; for value in self.source.column(&quot;comment&quot;).to_pylist()]),
+        )
+        route = REPORTER.compare_route(
+            self.source,
+            filled,
+            grain=[&quot;order_id&quot;],
+            allow_field_nullability_loss=True,
+        )
+        self.assertFalse(route[&quot;checks&quot;][&quot;values_preserved&quot;])
+        self.assertFalse(route[&quot;checks&quot;][&quot;null_counts_preserved&quot;])
+        self.assertFalse(route[&quot;valid&quot;])
+
+    def test_duckdb_returns_full_typed_table(self) -&gt; None:
+        route = self.report[&quot;duckdb_roundtrip&quot;]
+        self.assertTrue(route[&quot;checks&quot;][&quot;names_and_types_preserved&quot;])
+        self.assertTrue(route[&quot;checks&quot;][&quot;values_preserved&quot;])
+        timestamp = next(field for field in route[&quot;schema&quot;] if field[&quot;name&quot;] == &quot;ordered_at&quot;)
+        self.assertEqual(timestamp[&quot;type&quot;], &quot;timestamp[us, tz=UTC]&quot;)
+
+    def test_duckdb_session_timezone_is_pinned(self) -&gt; None:
+        route = self.report[&quot;duckdb_roundtrip&quot;]
+        self.assertEqual(route[&quot;session_timezone&quot;], &quot;UTC&quot;)
+        self.assertTrue(route[&quot;checks&quot;][&quot;session_timezone_pinned&quot;])
+
+    def test_duckdb_helper_rejects_uncontrolled_timezone(self) -&gt; None:
+        with self.assertRaisesRegex(REPORTER.ArrowRouteError, &quot;unsupported.*timezone&quot;):
+            REPORTER._duckdb_roundtrip(self.source, &quot;Europe/Moscow&quot;)
+
+    def test_report_contains_reproducible_hashes_not_absolute_paths(self) -&gt; None:
+        self.assertEqual(
+            self.report[&quot;source&quot;][&quot;sha256&quot;],
+            hashlib.sha256(self.parquet.read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            self.report[&quot;contract&quot;][&quot;sha256&quot;],
+            hashlib.sha256(EXCHANGE_CONTRACT.read_bytes()).hexdigest(),
+        )
+        serialized = json.dumps(self.report)
+        self.assertNotIn(str(self.temp), serialized)
+        self.assertNotIn(str(ROOT), serialized)
+
+    def test_contract_rejects_unknown_root_key(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;surprise&quot;] = True
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;unknown keys&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;unknown.json&quot;))
+
+    def test_contract_rejects_unknown_version(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;version&quot;] = &quot;2.0.0&quot;
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;unsupported&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;version.json&quot;))
+
+    def test_contract_rejects_duplicate_json_keys(self) -&gt; None:
+        duplicate = self.temp / &quot;duplicate.json&quot;
+        duplicate.write_text(&#x27;{&quot;version&quot;:&quot;1.0.0&quot;,&quot;version&quot;:&quot;1.0.0&quot;}&#x27;, encoding=&quot;utf-8&quot;)
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;duplicate JSON key&quot;):
+            REPORTER.load_contract(duplicate)
+
+    def test_contract_rejects_duplicate_columns(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;source&quot;][&quot;columns&quot;][1][&quot;name&quot;] = &quot;order_id&quot;
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;duplicate source column&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;columns.json&quot;))
+
+    def test_contract_rejects_incomplete_null_counts(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        del contract[&quot;source&quot;][&quot;null_counts&quot;][&quot;comment&quot;]
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;every source column&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;nulls.json&quot;))
+
+    def test_contract_rejects_impossible_null_count(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;source&quot;][&quot;null_counts&quot;][&quot;comment&quot;] = 6
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;cannot exceed&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;null-count.json&quot;))
+
+    def test_contract_rejects_nullable_grain(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;source&quot;][&quot;columns&quot;][0][&quot;nullable&quot;] = True
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;grain columns&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;grain.json&quot;))
+
+    def test_contract_rejects_unpinned_duckdb_timezone(self) -&gt; None:
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;routes&quot;][&quot;duckdb_roundtrip&quot;][&quot;session_timezone&quot;] = &quot;Europe/Moscow&quot;
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;requires.*UTC&quot;):
+            REPORTER.load_contract(self.write_contract(contract, &quot;timezone.json&quot;))
+
+    def test_missing_input_is_rejected(self) -&gt; None:
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;does not exist&quot;):
+            REPORTER.build_report(self.temp / &quot;missing.parquet&quot;, EXCHANGE_CONTRACT)
+
+    def test_oversized_input_is_rejected(self) -&gt; None:
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;exceeds max_bytes&quot;):
+            REPORTER.build_report(self.parquet, EXCHANGE_CONTRACT, max_bytes=10)
+
+    def test_source_schema_drift_is_rejected_before_routes(self) -&gt; None:
+        amount_index = self.source.schema.get_field_index(&quot;amount&quot;)
+        drifted = self.source.set_column(
+            amount_index,
+            &quot;amount&quot;,
+            self.source.column(&quot;amount&quot;).cast(pa.decimal128(13, 2)),
+        )
+        path = self.temp / &quot;schema-drift.parquet&quot;
+        pq.write_table(drifted, path)
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;schema differs&quot;):
+            REPORTER.build_report(path, EXCHANGE_CONTRACT)
+
+    def test_duplicate_grain_is_rejected_before_routes(self) -&gt; None:
+        duplicate = pa.concat_tables([self.source, self.source.slice(0, 1)])
+        path = self.temp / &quot;duplicate-grain.parquet&quot;
+        pq.write_table(duplicate, path)
+        contract = copy.deepcopy(self.contract)
+        contract[&quot;source&quot;][&quot;row_count&quot;] = 6
+        contract[&quot;source&quot;][&quot;null_counts&quot;][&quot;comment&quot;] = 2
+        contract_path = self.write_contract(contract, &quot;six-rows.json&quot;)
+        with self.assertRaisesRegex(REPORTER.ArrowCompatibilityError, &quot;duplicate grain&quot;):
+            REPORTER.build_report(path, contract_path)
+
+    def test_invalid_report_is_not_published(self) -&gt; None:
+        output = self.temp / &quot;preserved.json&quot;
+        output.write_text(&quot;old\n&quot;, encoding=&quot;utf-8&quot;)
+        invalid = copy.deepcopy(self.report)
+        invalid[&quot;summary&quot;][&quot;valid&quot;] = False
+        with self.assertRaisesRegex(REPORTER.ArrowRouteError, &quot;must not be published&quot;):
+            REPORTER.publish_report(invalid, output)
+        self.assertEqual(output.read_text(encoding=&quot;utf-8&quot;), &quot;old\n&quot;)
+
+    def test_publish_report_writes_parseable_json(self) -&gt; None:
+        output = self.temp / &quot;published.json&quot;
+        REPORTER.publish_report(self.report, output)
+        self.assertTrue(json.loads(output.read_text(encoding=&quot;utf-8&quot;))[&quot;summary&quot;][&quot;valid&quot;])
 
     def test_cli_writes_report_file(self) -&gt; None:
-        output = Path(self.directory.name) / &quot;report.json&quot;
+        output = self.temp / &quot;cli-report.json&quot;
         result = subprocess.run(
-            [sys.executable, ARTIFACT, &quot;--input&quot;, self.parquet, &quot;--output&quot;, output],
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                self.parquet,
+                &quot;--contract&quot;,
+                EXCHANGE_CONTRACT,
+                &quot;--output&quot;,
+                output,
+            ],
             check=False,
             capture_output=True,
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(output.read_text())[&quot;arrow&quot;][&quot;rows&quot;], 5)
+        self.assertTrue(json.loads(output.read_text(encoding=&quot;utf-8&quot;))[&quot;summary&quot;][&quot;valid&quot;])
+
+    def test_cli_contract_error_uses_code_two_without_output(self) -&gt; None:
+        bad_contract = self.temp / &quot;bad-contract.json&quot;
+        bad_contract.write_text(&quot;{}&quot;, encoding=&quot;utf-8&quot;)
+        output = self.temp / &quot;must-not-exist.json&quot;
+        result = subprocess.run(
+            [
+                sys.executable,
+                ARTIFACT,
+                &quot;--input&quot;,
+                self.parquet,
+                &quot;--contract&quot;,
+                bad_contract,
+                &quot;--output&quot;,
+                output,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(&#x27;&quot;kind&quot;: &quot;contract&quot;&#x27;, result.stderr)
+        self.assertFalse(output.exists())
 
 
 if __name__ == &quot;__main__&quot;:
     unittest.main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>import pandas as pd
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/tests/test_main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Эталонный код</h3><details class="source-file"><summary><span>code/main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+
+import importlib.util
+from decimal import Decimal
+from pathlib import Path
+
+import pandas as pd
 import pyarrow as pa
 
-frame = pd.DataFrame(
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;arrow_compatibility.py&quot;
+
+
+def load_artifact():
+    spec = importlib.util.spec_from_file_location(&quot;arrow_compatibility&quot;, ARTIFACT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;Не удалось загрузить {ARTIFACT}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def buffer_sizes(array: pa.Array) -&gt; list[int | None]:
+    return [None if buffer is None else buffer.size for buffer in array.buffers()]
+
+
+amount = pa.array(
+    [Decimal(&quot;1200.50&quot;), None, Decimal(&quot;19.90&quot;)],
+    type=pa.decimal128(12, 2),
+)
+comment = pa.array([&quot;первый заказ&quot;, None, &quot;повторный заказ&quot;], type=pa.string())
+
+print(&quot;decimal buffers [validity, values]:&quot;, buffer_sizes(amount))
+print(&quot;string buffers [validity, offsets, data]:&quot;, buffer_sizes(comment))
+
+table = pa.table(
     {
-        &quot;order_id&quot;: pd.Series([&quot;O1&quot;, &quot;O2&quot;], dtype=&quot;string[pyarrow]&quot;),
-        &quot;amount&quot;: pd.Series([1200.5, None], dtype=&quot;float64[pyarrow]&quot;),
+        &quot;order_id&quot;: pa.array([&quot;O1&quot;, &quot;O2&quot;, &quot;O3&quot;]),
+        &quot;amount&quot;: amount,
+        &quot;comment&quot;: comment,
     }
 )
-table = pa.Table.from_pandas(frame, preserve_index=False)
-returned = table.to_pandas(types_mapper=pd.ArrowDtype)
+frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+returned = pa.Table.from_pandas(frame, preserve_index=False)
 
-print(&quot;pandas:&quot;, {name: str(dtype) for name, dtype in frame.dtypes.items()})
-print(&quot;Arrow:&quot;, table.schema)
-print(&quot;roundtrip:&quot;, {name: str(dtype) for name, dtype in returned.dtypes.items()})
+artifact = load_artifact()
+reuse = artifact.buffer_reuse_report(table, returned)
+
+print(&quot;\nArrow schema:&quot;)
+print(table.schema)
+print(&quot;\npandas dtypes:&quot;, {name: str(dtype) for name, dtype in frame.dtypes.items()})
+print(
+    &quot;buffer reuse:&quot;,
+    {name: evidence[&quot;all_source_buffers_reused&quot;] for name, evidence in reuse.items()},
+)
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/arrow_compatibility.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import re
 import sys
-from decimal import Decimal
+import tempfile
 from pathlib import Path
 from typing import Any
 
 import duckdb
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
+
+CONTRACT_VERSION = &quot;1.0.0&quot;
+REPORT_VERSION = &quot;1.0.0&quot;
+DEFAULT_MAX_BYTES = 10_000_000
+ROOT_KEYS = {&quot;version&quot;, &quot;source&quot;, &quot;routes&quot;}
+SOURCE_KEYS = {&quot;columns&quot;, &quot;grain&quot;, &quot;row_count&quot;, &quot;null_counts&quot;}
+COLUMN_KEYS = {&quot;name&quot;, &quot;type&quot;, &quot;nullable&quot;}
+ROUTE_KEYS = {&quot;pandas_roundtrip&quot;, &quot;duckdb_roundtrip&quot;}
+PANDAS_KEYS = {
+    &quot;preserve_index&quot;,
+    &quot;require_arrow_backed_dtypes&quot;,
+    &quot;allow_field_nullability_loss&quot;,
+}
+DUCKDB_KEYS = {&quot;session_timezone&quot;, &quot;allow_field_nullability_loss&quot;}
+DECIMAL_TYPE = re.compile(r&quot;decimal128\((\d+),\s*(\d+)\)&quot;)
+TIMESTAMP_TYPE = re.compile(r&quot;timestamp\[(s|ms|us|ns),\s*tz=([^\]]+)\]&quot;)
 
 
 class ArrowCompatibilityError(ValueError):
-    &quot;&quot;&quot;Raised when a table cannot be compared across engines.&quot;&quot;&quot;
+    &quot;&quot;&quot;Raised when configuration or source data cannot satisfy the exchange audit.&quot;&quot;&quot;
 
 
-def buffer_addresses(column: pa.ChunkedArray) -&gt; list[int]:
-    addresses: list[int] = []
-    for chunk in column.chunks:
-        addresses.extend(buffer.address for buffer in chunk.buffers() if buffer is not None)
-    return addresses
+class ArrowRouteError(RuntimeError):
+    &quot;&quot;&quot;Raised when an exchange route cannot be executed.&quot;&quot;&quot;
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -&gt; dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ArrowCompatibilityError(f&quot;duplicate JSON key: {key}&quot;)
+        result[key] = value
+    return result
+
+
+def _exact_keys(value: dict[str, Any], expected: set[str], label: str) -&gt; None:
+    missing = sorted(expected - value.keys())
+    unknown = sorted(value.keys() - expected)
+    if missing:
+        raise ArrowCompatibilityError(f&quot;{label} misses keys: {missing}&quot;)
+    if unknown:
+        raise ArrowCompatibilityError(f&quot;{label} has unknown keys: {unknown}&quot;)
+
+
+def _valid_type_name(type_name: Any) -&gt; bool:
+    if type_name == &quot;string&quot;:
+        return True
+    if isinstance(type_name, str):
+        decimal = DECIMAL_TYPE.fullmatch(type_name)
+        if decimal:
+            precision, scale = (int(value) for value in decimal.groups())
+            return 1 &lt;= precision &lt;= 38 and 0 &lt;= scale &lt;= precision
+        timestamp = TIMESTAMP_TYPE.fullmatch(type_name)
+        if timestamp:
+            return bool(timestamp.group(2))
+    return False
+
+
+def _parse_contract_bytes(raw: bytes) -&gt; dict[str, Any]:
+    try:
+        text = raw.decode(&quot;utf-8&quot;, errors=&quot;strict&quot;)
+    except UnicodeDecodeError as error:
+        raise ArrowCompatibilityError(&quot;exchange contract must be valid UTF-8&quot;) from error
+    try:
+        contract = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
+    except json.JSONDecodeError as error:
+        raise ArrowCompatibilityError(f&quot;invalid contract JSON: {error.msg}&quot;) from error
+    if not isinstance(contract, dict):
+        raise ArrowCompatibilityError(&quot;exchange contract root must be an object&quot;)
+    _exact_keys(contract, ROOT_KEYS, &quot;contract&quot;)
+    if contract[&quot;version&quot;] != CONTRACT_VERSION:
+        raise ArrowCompatibilityError(
+            f&quot;unsupported contract version: {contract[&#x27;version&#x27;]!r}; expected {CONTRACT_VERSION!r}&quot;
+        )
+
+    source = contract[&quot;source&quot;]
+    if not isinstance(source, dict):
+        raise ArrowCompatibilityError(&quot;source must be an object&quot;)
+    _exact_keys(source, SOURCE_KEYS, &quot;source&quot;)
+    columns = source[&quot;columns&quot;]
+    if not isinstance(columns, list) or not columns:
+        raise ArrowCompatibilityError(&quot;source.columns must be a non-empty list&quot;)
+    names: list[str] = []
+    for position, column in enumerate(columns):
+        label = f&quot;source.columns[{position}]&quot;
+        if not isinstance(column, dict):
+            raise ArrowCompatibilityError(f&quot;{label} must be an object&quot;)
+        _exact_keys(column, COLUMN_KEYS, label)
+        name = column[&quot;name&quot;]
+        if not isinstance(name, str) or not name:
+            raise ArrowCompatibilityError(f&quot;{label}.name must be a non-empty string&quot;)
+        if name in names:
+            raise ArrowCompatibilityError(f&quot;duplicate source column: {name}&quot;)
+        names.append(name)
+        if not _valid_type_name(column[&quot;type&quot;]):
+            raise ArrowCompatibilityError(f&quot;unsupported source type for {name}: {column[&#x27;type&#x27;]!r}&quot;)
+        if type(column[&quot;nullable&quot;]) is not bool:
+            raise ArrowCompatibilityError(f&quot;{label}.nullable must be boolean&quot;)
+
+    grain = source[&quot;grain&quot;]
+    if (
+        not isinstance(grain, list)
+        or not grain
+        or any(not isinstance(name, str) for name in grain)
+        or len(set(grain)) != len(grain)
+    ):
+        raise ArrowCompatibilityError(&quot;source.grain must contain unique column names&quot;)
+    unknown_grain = sorted(set(grain) - set(names))
+    if unknown_grain:
+        raise ArrowCompatibilityError(f&quot;source.grain refers to unknown columns: {unknown_grain}&quot;)
+    by_name = {column[&quot;name&quot;]: column for column in columns}
+    nullable_grain = [name for name in grain if by_name[name][&quot;nullable&quot;]]
+    if nullable_grain:
+        raise ArrowCompatibilityError(f&quot;source.grain columns must be non-null: {nullable_grain}&quot;)
+    if type(source[&quot;row_count&quot;]) is not int or source[&quot;row_count&quot;] &lt; 0:
+        raise ArrowCompatibilityError(&quot;source.row_count must be a non-negative integer&quot;)
+    null_counts = source[&quot;null_counts&quot;]
+    if not isinstance(null_counts, dict) or set(null_counts) != set(names):
+        raise ArrowCompatibilityError(&quot;source.null_counts must declare every source column exactly&quot;)
+    if any(type(value) is not int or value &lt; 0 for value in null_counts.values()):
+        raise ArrowCompatibilityError(&quot;source.null_counts values must be non-negative integers&quot;)
+    if any(value &gt; source[&quot;row_count&quot;] for value in null_counts.values()):
+        raise ArrowCompatibilityError(&quot;source.null_counts cannot exceed source.row_count&quot;)
+
+    routes = contract[&quot;routes&quot;]
+    if not isinstance(routes, dict):
+        raise ArrowCompatibilityError(&quot;routes must be an object&quot;)
+    _exact_keys(routes, ROUTE_KEYS, &quot;routes&quot;)
+    pandas_route = routes[&quot;pandas_roundtrip&quot;]
+    duckdb_route = routes[&quot;duckdb_roundtrip&quot;]
+    if not isinstance(pandas_route, dict) or not isinstance(duckdb_route, dict):
+        raise ArrowCompatibilityError(&quot;each route must be an object&quot;)
+    _exact_keys(pandas_route, PANDAS_KEYS, &quot;routes.pandas_roundtrip&quot;)
+    _exact_keys(duckdb_route, DUCKDB_KEYS, &quot;routes.duckdb_roundtrip&quot;)
+    if any(type(pandas_route[key]) is not bool for key in PANDAS_KEYS):
+        raise ArrowCompatibilityError(&quot;pandas route policy values must be boolean&quot;)
+    if pandas_route[&quot;preserve_index&quot;]:
+        raise ArrowCompatibilityError(&quot;contract version 1 supports preserve_index=false only&quot;)
+    if type(duckdb_route[&quot;allow_field_nullability_loss&quot;]) is not bool:
+        raise ArrowCompatibilityError(&quot;duckdb nullability policy must be boolean&quot;)
+    if duckdb_route[&quot;session_timezone&quot;] != &quot;UTC&quot;:
+        raise ArrowCompatibilityError(&quot;contract version 1 requires DuckDB session_timezone=UTC&quot;)
+    return contract
+
+
+def load_contract(path: str | Path) -&gt; dict[str, Any]:
+    contract_path = Path(path)
+    if not contract_path.is_file():
+        raise ArrowCompatibilityError(f&quot;exchange contract does not exist: {contract_path}&quot;)
+    try:
+        raw = contract_path.read_bytes()
+    except OSError as error:
+        raise ArrowCompatibilityError(f&quot;cannot read exchange contract: {error}&quot;) from error
+    return _parse_contract_bytes(raw)
 
 
 def schema_manifest(schema: pa.Schema) -&gt; list[dict[str, Any]]:
@@ -317,127 +965,380 @@ def schema_manifest(schema: pa.Schema) -&gt; list[dict[str, Any]]:
     ]
 
 
-def scalar_json(value: Any) -&gt; Any:
-    if isinstance(value, Decimal):
-        return str(value)
-    if hasattr(value, &quot;isoformat&quot;):
-        return value.isoformat()
-    return value
+def null_counts(table: pa.Table) -&gt; dict[str, int]:
+    return {name: table.column(name).null_count for name in table.column_names}
 
 
-def build_report(input_path: str | Path) -&gt; dict[str, Any]:
-    path = Path(input_path)
-    if not path.is_file():
-        raise ArrowCompatibilityError(f&quot;Parquet file does not exist: {path}&quot;)
-    arrow_table = pq.read_table(path)
-    pandas_frame = arrow_table.to_pandas(types_mapper=pd.ArrowDtype)
-    roundtrip = pa.Table.from_pandas(pandas_frame, preserve_index=False)
+def _grain_errors(table: pa.Table, grain: list[str]) -&gt; list[str]:
+    seen: dict[tuple[Any, ...], int] = {}
+    errors: list[str] = []
+    rows = table.select(grain).to_pylist()
+    for position, row in enumerate(rows):
+        key = tuple(row[name] for name in grain)
+        if any(value is None for value in key):
+            errors.append(f&quot;row {position}: null grain {key!r}&quot;)
+        elif key in seen:
+            errors.append(f&quot;row {position}: duplicate grain {key!r}; first at row {seen[key]}&quot;)
+        else:
+            seen[key] = position
+    return errors
 
-    copy_report = {}
-    for name in arrow_table.column_names:
-        source = buffer_addresses(arrow_table.column(name))
-        returned = buffer_addresses(roundtrip.column(name))
-        copy_report[name] = {
-            &quot;source_buffers&quot;: source,
-            &quot;roundtrip_buffers&quot;: returned,
-            &quot;shared_buffer_count&quot;: len(set(source) &amp; set(returned)),
-            &quot;all_source_buffers_reused&quot;: bool(source) and set(source).issubset(returned),
+
+def _validate_source(table: pa.Table, contract: dict[str, Any]) -&gt; None:
+    expected = contract[&quot;source&quot;]
+    errors: list[str] = []
+    if schema_manifest(table.schema) != expected[&quot;columns&quot;]:
+        errors.append(
+            f&quot;schema differs: expected {expected[&#x27;columns&#x27;]}, got {schema_manifest(table.schema)}&quot;
+        )
+    if table.num_rows != expected[&quot;row_count&quot;]:
+        errors.append(f&quot;row count differs: expected {expected[&#x27;row_count&#x27;]}, got {table.num_rows}&quot;)
+    observed_nulls = null_counts(table)
+    if observed_nulls != expected[&quot;null_counts&quot;]:
+        errors.append(
+            f&quot;null counts differ: expected {expected[&#x27;null_counts&#x27;]}, got {observed_nulls}&quot;
+        )
+    errors.extend(_grain_errors(table, expected[&quot;grain&quot;]))
+    if errors:
+        raise ArrowCompatibilityError(&quot;source violates exchange contract: &quot; + &quot;; &quot;.join(errors))
+
+
+def _canonical_rows(table: pa.Table, grain: list[str]) -&gt; list[dict[str, Any]]:
+    indices = pc.sort_indices(table, sort_keys=[(name, &quot;ascending&quot;) for name in grain])
+    return table.take(indices).to_pylist()
+
+
+def _nullability_observation(
+    source: pa.Schema,
+    returned: pa.Schema,
+    *,
+    allow_loss: bool,
+) -&gt; dict[str, Any]:
+    if source.names != returned.names:
+        return {
+            &quot;exact&quot;: False,
+            &quot;only_relaxed&quot;: False,
+            &quot;allowed&quot;: False,
+            &quot;changed_fields&quot;: [],
         }
-
-    connection = duckdb.connect()
-    try:
-        connection.register(&quot;orders_arrow&quot;, arrow_table)
-        metrics = connection.execute(
-            &quot;&quot;&quot;
-            SELECT
-                count(*) AS rows,
-                sum(amount) AS amount_sum,
-                count(*) FILTER (WHERE comment IS NULL) AS null_comments
-            FROM orders_arrow
-            &quot;&quot;&quot;
-        ).fetchone()
-        duckdb_reader = connection.execute(
-            &quot;SELECT order_id, amount FROM orders_arrow ORDER BY order_id&quot;
-        ).arrow()
-        duckdb_table = duckdb_reader.read_all()
-    finally:
-        connection.close()
-
-    arrow_nulls = {name: arrow_table.column(name).null_count for name in arrow_table.column_names}
-    roundtrip_nulls = {name: roundtrip.column(name).null_count for name in roundtrip.column_names}
-    names_types_preserved = [(field.name, field.type) for field in roundtrip.schema] == [
-        (field.name, field.type) for field in arrow_table.schema
+    changed = [
+        {
+            &quot;name&quot;: source_field.name,
+            &quot;source_nullable&quot;: source_field.nullable,
+            &quot;returned_nullable&quot;: returned_field.nullable,
+        }
+        for source_field, returned_field in zip(source, returned, strict=True)
+        if source_field.nullable != returned_field.nullable
     ]
-    nullability_preserved = [field.nullable for field in roundtrip.schema] == [
-        field.nullable for field in arrow_table.schema
-    ]
+    only_relaxed = all(
+        not source_field.nullable or returned_field.nullable
+        for source_field, returned_field in zip(source, returned, strict=True)
+    )
+    exact = not changed
+    return {
+        &quot;exact&quot;: exact,
+        &quot;only_relaxed&quot;: only_relaxed,
+        &quot;allowed&quot;: exact or (allow_loss and only_relaxed),
+        &quot;changed_fields&quot;: changed,
+    }
+
+
+def compare_route(
+    source: pa.Table,
+    returned: pa.Table,
+    *,
+    grain: list[str],
+    allow_field_nullability_loss: bool,
+) -&gt; dict[str, Any]:
+    source_names_types = [(field.name, str(field.type)) for field in source.schema]
+    returned_names_types = [(field.name, str(field.type)) for field in returned.schema]
+    nullability = _nullability_observation(
+        source.schema,
+        returned.schema,
+        allow_loss=allow_field_nullability_loss,
+    )
     checks = {
-        &quot;pandas_roundtrip_names_types&quot;: names_types_preserved,
-        &quot;pandas_roundtrip_values&quot;: roundtrip.to_pylist() == arrow_table.to_pylist(),
-        &quot;null_counts_preserved&quot;: arrow_nulls == roundtrip_nulls,
-        &quot;duckdb_rows_match&quot;: metrics[0] == arrow_table.num_rows,
+        &quot;row_count_preserved&quot;: source.num_rows == returned.num_rows,
+        &quot;names_and_types_preserved&quot;: source_names_types == returned_names_types,
+        &quot;values_preserved&quot;: _canonical_rows(source, grain) == _canonical_rows(returned, grain),
+        &quot;null_counts_preserved&quot;: null_counts(source) == null_counts(returned),
+        &quot;field_nullability_policy_satisfied&quot;: nullability[&quot;allowed&quot;],
     }
     return {
-        &quot;arrow&quot;: {
-            &quot;rows&quot;: arrow_table.num_rows,
-            &quot;schema&quot;: schema_manifest(arrow_table.schema),
-            &quot;null_counts&quot;: arrow_nulls,
-        },
-        &quot;pandas&quot;: {
-            &quot;rows&quot;: len(pandas_frame),
-            &quot;dtypes&quot;: {name: str(dtype) for name, dtype in pandas_frame.dtypes.items()},
-            &quot;null_counts&quot;: {name: int(value) for name, value in pandas_frame.isna().sum().items()},
-        },
-        &quot;roundtrip&quot;: {
-            &quot;schema&quot;: schema_manifest(roundtrip.schema),
-            &quot;field_nullability_preserved&quot;: nullability_preserved,
-            &quot;schema_metadata_equal&quot;: roundtrip.schema.metadata == arrow_table.schema.metadata,
-            &quot;null_counts&quot;: roundtrip_nulls,
-            &quot;buffers&quot;: copy_report,
-        },
-        &quot;duckdb&quot;: {
-            &quot;rows&quot;: metrics[0],
-            &quot;amount_sum&quot;: scalar_json(metrics[1]),
-            &quot;null_comments&quot;: metrics[2],
-            &quot;arrow_result_schema&quot;: schema_manifest(duckdb_table.schema),
-        },
+        &quot;rows&quot;: returned.num_rows,
+        &quot;schema&quot;: schema_manifest(returned.schema),
+        &quot;null_counts&quot;: null_counts(returned),
+        &quot;schema_metadata_equal&quot;: source.schema.metadata == returned.schema.metadata,
+        &quot;field_nullability&quot;: nullability,
         &quot;checks&quot;: checks,
+        &quot;valid&quot;: all(checks.values()),
+    }
+
+
+def _buffer_identities(column: pa.ChunkedArray) -&gt; set[tuple[int, int]]:
+    identities: set[tuple[int, int]] = set()
+    for chunk in column.chunks:
+        for buffer in chunk.buffers():
+            if buffer is not None and buffer.size:
+                identities.add((buffer.address, buffer.size))
+    return identities
+
+
+def buffer_reuse_report(source: pa.Table, returned: pa.Table) -&gt; dict[str, Any]:
+    report: dict[str, Any] = {}
+    for name in source.column_names:
+        source_buffers = _buffer_identities(source.column(name))
+        returned_buffers = _buffer_identities(returned.column(name))
+        shared = source_buffers &amp; returned_buffers
+        source_bytes = sum(size for _, size in source_buffers)
+        shared_bytes = sum(size for _, size in shared)
+        report[name] = {
+            &quot;source_buffer_count&quot;: len(source_buffers),
+            &quot;returned_buffer_count&quot;: len(returned_buffers),
+            &quot;shared_buffer_count&quot;: len(shared),
+            &quot;source_buffer_bytes&quot;: source_bytes,
+            &quot;shared_source_bytes&quot;: shared_bytes,
+            &quot;shared_source_fraction&quot;: (
+                round(shared_bytes / source_bytes, 6) if source_bytes else None
+            ),
+            &quot;all_source_buffers_reused&quot;: bool(source_buffers)
+            and source_buffers.issubset(returned_buffers),
+        }
+    return report
+
+
+def _read_parquet_bytes(path: Path, max_bytes: int) -&gt; tuple[pa.Table, bytes]:
+    if type(max_bytes) is not int or max_bytes &lt;= 0:
+        raise ArrowCompatibilityError(&quot;max_bytes must be a positive integer&quot;)
+    if not path.is_file():
+        raise ArrowCompatibilityError(f&quot;Parquet file does not exist: {path}&quot;)
+    try:
+        size = path.stat().st_size
+    except OSError as error:
+        raise ArrowCompatibilityError(f&quot;cannot inspect Parquet file: {error}&quot;) from error
+    if size &gt; max_bytes:
+        raise ArrowCompatibilityError(f&quot;Parquet file exceeds max_bytes: {size} &gt; {max_bytes}&quot;)
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise ArrowCompatibilityError(f&quot;cannot read Parquet file: {error}&quot;) from error
+    if len(raw) &gt; max_bytes:
+        raise ArrowCompatibilityError(f&quot;Parquet file exceeds max_bytes: {len(raw)} &gt; {max_bytes}&quot;)
+    try:
+        table = pq.read_table(pa.BufferReader(raw))
+    except pa.ArrowException as error:
+        raise ArrowCompatibilityError(f&quot;cannot decode Parquet input: {error}&quot;) from error
+    return table, raw
+
+
+def _pandas_roundtrip(table: pa.Table, preserve_index: bool) -&gt; tuple[pd.DataFrame, pa.Table]:
+    try:
+        frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+        returned = pa.Table.from_pandas(frame, preserve_index=preserve_index)
+    except Exception as error:
+        raise ArrowRouteError(f&quot;pandas roundtrip failed: {error}&quot;) from error
+    return frame, returned
+
+
+def _duckdb_roundtrip(table: pa.Table, session_timezone: str) -&gt; tuple[pa.Table, str]:
+    connection = duckdb.connect()
+    try:
+        if session_timezone != &quot;UTC&quot;:
+            raise ArrowRouteError(f&quot;unsupported DuckDB session timezone: {session_timezone}&quot;)
+        connection.execute(&quot;SET TimeZone = &#x27;UTC&#x27;&quot;)
+        observed_timezone = connection.execute(&quot;SELECT current_setting(&#x27;TimeZone&#x27;)&quot;).fetchone()[0]
+        connection.register(&quot;source_arrow&quot;, table)
+        returned = connection.execute(&quot;SELECT * FROM source_arrow&quot;).to_arrow_table()
+    except ArrowRouteError:
+        raise
+    except Exception as error:
+        raise ArrowRouteError(f&quot;DuckDB roundtrip failed: {error}&quot;) from error
+    finally:
+        connection.close()
+    return returned, observed_timezone
+
+
+def _sha256(raw: bytes) -&gt; str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def build_report(
+    input_path: str | Path,
+    contract_path: str | Path,
+    *,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+) -&gt; dict[str, Any]:
+    source_path = Path(input_path)
+    contract_file = Path(contract_path)
+    if not contract_file.is_file():
+        raise ArrowCompatibilityError(f&quot;exchange contract does not exist: {contract_file}&quot;)
+    try:
+        contract_raw = contract_file.read_bytes()
+    except OSError as error:
+        raise ArrowCompatibilityError(f&quot;cannot read exchange contract: {error}&quot;) from error
+    contract = _parse_contract_bytes(contract_raw)
+    source, source_raw = _read_parquet_bytes(source_path, max_bytes)
+    _validate_source(source, contract)
+
+    pandas_policy = contract[&quot;routes&quot;][&quot;pandas_roundtrip&quot;]
+    frame, pandas_returned = _pandas_roundtrip(source, pandas_policy[&quot;preserve_index&quot;])
+    pandas_report = compare_route(
+        source,
+        pandas_returned,
+        grain=contract[&quot;source&quot;][&quot;grain&quot;],
+        allow_field_nullability_loss=pandas_policy[&quot;allow_field_nullability_loss&quot;],
+    )
+    arrow_backed = {name: isinstance(dtype, pd.ArrowDtype) for name, dtype in frame.dtypes.items()}
+    pandas_report.update(
+        {
+            &quot;dtypes&quot;: {name: str(dtype) for name, dtype in frame.dtypes.items()},
+            &quot;arrow_backed_dtypes&quot;: arrow_backed,
+            &quot;buffer_reuse&quot;: buffer_reuse_report(source, pandas_returned),
+        }
+    )
+    pandas_report[&quot;checks&quot;][&quot;arrow_backed_dtype_policy_satisfied&quot;] = (
+        all(arrow_backed.values()) if pandas_policy[&quot;require_arrow_backed_dtypes&quot;] else True
+    )
+    pandas_report[&quot;valid&quot;] = all(pandas_report[&quot;checks&quot;].values())
+
+    duckdb_policy = contract[&quot;routes&quot;][&quot;duckdb_roundtrip&quot;]
+    duckdb_returned, observed_timezone = _duckdb_roundtrip(
+        source,
+        duckdb_policy[&quot;session_timezone&quot;],
+    )
+    duckdb_report = compare_route(
+        source,
+        duckdb_returned,
+        grain=contract[&quot;source&quot;][&quot;grain&quot;],
+        allow_field_nullability_loss=duckdb_policy[&quot;allow_field_nullability_loss&quot;],
+    )
+    duckdb_report[&quot;session_timezone&quot;] = observed_timezone
+    duckdb_report[&quot;checks&quot;][&quot;session_timezone_pinned&quot;] = observed_timezone == &quot;UTC&quot;
+    duckdb_report[&quot;valid&quot;] = all(duckdb_report[&quot;checks&quot;].values())
+
+    memory = pandas_report[&quot;buffer_reuse&quot;]
+    return {
+        &quot;report_version&quot;: REPORT_VERSION,
+        &quot;source&quot;: {
+            &quot;name&quot;: source_path.name,
+            &quot;bytes&quot;: len(source_raw),
+            &quot;sha256&quot;: _sha256(source_raw),
+            &quot;rows&quot;: source.num_rows,
+            &quot;schema&quot;: schema_manifest(source.schema),
+            &quot;null_counts&quot;: null_counts(source),
+        },
+        &quot;contract&quot;: {
+            &quot;name&quot;: contract_file.name,
+            &quot;bytes&quot;: len(contract_raw),
+            &quot;sha256&quot;: _sha256(contract_raw),
+            &quot;value&quot;: contract,
+        },
+        &quot;libraries&quot;: {
+            &quot;pyarrow&quot;: pa.__version__,
+            &quot;pandas&quot;: pd.__version__,
+            &quot;duckdb&quot;: duckdb.__version__,
+        },
+        &quot;pandas_roundtrip&quot;: pandas_report,
+        &quot;duckdb_roundtrip&quot;: duckdb_report,
         &quot;summary&quot;: {
-            &quot;valid&quot;: all(checks.values()),
-            &quot;columns_with_all_buffers_reused&quot;: [
-                name for name, value in copy_report.items() if value[&quot;all_source_buffers_reused&quot;]
+            &quot;valid&quot;: pandas_report[&quot;valid&quot;] and duckdb_report[&quot;valid&quot;],
+            &quot;semantic_routes_valid&quot;: {
+                &quot;pandas_roundtrip&quot;: pandas_report[&quot;valid&quot;],
+                &quot;duckdb_roundtrip&quot;: duckdb_report[&quot;valid&quot;],
+            },
+            &quot;columns_with_all_source_buffers_reused&quot;: [
+                name
+                for name, observation in memory.items()
+                if observation[&quot;all_source_buffers_reused&quot;]
             ],
+            &quot;memory_evidence_scope&quot;: (
+                &quot;source Arrow table to pandas-backed Arrow roundtrip in this process&quot;
+            ),
         },
     }
+
+
+def _sibling_temp(path: Path) -&gt; Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(
+        prefix=f&quot;.{path.name}.&quot;,
+        suffix=&quot;.json.part&quot;,
+        dir=path.parent,
+    )
+    os.close(descriptor)
+    return Path(name)
+
+
+def publish_report(report: dict[str, Any], output_path: str | Path) -&gt; None:
+    if not report.get(&quot;summary&quot;, {}).get(&quot;valid&quot;):
+        raise ArrowRouteError(&quot;invalid compatibility report must not be published&quot;)
+    output = Path(output_path)
+    temporary = _sibling_temp(output)
+    try:
+        temporary.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;,
+            encoding=&quot;utf-8&quot;,
+        )
+        os.replace(temporary, output)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _positive_cli_int(value: str) -&gt; int:
+    parsed = int(value)
+    if parsed &lt;= 0:
+        raise argparse.ArgumentTypeError(&quot;must be a positive integer&quot;)
+    return parsed
 
 
 def main() -&gt; None:
-    parser = argparse.ArgumentParser(description=&quot;Compare Arrow, pandas and DuckDB exchange&quot;)
+    parser = argparse.ArgumentParser(
+        description=(
+            &quot;Audit Arrow exchange across pandas and DuckDB without claiming universal zero-copy&quot;
+        )
+    )
     parser.add_argument(&quot;--input&quot;, required=True, type=Path)
-    parser.add_argument(&quot;--output&quot;, type=Path)
+    parser.add_argument(&quot;--contract&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--output&quot;, required=True, type=Path)
+    parser.add_argument(&quot;--max-bytes&quot;, type=_positive_cli_int, default=DEFAULT_MAX_BYTES)
     args = parser.parse_args()
+    resolved = {
+        args.input.resolve(strict=False),
+        args.contract.resolve(strict=False),
+        args.output.resolve(strict=False),
+    }
+    if len(resolved) != 3:
+        parser.error(&quot;input, contract and output paths must be distinct&quot;)
     try:
-        report = build_report(args.input)
+        report = build_report(args.input, args.contract, max_bytes=args.max_bytes)
     except ArrowCompatibilityError as error:
-        print(json.dumps({&quot;error&quot;: str(error)}, ensure_ascii=False))
+        print(
+            json.dumps({&quot;kind&quot;: &quot;contract&quot;, &quot;error&quot;: str(error)}, ensure_ascii=False),
+            file=sys.stderr,
+        )
         raise SystemExit(2) from error
+    except ArrowRouteError as error:
+        print(
+            json.dumps({&quot;kind&quot;: &quot;route&quot;, &quot;error&quot;: str(error)}, ensure_ascii=False),
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from error
     content = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(content, encoding=&quot;utf-8&quot;)
-    sys.stdout.write(content)
     if not report[&quot;summary&quot;][&quot;valid&quot;]:
+        sys.stdout.write(content)
         raise SystemExit(1)
+    publish_report(report, args.output)
+    sys.stdout.write(content)
 
 
 if __name__ == &quot;__main__&quot;:
     main()
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/outputs/arrow_compatibility.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
-  &quot;name&quot;: &quot;arrow-compatibility-report&quot;,
-  &quot;type&quot;: &quot;report-template&quot;,
+  &quot;name&quot;: &quot;verified-arrow-interchange&quot;,
+  &quot;type&quot;: &quot;cli&quot;,
   &quot;path&quot;: &quot;outputs/arrow_compatibility.py&quot;,
-  &quot;description&quot;: &quot;Сравнивает schema, nulls, values и Arrow buffers при обмене между PyArrow, pandas и DuckDB.&quot;,
-  &quot;usage&quot;: &quot;python outputs/arrow_compatibility.py --input orders.parquet --output report.json&quot;
+  &quot;description&quot;: &quot;Проверяет семантику Arrow roundtrip через pandas и DuckDB, классифицирует metadata drift и фиксирует process-local evidence переиспользования буферов.&quot;,
+  &quot;usage&quot;: &quot;python outputs/arrow_compatibility.py --input orders.parquet --contract arrow_exchange_contract.json --output arrow_compatibility.json&quot;
 }
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/05-sources-and-formats/09-arrow/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/05-sources-and-formats/09-arrow" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>

@@ -1,126 +1,485 @@
 # Arrow как контракт обмена таблицами
 
-> Arrow полезен не обещанием zero-copy, а возможностью проверить типизированный обмен без CSV.
-
-**Тип:** Learn  
-**Треки:** Core  
-**Пререквизиты:** 05/08  
-**Время:** ~60 минут  
-**Результат:** передает таблицу между pandas, Arrow и DuckDB и проверяет схему, пропуски и
-факт копирования данных.
-
 ## Цели обучения
 
-- Отличать Arrow memory model от Parquet file format.
-- Сохранять Arrow-backed dtypes в pandas.
-- Передавать Arrow Table в DuckDB и получать Arrow result.
-- Измерять buffer reuse вместо предположения о zero-copy.
+После урока вы сможете:
+
+- объяснить разницу между Parquet на диске и Arrow в памяти;
+- прочитать простые Arrow-буферы: bitmap валидности, значения, offsets и данные;
+- передать типизированную таблицу по маршрутам Arrow → pandas → Arrow и
+  Arrow → DuckDB → Arrow;
+- отделить сохранность данных от сохранности метаданных и от копирования памяти;
+- проверить типы, значения, пропуски, grain и политику `nullable` по явному контракту;
+- сформулировать аккуратный вывод о наблюдаемом buffer reuse без обещания
+  «Arrow всегда zero-copy».
+
+Результат урока — CLI-аудитор `verified-arrow-interchange`. Он принимает Parquet-файл и
+JSON-контракт, проверяет два маршрута обмена и атомарно публикует JSON-отчёт только при
+успешной семантической проверке.
+
+## Связь с предыдущим и следующим уроками
+
+В уроке 05/08 вы записали типизированную таблицу в Parquet. Parquet — формат хранения:
+он раскладывает данные по row groups, кодирует и сжимает их. Когда PyArrow читает этот
+файл, библиотека декодирует байты Parquet в Arrow-массивы в памяти. Само это чтение не
+является zero-copy: декодирование и распаковка могут выделять новую память.
+
+Здесь мы начинаем уже с полученной `pyarrow.Table` и проверяем её обмен с pandas и
+DuckDB. В следующем уроке 05/10 вы организуете множество Parquet-файлов как
+партиционированный dataset. Там важны пути и pruning файлов; здесь — контракт одной
+таблицы при переходе между вычислительными инструментами.
+
+Не смешивайте три слоя:
+
+1. Parquet отвечает за хранение и передачу байтов как файла.
+2. Arrow задаёт типизированное столбцовое представление в памяти и интерфейсы обмена.
+3. pandas и DuckDB выполняют операции над таблицей, но могут по-своему представить
+   отдельные метаданные.
+
+IPC, Flight, реализация C Data Interface и измерение производительности остаются за
+рамками урока. Они нужны в других сценариях, но мешают увидеть базовую проверку
+совместимости.
 
 ## Проблема
 
-Один pipeline записывает промежуточный CSV между pandas и DuckDB. Тип decimal становится
-float, timezone требует повторного парсинга, а null policy задается заново. Переход на
-Arrow называют zero-copy, но не проверяют, произошло ли копирование.
+Аналитик прочитал Parquet в Arrow, передал таблицу в pandas, затем зарегистрировал её в
+DuckDB. Число строк везде равно пяти — значит ли это, что обмен корректен?
+
+Нет. Одинаковый row count совместим со множеством дефектов:
+
+- `decimal128(12, 2)` мог превратиться в `float64`;
+- timestamp мог потерять timezone или отобразиться в timezone текущей SQL-сессии;
+- `NULL` мог стать пустой строкой;
+- pandas мог добавить индекс как отдельное поле;
+- уникальный `order_id` мог задвоиться, а другая строка исчезнуть;
+- обязательные поля могли стать nullable;
+- обмен мог выполнить полную копию, хотя команда назвала его zero-copy.
+
+Противоположная ошибка — считать любую копию нарушением данных. DuckDB вправе создать
+новые буферы при материализации результата SQL. Если типы, значения и пропуски
+сохранены, маршрут остаётся семантически корректным. Поведение памяти — отдельное
+наблюдение, а не универсальный критерий валидности.
+
+Поэтому фраза «мы используем Arrow» ещё не является контрактом. Нужны проверяемые
+ответы на четыре вопроса:
+
+1. Сохранились ли имена и логические типы?
+2. Сохранились ли строки, значения, пропуски и grain?
+3. Какие метаданные изменились и разрешено ли это политикой маршрута?
+4. Какие исходные буферы действительно переиспользованы в этом процессе?
 
 ## Концепция
 
-Arrow schema описывает fields, types и nullable для in-memory arrays. Parquet использует
-похожие типы, но является форматом хранения.
+### От массива до таблицы
 
-Обмен нужно проверять по четырем измерениям:
+В PyArrow встречаются четыре близкие структуры:
 
-1. schema;
-2. values;
-3. null counts;
-4. memory buffers.
+- `Array` — один типизированный непрерывный фрагмент столбца;
+- `ChunkedArray` — логический столбец из одного или нескольких `Array`;
+- `RecordBatch` — набор одинаково длинных массивов с общей схемой;
+- `Table` — именованные `ChunkedArray` с общей схемой.
 
-Zero-copy возможен только при совместимом layout. Конвертация object strings или смена
-типа требует новой памяти. pandas также не переносит field-level `nullable=False` обратно
-в Arrow schema автоматически: типы и фактические null counts нужно проверять отдельно от
-этого ограничения metadata.
+`Table` похожа на DataFrame, но их системы типов и метаданных не совпадают полностью.
+Arrow-схема содержит упорядоченные `Field`: имя, тип и признак `nullable`. У схемы и
+полей также могут быть произвольные metadata.
+
+### Буферы примитивного и строкового массива
+
+Arrow хранит столбец не как последовательность Python-объектов, а как набор буферов.
+Для простого fixed-width массива, например `int64` или `decimal128`, обычно нужны:
+
+1. bitmap валидности — один бит на позицию, если есть пропуски;
+2. буфер значений фиксированной ширины.
+
+Для строки длина каждой ячейки различается, поэтому layout обычно состоит из:
+
+1. bitmap валидности;
+2. массива offsets, задающего границы строк;
+3. непрерывного буфера UTF-8 байтов.
+
+Логическое значение `NULL` задаётся bitmap. Байты на соответствующем месте буфера
+значений не следует интерпретировать как значение. Это одна из причин проверять null
+semantics отдельно.
+
+Запустите маленький пример:
+
+```bash
+uv run --locked python phases/05-sources-and-formats/09-arrow/code/main.py
+```
+
+Он печатает размеры буферов decimal и string, затем выполняет pandas roundtrip. Сначала
+посмотрите на layout, и только потом переходите к удобным API `Table` и `DataFrame`.
+
+### Четыре независимых слоя проверки
+
+**1. Имена и типы.** Порядок полей, имена и логические Arrow-типы должны совпасть. Для
+денег `decimal128(12, 2)` и `double` неэквивалентны, даже если пять учебных значений
+выглядят одинаково.
+
+**2. Данные.** Сравниваются row count, значения, null counts и grain. Аудитор сортирует
+таблицы по `order_id` перед сравнением значений: перестановка строк не маскирует потерю
+или подмену записи. Сам grain предварительно проверяется на `NULL` и дубликаты.
+
+**3. Метаданные.** pandas и DuckDB в этом маршруте возвращают поля как nullable, даже
+если в исходной Parquet-схеме часть полей была `nullable=false`. Это не надо ни скрывать,
+ни автоматически объявлять порчей данных. Контракт разрешает только направленное
+ослабление `non-null → nullable`; обратное изменение или потеря другого типа не проходит.
+
+**4. Память.** Совпавшая пара `(address, size)` исходного и возвращённого буфера внутри
+одного процесса — положительное свидетельство reuse. Адреса действительны только пока
+живут объекты и процесс, поэтому отчёт сохраняет лишь количества и доли байтов, а не
+сами адреса.
+
+Эти слои нельзя сворачивать в один расплывчатый флаг «Arrow compatible».
+
+### Что означает и чего не означает zero-copy
+
+Zero-copy — свойство конкретной операции для конкретных типов и layout. Это не вечное
+свойство таблицы и не гарантия, возникающая от импорта библиотеки.
+
+В нашем pandas-маршруте используется:
+
+```python
+frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+returned = pa.Table.from_pandas(frame, preserve_index=False)
+```
+
+Arrow-backed dtype позволяет pandas ссылаться на Arrow-представление. В закреплённом
+окружении урока исходные буферы наблюдаемо переиспользуются после roundtrip. Но вывод
+ограничен:
+
+- он относится к этим столбцам и этим версиям библиотек;
+- следующая pandas-операция может создать копию;
+- объединение chunks, cast, фильтрация или изменение значения могут выделить память;
+- чтение Parquet до появления исходной `Table` уже могло декодировать данные;
+- несовпавшие адреса означают «полный reuse не наблюдён», а не доказывают устройство
+  всех внутренних аллокаций.
+
+Корректная формулировка: «для маршрута Arrow → pandas с `ArrowDtype` → Arrow в этом
+процессе все исходные буферы этих столбцов наблюдаемо переиспользованы». Некорректная:
+«pandas и Arrow всегда работают без копий».
+
+### pandas: типы, индекс и nullability
+
+Без `types_mapper=pd.ArrowDtype` pandas может выбрать NumPy-backed или object dtype.
+Тогда decimal и nullable columns проходят другой маршрут, а копирование и типизация
+меняются.
+
+При обратном преобразовании явно задано `preserve_index=False`. Иначе индекс может
+попасть в Arrow metadata или стать физическим полем. Для обменного контракта, где grain
+уже задан `order_id`, неявный pandas index не должен становиться частью данных.
+
+`schema.metadata` после pandas roundtrip отличается: PyArrow добавляет pandas metadata.
+Аудитор показывает это наблюдение, но валидирует те части контракта, которые объявлены
+явно: поля, типы, значения, nulls и допустимое ослабление nullability.
+
+### DuckDB: Arrow-вход, Arrow-выход и состояние сессии
+
+DuckDB умеет зарегистрировать `pyarrow.Table` как read-only relation:
+
+```python
+connection.register("source_arrow", table)
+returned = connection.execute("SELECT * FROM source_arrow").to_arrow_table()
+```
+
+Результат SQL материализуется как новая Arrow Table. Урок не требует reuse её буферов:
+семантический контракт важнее внутренней стратегии execution engine.
+
+У timezone есть скрытое состояние. DuckDB может отображать `TIMESTAMPTZ` в timezone
+текущей сессии. Поэтому перед запросом аудитор выполняет:
+
+```sql
+SET TimeZone = 'UTC';
+```
+
+и затем проверяет `current_setting('TimeZone')`. Без этого один и тот же код способен
+вернуть Arrow timestamp с разным timezone schema на разных машинах, хотя моменты времени
+представляют те же instants.
+
+### Явный exchange contract
+
+Файл `data/arrow_exchange_contract.json` задаёт:
+
+- версию контракта;
+- точные поля, Arrow-типы и nullability источника;
+- ожидаемое число строк и null counts;
+- grain `order_id`;
+- `preserve_index=false` и требование Arrow-backed pandas dtypes;
+- допустимость только field-level nullability loss;
+- timezone `UTC` для DuckDB-сессии.
+
+Парсер работает строго: неизвестный ключ, повторный JSON-ключ, неизвестная версия,
+nullable grain, неполные null counts или неподдерживаемая timezone завершают CLI с
+кодом 2. Ошибка выполнения маршрута получает код 1. Успех получает код 0.
 
 ## Соберите это
 
-Создайте pandas columns с Arrow-backed dtypes и превратите DataFrame в Table:
+### Шаг 1. Получите воспроизводимый Parquet
 
-```python
-table = pa.Table.from_pandas(frame, preserve_index=False)
-returned = table.to_pandas(types_mapper=pd.ArrowDtype)
-```
-
-Для проверки памяти получите `buffer.address` у chunks до и после roundtrip. Совпадение
-адресов является наблюдаемым фактом reuse; несовпадение не означает ошибку данных.
+Из корня репозитория создайте временную рабочую папку и повторите результат 05/08:
 
 ```bash
-uv run --locked python code/main.py
+mkdir -p work/05-arrow
+uv run --locked python \
+  phases/05-sources-and-formats/08-parquet/outputs/parquet_converter.py \
+  --input phases/05-sources-and-formats/data/tiny/orders_typed.csv \
+  --schema phases/05-sources-and-formats/data/parquet_schema.json \
+  --output work/05-arrow/orders.parquet
 ```
+
+Файл в `work/` — локальный результат, его не надо коммитить.
+
+### Шаг 2. Прочитайте контракт до кода
+
+Откройте `phases/05-sources-and-formats/data/arrow_exchange_contract.json` и ответьте:
+
+- почему `amount` — decimal, а не float;
+- почему `comment` допускает `NULL`;
+- почему `order_id` не может быть nullable;
+- какая потеря metadata разрешена обоим маршрутам;
+- какая настройка DuckDB устраняет скрытую зависимость от машины.
+
+Контракт — вход программы, а не константы, разбросанные по Python-коду.
+
+### Шаг 3. Проверьте источник до обмена
+
+Аудитор читает Parquet один раз из bounded byte buffer, считает SHA-256 этих же байтов и
+до запуска pandas или DuckDB проверяет:
+
+```text
+schema == contract.columns
+row_count == contract.row_count
+null_counts == contract.null_counts
+grain contains no NULL or duplicates
+```
+
+Это разделяет дефект входа и дефект маршрута. Если источник уже не соответствует
+контракту, сравнивать библиотеки бессмысленно.
+
+### Шаг 4. Выполните pandas roundtrip
+
+Путь должен быть явным:
+
+```text
+Arrow Table
+  → pandas DataFrame with ArrowDtype
+  → Arrow Table without pandas index
+```
+
+Для исходной и возвращённой таблиц сравните names/types, canonical rows, null counts и
+field nullability. Отдельно запишите pandas dtypes и evidence переиспользования буферов.
+
+### Шаг 5. Выполните DuckDB roundtrip
+
+Создайте отдельное in-memory connection, установите UTC, зарегистрируйте исходную
+Arrow Table, выполните `SELECT *` и получите весь результат через `to_arrow_table()`.
+Проверяйте все поля, включая timestamp и nullable comment, а не только удобный агрегат.
+
+### Шаг 6. Публикуйте только валидный отчёт
+
+Сначала отчёт полностью строится в памяти. Если хотя бы один семантический маршрут
+невалиден, файл не публикуется. Валидный JSON записывается во временный sibling-файл и
+атомарно заменяет целевой путь. Старый корректный отчёт не должен превратиться в
+полуфайл после сбоя записи.
 
 ## Используйте это
 
-DuckDB принимает Arrow Table напрямую:
-
-```python
-connection.register("orders_arrow", table)
-result = connection.execute("SELECT ... FROM orders_arrow").arrow().read_all()
-```
-
-Артефакт читает Parquet, проходит Arrow -> pandas -> Arrow и Arrow -> DuckDB -> Arrow:
+Запустите итоговый CLI:
 
 ```bash
-uv run --locked python outputs/arrow_compatibility.py \
-  --input orders.parquet \
-  --output compatibility.json
+uv run --locked python \
+  phases/05-sources-and-formats/09-arrow/outputs/arrow_compatibility.py \
+  --input work/05-arrow/orders.parquet \
+  --contract phases/05-sources-and-formats/data/arrow_exchange_contract.json \
+  --output work/05-arrow/arrow_compatibility.json
 ```
+
+В `summary` должны появиться:
+
+```json
+{
+  "semantic_routes_valid": {
+    "duckdb_roundtrip": true,
+    "pandas_roundtrip": true
+  },
+  "valid": true
+}
+```
+
+Затем изучите не только итоговый флаг:
+
+- `source.schema` и `source.null_counts` фиксируют исходный контракт;
+- `pandas_roundtrip.dtypes` показывают Arrow-backed dtypes;
+- `field_nullability.changed_fields` не скрывает потерю ограничения `not null`;
+- `buffer_reuse` сообщает долю исходных байтов с наблюдаемым reuse;
+- `duckdb_roundtrip.session_timezone` подтверждает UTC;
+- SHA-256 входа и контракта связывают отчёт с конкретными байтами;
+- `libraries` фиксирует версии, при которых получено наблюдение.
+
+Отчёт не содержит абсолютных локальных путей и process-local addresses. Поэтому его
+можно передать другому человеку, не раскрывая структуру вашей машины и не выдавая
+бессмысленные после завершения процесса числа за воспроизводимое доказательство.
 
 ## Сломайте это
 
-1. Превратите Arrow-backed string в Python object.
-2. Сбросьте timezone timestamp.
-3. Замените Decimal на float.
-4. Заполните null пустой строкой.
-5. Добавьте pandas index в Arrow metadata.
+### Сценарий 1. Decimal превратился в float
 
-Отчет должен отделять несовместимость данных от допустимого копирования.
+Измените тип `amount` в тестовой Arrow Table на `double`. Значения могут выглядеть
+похожими, но `names_and_types_preserved` станет `false`. Денежный контракт нарушен.
+
+### Сценарий 2. NULL заменили текстом
+
+Заполните пустые `comment` строкой `"нет"`. Row count не изменится, однако сравнение
+значений и null counts должно упасть. Это пример дефекта, который не виден по форме
+таблицы.
+
+### Сценарий 3. Появился pandas index
+
+Уберите `preserve_index=False` или создайте именованный пользовательский индекс. Сравните
+Arrow schema и metadata. Решите, является ли индекс частью бизнес-данных; не принимайте
+решение по умолчанию библиотеки.
+
+### Сценарий 4. DuckDB наследовал локальную timezone
+
+Уберите `SET TimeZone='UTC'` и установите сессии `Europe/Moscow`. Проверьте тип
+`ordered_at` в возвращённой Arrow Table. Моменты времени могут остаться теми же, а
+timezone schema изменится — воспроизводимость контракта потеряна.
+
+### Сценарий 5. Создана заведомая копия
+
+Преобразуйте исходную Table в Python rows и соберите новую Table:
+
+```python
+copied = pa.Table.from_pylist(source.to_pylist(), schema=source.schema)
+```
+
+Значения и схема сохранятся, но полный reuse исходных буферов наблюдаться не должен.
+Семантическая совместимость и memory behavior дадут разные ответы — именно так и
+задуман отчёт.
+
+### Сценарий 6. Контракт стал двусмысленным
+
+Добавьте неизвестный ключ или продублируйте `version` вручную в JSON. Строгий parser
+должен отказаться гадать. Silent fallback опасен: опечатка в policy иначе выглядит как
+принятая настройка.
+
+### Сценарий 7. Grain задвоился
+
+Добавьте вторую строку с существующим `order_id` и скорректируйте только ожидаемый row
+count. Вход всё равно должен быть отвергнут из-за duplicate grain.
 
 ## Проверьте это
 
-- пять rows сохраняются во всех системах;
-- decimal и UTC timestamp переживают pandas roundtrip;
-- два null comment не меняются;
-- потеря field-level nullability показана отдельно, а не скрыта;
-- pandas dtypes остаются Arrow-backed;
-- buffer reuse измеряется по каждому столбцу;
-- DuckDB считает сумму `3226.59`;
-- DuckDB возвращает Arrow schema.
+Запустите behavioral tests урока:
 
 ```bash
-uv run --locked python -m unittest discover -s tests
+uv run --locked python -m unittest discover \
+  -s phases/05-sources-and-formats/09-arrow/tests -v
 ```
+
+Тесты проверяют happy path и негативные сценарии:
+
+- оба полных маршрута, включая все поля и UTC timestamp;
+- Arrow-backed pandas dtypes и отсутствие утечки индекса;
+- явную классификацию nullability loss;
+- сохранность values, types, nulls, rows и grain;
+- обнаружение type drift, null drift и forced copy;
+- строгую схему exchange contract;
+- missing и oversized input;
+- отклонение schema drift и duplicate grain до запуска маршрутов;
+- SHA-256 и отсутствие абсолютных путей и адресов в отчёте;
+- разные exit codes для ошибки контракта и маршрута;
+- запрет публикации невалидного результата и атомарную запись валидного.
+
+Инвариант итогового отчёта:
+
+```text
+summary.valid
+  = pandas semantic checks
+  AND pandas dtype policy
+  AND DuckDB semantic checks
+  AND DuckDB session policy
+```
+
+Buffer reuse не входит в этот Boolean. Это evidence для диагностики и оптимизации, а
+не разрешение объявить корректные данные испорченными из-за внутренней копии.
 
 ## Поставьте результат
 
-`outputs/arrow_compatibility.py` выпускает JSON-отчет совместимости. Его можно запускать
-после обновления pandas, PyArrow или DuckDB, чтобы проверить реальный exchange contract.
+Перед передачей другому человеку положите рядом три файла:
+
+1. входной `orders.parquet`;
+2. `arrow_exchange_contract.json`;
+3. полученный `arrow_compatibility.json`.
+
+Команда приёмки должна быть воспроизводимой без текущей директории Python-процесса,
+глобальной DuckDB connection и ручной настройки timezone. Получателю достаточно
+locked-окружения, входа, контракта и CLI.
+
+Короткий handoff:
+
+```text
+Проверены два маршрута: Arrow → pandas/Arrow и Arrow → DuckDB/Arrow.
+Имена, типы, строки, значения и пропуски сохранены.
+Field-level not-null metadata ослаблены библиотеками и приняты явной policy.
+DuckDB session timezone закреплена в UTC.
+Переиспользование буферов — локальное наблюдение, не универсальная гарантия.
+Вход и контракт идентифицируются SHA-256 из отчёта.
+```
+
+Не пишите «получили ускорение» без benchmark с baseline, размером данных, методикой и
+повторениями. Не пишите «production-ready»: урок проверяет узкий контракт обмена, а не
+нагрузку, отказоустойчивость или эксплуатацию сервиса.
 
 ## Упражнения
 
-1. Сравните обычные pandas dtypes и Arrow-backed dtypes.
-2. Добавьте dictionary-encoded category.
-3. Проверьте large string и timestamp другой точности.
+1. **Обязательное.** Объясните своими словами, почему совпавший row count не доказывает
+   совместимость таблиц. Приведите три независимых контрпримера из отчёта.
+2. **Обязательное.** Уберите `types_mapper=pd.ArrowDtype`, повторите roundtrip и сравните
+   dtypes, schema и buffer evidence. Не обобщайте результат за пределы вашего запуска.
+3. **Обязательное.** Запретите nullability loss в копии контракта. Объясните, почему
+   маршрут становится невалидным, хотя значения не изменились.
+4. **На перенос.** Добавьте новое nullable поле к собственной Parquet-таблице и обновите
+   контракт. Убедитесь, что тест на null counts ловит заполнение пропусков.
+5. **На диагностику.** Выполните DuckDB-запрос с перестановкой строк. Почему canonical
+   comparison по grain принимает результат? В каком контракте порядок строк пришлось бы
+   объявить отдельно?
+6. **Продвинутое.** Сравните `to_arrow_table()` и `to_arrow_reader()` на таблице из
+   нескольких batches. Не называйте один вариант быстрее без измерения.
 
 ## Ключевые термины
 
-| Термин | Распространенное заблуждение | Точное значение |
-|---|---|---|
-| Arrow | Сжатый файл | In-memory format и набор interfaces для типизированного обмена |
-| Buffer | Python list | Непрерывная область памяти array |
-| Zero-copy | Любой быстрый переход | Повторное использование существующих buffers |
-| ArrowDtype | Обычный object | pandas dtype с Arrow-backed storage |
-| Interchange contract | Совпадающий row count | Сохранение schema, values, nulls и понятного memory behavior |
+- **Apache Arrow** — спецификация столбцового представления данных в памяти и набор
+  интерфейсов и реализаций для обмена и вычислений.
+- **Schema** — упорядоченный набор полей с именами, типами, nullability и metadata.
+- **Array** — типизированный фрагмент одного столбца.
+- **ChunkedArray** — логический столбец из нескольких Arrow arrays.
+- **RecordBatch** — несколько одинаково длинных arrays с общей схемой.
+- **Table** — набор именованных chunked columns с общей схемой.
+- **Validity bitmap** — битовая карта, определяющая, какие позиции не являются `NULL`.
+- **Offsets buffer** — границы значений переменной длины в общем data buffer.
+- **ArrowDtype** — pandas dtype, использующий PyArrow как backing representation.
+- **Roundtrip** — преобразование из представления A в B и обратно в A.
+- **Grain** — набор полей, однозначно идентифицирующий строку предметной области.
+- **Metadata loss** — потеря или изменение описательной части схемы при сохранённых
+  логических значениях.
+- **Buffer reuse** — наблюдаемое использование того же участка памяти другим объектом.
+- **Zero-copy** — выполнение конкретного перехода без копирования определённых буферов;
+  не универсальная гарантия всей цепочки.
+- **Session state** — параметры соединения, способные менять результат одного SQL-текста.
+- **Atomic publish** — замена целевого файла только после полной успешной записи.
 
 ## Дополнительное чтение
 
-- [PyArrow: pandas integration](https://arrow.apache.org/docs/python/pandas.html) — изучите conversion rules, nullable types и zero-copy conditions.
-- [Arrow columnar format](https://arrow.apache.org/docs/format/Columnar.html) — разберите validity bitmap, buffers и nested layout.
-- [DuckDB: Python API](https://duckdb.org/docs/stable/clients/python/overview) — изучите регистрацию Arrow objects и возврат результата.
-- [DataFrame interchange protocol](https://data-apis.org/dataframe-protocol/latest/index.html) — сравните общий protocol обмена с прямой Arrow integration.
+Материалы расположены от прикладного русскоязычного контекста к спецификациям и API.
+
+1. [RU: Выполнение DAX-запросов через Arrow IPC — Microsoft Learn](https://learn.microsoft.com/ru-ru/power-bi/developer/execute-dax-queries-arrow/overview) — практический пример типизированного Arrow-ответа сервиса; полезен, чтобы увидеть обмен как внешний контракт, а не только Python-объект.
+2. [RU: Формат Arrow — ClickHouse](https://clickhouse.com/docs/ru/interfaces/formats/Arrow) — таблица сопоставления Arrow- и ClickHouse-типов и пример file-mode обмена; сравните её с проверкой логических типов в уроке.
+3. [RU: Формат ArrowStream — ClickHouse](https://clickhouse.com/docs/ru/interfaces/formats/ArrowStream) — потоковый вариант Arrow IPC; помогает отличить in-memory layout урока от сериализации между процессами.
+4. [EN: Arrow Columnar Format — Apache Arrow](https://arrow.apache.org/docs/format/Columnar.html) — первичная спецификация типов, validity bitmap и физических buffer layouts.
+5. [EN: pandas integration — PyArrow](https://arrow.apache.org/docs/python/pandas.html) — официальные правила `Table.to_pandas()` и `Table.from_pandas()`, включая различия систем типов и index metadata.
+6. [EN: PyArrow Functionality — pandas](https://pandas.pydata.org/docs/user_guide/pyarrow.html) — официальный обзор Arrow-backed pandas arrays и операций, которые они поддерживают.
+7. [EN: pandas.ArrowDtype API — pandas](https://pandas.pydata.org/docs/reference/api/pandas.ArrowDtype.html) — точный контракт dtype, который передаётся через `types_mapper` в артефакте.
+8. [EN: Python API overview — DuckDB](https://duckdb.org/docs/stable/clients/python/overview) — регистрация Arrow Table как relation, область соединения и рекомендации против скрытой global connection.
+9. [EN: Python result conversion — DuckDB](https://duckdb.org/docs/current/clients/python/conversion) — официальный контракт `to_arrow_table()` и `to_arrow_reader()` для материализации SQL-результата.
+10. [EN: Arrow C Data Interface — Apache Arrow](https://arrow.apache.org/docs/format/CDataInterface.html) — первичная спецификация zero-copy обмена в одном процессе; также чётко отделяет C interface от IPC между процессами.

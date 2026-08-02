@@ -1731,8 +1731,8 @@ window.COURSE_DATA = {
           "title": "Arrow как контракт обмена таблицами",
           "status": "complete",
           "time_minutes": 60,
-          "outcome": "Передает таблицу между pandas, Arrow и DuckDB и проверяет схему, пропуски и факт копирования данных.",
-          "artifact": "Отчет совместимости pandas, Arrow и DuckDB",
+          "outcome": "Проверяет typed in-memory маршруты Arrow → pandas → Arrow и Arrow → DuckDB → Arrow: сравнивает schema, values, nulls и grain, классифицирует metadata drift и фиксирует buffer reuse без универсального zero-copy claim.",
+          "artifact": "Arrow interchange auditor с route contract, metadata drift и buffer-reuse evidence",
           "type": "learn",
           "tracks": [
             "core"

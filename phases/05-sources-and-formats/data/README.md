@@ -21,8 +21,8 @@ Committed-набор содержит:
 - `orders_typed.csv` — UTF-8 источник с десятичной точкой для конвертации в Parquet;
 - `manifest.json` — размер, число логических строк и SHA-256 каждого файла;
 - `contract.json`, `excel_spec.json`, `json_contract.json`, `html_contract.json`,
-  `db_contract.json` и `parquet_schema.json` — явные договоры форматов, схем и
-  результатов чтения или записи.
+  `db_contract.json`, `parquet_schema.json` и `arrow_exchange_contract.json` — явные
+  договоры форматов, схем, результатов чтения или записи и in-memory маршрутов обмена.
 
 Пересоздать набор:
 
