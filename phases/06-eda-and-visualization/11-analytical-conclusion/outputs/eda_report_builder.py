@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -17,6 +18,70 @@ import plotly.io as pio
 
 PHASE_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DATE = pd.Timestamp("2026-03-02")
+
+QUESTION_BRIEF = {
+    "version": "2.0.0",
+    "review": {
+        "status": "reviewed",
+        "method": "06/01 visual-question-brief-rubric",
+        "note": "Rubric review checks reasoning; data readiness is evidenced in audit.json.",
+    },
+    "decision": (
+        "Choose one predeclared segment for the next technical diagnostic, or leave the "
+        "release explanation unconfirmed when the difference does not localize."
+    ),
+    "question": (
+        "For new users with a complete seven-day window, how does activation_7d change "
+        "across weekly cohorts before and after 2026-03-02, and does the change differ "
+        "across predeclared platform and acquisition-channel segments?"
+    ),
+    "population": "New subscription-service users with a complete seven-day window.",
+    "observation_window": "Seven complete days after registration.",
+    "analysis_unit": "One user and their seven-day activation outcome.",
+    "metric": {
+        "name": "activation_7d",
+        "numerator": "Unique users with activated_7d=true.",
+        "denominator": "Unique users with observed_days=7 after duplicate resolution.",
+    },
+    "comparison": {
+        "operation": "change over time with predeclared segment comparisons",
+        "time_grain": "cohort_week",
+        "reference_point": "2026-03-02 release date",
+        "segments": ["platform", "acquisition_channel"],
+    },
+    "possible_outcomes": [
+        {
+            "observation": "The decline appears across all major segments.",
+            "next_step": "Investigate a mechanism shared across platforms and channels.",
+        },
+        {
+            "observation": "The aggregate decline is compatible with changing channel mix.",
+            "next_step": "Compare like-for-like channels before escalating a release hypothesis.",
+        },
+        {
+            "observation": "No stable difference remains after comparable-window checks.",
+            "next_step": "Do not attribute the aggregate movement to the release.",
+        },
+    ],
+    "data_readiness": {
+        "status": "requires-audit",
+        "evidence": "audit.json",
+        "gates": [
+            "unique user grain or an explicit duplicate-resolution policy",
+            "complete observation windows",
+            "reproducible numerator and denominator",
+            "comparable periods and segments",
+        ],
+    },
+    "interpretation_boundary": (
+        "The report may describe checked associations. Release causality requires an "
+        "experiment or a separate causal design."
+    ),
+    "stop_rule": (
+        "Stop this EDA after the predeclared platform and acquisition-channel comparisons; "
+        "record additional segment questions separately."
+    ),
+}
 
 
 def load_module(name: str, path: Path) -> ModuleType:
@@ -45,22 +110,6 @@ def write_json(path: Path, value: Any) -> None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-
-
-def analysis_frame(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path).drop_duplicates("user_id").copy()
-    frame["cohort_week"] = pd.to_datetime(frame["cohort_week"])
-    frame = frame[frame["observed_days"].eq(7)]
-    if frame["activated_7d"].dtype != bool:
-        frame["activated_7d"] = (
-            frame["activated_7d"]
-            .astype("string")
-            .map({"True": True, "False": False, "true": True, "false": False})
-        )
-    frame["period"] = (
-        frame["cohort_week"].ge(RELEASE_DATE).map({False: "до релиза", True: "после релиза"})
-    )
-    return frame
 
 
 def activation_metrics(frame: pd.DataFrame) -> dict[str, Any]:
@@ -208,7 +257,6 @@ def build_delivery(
     seed: int = 20260613,
     bootstrap_repeats: int = 1000,
 ) -> dict[str, Any]:
-    question_module = module("01-question-before-chart", "visual_question_brief.py")
     audit_module = module("02-data-audit", "eda_audit.py")
     figure_module = module("03-matplotlib-oo", "figure_factory.py")
     bootstrap_module = module("06-uncertainty", "bootstrap_visualizer.py")
@@ -224,20 +272,26 @@ def build_delivery(
     interactive_dir.mkdir(exist_ok=True)
     specs_dir.mkdir(exist_ok=True)
 
-    question = question_module.build_brief(question_module.EXAMPLE_SPEC)
-    write_json(output_dir / "question.json", question)
-
     raw_frame = audit_module.load_frame(input_path)
     audit = audit_module.audit_frame(
         raw_frame,
         audit_module.load_contract(contract_path),
         source_sha256=audit_module.sha256_file(input_path),
+        contract_sha256=audit_module.sha256_file(contract_path),
     )
     write_json(output_dir / "audit.json", audit)
 
-    frame = analysis_frame(input_path)
+    question = deepcopy(QUESTION_BRIEF)
+    question["data_readiness"]["status"] = audit["readiness"]["activation_7d"]["status"]
+    question["data_readiness"]["decision_ids"] = audit["readiness"]["activation_7d"]["decision_ids"]
+    write_json(output_dir / "question.json", question)
+
+    frame = audit_module.prepare_analysis_frame(input_path, audit, "activation_7d")
+    frame["period"] = (
+        frame["cohort_week"].ge(RELEASE_DATE).map({False: "до релиза", True: "после релиза"})
+    )
     matplotlib.rcParams["svg.hashsalt"] = "analyst-tools-course"
-    figure_module.export_figure(frame, figures_dir)
+    figure_module.export_figure(frame, figures_dir, audit_report=audit)
     segment_figure(frame, figures_dir / "segment-comparison.png")
 
     boot_frame = bootstrap_module.load_frame(input_path)

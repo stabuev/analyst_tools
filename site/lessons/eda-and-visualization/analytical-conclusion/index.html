@@ -128,9 +128,12 @@ Android». Коллега не знает, какие строки исключ�
 ├── specs/
 │   └── linked-segments.vl.json
 └── manifest.json
-</code></pre></div><p>Builder переиспользует артефакты предыдущих уроков через их standalone API. В
-activation входят только уникальные пользователи с полным окном. Bootstrap unit, seed и
-repeats записываются в manifest.</p>
+</code></pre></div><p>Builder переиспользует исполняемые артефакты предыдущих уроков через их standalone API,
+а заполненный brief 06/01 переносит как reviewable decision record. Аудитор 06/02
+исполняет contract, после чего основной activation frame и фигура применяют его
+checksum-bound selection plan. Статус rubric review не подменяет data readiness:
+фактическое evidence находится в <code>audit.json</code>, а применённые decision ids попадают в
+manifest фигуры. Bootstrap unit, seed и repeats записываются в manifest.</p>
 <h2 id="сломайте-это">Сломайте это</h2>
 <ol>
 <li>Измените фигуру после создания manifest.</li>
@@ -144,7 +147,8 @@ action.</p>
 <h2 id="проверьте-это">Проверьте это</h2>
 <ul>
 <li>обязательные файлы существуют;</li>
-<li>question имеет статус ready;</li>
+<li>question содержит результат rubric review, несколько возможных исходов и ссылку на
+отдельное evidence готовности данных в <code>audit.json</code>;</li>
 <li>audit сохраняет известные defects;</li>
 <li>анализ использует 22 из 25 строк tiny;</li>
 <li>report имеет четыре раздела и evidence map;</li>
@@ -263,17 +267,30 @@ class EdaReportBuilderTest(unittest.TestCase):
             for relative in required:
                 self.assertTrue((output / relative).is_file(), relative)
 
-    def test_question_brief_is_ready(self) -&gt; None:
+    def test_question_brief_preserves_review_and_readiness_boundary(self) -&gt; None:
         with TemporaryDirectory() as directory:
             output, _ = build(directory)
-            self.assertEqual(json.loads((output / &quot;question.json&quot;).read_text())[&quot;status&quot;], &quot;ready&quot;)
+            question = json.loads((output / &quot;question.json&quot;).read_text())
+            self.assertEqual(question[&quot;review&quot;][&quot;status&quot;], &quot;reviewed&quot;)
+            self.assertEqual(question[&quot;data_readiness&quot;][&quot;status&quot;], &quot;ready_with_decisions&quot;)
+            self.assertEqual(question[&quot;data_readiness&quot;][&quot;evidence&quot;], &quot;audit.json&quot;)
+            self.assertEqual(
+                question[&quot;data_readiness&quot;][&quot;decision_ids&quot;],
+                [&quot;exact-duplicate-deliveries&quot;],
+            )
+            self.assertGreaterEqual(len(question[&quot;possible_outcomes&quot;]), 2)
+            self.assertIn(&quot;causal design&quot;, question[&quot;interpretation_boundary&quot;])
 
     def test_audit_preserves_known_defects_and_decisions(self) -&gt; None:
         with TemporaryDirectory() as directory:
             output, _ = build(directory)
             audit = json.loads((output / &quot;audit.json&quot;).read_text())
-            self.assertIn(&quot;primary-key&quot;, audit[&quot;failure_ids&quot;])
-            self.assertTrue(any(&quot;incomplete&quot; in item for item in audit[&quot;decision_log&quot;]))
+            self.assertIn(&quot;domain:onboarding_seconds&quot;, audit[&quot;failure_ids&quot;])
+            self.assertEqual(audit[&quot;readiness&quot;][&quot;activation_7d&quot;][&quot;status&quot;], &quot;ready_with_decisions&quot;)
+            self.assertEqual(
+                {item[&quot;id&quot;] for item in audit[&quot;decision_log&quot;]},
+                {&quot;resolve-exact-deliveries&quot;, &quot;activation-window&quot;},
+            )
 
     def test_analysis_excludes_duplicate_and_incomplete_windows(self) -&gt; None:
         with TemporaryDirectory() as directory:
@@ -389,6 +406,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -402,6 +420,70 @@ import plotly.io as pio
 
 PHASE_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DATE = pd.Timestamp(&quot;2026-03-02&quot;)
+
+QUESTION_BRIEF = {
+    &quot;version&quot;: &quot;2.0.0&quot;,
+    &quot;review&quot;: {
+        &quot;status&quot;: &quot;reviewed&quot;,
+        &quot;method&quot;: &quot;06/01 visual-question-brief-rubric&quot;,
+        &quot;note&quot;: &quot;Rubric review checks reasoning; data readiness is evidenced in audit.json.&quot;,
+    },
+    &quot;decision&quot;: (
+        &quot;Choose one predeclared segment for the next technical diagnostic, or leave the &quot;
+        &quot;release explanation unconfirmed when the difference does not localize.&quot;
+    ),
+    &quot;question&quot;: (
+        &quot;For new users with a complete seven-day window, how does activation_7d change &quot;
+        &quot;across weekly cohorts before and after 2026-03-02, and does the change differ &quot;
+        &quot;across predeclared platform and acquisition-channel segments?&quot;
+    ),
+    &quot;population&quot;: &quot;New subscription-service users with a complete seven-day window.&quot;,
+    &quot;observation_window&quot;: &quot;Seven complete days after registration.&quot;,
+    &quot;analysis_unit&quot;: &quot;One user and their seven-day activation outcome.&quot;,
+    &quot;metric&quot;: {
+        &quot;name&quot;: &quot;activation_7d&quot;,
+        &quot;numerator&quot;: &quot;Unique users with activated_7d=true.&quot;,
+        &quot;denominator&quot;: &quot;Unique users with observed_days=7 after duplicate resolution.&quot;,
+    },
+    &quot;comparison&quot;: {
+        &quot;operation&quot;: &quot;change over time with predeclared segment comparisons&quot;,
+        &quot;time_grain&quot;: &quot;cohort_week&quot;,
+        &quot;reference_point&quot;: &quot;2026-03-02 release date&quot;,
+        &quot;segments&quot;: [&quot;platform&quot;, &quot;acquisition_channel&quot;],
+    },
+    &quot;possible_outcomes&quot;: [
+        {
+            &quot;observation&quot;: &quot;The decline appears across all major segments.&quot;,
+            &quot;next_step&quot;: &quot;Investigate a mechanism shared across platforms and channels.&quot;,
+        },
+        {
+            &quot;observation&quot;: &quot;The aggregate decline is compatible with changing channel mix.&quot;,
+            &quot;next_step&quot;: &quot;Compare like-for-like channels before escalating a release hypothesis.&quot;,
+        },
+        {
+            &quot;observation&quot;: &quot;No stable difference remains after comparable-window checks.&quot;,
+            &quot;next_step&quot;: &quot;Do not attribute the aggregate movement to the release.&quot;,
+        },
+    ],
+    &quot;data_readiness&quot;: {
+        &quot;status&quot;: &quot;requires-audit&quot;,
+        &quot;evidence&quot;: &quot;audit.json&quot;,
+        &quot;gates&quot;: [
+            &quot;unique user grain or an explicit duplicate-resolution policy&quot;,
+            &quot;complete observation windows&quot;,
+            &quot;reproducible numerator and denominator&quot;,
+            &quot;comparable periods and segments&quot;,
+        ],
+    },
+    &quot;interpretation_boundary&quot;: (
+        &quot;The report may describe checked associations. Release causality requires an &quot;
+        &quot;experiment or a separate causal design.&quot;
+    ),
+    &quot;stop_rule&quot;: (
+        &quot;Stop this EDA after the predeclared platform and acquisition-channel comparisons; &quot;
+        &quot;record additional segment questions separately.&quot;
+    ),
+}
 
 
 def load_module(name: str, path: Path) -&gt; ModuleType:
@@ -430,22 +512,6 @@ def write_json(path: Path, value: Any) -&gt; None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + &quot;\n&quot;,
         encoding=&quot;utf-8&quot;,
     )
-
-
-def analysis_frame(path: Path) -&gt; pd.DataFrame:
-    frame = pd.read_csv(path).drop_duplicates(&quot;user_id&quot;).copy()
-    frame[&quot;cohort_week&quot;] = pd.to_datetime(frame[&quot;cohort_week&quot;])
-    frame = frame[frame[&quot;observed_days&quot;].eq(7)]
-    if frame[&quot;activated_7d&quot;].dtype != bool:
-        frame[&quot;activated_7d&quot;] = (
-            frame[&quot;activated_7d&quot;]
-            .astype(&quot;string&quot;)
-            .map({&quot;True&quot;: True, &quot;False&quot;: False, &quot;true&quot;: True, &quot;false&quot;: False})
-        )
-    frame[&quot;period&quot;] = (
-        frame[&quot;cohort_week&quot;].ge(RELEASE_DATE).map({False: &quot;до релиза&quot;, True: &quot;после релиза&quot;})
-    )
-    return frame
 
 
 def activation_metrics(frame: pd.DataFrame) -&gt; dict[str, Any]:
@@ -593,7 +659,6 @@ def build_delivery(
     seed: int = 20260613,
     bootstrap_repeats: int = 1000,
 ) -&gt; dict[str, Any]:
-    question_module = module(&quot;01-question-before-chart&quot;, &quot;visual_question_brief.py&quot;)
     audit_module = module(&quot;02-data-audit&quot;, &quot;eda_audit.py&quot;)
     figure_module = module(&quot;03-matplotlib-oo&quot;, &quot;figure_factory.py&quot;)
     bootstrap_module = module(&quot;06-uncertainty&quot;, &quot;bootstrap_visualizer.py&quot;)
@@ -609,20 +674,26 @@ def build_delivery(
     interactive_dir.mkdir(exist_ok=True)
     specs_dir.mkdir(exist_ok=True)
 
-    question = question_module.build_brief(question_module.EXAMPLE_SPEC)
-    write_json(output_dir / &quot;question.json&quot;, question)
-
     raw_frame = audit_module.load_frame(input_path)
     audit = audit_module.audit_frame(
         raw_frame,
         audit_module.load_contract(contract_path),
         source_sha256=audit_module.sha256_file(input_path),
+        contract_sha256=audit_module.sha256_file(contract_path),
     )
     write_json(output_dir / &quot;audit.json&quot;, audit)
 
-    frame = analysis_frame(input_path)
+    question = deepcopy(QUESTION_BRIEF)
+    question[&quot;data_readiness&quot;][&quot;status&quot;] = audit[&quot;readiness&quot;][&quot;activation_7d&quot;][&quot;status&quot;]
+    question[&quot;data_readiness&quot;][&quot;decision_ids&quot;] = audit[&quot;readiness&quot;][&quot;activation_7d&quot;][&quot;decision_ids&quot;]
+    write_json(output_dir / &quot;question.json&quot;, question)
+
+    frame = audit_module.prepare_analysis_frame(input_path, audit, &quot;activation_7d&quot;)
+    frame[&quot;period&quot;] = (
+        frame[&quot;cohort_week&quot;].ge(RELEASE_DATE).map({False: &quot;до релиза&quot;, True: &quot;после релиза&quot;})
+    )
     matplotlib.rcParams[&quot;svg.hashsalt&quot;] = &quot;analyst-tools-course&quot;
-    figure_module.export_figure(frame, figures_dir)
+    figure_module.export_figure(frame, figures_dir, audit_report=audit)
     segment_figure(frame, figures_dir / &quot;segment-comparison.png&quot;)
 
     boot_frame = bootstrap_module.load_frame(input_path)

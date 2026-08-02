@@ -90,13 +90,18 @@ trend_axis.set(ylabel=&quot;Доля activation_7d&quot;, ylim=(0, 1))
 count_axis.bar(weeks, users)
 </code></pre></div><div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
 </code></pre></div><h2 id="используйте-это">Используйте это</h2>
-<p>Фабрика читает только пользователей с полным окном, удаляет повторную доставку, строит
-контрольную таблицу и экспортирует два формата:</p>
+<p>Фабрика не принимает скрытые решения о строках. Сначала 06/02 выпускает <code>audit.json</code> с
+checksum источника, scoped readiness и selection plan. Фабрика сверяет evidence,
+применяет только классифицированную exact duplicate delivery и исключает неполные окна
+по правилу activation:</p>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/figure_factory.py \
   --input ../data/tiny/user_journeys.csv \
+  --audit audit.json \
   --output-dir figure-output
 </code></pre></div><p>PNG удобен для документов, SVG сохраняет векторную структуру. <code>manifest.json</code> содержит
-backend, размер, DPI, диапазон activation, число когорт и SHA-256 обоих файлов.</p>
+backend, размер, DPI, диапазон activation, число когорт, source checksum, readiness,
+decision ids и SHA-256 обоих файлов. Если source изменился после аудита или readiness
+имеет статус <code>blocked</code>, фигура не строится.</p>
 <h2 id="сломайте-это">Сломайте это</h2>
 <ol>
 <li>Уберите <code>ylim=(0, 1)</code> и сравните визуальное впечатление.</li>
@@ -110,6 +115,7 @@ backend, размер, DPI, диапазон activation, число когорт
 <li>ровно два Axes;</li>
 <li>labels и честная шкала rate;</li>
 <li>наличие denominator;</li>
+<li>привязка source к audit checksum и decision ids;</li>
 <li>PNG/SVG и совпадение checksums.</li>
 </ul>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
@@ -182,6 +188,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PHASE = ROOT.parents[0]
 ARTIFACT = ROOT / &quot;outputs&quot; / &quot;figure_factory.py&quot;
 DATA = PHASE / &quot;data&quot; / &quot;tiny&quot; / &quot;user_journeys.csv&quot;
+CONTRACT = PHASE / &quot;data&quot; / &quot;contract.json&quot;
 SPEC = importlib.util.spec_from_file_location(&quot;figure_factory&quot;, ARTIFACT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
@@ -189,35 +196,48 @@ FACTORY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(FACTORY)
 
 
+def audit_report() -&gt; dict:
+    return FACTORY.AUDIT.audit_frame(
+        FACTORY.AUDIT.load_frame(DATA),
+        FACTORY.AUDIT.load_contract(CONTRACT),
+        source_sha256=FACTORY.AUDIT.sha256_file(DATA),
+        contract_sha256=FACTORY.AUDIT.sha256_file(CONTRACT),
+    )
+
+
+def frame():
+    return FACTORY.load_audited_frame(DATA, audit_report())
+
+
 class FigureFactoryTest(unittest.TestCase):
-    def test_clean_frame_has_one_row_per_complete_user(self) -&gt; None:
-        frame = FACTORY.load_clean_frame(DATA)
-        self.assertTrue(frame[&quot;user_id&quot;].is_unique)
-        self.assertTrue(frame[&quot;observed_days&quot;].eq(7).all())
+    def test_audited_frame_has_one_row_per_complete_user(self) -&gt; None:
+        selected = frame()
+        self.assertTrue(selected[&quot;user_id&quot;].is_unique)
+        self.assertTrue(selected[&quot;observed_days&quot;].eq(7).all())
 
     def test_activation_table_has_explicit_denominator(self) -&gt; None:
-        table = FACTORY.activation_table(FACTORY.load_clean_frame(DATA))
+        table = FACTORY.activation_table(frame())
         self.assertIn(&quot;users&quot;, table)
         self.assertTrue(table[&quot;activation&quot;].between(0, 1).all())
 
     def test_figure_uses_two_explicit_axes(self) -&gt; None:
-        figure, axes, _ = FACTORY.build_figure(FACTORY.load_clean_frame(DATA))
+        figure, axes, _ = FACTORY.build_figure(frame())
         self.assertEqual(len(figure.axes), 2)
         self.assertEqual(len(axes), 2)
 
     def test_activation_axis_has_honest_rate_scale(self) -&gt; None:
-        figure, axes, _ = FACTORY.build_figure(FACTORY.load_clean_frame(DATA))
+        figure, axes, _ = FACTORY.build_figure(frame())
         self.assertEqual(axes[0].get_ylabel(), &quot;Доля пользователей&quot;)
         self.assertEqual(axes[0].get_ylim(), (0.0, 1.0))
 
     def test_count_axis_names_the_denominator(self) -&gt; None:
-        _, axes, _ = FACTORY.build_figure(FACTORY.load_clean_frame(DATA))
+        _, axes, _ = FACTORY.build_figure(frame())
         self.assertEqual(axes[1].get_ylabel(), &quot;Пользователи&quot;)
 
     def test_export_writes_png_svg_and_manifest(self) -&gt; None:
         with TemporaryDirectory() as directory:
             output = Path(directory)
-            manifest = FACTORY.export_figure(FACTORY.load_clean_frame(DATA), output)
+            manifest = FACTORY.export_figure(frame(), output, audit_report=audit_report())
             self.assertTrue((output / &quot;activation-overview.png&quot;).is_file())
             self.assertTrue((output / &quot;activation-overview.svg&quot;).is_file())
             self.assertEqual(
@@ -231,18 +251,22 @@ class FigureFactoryTest(unittest.TestCase):
     def test_manifest_checksums_match_exported_bytes(self) -&gt; None:
         with TemporaryDirectory() as directory:
             output = Path(directory)
-            manifest = FACTORY.export_figure(FACTORY.load_clean_frame(DATA), output)
+            manifest = FACTORY.export_figure(frame(), output, audit_report=audit_report())
             for filename, metadata in manifest[&quot;files&quot;].items():
                 self.assertEqual(FACTORY.sha256_file(output / filename), metadata[&quot;sha256&quot;])
 
     def test_cli_prints_manifest(self) -&gt; None:
         with TemporaryDirectory() as directory:
+            audit_path = Path(directory) / &quot;audit.json&quot;
+            audit_path.write_text(json.dumps(audit_report()), encoding=&quot;utf-8&quot;)
             result = subprocess.run(
                 [
                     sys.executable,
                     ARTIFACT,
                     &quot;--input&quot;,
                     DATA,
+                    &quot;--audit&quot;,
+                    audit_path,
                     &quot;--output-dir&quot;,
                     directory,
                 ],
@@ -251,7 +275,9 @@ class FigureFactoryTest(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(json.loads(result.stdout)[&quot;figure&quot;][&quot;axes&quot;], 2)
+            manifest = json.loads(result.stdout)
+            self.assertEqual(manifest[&quot;figure&quot;][&quot;axes&quot;], 2)
+            self.assertEqual(manifest[&quot;data&quot;][&quot;audit&quot;][&quot;readiness&quot;], &quot;ready_with_decisions&quot;)
 
 
 if __name__ == &quot;__main__&quot;:
@@ -296,14 +322,16 @@ if __name__ == &quot;__main__&quot;:
   &quot;type&quot;: &quot;cli&quot;,
   &quot;path&quot;: &quot;outputs/figure_factory.py&quot;,
   &quot;description&quot;: &quot;Строит явную Matplotlib Figure/Axes-композицию, экспортирует PNG и SVG и записывает manifest с параметрами и checksums.&quot;,
-  &quot;usage&quot;: &quot;python outputs/figure_factory.py --input ../data/tiny/user_journeys.csv --output-dir figure-output&quot;
+  &quot;usage&quot;: &quot;python outputs/figure_factory.py --input ../data/tiny/user_journeys.csv --audit audit.json --output-dir figure-output&quot;
 }
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/06-eda-and-visualization/03-matplotlib-oo/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/figure_factory.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import matplotlib
@@ -325,17 +353,25 @@ STYLE = {
 }
 
 
+def load_audit_module() -&gt; ModuleType:
+    path = Path(__file__).resolve().parents[2] / &quot;02-data-audit&quot; / &quot;outputs&quot; / &quot;eda_audit.py&quot;
+    spec = importlib.util.spec_from_file_location(&quot;phase06_eda_audit&quot;, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f&quot;cannot load audit artifact: {path}&quot;)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+AUDIT = load_audit_module()
+
+
 def sha256_file(path: Path) -&gt; str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_clean_frame(path: Path) -&gt; pd.DataFrame:
-    frame = pd.read_csv(path)
-    frame = frame.drop_duplicates(&quot;user_id&quot;).copy()
-    frame[&quot;registered_at&quot;] = pd.to_datetime(frame[&quot;registered_at&quot;], utc=True)
-    frame[&quot;cohort_week&quot;] = pd.to_datetime(frame[&quot;cohort_week&quot;])
-    frame = frame[frame[&quot;observed_days&quot;].eq(7)]
-    return frame
+def load_audited_frame(path: Path, audit_report: dict[str, Any]) -&gt; pd.DataFrame:
+    return AUDIT.prepare_analysis_frame(path, audit_report, &quot;activation_7d&quot;)
 
 
 def activation_table(frame: pd.DataFrame) -&gt; pd.DataFrame:
@@ -390,6 +426,7 @@ def export_figure(
     output_dir: Path,
     *,
     stem: str = &quot;activation-overview&quot;,
+    audit_report: dict[str, Any] | None = None,
 ) -&gt; dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     figure, axes, table = build_figure(frame)
@@ -412,6 +449,13 @@ def export_figure(
             &quot;cohorts&quot;: len(table),
             &quot;activation_min&quot;: float(table[&quot;activation&quot;].min()),
             &quot;activation_max&quot;: float(table[&quot;activation&quot;].max()),
+            &quot;audit&quot;: None
+            if audit_report is None
+            else {
+                &quot;source_sha256&quot;: audit_report[&quot;source&quot;][&quot;sha256&quot;],
+                &quot;readiness&quot;: audit_report[&quot;readiness&quot;][&quot;activation_7d&quot;][&quot;status&quot;],
+                &quot;decision_ids&quot;: audit_report[&quot;readiness&quot;][&quot;activation_7d&quot;][&quot;decision_ids&quot;],
+            },
         },
         &quot;files&quot;: {
             png_path.name: {
@@ -435,9 +479,15 @@ def export_figure(
 def main() -&gt; None:
     parser = argparse.ArgumentParser(description=&quot;Build a reproducible Matplotlib figure&quot;)
     parser.add_argument(&quot;--input&quot;, type=Path, required=True)
+    parser.add_argument(&quot;--audit&quot;, type=Path, required=True)
     parser.add_argument(&quot;--output-dir&quot;, type=Path, required=True)
     args = parser.parse_args()
-    manifest = export_figure(load_clean_frame(args.input), args.output_dir)
+    audit_report = AUDIT.load_report(args.audit)
+    manifest = export_figure(
+        load_audited_frame(args.input, audit_report),
+        args.output_dir,
+        audit_report=audit_report,
+    )
     print(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True))
 
 

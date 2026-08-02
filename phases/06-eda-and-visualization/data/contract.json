@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Детерминированные пользовательские journeys для EDA, визуальных сравнений и анализа неопределенности.",
   "generator": "generate_data.py",
   "profiles": {
@@ -22,6 +22,7 @@
     "primary_key": [
       "user_id"
     ],
+    "unexpected_columns": "warning",
     "time_range": {
       "column": "registered_at",
       "min": "2026-01-05T09:00:00+03:00",
@@ -29,83 +30,172 @@
     },
     "columns": {
       "user_id": {
-        "semantic_type": "string identifier",
-        "nullable": false
+        "type": "string",
+        "semantic_type": "user identifier",
+        "nullable": false,
+        "blank_allowed": false
       },
       "registered_at": {
-        "semantic_type": "timezone-aware timestamp",
-        "nullable": false
+        "type": "timestamp",
+        "semantic_type": "registration timestamp",
+        "nullable": false,
+        "timezone_required": true
       },
       "cohort_week": {
+        "type": "date",
         "semantic_type": "business calendar week start",
         "nullable": false
       },
       "platform": {
-        "semantic_type": "web, ios or android",
-        "nullable": false
+        "type": "category",
+        "semantic_type": "client platform",
+        "nullable": false,
+        "allowed": [
+          "web",
+          "ios",
+          "android"
+        ]
       },
       "app_version": {
+        "type": "string",
         "semantic_type": "application version",
-        "nullable": true,
-        "null_policy": "Структурно отсутствует для web."
+        "nullable": true
       },
       "country": {
+        "type": "string",
         "semantic_type": "country code",
         "nullable": true
       },
       "acquisition_channel": {
+        "type": "category",
         "semantic_type": "acquisition category",
-        "nullable": false
+        "nullable": false,
+        "allowed": [
+          "organic",
+          "search",
+          "paid_social",
+          "partner"
+        ]
       },
       "plan": {
+        "type": "category",
         "semantic_type": "subscription plan",
-        "nullable": false
+        "nullable": false,
+        "allowed": [
+          "trial",
+          "basic",
+          "premium"
+        ]
       },
       "observed_days": {
-        "semantic_type": "integer from 1 to 7",
-        "nullable": false
+        "type": "integer",
+        "semantic_type": "observed days after registration",
+        "nullable": false,
+        "min": 1,
+        "max": 7
       },
       "onboarding_seconds": {
+        "type": "integer",
         "semantic_type": "onboarding duration in seconds",
-        "nullable": false
+        "nullable": false,
+        "min": 0
       },
       "sessions_7d": {
-        "semantic_type": "non-negative integer",
+        "type": "integer",
+        "semantic_type": "sessions during the complete observation window",
         "nullable": true,
-        "null_policy": "Отсутствует, если observed_days меньше 7."
+        "min": 0
       },
       "activated_7d": {
-        "semantic_type": "nullable boolean",
-        "nullable": true,
-        "null_policy": "Отсутствует, если observed_days меньше 7."
-      },
-      "first_order_amount_rub": {
-        "semantic_type": "non-negative decimal amount in RUB",
+        "type": "boolean",
+        "semantic_type": "activation outcome during the complete window",
         "nullable": true
       },
-      "support_tickets_7d": {
-        "semantic_type": "non-negative integer",
+      "first_order_amount_rub": {
+        "type": "decimal",
+        "semantic_type": "first order amount in RUB",
         "nullable": true,
-        "null_policy": "Отсутствует, если observed_days меньше 7."
+        "min": 0
+      },
+      "support_tickets_7d": {
+        "type": "integer",
+        "semantic_type": "support tickets during the complete observation window",
+        "nullable": true,
+        "min": 0
+      }
+    },
+    "rules": {
+      "cohort_alignment": {
+        "registered_column": "registered_at",
+        "cohort_column": "cohort_week",
+        "week_starts_on": 0
+      },
+      "app_version": {
+        "column": "app_version",
+        "not_applicable_when": {
+          "column": "platform",
+          "equals": "web"
+        },
+        "required_otherwise": true
+      },
+      "observation_window": {
+        "column": "observed_days",
+        "complete_value": 7,
+        "required_when_complete": [
+          "sessions_7d",
+          "activated_7d",
+          "support_tickets_7d"
+        ],
+        "must_be_missing_when_incomplete": [
+          "sessions_7d",
+          "activated_7d",
+          "first_order_amount_rub",
+          "support_tickets_7d"
+        ]
+      },
+      "first_order_amount": {
+        "column": "first_order_amount_rub",
+        "required_when": {
+          "column": "activated_7d",
+          "equals": "true"
+        }
+      }
+    },
+    "analysis_profiles": {
+      "activation_7d": {
+        "description": "Семидневная activation по недельным когортам и объявленным сегментам.",
+        "required_columns": [
+          "user_id",
+          "registered_at",
+          "cohort_week",
+          "platform",
+          "acquisition_channel",
+          "observed_days",
+          "activated_7d"
+        ],
+        "eligibility": {
+          "column": "observed_days",
+          "operator": "eq",
+          "value": 7
+        }
+      },
+      "onboarding_distribution": {
+        "description": "Распределение длительности onboarding среди наблюдаемых пользователей.",
+        "required_columns": [
+          "user_id",
+          "platform",
+          "onboarding_seconds"
+        ],
+        "eligibility": null
       }
     },
     "generation_rules": [
-      "Все строки создаются детерминированно стандартной библиотекой Python.",
-      "После 2026-03-02 растет доля paid_social с более низкой baseline activation.",
-      "Android 2.4 получает дополнительное снижение activation и увеличение onboarding time.",
-      "Вероятность activation растет с sessions_7d нелинейно и выходит на plateau."
+      "Строки создаются детерминированно и покрывают периоды до и после контрольной даты.",
+      "Fixture содержит группы разного размера, допустимые хвосты и намеренные нарушения контракта для аудита.",
+      "Точный аналитический паттерн не является частью student-facing контракта и должен быть обнаружен расчётом."
     ],
     "known_defects": [
-      "Одна строка доставлена повторно с тем же user_id.",
-      "Последние регистрации имеют observed_days меньше 7 и незавершенные outcome fields.",
-      "Одна строка содержит onboarding_seconds=-1.",
-      "Часть country отсутствует случайно."
-    ],
-    "designed_signals": [
-      "onboarding_seconds и first_order_amount_rub имеют правосторонний heavy tail.",
-      "После релиза aggregate activation снижается частично из-за channel mix.",
-      "Android 2.4 ухудшается и внутри сопоставимых каналов.",
-      "Группы различаются по размеру, поэтому uncertainty нельзя читать без sample size."
+      "Tiny fixture может содержать намеренные нарушения; их тип, строки и влияние нужно установить аудитором до анализа."
     ]
   }
 }

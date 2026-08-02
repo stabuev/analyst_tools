@@ -55,17 +55,22 @@ uv run --locked python code/main.py
 
 ## Используйте это
 
-Фабрика читает только пользователей с полным окном, удаляет повторную доставку, строит
-контрольную таблицу и экспортирует два формата:
+Фабрика не принимает скрытые решения о строках. Сначала 06/02 выпускает `audit.json` с
+checksum источника, scoped readiness и selection plan. Фабрика сверяет evidence,
+применяет только классифицированную exact duplicate delivery и исключает неполные окна
+по правилу activation:
 
 ```bash
 uv run --locked python outputs/figure_factory.py \
   --input ../data/tiny/user_journeys.csv \
+  --audit audit.json \
   --output-dir figure-output
 ```
 
 PNG удобен для документов, SVG сохраняет векторную структуру. `manifest.json` содержит
-backend, размер, DPI, диапазон activation, число когорт и SHA-256 обоих файлов.
+backend, размер, DPI, диапазон activation, число когорт, source checksum, readiness,
+decision ids и SHA-256 обоих файлов. Если source изменился после аудита или readiness
+имеет статус `blocked`, фигура не строится.
 
 ## Сломайте это
 
@@ -81,6 +86,7 @@ backend, размер, DPI, диапазон activation, число когорт
 - ровно два Axes;
 - labels и честная шкала rate;
 - наличие denominator;
+- привязка source к audit checksum и decision ids;
 - PNG/SVG и совпадение checksums.
 
 ```bash

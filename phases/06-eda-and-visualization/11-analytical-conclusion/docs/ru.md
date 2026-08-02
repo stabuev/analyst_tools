@@ -76,9 +76,12 @@ eda-report/
 └── manifest.json
 ```
 
-Builder переиспользует артефакты предыдущих уроков через их standalone API. В
-activation входят только уникальные пользователи с полным окном. Bootstrap unit, seed и
-repeats записываются в manifest.
+Builder переиспользует исполняемые артефакты предыдущих уроков через их standalone API,
+а заполненный brief 06/01 переносит как reviewable decision record. Аудитор 06/02
+исполняет contract, после чего основной activation frame и фигура применяют его
+checksum-bound selection plan. Статус rubric review не подменяет data readiness:
+фактическое evidence находится в `audit.json`, а применённые decision ids попадают в
+manifest фигуры. Bootstrap unit, seed и repeats записываются в manifest.
 
 ## Сломайте это
 
@@ -94,7 +97,8 @@ action.
 ## Проверьте это
 
 - обязательные файлы существуют;
-- question имеет статус ready;
+- question содержит результат rubric review, несколько возможных исходов и ссылку на
+  отдельное evidence готовности данных в `audit.json`;
 - audit сохраняет известные defects;
 - анализ использует 22 из 25 строк tiny;
 - report имеет четыре раздела и evidence map;

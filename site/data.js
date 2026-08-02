@@ -1807,8 +1807,8 @@ window.COURSE_DATA = {
           "title": "Вопрос раньше графика",
           "status": "complete",
           "time_minutes": 75,
-          "outcome": "Преобразует рабочий вопрос в контракт визуального доказательства с единицей анализа, сравнением, метрикой, ожидаемым паттерном и критерием остановки.",
-          "artifact": "CLI-конструктор visual question brief и rubric выбора представления",
+          "outcome": "Формулирует проверяемый visual question brief: связывает решение с популяцией, единицей анализа, метрикой, сравнением, возможными исходами, готовностью данных и границей интерпретации.",
+          "artifact": "Шаблон visual question brief и содержательная рубрика проверки постановки",
           "type": "learn",
           "tracks": [
             "core"
@@ -1825,8 +1825,8 @@ window.COURSE_DATA = {
           "title": "Аудит набора данных",
           "status": "complete",
           "time_minutes": 90,
-          "outcome": "Проверяет grain, ключи, типы, пропуски, диапазоны, дубликаты и полноту окна наблюдения до построения графиков и отделяет дефект данных от сигнала.",
-          "artifact": "CLI-аудитор EDA-входа с машинным профилем и журналом решений",
+          "outcome": "Проверяет пригодность versioned dataset для объявленного visual question: исполняет контракт, различает дефект, допустимый экстремум и неполное наблюдение и выпускает evidence-backed selection plan без изменения источника.",
+          "artifact": "Contract-driven CLI-аудитор со scoped readiness, evidence и checksum-bound selection plan",
           "type": "case",
           "tracks": [
             "core"

@@ -5,7 +5,7 @@
 
 **Обновлено:** 2 августа 2026
 **Ветка:** `main`
-**Базовый коммит перед текущим этапом:** `78a01f2e` — переработка урока `05/11`
+**Базовый коммит перед текущим этапом:** `0a54cc01` — сквозной аудит фазы 05
 
 Все 200 нумерованных уроков курса завершены. Публичный сайт размещён на
 `https://datascience.xyz/courses/analyst-tools/` и публикует отдельную статическую страницу
@@ -2585,7 +2585,28 @@ schema/checksum/semantic/workload checks и handoff входа в EDA. Новы�
 не добавлялись. Summary, итоговый артефакт и completion criterion фазы синхронизированы с
 фактической поставкой.
 
-**Следующий содержательный шаг** — аудит `06/01` «Вопрос раньше графика».
+Урок `06/01` «Вопрос раньше графика» переработан как направляемая постановка до EDA.
+Прежний CLI проверял главным образом схему и длину строк и мог объявить бессмысленный
+brief готовым; executable-практика удалена. Новый standalone-шаблон связывает решение с
+популяцией, окном наблюдения, единицей анализа, формулой метрики, сравнением, несколькими
+возможными исходами, data-readiness gate и границей интерпретации. Отдельная рубрика
+проверяет качество рассуждения и перенос на неоднозначный сценарий. Выбор конкретного
+графика оставлен последующим урокам. Прямая интеграция 06/11 переведена с импорта
+удалённого CLI на reviewable brief: rubric review и фактическое evidence `audit.json`
+теперь не смешиваются.
+
+Урок `06/02` «Аудит набора данных» переработан как исполняемый мост от visual question
+brief к первой фигуре. Contract v2 теперь действительно задаёт primary key, types,
+domains, allowed categories, conditional missingness, time range, cohort alignment и два
+analysis profiles. Аудитор различает exact delivery duplicate и key conflict, выпускает
+findings со scope и evidence, считает отдельную readiness для activation и onboarding,
+не меняет source и связывает selection plan с его checksum. Из student-facing contract
+убраны подсказки о спроектированных аналитических сигналах. 06/03 больше не выполняет
+скрытый `drop_duplicates`: figure factory требует `audit.json`, применяет только
+evidence-backed decisions и переносит readiness в manifest. Финальный 06/11 использует
+тот же selection plan для основного activation frame.
+
+**Следующий содержательный шаг** — аудит `06/03` «Воспроизводимая фигура с Matplotlib».
 
 ## Уже принятые решения
 
@@ -2765,6 +2786,21 @@ runner курса не запускался.
 менялись. Summary, итоговый артефакт и completion criterion фазы обновлены в
 `curriculum.json`. Структурный валидатор, три render check и `git diff --check` успешны.
 Полный lesson runner курса не использовался как доказательство этого этапа.
+
+После переработки `06/01` guided-artifact проверен структурным валидатором и отдельной
+рубрикой; исполняемых тестов у практики больше нет по смыслу результата. Для изменённой
+прямой интеграции `06/11` пройдены 9 behavioral tests и Ruff, включая разделение статуса
+rubric review и evidence готовности данных. Пройдены 46 корневых тестов, три render check,
+проверка воспроизводимости fixtures фазы и `git diff --check`. Полный lesson runner курса
+не запускался.
+
+После переработки `06/02` пройдены 13 behavioral tests аудитора, 8 тестов прямого
+consumer 06/03 и 9 тестов интеграции 06/11. Негативные сценарии покрывают blank key,
+conflicting duplicate, fractional и negative values, изменение allowed categories,
+conditional observation policy, blocked scoped readiness и несовпадение source checksum.
+Ruff lint и format check, 46 корневых тестов, воспроизводимость phase fixtures,
+структурный валидатор, три render check и `git diff --check` успешны. Полный lesson runner
+курса не запускался.
 
 ```bash
 uv sync --locked --dev

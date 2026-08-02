@@ -49,17 +49,30 @@ class EdaReportBuilderTest(unittest.TestCase):
             for relative in required:
                 self.assertTrue((output / relative).is_file(), relative)
 
-    def test_question_brief_is_ready(self) -> None:
+    def test_question_brief_preserves_review_and_readiness_boundary(self) -> None:
         with TemporaryDirectory() as directory:
             output, _ = build(directory)
-            self.assertEqual(json.loads((output / "question.json").read_text())["status"], "ready")
+            question = json.loads((output / "question.json").read_text())
+            self.assertEqual(question["review"]["status"], "reviewed")
+            self.assertEqual(question["data_readiness"]["status"], "ready_with_decisions")
+            self.assertEqual(question["data_readiness"]["evidence"], "audit.json")
+            self.assertEqual(
+                question["data_readiness"]["decision_ids"],
+                ["exact-duplicate-deliveries"],
+            )
+            self.assertGreaterEqual(len(question["possible_outcomes"]), 2)
+            self.assertIn("causal design", question["interpretation_boundary"])
 
     def test_audit_preserves_known_defects_and_decisions(self) -> None:
         with TemporaryDirectory() as directory:
             output, _ = build(directory)
             audit = json.loads((output / "audit.json").read_text())
-            self.assertIn("primary-key", audit["failure_ids"])
-            self.assertTrue(any("incomplete" in item for item in audit["decision_log"]))
+            self.assertIn("domain:onboarding_seconds", audit["failure_ids"])
+            self.assertEqual(audit["readiness"]["activation_7d"]["status"], "ready_with_decisions")
+            self.assertEqual(
+                {item["id"] for item in audit["decision_log"]},
+                {"resolve-exact-deliveries", "activation-window"},
+            )
 
     def test_analysis_excludes_duplicate_and_incomplete_windows(self) -> None:
         with TemporaryDirectory() as directory:

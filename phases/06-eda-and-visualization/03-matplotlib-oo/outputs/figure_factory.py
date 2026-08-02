@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import matplotlib
@@ -25,17 +27,25 @@ STYLE = {
 }
 
 
+def load_audit_module() -> ModuleType:
+    path = Path(__file__).resolve().parents[2] / "02-data-audit" / "outputs" / "eda_audit.py"
+    spec = importlib.util.spec_from_file_location("phase06_eda_audit", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load audit artifact: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+AUDIT = load_audit_module()
+
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_clean_frame(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path)
-    frame = frame.drop_duplicates("user_id").copy()
-    frame["registered_at"] = pd.to_datetime(frame["registered_at"], utc=True)
-    frame["cohort_week"] = pd.to_datetime(frame["cohort_week"])
-    frame = frame[frame["observed_days"].eq(7)]
-    return frame
+def load_audited_frame(path: Path, audit_report: dict[str, Any]) -> pd.DataFrame:
+    return AUDIT.prepare_analysis_frame(path, audit_report, "activation_7d")
 
 
 def activation_table(frame: pd.DataFrame) -> pd.DataFrame:
@@ -90,6 +100,7 @@ def export_figure(
     output_dir: Path,
     *,
     stem: str = "activation-overview",
+    audit_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     figure, axes, table = build_figure(frame)
@@ -112,6 +123,13 @@ def export_figure(
             "cohorts": len(table),
             "activation_min": float(table["activation"].min()),
             "activation_max": float(table["activation"].max()),
+            "audit": None
+            if audit_report is None
+            else {
+                "source_sha256": audit_report["source"]["sha256"],
+                "readiness": audit_report["readiness"]["activation_7d"]["status"],
+                "decision_ids": audit_report["readiness"]["activation_7d"]["decision_ids"],
+            },
         },
         "files": {
             png_path.name: {
@@ -135,9 +153,15 @@ def export_figure(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a reproducible Matplotlib figure")
     parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
-    manifest = export_figure(load_clean_frame(args.input), args.output_dir)
+    audit_report = AUDIT.load_report(args.audit)
+    manifest = export_figure(
+        load_audited_frame(args.input, audit_report),
+        args.output_dir,
+        audit_report=audit_report,
+    )
     print(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True))
 
 
