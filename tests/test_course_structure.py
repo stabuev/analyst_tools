@@ -518,7 +518,7 @@ class CourseStructureTest(TestCase):
 
         self.assertEqual(phase["slug"], "eda-and-visualization")
         self.assertTrue(all(lesson["status"] == "complete" for lesson in lessons))
-        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 930)
+        self.assertEqual(sum(lesson["time_minutes"] for lesson in lessons), 945)
         self.assertEqual(
             sum(bool(lesson.get("integration_project")) for lesson in lessons),
             1,

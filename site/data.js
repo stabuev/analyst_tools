@@ -1842,9 +1842,9 @@ window.COURSE_DATA = {
           "slug": "matplotlib-oo",
           "title": "Воспроизводимая фигура с Matplotlib",
           "status": "complete",
-          "time_minutes": 75,
-          "outcome": "Строит детерминированную многоосевую фигуру через явные Figure и Axes, управляет шкалами и layout и экспортирует PNG и SVG с manifest.",
-          "artifact": "Фабрика статических Figure/Axes-графиков с экспортным manifest",
+          "time_minutes": 90,
+          "outcome": "Строит из audited selection самостоятельный пакет статической фигуры: контрольную таблицу с числителем и знаменателем, явную Figure/Axes-композицию, byte-repeatable PNG и SVG и manifest с параметрами вопроса и provenance.",
+          "artifact": "Самостоятельная фабрика control table и byte-repeatable Figure/Axes-пакета с provenance manifest",
           "type": "build",
           "tracks": [
             "core"

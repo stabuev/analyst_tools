@@ -267,12 +267,14 @@ uv run --locked python ../data/generate_data.py --check
 uv run --locked python ../03-matplotlib-oo/outputs/figure_factory.py \
   --input ../data/tiny/user_journeys.csv \
   --audit audit.json \
+  --release-date 2026-03-02 \
   --output-dir figure-output
 ```
 
 Figure factory больше не выполняет скрытый `drop_duplicates`: она принимает только тот
-source, для которого выпущен audit report, и сохраняет readiness и decision ids в
-manifest фигуры.
+source, для которого выпущен audit report, применяет опубликованный selection plan без
+импорта реализации аудитора и сохраняет release date, readiness и decision ids в
+manifest пакета.
 
 ## Поставьте результат
 

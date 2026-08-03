@@ -39,6 +39,7 @@ class EdaReportBuilderTest(unittest.TestCase):
                 "question.json",
                 "audit.json",
                 "report.md",
+                "figures/activation-overview-control.csv",
                 "figures/activation-overview.png",
                 "figures/activation-overview.svg",
                 "figures/segment-comparison.png",

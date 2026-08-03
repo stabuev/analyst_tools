@@ -3,7 +3,7 @@
 > Этот файл — handoff для нового чата. Сначала проверьте `git status`: рабочее дерево
 > может содержать более свежие изменения.
 
-**Обновлено:** 2 августа 2026
+**Обновлено:** 3 августа 2026
 **Ветка:** `main`
 **Базовый коммит перед текущим этапом:** `0a54cc01` — сквозной аудит фазы 05
 
@@ -2606,7 +2606,17 @@ findings со scope и evidence, считает отдельную readiness д�
 evidence-backed decisions и переносит readiness в manifest. Финальный 06/11 использует
 тот же selection plan для основного activation frame.
 
-**Следующий содержательный шаг** — аудит `06/03` «Воспроизводимая фигура с Matplotlib».
+Урок `06/03` «Воспроизводимая фигура с Matplotlib» переработан как первый поставляемый
+визуальный шаг после audit evidence. Объяснение строится по цепочке audited rows →
+control table → Figure/Axes/Artists → renderer → files и разводит explicit Axes API,
+pyplot lifecycle, checksum и byte-level repeatability. Фабрика больше не импортирует
+реализацию `06/02` по структуре репозитория: она самостоятельно интерпретирует публичный
+selection plan, принимает release date параметром и выпускает control CSV с numerator,
+denominator и rate, PNG, SVG и provenance manifest. `svg.hashsalt` действует во время
+savefig, поэтому два независимых процесса создают одинаковые bytes в locked-окружении.
+Прямой consumer `06/11` включает контрольную таблицу в итоговый EDA package.
+
+**Следующий содержательный шаг** — аудит `06/04` «Распределения и выбросы».
 
 ## Уже принятые решения
 
@@ -2801,6 +2811,18 @@ conditional observation policy, blocked scoped readiness и несовпаден
 Ruff lint и format check, 46 корневых тестов, воспроизводимость phase fixtures,
 структурный валидатор, три render check и `git diff --check` успешны. Полный lesson runner
 курса не запускался.
+
+После переработки `06/03` пройдены 17 behavioral tests фабрики и 9 тестов прямого
+consumer `06/11`. Тесты отдельно покрывают перенос одного файла артефакта вне структуры
+курса, checksum-bound source и audit report, blocked readiness, conflicting duplicate,
+пустую selection,
+reconciliation numerator/denominator/rate, release marker, недопустимый rate, закрытие
+pyplot lifecycle и byte-identical CSV, PNG, SVG и manifest в двух независимых процессах.
+Ruff lint и format check, 46 root tests, воспроизводимость phase fixture, структурный
+валидатор и три render check успешны. Самостоятельный CLI выпустил 6 контрольных строк
+для 22 пользователей; PNG визуально проверен на layout и пересечения. Дополнительное
+чтение содержит десять открытых материалов: три русскоязычных и семь официальных страниц
+Matplotlib. Полный lesson runner курса не запускался.
 
 ```bash
 uv sync --locked --dev

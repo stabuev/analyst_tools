@@ -241,7 +241,8 @@ cohort composition в сравнении. Если технический сиг
 | Утверждение | Расчет | Артефакт |
 |---|---|---|
 | Общий тренд | activation по cohort week | `figures/activation-overview.png` |
-| Размер когорт | unique users | `figures/activation-overview.svg` |
+| Точки тренда | activated / eligible | `figures/activation-overview-control.csv` |
+| Размер когорт | eligible users | `figures/activation-overview.svg` |
 | Сегментный паттерн | activation по platform и period | `figures/segment-comparison.png` |
 | Отдельные аномалии | user-level rows | `interactive/anomaly-explorer.html` |
 | Linked selection | Vega-Lite encodings и filter | `specs/linked-segments.vl.json` |
@@ -290,8 +291,12 @@ def build_delivery(
     frame["period"] = (
         frame["cohort_week"].ge(RELEASE_DATE).map({False: "до релиза", True: "после релиза"})
     )
-    matplotlib.rcParams["svg.hashsalt"] = "analyst-tools-course"
-    figure_module.export_figure(frame, figures_dir, audit_report=audit)
+    figure_module.export_figure(
+        frame,
+        figures_dir,
+        release_date=RELEASE_DATE,
+        audit_report=audit,
+    )
     segment_figure(frame, figures_dir / "segment-comparison.png")
 
     boot_frame = bootstrap_module.load_frame(input_path)

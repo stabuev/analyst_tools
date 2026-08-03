@@ -68,6 +68,7 @@ eda-report/
 ├── figures/
 │   ├── activation-overview.png
 │   ├── activation-overview.svg
+│   ├── activation-overview-control.csv
 │   └── segment-comparison.png
 ├── interactive/
 │   └── anomaly-explorer.html
