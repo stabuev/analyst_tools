@@ -1,195 +1,317 @@
 from __future__ import annotations
 
 import importlib.util
-import json
-import subprocess
-import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "outputs" / "plan_report.py"
-DATA = ROOT.parent / "data" / "tiny" / "events.csv"
-SPEC = importlib.util.spec_from_file_location("plan_report", ARTIFACT)
+ARTIFACT = ROOT / "outputs" / "duckdb_plan_audit.py"
+BASELINE_SQL = (ROOT / "outputs" / "repeated_scan.sql").read_text(encoding="utf-8")
+CANDIDATE_SQL = (ROOT / "outputs" / "single_scan.sql").read_text(encoding="utf-8")
+SPEC = importlib.util.spec_from_file_location("duckdb_plan_audit", ARTIFACT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"cannot load {ARTIFACT}")
 PLANS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PLANS)
 
 
-class PlanReportTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.connection = duckdb.connect()
-        self.report = PLANS.build_plan_report(self.connection, DATA)
-        self.baseline, self.candidate = self.report["variants"]
+def build_cohort_activity() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "cohort_month": pd.to_datetime(
+                [
+                    "2026-01-01",
+                    "2026-01-01",
+                    "2026-01-01",
+                    "2026-01-01",
+                    "2026-02-01",
+                    "2026-02-01",
+                    "2026-02-01",
+                ]
+            ),
+            "activity_month": pd.to_datetime(
+                [
+                    "2026-01-01",
+                    "2026-02-01",
+                    "2026-03-01",
+                    "2026-04-01",
+                    "2026-02-01",
+                    "2026-03-01",
+                    "2026-04-01",
+                ]
+            ),
+            "period_index": pd.Series([0, 1, 2, 3, 0, 1, 2], dtype="int64"),
+            "cohort_size": pd.Series([4, 4, 4, 4, 3, 3, 3], dtype="int64"),
+            "active_users": pd.Series([4, 3, 2, 0, 3, 2, 1], dtype="int64"),
+            "activity_rate": pd.Series(
+                [1.0, 0.75, 0.5, 0.0, 1.0, 0.6667, 0.3333],
+                dtype="float64",
+            ),
+        }
+    )
 
-    def tearDown(self) -> None:
-        self.connection.close()
 
-    def test_equivalent_queries_return_same_detailed_result(self) -> None:
-        self.assertTrue(self.report["comparison"]["results_equal"])
+class DuckDBPlanAuditTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.frame = build_cohort_activity()
+        connection = duckdb.connect()
+        try:
+            cls.report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name="cohort_activity",
+                frame=cls.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={"cohort_month": "2026-01-01"},
+            )
+        finally:
+            connection.close()
+
+    def test_equivalent_queries_return_exact_same_result(self) -> None:
+        self.assertTrue(self.report["results_equal"])
         self.assertEqual(
-            self.baseline["result"],
-            {"event_rows": 6, "active_users": 3},
-        )
-        self.assertEqual(self.candidate["result"], self.baseline["result"])
-
-    def test_static_plan_reveals_two_reads_and_one_read(self) -> None:
-        self.assertEqual(self.baseline["explain"]["source_read_nodes"], 2)
-        self.assertEqual(self.candidate["explain"]["source_read_nodes"], 1)
-        self.assertEqual(self.report["comparison"]["source_reads_removed"], 1)
-
-    def test_analyzed_plan_preserves_the_same_source_read_shape(self) -> None:
-        self.assertEqual(
-            self.baseline["explain_analyze"]["source_read_nodes"],
-            2,
+            self.report["result"].to_dict(orient="records"),
+            [{"cohort_period_rows": 4, "active_user_period_sum": 9}],
         )
         self.assertEqual(
-            self.candidate["explain_analyze"]["source_read_nodes"],
-            1,
+            {column: str(dtype) for column, dtype in self.report["result"].dtypes.items()},
+            {"cohort_period_rows": "int64", "active_user_period_sum": "int64"},
         )
 
-    def test_explain_contains_estimates_but_no_total_time(self) -> None:
-        evidence = self.candidate["explain"]
-        self.assertTrue(evidence["estimated_row_markers"])
-        self.assertEqual(evidence["actual_row_markers"], [])
-        self.assertIsNone(evidence["total_time_seconds"])
-        self.assertIn("~", evidence["plan_text"])
-
-    def test_explain_analyze_contains_actual_rows_and_total_time(self) -> None:
-        evidence = self.candidate["explain_analyze"]
-        self.assertTrue(evidence["actual_row_markers"])
-        self.assertEqual(evidence["estimated_row_markers"], [])
-        self.assertIsInstance(evidence["total_time_seconds"], float)
-        self.assertIn(16, evidence["actual_row_markers"])
-
-    def test_estimate_is_not_treated_as_actual_cardinality(self) -> None:
-        estimated = self.candidate["explain"]["estimated_row_markers"]
-        actual = self.candidate["explain_analyze"]["actual_row_markers"]
-        self.assertNotEqual(estimated, actual)
-        self.assertIn(16, actual)
-
-    def test_plan_text_contains_the_operators_used_in_the_lesson(self) -> None:
-        plan = self.candidate["explain"]["plan_text"]
-        self.assertIn("READ_CSV", plan)
-        self.assertIn("PROJECTION", plan)
-        self.assertIn("UNGROUPED_AGGREGATE", plan)
-
-    def test_wrong_population_blocks_optimization_conclusion(self) -> None:
-        report = PLANS.build_plan_report(
-            self.connection,
-            DATA,
-            candidate_sql=PLANS.WRONG_POPULATION_SQL,
-            candidate_label="wrong_population",
+    def test_baseline_has_two_scan_branches(self) -> None:
+        self.assertEqual(self.report["baseline"]["summary"]["scan_operators"], 2)
+        self.assertIn(
+            "CROSS_PRODUCT",
+            self.report["baseline"]["operators"]["operator"].tolist(),
         )
-        self.assertFalse(report["comparison"]["results_equal"])
-        self.assertFalse(report["comparison"]["safe_to_compare_work"])
-        self.assertIn("blocked", report["comparison"]["conclusion"])
+
+    def test_candidate_has_one_scan_branch(self) -> None:
+        self.assertEqual(self.report["candidate"]["summary"]["scan_operators"], 1)
+        self.assertEqual(self.report["comparison"]["scan_operators_removed"], 1)
+
+    def test_rows_scanned_are_reported_separately_from_output_rows(self) -> None:
+        self.assertEqual(self.report["baseline"]["summary"]["rows_scanned"], 14)
+        self.assertEqual(self.report["candidate"]["summary"]["rows_scanned"], 7)
+        candidate_scan = self.report["candidate"]["operators"].loc[
+            self.report["candidate"]["operators"]["operator"].str.contains("SCAN", regex=False)
+        ]
+        self.assertEqual(candidate_scan["actual_rows"].tolist(), [7])
+        self.assertEqual(candidate_scan["rows_scanned"].tolist(), [7])
+
+    def test_operator_table_has_stable_evidence_columns(self) -> None:
         self.assertEqual(
-            report["variants"][1]["result"],
-            {"event_rows": 6, "active_users": 8},
+            self.report["candidate"]["operators"].columns.tolist(),
+            PLANS.OPERATOR_COLUMNS,
         )
 
-    def test_zero_matching_events_remain_semantically_equivalent(self) -> None:
-        report = PLANS.build_plan_report(
-            self.connection,
-            DATA,
-            event_name="not_present",
+    def test_plan_is_read_from_root_to_deeper_paths(self) -> None:
+        operators = self.report["candidate"]["operators"]
+        self.assertEqual(operators.iloc[0]["path"], "0")
+        self.assertIn(
+            operators.iloc[0]["operator"],
+            {"PROJECTION", "UNGROUPED_AGGREGATE"},
         )
-        self.assertTrue(report["comparison"]["results_equal"])
-        self.assertEqual(
-            report["variants"][1]["result"],
-            {"event_rows": 0, "active_users": 0},
-        )
+        self.assertTrue(operators.iloc[-1]["path"].startswith("0."))
+        self.assertIn("SCAN", operators.iloc[-1]["operator"])
 
-    def test_report_does_not_claim_timing_proves_speedup(self) -> None:
-        comparison = self.report["comparison"]
-        self.assertFalse(comparison["timing_claim_allowed"])
-        self.assertIn("timing remains an observation", comparison["conclusion"])
-        self.assertIn("does not guarantee", self.report["scope"]["claim_boundary"])
+    def test_explain_estimate_and_analyze_actual_are_both_present(self) -> None:
+        baseline_filters = self.report["baseline"]["operators"].query("operator == 'FILTER'")
+        self.assertEqual(baseline_filters["estimated_rows"].tolist(), [1, 1])
+        self.assertEqual(baseline_filters["actual_rows"].tolist(), [4, 4])
 
-    def test_report_records_engine_and_input_scope(self) -> None:
+    def test_analyze_timings_are_observations_not_a_winner(self) -> None:
+        timings = self.report["candidate"]["operators"]["timing_seconds"]
+        self.assertTrue(timings.ge(0).all())
+        self.assertTrue(self.report["comparison"]["timing_is_observation_not_verdict"])
+        self.assertNotIn("faster_query", self.report["comparison"])
+
+    def test_raw_plans_are_structured_json(self) -> None:
+        self.assertIsInstance(self.report["baseline"]["explain_json"], list)
+        self.assertIsInstance(self.report["baseline"]["analyze_json"], dict)
+
+    def test_report_preserves_reproducible_scope(self) -> None:
         scope = self.report["scope"]
         self.assertEqual(scope["engine"], "duckdb")
         self.assertEqual(scope["engine_version"], duckdb.__version__)
-        self.assertEqual(scope["events_path"], str(DATA.resolve()))
-        self.assertEqual(scope["event_name"], "order_paid")
-        self.assertIn("SELECT", self.baseline["sql"])
-        self.assertIn(str(DATA.resolve()), self.baseline["parameters"])
-
-    def test_caller_owned_connection_remains_usable(self) -> None:
-        self.assertEqual(self.connection.execute("SELECT 42").fetchone(), (42,))
-
-    def test_missing_events_file_is_rejected(self) -> None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, "does not exist"):
-            PLANS.build_plan_report(
-                self.connection,
-                ROOT / "missing.csv",
-            )
-
-    def test_empty_event_name_is_rejected(self) -> None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, "non-empty"):
-            PLANS.build_plan_report(self.connection, DATA, "   ")
-
-    def test_untrusted_candidate_sql_is_rejected(self) -> None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, "trusted built-in"):
-            PLANS.build_plan_report(
-                self.connection,
-                DATA,
-                candidate_sql="SELECT 1, 2",
-            )
-
-    def test_cli_prints_complete_json_report(self) -> None:
-        result = subprocess.run(
-            [sys.executable, ARTIFACT, "--events", DATA],
-            check=False,
-            capture_output=True,
-            text=True,
+        self.assertEqual(scope["relation_name"], "cohort_activity")
+        self.assertEqual(scope["input_rows"], 7)
+        self.assertEqual(
+            self.report["baseline"]["parameters"],
+            {"cohort_month": "2026-01-01"},
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        report = json.loads(result.stdout)
-        self.assertEqual(report["comparison"]["source_reads_removed"], 1)
-        self.assertIn("plan_text", report["variants"][0]["explain"])
+        self.assertIn("SELECT", self.report["baseline"]["sql"])
+        self.assertIn("not a benchmark", scope["claim_boundary"])
 
-    def test_cli_can_write_standalone_report(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "nested" / "plan-audit.json"
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    ARTIFACT,
-                    "--events",
-                    DATA,
-                    "--output",
-                    output,
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
+    def test_parameter_changes_the_selected_cohort(self) -> None:
+        connection = duckdb.connect()
+        try:
+            report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name="cohort_activity",
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={"cohort_month": "2026-02-01"},
             )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(Path(result.stdout.strip()), output)
-            self.assertTrue(
-                json.loads(output.read_text(encoding="utf-8"))["comparison"]["results_equal"]
-            )
-
-    def test_cli_rejects_missing_input(self) -> None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                ARTIFACT,
-                "--events",
-                ROOT / "missing.csv",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
+        finally:
+            connection.close()
+        self.assertEqual(
+            report["result"].to_dict(orient="records"),
+            [{"cohort_period_rows": 3, "active_user_period_sum": 6}],
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("does not exist", result.stderr)
+
+    def test_missing_cohort_preserves_unknown_sum(self) -> None:
+        connection = duckdb.connect()
+        try:
+            report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name="cohort_activity",
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={"cohort_month": "2030-01-01"},
+            )
+        finally:
+            connection.close()
+        record = report["result"].to_dict(orient="records")[0]
+        self.assertEqual(record["cohort_period_rows"], 0)
+        self.assertTrue(pd.isna(record["active_user_period_sum"]))
+
+    def test_different_result_blocks_plan_comparison(self) -> None:
+        broken_candidate = CANDIDATE_SQL.replace(
+            "AS active_user_period_sum",
+            "+ 1 AS active_user_period_sum",
+        )
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(
+                PLANS.QueryPlanAuditError,
+                "result differs",
+            ):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name="cohort_activity",
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=broken_candidate,
+                    parameters={"cohort_month": "2026-01-01"},
+                )
+        finally:
+            connection.close()
+
+    def test_temporary_relation_is_removed_after_success(self) -> None:
+        connection = duckdb.connect()
+        try:
+            PLANS.compare_dataframe_queries(
+                connection,
+                relation_name="cohort_activity",
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={"cohort_month": "2026-01-01"},
+            )
+            with self.assertRaises(duckdb.CatalogException):
+                connection.execute("SELECT * FROM cohort_activity")
+            self.assertEqual(connection.execute("SELECT 42").fetchone(), (42,))
+        finally:
+            connection.close()
+
+    def test_temporary_relation_is_removed_after_failure(self) -> None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaises(duckdb.Error):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name="cohort_activity",
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql="SELECT missing_column FROM cohort_activity",
+                    parameters={"cohort_month": "2026-01-01"},
+                )
+            with self.assertRaises(duckdb.CatalogException):
+                connection.execute("SELECT * FROM cohort_activity")
+        finally:
+            connection.close()
+
+    def test_join_plan_can_be_read_as_two_inputs_and_one_join(self) -> None:
+        connection = duckdb.connect()
+        connection.register(
+            "cohorts",
+            pd.DataFrame(
+                {"cohort_id": [1, 2], "cohort_size": [4, 3]},
+            ),
+        )
+        connection.register(
+            "segments",
+            pd.DataFrame(
+                {"cohort_id": [1, 2], "segment": ["new", "returning"]},
+            ),
+        )
+        try:
+            inspection = PLANS.inspect_reviewed_query(
+                connection,
+                sql="""
+                    SELECT c.cohort_id, c.cohort_size, s.segment
+                    FROM cohorts AS c
+                    INNER JOIN segments AS s USING (cohort_id)
+                    ORDER BY c.cohort_id
+                """,
+            )
+        finally:
+            connection.unregister("cohorts")
+            connection.unregister("segments")
+            connection.close()
+        operator_names = inspection["operators"]["operator"].tolist()
+        self.assertEqual(sum("SCAN" in name for name in operator_names), 2)
+        self.assertIn("HASH_JOIN", operator_names)
+        join_row = inspection["operators"].query("operator == 'HASH_JOIN'").iloc[0]
+        self.assertEqual(join_row["actual_rows"], 2)
+
+    def test_empty_sql_is_rejected_before_explain(self) -> None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, "must not be empty"):
+                PLANS.inspect_reviewed_query(connection, sql="  ")
+        finally:
+            connection.close()
+
+    def test_invalid_relation_name_is_rejected(self) -> None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, "relation_name"):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name="cohort activity",
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=CANDIDATE_SQL,
+                )
+        finally:
+            connection.close()
+
+    def test_non_dataframe_input_is_rejected(self) -> None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, "pandas DataFrame"):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name="cohort_activity",
+                    frame=[{"cohort_month": "2026-01-01"}],
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=CANDIDATE_SQL,
+                )
+        finally:
+            connection.close()
+
+    def test_artifact_has_no_cli_or_text_plan_regex(self) -> None:
+        source = ARTIFACT.read_text(encoding="utf-8")
+        self.assertNotIn("argparse", source)
+        self.assertNotIn("Total Time:", source)
+        self.assertIn("FORMAT JSON", source)
 
 
 if __name__ == "__main__":

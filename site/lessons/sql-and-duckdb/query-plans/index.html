@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Нужно посчитать две метрики для события orderpaid:">
+  <meta name="description" content="После 04/11 у нас есть типизированная таблица месячной когортной активности. Одна строка означает один наблюдаемый период одной когорты:">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:site_name" content="Инструменты аналитика">
   <meta property="og:title" content="Планы запросов и стоимость">
-  <meta property="og:description" content="Нужно посчитать две метрики для события orderpaid:">
+  <meta property="og:description" content="После 04/11 у нас есть типизированная таблица месячной когортной активности. Одна строка означает один наблюдаемый период одной когорты:">
   <meta property="og:url" content="https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/">
   <meta name="twitter:card" content="summary">
   <title>Планы запросов и стоимость — Инструменты аналитика</title>
   <link rel="icon" href="../../../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../../style.css?v=20260714c">
-  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Планы запросов и стоимость", "description": "Нужно посчитать две метрики для события orderpaid:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Планы запросов и стоимость", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/"}]}]</script>
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LearningResource", "name": "Планы запросов и стоимость", "description": "После 04/11 у нас есть типизированная таблица месячной когортной активности. Одна строка означает один наблюдаемый период одной когорты:", "url": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/", "inLanguage": "ru", "learningResourceType": "Lesson", "timeRequired": "PT90M", "isAccessibleForFree": true, "isPartOf": {"@type": "Course", "name": "Инструменты аналитика", "url": "https://datascience.xyz/courses/analyst-tools/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Инструменты аналитика", "item": "https://datascience.xyz/courses/analyst-tools/"}, {"@type": "ListItem", "position": 2, "name": "Фаза 04: SQL и DuckDB", "item": "https://datascience.xyz/courses/analyst-tools/catalog.html?phase=4"}, {"@type": "ListItem", "position": 3, "name": "Планы запросов и стоимость", "item": "https://datascience.xyz/courses/analyst-tools/lessons/sql-and-duckdb/query-plans/"}]}]</script>
 </head>
 <body>
   <header class="site-header">
@@ -50,515 +50,825 @@
           <button class="progress-toggle" id="lessonProgress" data-progress-path="phases/04-sql-and-duckdb/12-query-plans" type="button">Отметить пройденным</button>
           <a class="text-link" href="#lesson-files">Код и артефакт ↓</a>
         </section>
-        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="1"><p class="quiz-number">01</p><h3>Что нужно доказать до сравнения работы двух реализаций одного аналитического расчёта?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что более короткая реализация использует меньше памяти</button><button type="button" class="quiz-option" data-choice="1">Что обе реализации дают эквивалентный результат на контрольных сценариях</button><button type="button" class="quiz-option" data-choice="2">Что обе реализации написаны одним языком</button><button type="button" class="quiz-option" data-choice="3">Что первая реализация выполнялась без прогрева</button></div><p class="quiz-feedback" hidden>Performance-сравнение имеет смысл только после semantic gate: варианты должны отвечать на один вопрос и совпадать по проверяемому результату.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">02</p><h3>Функция получила открытую DuckDB connection аргументом. Кто обычно должен её закрыть?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Функция после первого execute</button><button type="button" class="quiz-option" data-choice="1">DuckDB сразу после fetchone</button><button type="button" class="quiz-option" data-choice="2">Код, который создал connection и владеет её жизненным циклом</button><button type="button" class="quiz-option" data-choice="3">Тест независимо от того, кто создал ресурс</button></div><p class="quiz-feedback" hidden>Переданная connection является заимствованным ресурсом: функция использует её, а закрывает владелец, создавший соединение.</p></article></section>
+        <section class="lesson-quiz" data-stage="pre"><p class="eyebrow">Quiz · 2 вопроса</p><h2>Проверка перед уроком</h2><p>Ответьте до чтения: результат поможет заметить исходные предположения.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>Два SQL-запроса должны рассчитывать одну витрину. Что необходимо проверить до обсуждения различий их выполнения?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Что второй запрос короче первого</button><button type="button" class="quiz-option" data-choice="1">Что оба запроса используют одинаковое число CTE</button><button type="button" class="quiz-option" data-choice="2">Что совпадают grain, колонки, dtypes, порядок и значения результата</button><button type="button" class="quiz-option" data-choice="3">Что оба запроса написаны одним автором</button></div><p class="quiz-feedback" hidden>Из предыдущих уроков уже известно: оптимизировать можно только тот же аналитический результат. Совпадение одной итоговой суммы не заменяет проверку grain, схемы, типов, порядка и всех значений.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">02</p><h3>SELECT содержит два независимых scalar subquery, и каждый читает одну relation для своего агрегата. Что можно обоснованно сказать до просмотра физического плана?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Движок обязан материализовать relation во временную таблицу</button><button type="button" class="quiz-option" data-choice="1">Логически есть две входные ветви, но число физических scans ещё нужно подтвердить планом</button><button type="button" class="quiz-option" data-choice="2">Оба подзапроса обязательно выполняются параллельно</button><button type="button" class="quiz-option" data-choice="3">Scalar subquery автоматически меняет grain исходной relation</button></div><p class="quiz-feedback" hidden>Scalar subquery и форма его результата изучены в 04/06. По SQL видны две логические ветви, но оптимизатор может перестроить выполнение, поэтому физические scans подтверждаются планом.</p></article></section>
         <article class="lesson-article"><h1 id="планы-запросов-и-стоимость">Планы запросов и стоимость</h1>
 <blockquote>
-<p>Сначала докажите, что новый запрос отвечает на тот же вопрос, затем ищите в плане
-лишнюю работу и только после этого измеряйте скорость.</p>
+<p>План выполнения показывает не то, как написан SQL, а какую работу движок решил
+выполнить: откуда прочитать строки, как их преобразовать и сколько данных прошло через
+каждый оператор.</p>
 </blockquote>
 <p><strong>Тип:</strong> Learn
 <strong>Треки:</strong> Core
 <strong>Пререквизиты:</strong> 04/11
 <strong>Время:</strong> ~90 минут
-<strong>Результат:</strong> проверяет эквивалентность SQL-вариантов, читает план DuckDB снизу вверх,
-отличает оценки <code>EXPLAIN</code> от фактов <code>EXPLAIN ANALYZE</code> и формулирует ограниченный данными
-вывод о лишней работе.</p>
+<strong>Результат:</strong> для двух эквивалентных <code>SELECT</code> читает структурированные <code>EXPLAIN</code> и
+<code>EXPLAIN ANALYZE</code> снизу вверх, сопоставляет оценки с фактическими строками и находит
+повторное чтение или неожиданный рост данных без вывода о скорости по одному запуску.</p>
 <h2 id="цели-обучения">Цели обучения</h2>
 <p>После урока вы сможете:</p>
 <ul>
-<li>объяснить разницу между результатом запроса, физическим планом и наблюдаемым
-выполнением;</li>
-<li>читать дерево DuckDB от источников данных к итоговому оператору;</li>
-<li>различать оценочную cardinality с <code>~</code> и фактическое число строк;</li>
-<li>находить повторное чтение источника и проверять, сохранился ли аналитический результат;</li>
-<li>объяснить, почему один <code>Total Time</code> не доказывает устойчивое ускорение;</li>
-<li>передать коллеге самостоятельный JSON-отчёт с SQL-вариантами, планами, scope и
-ограниченным выводом.</li>
+<li>объяснить план как дерево физических операторов, а не как пересказ SQL-текста;</li>
+<li>читать дерево от источников к результату и узнавать минимальный набор операторов:
+scan, filter, projection, aggregate, join и sort;</li>
+<li>различать оценённое число строк, фактический выход оператора и число прочитанных строк;</li>
+<li>объяснить, почему <code>EXPLAIN</code> не выполняет запрос, а <code>EXPLAIN ANALYZE</code> выполняет;</li>
+<li>до сравнения планов проверить точное равенство результата, его колонок, порядка и
+dtypes;</li>
+<li>найти две независимые scan-ветви и сравнить их с одним чтением того же входа;</li>
+<li>использовать JSON-план DuckDB вместо разбора изменчивого текстового оформления;</li>
+<li>отделить диагностику формы плана от полноценного benchmarking, который появится в
+фазе 12.</li>
 </ul>
 <h2 id="связь-с-предыдущими-уроками">Связь с предыдущими уроками</h2>
-<p>Этот урок не начинает performance с нуля. Он переносит уже освоенные контракты в план
-SQL-запроса.</p>
+<p>Новый материал опирается на уже пройденные механизмы, но не предполагает знания
+устройства оптимизатора.</p>
 <table>
 <thead>
 <tr>
-<th>Что понадобится</th>
-<th>Где это уже было</th>
+<th>Что уже известно</th>
+<th>Где введено</th>
 <th>Как используется здесь</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Проверка grain и результата</td>
-<td>04/01–04/06</td>
-<td>Более дешёвый план допустим только для того же аналитического результата</td>
+<td>Grain и точный контракт результата</td>
+<td><code>04/01</code>–<code>04/05</code></td>
+<td>Сначала доказываем эквивалентность результата, затем сравниваем работу</td>
 </tr>
 <tr>
-<td><code>FILTER</code> внутри агрегата</td>
-<td>04/04</td>
-<td>Две метрики можно получить после одного чтения источника</td>
+<td><code>count</code>, <code>sum</code>, <code>FILTER</code></td>
+<td><code>04/04</code></td>
+<td>Два агрегата можно рассчитать из одной входной ветви</td>
 </tr>
 <tr>
-<td>Scalar subquery и CTE</td>
-<td>04/06</td>
-<td>Текст SQL может образовать несколько независимых ветвей плана</td>
+<td>Scalar subquery</td>
+<td><code>04/06</code></td>
+<td>Два независимых подзапроса образуют две ветви плана</td>
 </tr>
 <tr>
-<td>Контрольный расчёт и эквивалентность</td>
-<td>02/09, 04/02–04/10</td>
-<td>Performance-сравнение начинается с semantic gate</td>
+<td><code>JOIN</code> и опасность fanout</td>
+<td><code>04/05</code></td>
+<td>По фактическим строкам вокруг join замечаем рост, но не подменяем им grain-контракт</td>
 </tr>
 <tr>
-<td>Явная <code>DuckDBPyConnection</code> и параметры</td>
-<td>04/11</td>
-<td>Функции аудита получают connection и не закрывают чужой ресурс</td>
+<td>Явная DuckDB connection и параметры</td>
+<td><code>04/11</code></td>
+<td>Выполняем <code>EXPLAIN</code> через переданную connection и не склеиваем SQL со значениями</td>
 </tr>
 <tr>
-<td>Отдельный SQL и значения</td>
-<td>04/11</td>
-<td>Имена файлов и событий передаются параметрами, а SQL остаётся доверенным asset</td>
+<td>Регистрация типизированного DataFrame</td>
+<td><code>04/11</code></td>
+<td>Продолжаем работать с той же relation <code>cohort_activity</code>, а не возвращаемся к сырому CSV</td>
 </tr>
 </tbody>
 </table>
-<p>Новые понятия этого урока — физический план, оператор, оценочная и фактическая
-cardinality, а также граница вывода по плану. Устройство cost-based optimizer, алгоритмы
-join order и системный performance tuning остаются за пределами обязательного результата.</p>
-<h2 id="проблема">Проблема</h2>
-<p>Нужно посчитать две метрики для события <code>order_paid</code>:</p>
-<ol>
-<li>число физических строк события;</li>
-<li>число уникальных активных пользователей.</li>
-</ol>
-<p>Первый запрос выглядит прямолинейно: отдельный scalar subquery для каждой метрики.</p>
+<p>В <code>04/06</code> планы запросов были сознательно отложены: тогда важно было научиться собирать
+корректный логический запрос. В <code>04/11</code> вы построили явную программную границу выполнения.
+Теперь обе опоры готовы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">корректный SQL и известный результат
+-&gt; выполнение в конкретной connection
+-&gt; наблюдаемый физический план
+</code></pre></div><h2 id="проблема">Проблема</h2>
+<p>После <code>04/11</code> у нас есть типизированная таблица месячной когортной активности. Одна строка
+означает один наблюдаемый период одной когорты:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">grain -&gt; (cohort_month, period_index)
+</code></pre></div><p>Для январской когорты нужны два контрольных числа:</p>
+<ul>
+<li>сколько периодов присутствует в таблице;</li>
+<li>какова сумма месячных значений <code>active_users</code> по этим периодам.</li>
+</ul>
+<p>Вторую величину мы намеренно называем <code>active_user_period_sum</code>, а не «числом уникальных
+пользователей». Один пользователь мог быть активен в нескольких месяцах, а агрегированная
+когортная таблица уже не содержит <code>user_id</code>. Название метрики сохраняет её единицу:
+пользователь-периоды.</p>
+<p>Первый запрос выглядит естественно: каждая метрика вычисляется отдельным scalar subquery.</p>
 <div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
     (
         SELECT count(*)
-        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-        WHERE event_name = ?
-    ) AS event_rows,
+        FROM cohort_activity
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS cohort_period_rows,
     (
-        SELECT count(DISTINCT user_id)
-        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-        WHERE event_name = ?
-    ) AS active_users;
-</code></pre></div><p>На tiny-файле он возвращает правдоподобный результат:</p>
+        SELECT sum(active_users)::BIGINT
+        FROM cohort_activity
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS active_user_period_sum;
+</code></pre></div><p>Он возвращает правильный результат:</p>
 <table>
 <thead>
 <tr>
-<th style="text-align:right">event_rows</th>
+<th style="text-align:right">cohort_period_rows</th>
+<th style="text-align:right">active_user_period_sum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:right">9</td>
+</tr>
+</tbody>
+</table>
+<p>Второй запрос получает те же числа из одной relation:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
+    count(*) FILTER (
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS cohort_period_rows,
+    CAST(
+        sum(active_users) FILTER (
+            WHERE cohort_month = $cohort_month::DATE
+        ) AS BIGINT
+    ) AS active_user_period_sum
+FROM cohort_activity;
+</code></pre></div><p>По результату запросы неразличимы. По SQL-тексту можно предположить, что первый читает
+вход дважды, а второй один раз. Но предположение о работе движка ещё не является
+наблюдением. Оптимизатор может перестроить выражения, объединить или разделить этапы.</p>
+<p>Нужен способ ответить на три разных вопроса:</p>
+<ol>
+<li>Возвращают ли запросы один и тот же результат?</li>
+<li>Какой физический план выбрал DuckDB для каждого запроса?</li>
+<li>Что фактически произошло при выполнении?</li>
+</ol>
+<h2 id="концепция">Концепция</h2>
+<h3 id="между-sql-и-результатом-есть-план">Между SQL и результатом есть план</h3>
+<p>SQL описывает желаемый результат декларативно. Мы говорим, какие строки и столбцы нужны,
+но обычно не задаём точный алгоритм выполнения.</p>
+<p>Упрощённая цепочка выглядит так:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">SQL-текст
+-&gt; логические операции
+-&gt; оптимизированный физический план
+-&gt; выполнение операторов
+-&gt; результат
+</code></pre></div><p>Для этого урока достаточно различать три уровня.</p>
+<table>
+<thead>
+<tr>
+<th>Уровень</th>
+<th>Главный вопрос</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL-текст</td>
+<td>Что попросил автор?</td>
+<td>два scalar subquery</td>
+</tr>
+<tr>
+<td>Физический план</td>
+<td>Как движок решил это выполнить?</td>
+<td>два scan или один scan</td>
+</tr>
+<tr>
+<td>Профиль выполнения</td>
+<td>Что произошло на этих данных?</td>
+<td>прочитано 7 строк, оператор вернул 4</td>
+</tr>
+</tbody>
+</table>
+<p>Мы не изучаем все промежуточные стадии компилятора SQL. Термин «логический» здесь нужен
+только для контраста: <code>WHERE</code>, <code>JOIN</code> и <code>GROUP BY</code> описывают смысл операций, а
+<code>PANDAS_SCAN</code>, <code>HASH_JOIN</code> и <code>UNGROUPED_AGGREGATE</code> — выбранные DuckDB физические
+операторы.</p>
+<h3 id="план-дерево-движения-данных">План — дерево движения данных</h3>
+<p>У дерева есть:</p>
+<ul>
+<li><strong>листья</strong> — источники данных, обычно scan-операторы;</li>
+<li><strong>промежуточные узлы</strong> — фильтры, проекции, соединения, агрегаты и сортировки;</li>
+<li><strong>корень</strong> — оператор, после которого получается итог запроса.</li>
+</ul>
+<p>Текстовый план DuckDB рисуется корнем сверху, но смысл удобнее восстанавливать снизу
+вверх:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">PANDAS_SCAN
+-&gt; FILTER
+-&gt; PROJECTION
+-&gt; UNGROUPED_AGGREGATE
+-&gt; итоговая строка
+</code></pre></div><p>Читаем это как историю:</p>
+<ol>
+<li>взять строки из pandas relation;</li>
+<li>проверить условие;</li>
+<li>оставить или вычислить нужные выражения;</li>
+<li>свернуть строки в один итог;</li>
+<li>вернуть результат.</li>
+</ol>
+<p>Если у узла два ребёнка, у операции два входа. Так устроены, например, join и объединение
+двух независимых scalar subquery.</p>
+<h3 id="минимальный-словарь-операторов">Минимальный словарь операторов</h3>
+<p>Названия зависят от движка и версии. Запоминать полный каталог не нужно. Важно узнавать
+роль оператора.</p>
+<table>
+<thead>
+<tr>
+<th>Семейство</th>
+<th>Человеческий смысл</th>
+<th>Что проверить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*_SCAN</code></td>
+<td>Прочитать relation, таблицу или файл</td>
+<td>сколько входов и строк прочитано</td>
+</tr>
+<tr>
+<td><code>FILTER</code></td>
+<td>Оставить строки по условию</td>
+<td>сколько строк вошло и вышло</td>
+</tr>
+<tr>
+<td><code>PROJECTION</code></td>
+<td>Выбрать или вычислить выражения</td>
+<td>не изменился ли смысл столбцов</td>
+</tr>
+<tr>
+<td><code>*_AGGREGATE</code></td>
+<td>Свернуть строки до нового grain</td>
+<td>ожидаемое ли число групп или итоговых строк</td>
+</tr>
+<tr>
+<td><code>*_JOIN</code></td>
+<td>Сопоставить две ветви</td>
+<td>не выросло ли число строк неожиданно</td>
+</tr>
+<tr>
+<td><code>ORDER_BY</code> / <code>SORT</code></td>
+<td>Установить порядок</td>
+<td>действительно ли downstream нужен этот порядок</td>
+</tr>
+<tr>
+<td><code>CROSS_PRODUCT</code></td>
+<td>Сочетать строки двух входов</td>
+<td>ожидалось ли такое сочетание</td>
+</tr>
+</tbody>
+</table>
+<p><code>PROJECTION</code> может появляться несколько раз, даже если в SQL один <code>SELECT</code>. Оптимизатор
+создаёт технические выражения и перестраивает дерево. Это не ошибка само по себе.</p>
+<h3 id="одна-строка-sql-не-равна-одному-оператору">Одна строка SQL не равна одному оператору</h3>
+<p>Нельзя надёжно посчитать scans по числу <code>FROM</code>, CTE или упоминаний имени таблицы в тексте.</p>
+<p>Например, CTE может быть встроен в основной запрос, материализован или иначе перестроен.
+Scalar subquery может получить дополнительные операторы, которые проверяют контракт
+«не более одной строки». Условие из <code>FILTER</code> может оказаться вычисляемой projection, а не
+отдельным узлом <code>FILTER</code>.</p>
+<p>Поэтому правильный порядок такой:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">прочитать SQL
+-&gt; предсказать крупные ветви
+-&gt; открыть план
+-&gt; объяснить фактическое дерево
+</code></pre></div><p>План не заменяет понимание SQL, а проверяет предположение о его выполнении.</p>
+<h3 id="cardinality-сколько-строк-выходит-из-оператора">Cardinality — сколько строк выходит из оператора</h3>
+<p><strong>Cardinality</strong> в плане — количество строк на определённой границе дерева. Важно всегда
+уточнять, о какой величине идёт речь.</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Смысл</th>
+<th>Не означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>estimated_rows</code></td>
+<td>Сколько строк оптимизатор ожидал до выполнения</td>
+<td>точный факт о данных</td>
+</tr>
+<tr>
+<td><code>actual_rows</code></td>
+<td>Сколько строк оператор фактически отдал следующему узлу</td>
+<td>сколько строк было физически просмотрено</td>
+</tr>
+<tr>
+<td><code>rows_scanned</code></td>
+<td>Сколько строк прочитал scan-оператор</td>
+<td>число строк итогового результата</td>
+</tr>
+</tbody>
+</table>
+<p>Пусть scan прочитал семь строк, а filter оставил четыре:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scan rows_scanned = 7
+scan actual_rows  = 7
+filter actual_rows = 4
+</code></pre></div><p>Агрегат затем может отдать одну строку:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">aggregate actual_rows = 1
+</code></pre></div><p>Все три числа правильны, но отвечают на разные вопросы.</p>
+<h3 id="оценка-не-обещание">Оценка — не обещание</h3>
+<p>До выполнения оптимизатор не знает фактический результат каждого условия. Он использует
+доступную статистику и правила оценки.</p>
+<p>Если <code>EXPLAIN</code> ожидает одну строку после filter, а <code>EXPLAIN ANALYZE</code> показывает четыре,
+это не автоматически ошибка запроса и не автоматически плохой план. Это наблюдение:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">estimated_rows = 1
+actual_rows    = 4
+</code></pre></div><p>Для маленького примера расхождение нужно уметь назвать. Исследование причин больших
+ошибок оценки, статистики таблиц и порядка сложных joins относится к углублённой работе
+с производительностью.</p>
+<h3 id="explain-и-explain-analyze-отвечают-на-разные-вопросы"><code>EXPLAIN</code> и <code>EXPLAIN ANALYZE</code> отвечают на разные вопросы</h3>
+<table>
+<thead>
+<tr>
+<th>Команда</th>
+<th style="text-align:right">Выполняет исходный запрос</th>
+<th>Что показывает</th>
+<th>Когда нужна</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EXPLAIN</code></td>
+<td style="text-align:right">нет</td>
+<td>выбранный план и оценки</td>
+<td>безопасно рассмотреть предполагаемую форму работы</td>
+</tr>
+<tr>
+<td><code>EXPLAIN ANALYZE</code></td>
+<td style="text-align:right">да</td>
+<td>план, фактические строки и метрики выполнения</td>
+<td>сопоставить ожидания с реальным запуском</td>
+</tr>
+</tbody>
+</table>
+<p>В DuckDB используем структурированный формат:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">EXPLAIN (FORMAT JSON)
+SELECT ...;
+</code></pre></div><p>и:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">EXPLAIN (ANALYZE, FORMAT JSON)
+SELECT ...;
+</code></pre></div><p>Слово <code>ANALYZE</code> принципиально: исходный запрос действительно выполняется. Поэтому
+артефакт урока принимает только уже проверенные statements. Он не является SQL-песочницей
+и не пытается определить безопасность запроса регулярным выражением.</p>
+<p>В учебной практике мы анализируем только <code>SELECT</code>. Не запускайте <code>EXPLAIN ANALYZE</code> над
+изменяющим данные statement, если не готовы к его реальному эффекту.</p>
+<h3 id="план-не-доказывает-корректность-результата">План не доказывает корректность результата</h3>
+<p>План может показать:</p>
+<ul>
+<li>повторное чтение;</li>
+<li>число входных ветвей;</li>
+<li>фактический рост строк вокруг join;</li>
+<li>раннее или позднее сокращение данных;</li>
+<li>тяжёлую сортировку или агрегацию.</li>
+</ul>
+<p>Но он не знает, что одна строка должна означать один заказ или один когортный период. Если
+неверный join размножил выручку, оператор честно покажет выросшее число строк, но не
+назовёт его бизнес-ошибкой.</p>
+<p>Поэтому сравнение начинается с result gate:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">одинаковые колонки
++ одинаковый порядок колонок
++ одинаковые dtypes
++ одинаковые строки и их порядок
++ одинаковые значения
+-&gt; только затем сравниваем планы
+</code></pre></div><p>Быстрый запрос с другим результатом — не оптимизация.</p>
+<h3 id="время-оператора-наблюдение-а-не-готовый-benchmark">Время оператора — наблюдение, а не готовый benchmark</h3>
+<p><code>EXPLAIN ANALYZE</code> сообщает timing. Это полезный сигнал, но один запуск маленькой таблицы
+не отвечает на вопрос «какой вариант быстрее в работе».</p>
+<p>На результат влияют:</p>
+<ul>
+<li>прогрев процесса и библиотек;</li>
+<li>cache;</li>
+<li>размер и распределение данных;</li>
+<li>число потоков;</li>
+<li>файловый формат и устройство хранения;</li>
+<li>конкурирующая нагрузка;</li>
+<li>повторное выполнение запроса самим диагностическим кодом.</li>
+</ul>
+<p>Кроме того, времена отдельных операторов нельзя бездумно складывать: часть метрик может
+быть накопительной, а работа параллельных операторов способна перекрываться по wall time.</p>
+<p>В этом уроке timing сохраняется в таблице операторов, но артефакт не выбирает победителя
+по времени. Воспроизводимые повторы, warm-up, cache policy, медианы и интерпретация
+разброса изучаются в <code>12/01 «Корректный benchmarking»</code>.</p>
+<p>Под «стоимостью» сейчас понимаем наблюдаемую форму работы:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">сколько входных ветвей
+сколько scan-операторов
+сколько строк прочитано
+сколько строк вышло из ключевых операторов
+</code></pre></div><p>Это необходимый минимум до полноценного измерения производительности.</p>
+<h2 id="соберите-это">Соберите это</h2>
+<p>Сначала построим уменьшенную модель плана вручную. DuckDB появится после того, как мы
+сможем предсказать крупные ветви и контрольный результат.</p>
+<h3 id="шаг-1-зафиксируйте-входной-grain">Шаг 1. Зафиксируйте входной grain</h3>
+<p>Используем знакомый типизированный результат <code>04/10</code> и <code>04/11</code>:</p>
+<table>
+<thead>
+<tr>
+<th>cohort_month</th>
+<th>activity_month</th>
+<th style="text-align:right">period_index</th>
 <th style="text-align:right">active_users</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:right">6</td>
+<td>2026-01-01</td>
+<td>2026-01-01</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>2026-01-01</td>
+<td>2026-02-01</td>
+<td style="text-align:right">1</td>
 <td style="text-align:right">3</td>
 </tr>
-</tbody>
-</table>
-<p>Шесть строк включают технический дубль <code>E0005</code>; это осознанная семантика метрики
-<code>event_rows</code>. Второй показатель считает три разных <code>user_id</code>. В этом уроке мы не меняем
-политику дублей — иначе одновременно изменились бы и запрос, и бизнес-вопрос.</p>
-<p>Проблема не видна в результате: каждый subquery независимо обращается к одному CSV.
-На маленьком файле разница во времени теряется в шуме запуска, а на большом повторное
-чтение может стать заметной работой. По длине SQL нельзя надёжно определить, что
-действительно выполнит движок: оптимизатор имеет право перестроить выражения.</p>
-<p>Нужны два доказательства:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">semantic evidence: оба варианта возвращают один и тот же результат
-plan evidence:      кандидат действительно устраняет повторное чтение
-</code></pre></div><p>Только после них имеет смысл задавать отдельный вопрос о времени.</p>
-<h2 id="концепция">Концепция</h2>
-<h3 id="результат-sql-и-план-разные-уровни">Результат, SQL и план — разные уровни</h3>
-<p>Один и тот же результат можно получить разными SQL-текстами. Один SQL-текст, в свою
-очередь, не является буквальной инструкцией «сделай операции в написанном порядке»:
-DuckDB анализирует выражение и выбирает физический план.</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">бизнес-вопрос
-    ↓
-проверяемый результат: одна строка с event_rows и active_users
-    ↓
-SQL: декларативное описание результата
-    ↓
-physical plan: дерево операторов, которое выбрал DuckDB
-    ↓
-execution: конкретный запуск этого плана на конкретных данных
-</code></pre></div><p>Поэтому у каждого уровня свой вопрос:</p>
-<table>
-<thead>
 <tr>
-<th>Уровень</th>
-<th>Контрольный вопрос</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Результат</td>
-<td>Ответили ли оба варианта на один аналитический вопрос?</td>
-</tr>
-<tr>
-<td>План</td>
-<td>Какие источники и операторы реально выбрал движок?</td>
-</tr>
-<tr>
-<td>Выполнение</td>
-<td>Сколько строк прошло через операторы и что наблюдалось по времени?</td>
-</tr>
-</tbody>
-</table>
-<p>Быстрый запрос с другим результатом не является оптимизацией. Красивый план без
-контрольного результата тоже не доказывает корректность.</p>
-<h3 id="физический-план-дерево-потока-строк">Физический план — дерево потока строк</h3>
-<p>В обычном выводе DuckDB <code>EXPLAIN</code> показывает physical plan — дерево физических
-операторов. Для первого чтения полезно идти снизу вверх:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">нижний узел      откуда появляются строки
-      ↓
-следующий узел   что происходит с потоком
-      ↓
-...
-      ↓
-верхний узел     какой результат возвращается
-</code></pre></div><p>В этом уроке достаточно четырёх семейств операторов:</p>
-<table>
-<thead>
-<tr>
-<th>Оператор</th>
-<th>Человеческий вопрос</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>READ_CSV</code> / <code>TABLE_SCAN</code></td>
-<td>Какой источник читается и какие столбцы нужны?</td>
-</tr>
-<tr>
-<td><code>FILTER</code> или условие в <code>PROJECTION</code></td>
-<td>Какие строки или признаки проходят дальше?</td>
-</tr>
-<tr>
-<td><code>PROJECTION</code></td>
-<td>Какие выражения и столбцы формируются?</td>
-</tr>
-<tr>
-<td><code>UNGROUPED_AGGREGATE</code></td>
-<td>Как поток строк превращается в одну итоговую строку?</td>
-</tr>
-</tbody>
-</table>
-<p>Название зависит от версии DuckDB и режима вывода. Например, статический план может
-показывать <code>READ_CSV</code>, а профиль выполнения — <code>TABLE_SCAN</code> с полем
-<code>Function: READ_CSV</code>. Поэтому строка <code>TABLE_SCAN</code> сама по себе не является универсальным
-API-контрактом. Артефакт сохраняет полный текст и считает узкий, заранее объявленный
-маркер <code>Function: READ_CSV</code> только для этого учебного эксперимента.</p>
-<h3 id="сначала-нарисуйте-ожидаемую-работу">Сначала нарисуйте ожидаемую работу</h3>
-<p>Для двух scalar subquery ожидаем две независимые ветви:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">READ_CSV #1 -&gt; filter order_paid -&gt; count rows -----------\
-                                                           -&gt; одна строка результата
-READ_CSV #2 -&gt; filter order_paid -&gt; count distinct users -/
-</code></pre></div><p>Кандидат объединяет метрики в одном агрегате:</p>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
-    count(*) FILTER (WHERE event_name = ?) AS event_rows,
-    count(DISTINCT user_id) FILTER (WHERE event_name = ?) AS active_users
-FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;);
-</code></pre></div><p>Ожидаемая работа теперь такая:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">READ_CSV -&gt; два булевых условия -&gt; один aggregate -&gt; одна строка результата
-</code></pre></div><p>Это пока гипотеза. Даже очевидную схему нужно сверить с <code>EXPLAIN</code>, потому что движок
-может встроить фильтр в scan, объединить выражения, переиспользовать подвыражение или,
-наоборот, создать дополнительную ветвь.</p>
-<h3 id="explain-план-и-оценки-без-выполнения"><code>EXPLAIN</code>: план и оценки без выполнения</h3>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">EXPLAIN
-SELECT ...;
-</code></pre></div><p>Обычный <code>EXPLAIN</code> не выполняет целевой запрос. Он показывает выбранный план и оценочную
-cardinality — сколько строк, по мнению оптимизатора, будет выдавать оператор.</p>
-<p>В DuckDB оценка отмечается тильдой:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">~31 rows
-</code></pre></div><p>Это не обещание и не скрытый точный <code>count(*)</code>. Оценка строится до выполнения по
-статистике и эвристикам. Она нужна оптимизатору, чтобы сравнивать варианты плана.</p>
-<p>Для tiny CSV урока scan фактически читает 16 строк, но <code>EXPLAIN</code> может показать
-<code>~31 rows</code>. Это полезный контраст:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">~31 rows  = estimate before execution
- 16 rows  = observed cardinality in this execution
-</code></pre></div><p>Расхождение не означает автоматически неверный результат. Оно становится сигналом для
-диагностики, особенно если ошибка оценки многократно раздувается перед <code>JOIN</code> или
-агрегацией.</p>
-<h3 id="explain-analyze-запрос-действительно-выполняется"><code>EXPLAIN ANALYZE</code>: запрос действительно выполняется</h3>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">EXPLAIN ANALYZE
-SELECT ...;
-</code></pre></div><p><code>EXPLAIN ANALYZE</code> запускает целевой запрос и добавляет:</p>
-<ul>
-<li>фактические числа строк операторов;</li>
-<li>наблюдаемые времена операторов;</li>
-<li>общий <code>Total Time</code>;</li>
-<li>сведения о реально прочитанных файлах.</li>
-</ul>
-<p>Это важная граница безопасности. Для нашего доверенного <code>SELECT</code> выполнение только
-читает данные. Для <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>COPY</code> или внешней функции
-<code>EXPLAIN ANALYZE</code> может произвести реальные эффекты. Слово <code>EXPLAIN</code> перед запросом не
-превращает произвольный SQL в безопасный preview.</p>
-<h3 id="cardinality-относится-к-выходу-узла">Cardinality относится к выходу узла</h3>
-<p>Cardinality оператора — число строк, которое этот узел выдаёт родителю, а не
-универсальное «сколько данных было дорого обработано».</p>
-<p>Например:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scan читает 16 строк
-aggregate выдаёт 1 строку
-</code></pre></div><p>Одна строка на выходе aggregate не означает, что оператору была доступна только одна
-входная строка. При чтении плана задавайте два вопроса:</p>
-<ol>
-<li>сколько строк пришло снизу;</li>
-<li>сколько строк узел передал вверх.</li>
-</ol>
-<p>Для <code>JOIN</code> особенно важно сопоставить размеры обеих сторон и выходную cardinality:
-резкий рост может быть ожидаемым many-to-many результатом или признаком fanout из 04/05.</p>
-<h3 id="стоимость-не-равна-одному-runtime">«Стоимость» не равна одному runtime</h3>
-<p>Название урока использует стоимость в рабочем смысле: объём наблюдаемой работы, который
-помогает объяснить поведение запроса. В DuckDB-плане этого эксперимента мы смотрим на:</p>
-<ul>
-<li>число чтений источника;</li>
-<li>поток строк между операторами;</li>
-<li>ширину проекции, видимую по выбранным столбцам;</li>
-<li>фактические времена как диагностические наблюдения.</li>
-</ul>
-<p>Нельзя делать вывод:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">0.003 s &lt; 0.019 s -&gt; кандидат всегда быстрее в 6.3 раза
-</code></pre></div><p>Один запуск смешивает собственно выполнение с прогревом, файловым кэшем, компиляцией,
-нагрузкой машины и малым объёмом данных. Кроме того, времена операторов могут быть
-накопительными, а при параллельной работе перекрываться; их не следует безусловно
-складывать.</p>
-<p>Допустимый вывод по этому уроку уже:</p>
-<blockquote>
-<p>На DuckDB указанной версии и данном входе варианты вернули одинаковые две метрики.
-В плане кандидата один узел чтения <code>READ_CSV</code> вместо двух. Это подтверждает устранение
-повторного чтения в данном workload; устойчивый коэффициент ускорения не измерялся.</p>
-</blockquote>
-<p>Если решение действительно зависит от скорости, после план-аудита нужен отдельный
-benchmark-протокол из 02/09: representative data, фиксированный scope, warm-up, повторы,
-распределение времени и сведения об окружении.</p>
-<h2 id="соберите-это">Соберите это</h2>
-<h3 id="шаг-1-зафиксируйте-semantic-contract">Шаг 1. Зафиксируйте semantic contract</h3>
-<p>До планов запишите результат обеих метрик на tiny:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">input: ../data/tiny/events.csv
-event_name: order_paid
-result grain: одна строка на весь выбранный файл
-event_rows: 6
-active_users: 3
-</code></pre></div><p><code>event_rows</code> и <code>active_users</code> проверяются отдельно. Одного совпавшего общего числа
-недостаточно: компенсирующие ошибки могли бы скрыть изменение population.</p>
-<h3 id="шаг-2-нарисуйте-план-карточками">Шаг 2. Нарисуйте план карточками</h3>
-<p>Не копируйте вывод DuckDB. Сначала предскажите минимальное дерево для каждого SQL:</p>
-<table>
-<thead>
-<tr>
-<th>Вариант</th>
-<th style="text-align:right">Чтения источника</th>
-<th style="text-align:right">Фильтры</th>
-<th style="text-align:right">Итоговая cardinality</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>two_scans</code></td>
+<td>2026-01-01</td>
+<td>2026-03-01</td>
 <td style="text-align:right">2</td>
-<td style="text-align:right">по одному в каждой ветви</td>
-<td style="text-align:right">1 строка</td>
+<td style="text-align:right">2</td>
 </tr>
 <tr>
-<td><code>one_scan</code></td>
+<td>2026-01-01</td>
+<td>2026-04-01</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>2026-02-01</td>
+<td>2026-02-01</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">3</td>
+</tr>
+<tr>
+<td>2026-02-01</td>
+<td>2026-03-01</td>
 <td style="text-align:right">1</td>
-<td style="text-align:right">два условия одного aggregate</td>
-<td style="text-align:right">1 строка</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td>2026-02-01</td>
+<td>2026-04-01</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1</td>
 </tr>
 </tbody>
 </table>
-<p>Теперь у <code>EXPLAIN</code> есть проверяемый вопрос: совпал ли выбранный движком plan shape с
-ожиданием?</p>
-<h3 id="шаг-3-получите-статический-план">Шаг 3. Получите статический план</h3>
-<p>Python API из 04/11 позволяет передать параметры и к <code>EXPLAIN</code>:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">plan_row = connection.execute(
-    &quot;EXPLAIN &quot; + trusted_sql,
-    parameters,
-).fetchone()
+<p>Всего семь строк. Январской когорте принадлежат четыре строки.</p>
+<h3 id="шаг-2-рассчитайте-результат-без-плана">Шаг 2. Рассчитайте результат без плана</h3>
+<p>Для <code>cohort_month = 2026-01-01</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cohort_period_rows      = 4
+active_user_period_sum  = 4 + 3 + 2 + 0 = 9
+result grain            = одна строка на выбранную когорту
+</code></pre></div><p>Эти значения становятся oracle. Если второй запрос вернёт <code>3</code> и <code>9</code>, <code>4</code> и <code>8</code> или
+поменяет dtype суммы, сравнивать его план с исходным нельзя.</p>
+<h3 id="шаг-3-нарисуйте-ветви-первого-запроса">Шаг 3. Нарисуйте ветви первого запроса</h3>
+<p>Не пытаемся предсказать все технические projections. Достаточно крупных этапов:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">ветвь A                                ветвь B
+cohort_activity                        cohort_activity
+-&gt; выбрать январь                      -&gt; выбрать январь
+-&gt; count(*) = 4                        -&gt; sum(active_users) = 9
+          \                            /
+           -&gt; соединить два скаляра
+           -&gt; одна строка (4, 9)
+</code></pre></div><p>Ожидание до запуска:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scan branches = 2
+rows scanned  = 7 + 7 = 14
+filter output = 4 в каждой ветви
+result rows   = 1
+</code></pre></div><p>Это гипотеза о физическом плане. DuckDB может добавить операторы проверки scalar
+subquery, но две независимые ветви должны остаться наблюдаемыми, если оптимизатор их не
+объединит.</p>
+<h3 id="шаг-4-нарисуйте-ветвь-второго-запроса">Шаг 4. Нарисуйте ветвь второго запроса</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cohort_activity
+-&gt; вычислить условие cohort_month = 2026-01-01
+-&gt; count FILTER и sum FILTER
+-&gt; одна строка (4, 9)
+</code></pre></div><p>Ожидание:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scan branches = 1
+rows scanned  = 7
+aggregate output = 1
+result rows   = 1
+</code></pre></div><p>Обратите внимание: условие написано внутри двух <code>FILTER</code>, но это не требует двух чтений.
+Одна строка входа может передать вычисленный признак обоим агрегатам.</p>
+<h3 id="шаг-5-сформулируйте-контракт-сравнения">Шаг 5. Сформулируйте контракт сравнения</h3>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">обязательно:
+  exact result equality = true
+  result columns = [cohort_period_rows, active_user_period_sum]
+  result dtypes = [int64, int64]
+  result values = [(4, 9)]
 
-plan_text = plan_row[1]
-</code></pre></div><p><code>trusted_sql</code> остаётся заранее проверенным asset. Параметры передают путь и значение
-события, но не делают произвольный SQL безопасным.</p>
-<p>Для каждого плана сохраните:</p>
-<ul>
-<li>полный текст;</li>
-<li>число объявленных узлов чтения источника;</li>
-<li>все встреченные оценки <code>~N rows</code>.</li>
-</ul>
-<h3 id="шаг-4-выполните-explain-analyze">Шаг 4. Выполните <code>EXPLAIN ANALYZE</code></h3>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">analyzed_row = connection.execute(
-    &quot;EXPLAIN ANALYZE &quot; + trusted_sql,
-    parameters,
-).fetchone()
-</code></pre></div><p>Теперь сохраните:</p>
-<ul>
-<li>полный analyzed plan;</li>
-<li>фактические row markers без <code>~</code>;</li>
-<li><code>Total Time</code> как наблюдение;</li>
-<li>число фактических чтений источника.</li>
-</ul>
-<p>Не сравнивайте времена до semantic gate.</p>
-<h3 id="шаг-5-сначала-сравните-результаты">Шаг 5. Сначала сравните результаты</h3>
-<p>Оба SQL выполняются отдельно и возвращают именованные поля:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">{
-    &quot;event_rows&quot;: 6,
-    &quot;active_users&quot;: 3,
-}
-</code></pre></div><p>Логика решения:</p>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">results differ
--&gt; stop: candidate is not an optimization of the same calculation
+плановое ожидание:
+  baseline scan operators = 2
+  candidate scan operators = 1
+  baseline rows scanned = 14
+  candidate rows scanned = 7
 
-results equal and source reads decrease
--&gt; supported plan-shape improvement on this input
-
-results equal but source reads do not decrease
--&gt; inspect other operators; no improvement proved yet
-</code></pre></div><h3 id="шаг-6-не-закрывайте-чужую-connection">Шаг 6. Не закрывайте чужую connection</h3>
-<p>Публичная функция артефакта принимает <code>DuckDBPyConnection</code>:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">report = build_plan_report(connection, events_path)
-</code></pre></div><p>Она использует, но не закрывает соединение. CLI создаёт собственную connection и закрывает
-её в <code>finally</code>. Это тот же ownership contract, который был введён в 04/11.</p>
-<h3 id="шаг-7-запустите-компактную-демонстрацию">Шаг 7. Запустите компактную демонстрацию</h3>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
-</code></pre></div><p>Вы увидите:</p>
-<ul>
-<li>совпавшие результаты;</li>
-<li>отдельные списки estimate и actual row markers;</li>
-<li>два чтения против одного;</li>
-<li><code>safe_to_compare_work: true</code>;</li>
-<li>явный запрет превращать одно timing-наблюдение в обещание скорости.</li>
-</ul>
+не утверждаем:
+  candidate обязательно быстрее на tiny
+</code></pre></div><p>Теперь можно переходить к DuckDB.</p>
 <h2 id="используйте-это">Используйте это</h2>
-<h3 id="запуск-на-tiny">Запуск на tiny</h3>
-<p>Из корня урока:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/plan_report.py \
-  --events ../data/tiny/events.csv \
-  --event-name order_paid \
-  --output plan-audit.json
-</code></pre></div><h3 id="запуск-на-sample">Запуск на sample</h3>
-<p>Сначала сгенерируйте воспроизводимый профиль:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python ../data/generate_data.py --profile sample
-</code></pre></div><p>Затем:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/plan_report.py \
-  --events ../data/sample/events.csv \
-  --event-name order_paid \
-  --output plan-audit-sample.json
-</code></pre></div><p>Sample нужен не для автоматического объявления победителя. Он позволяет проверить,
-сохраняется ли plan shape и становится ли повторное чтение практически значимым на более
-представительном объёме.</p>
-<h3 id="как-читать-json-отчёт">Как читать JSON-отчёт</h3>
-<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scope
-├── engine и engine_version
-├── events_path и event_name
-└── claim_boundary
+<h3 id="1-сохраните-явную-connection">1. Сохраните явную connection</h3>
+<p>Повторяем границу <code>04/11</code>:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">connection = duckdb.connect()
+try:
+    report = compare_dataframe_queries(
+        connection,
+        relation_name=&quot;cohort_activity&quot;,
+        frame=cohort_activity,
+        baseline_sql=baseline_sql,
+        candidate_sql=candidate_sql,
+        parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+    )
+finally:
+    connection.close()
+</code></pre></div><p>Функция временно регистрирует <code>cohort_activity</code> и снимает регистрацию в <code>finally</code>.
+Connection остаётся открытой до завершения внешнего блока: вложенная функция не закрывает
+чужой ресурс.</p>
+<h3 id="2-получите-план-без-выполнения">2. Получите план без выполнения</h3>
+<p>Внутри <code>inspect_reviewed_query</code> выполняется:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">row = connection.execute(
+    &quot;EXPLAIN (FORMAT JSON) &quot; + sql,
+    parameters,
+).fetchone()
 
-variants
-├── two_scans
-│   ├── result
-│   ├── explain
-│   └── explain_analyze
-└── one_scan
-    ├── result
-    ├── explain
-    └── explain_analyze
+planned = json.loads(row[1])
+</code></pre></div><p>JSON содержит вложенные объекты с полями <code>name</code>, <code>children</code> и <code>extra_info</code>. Для scan в
+<code>extra_info</code> находится <code>Estimated Cardinality</code>.</p>
+<p>Упрощённо:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;name&quot;: &quot;PANDAS_SCAN&quot;,
+  &quot;children&quot;: [],
+  &quot;extra_info&quot;: {
+    &quot;Estimated Cardinality&quot;: &quot;7&quot;
+  }
+}
+</code></pre></div><p>Это структурированный API плана. Мы не считаем слово <code>TABLE_SCAN</code> в ASCII-рамке и не
+извлекаем время регулярным выражением.</p>
+<h3 id="3-получите-фактический-профиль">3. Получите фактический профиль</h3>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">row = connection.execute(
+    &quot;EXPLAIN (ANALYZE, FORMAT JSON) &quot; + sql,
+    parameters,
+).fetchone()
 
-comparison
-├── results_equal
-├── safe_to_compare_work
-├── source_reads_removed
-├── timing_claim_allowed
-└── conclusion
-</code></pre></div><p>Полный <code>plan_text</code> важнее извлечённых счётчиков. Счётчик — удобный тест конкретного
-failure mode, а текст сохраняет evidence для человека и позволяет увидеть изменение
-операторов после обновления DuckDB.</p>
+analyzed = json.loads(row[1])
+</code></pre></div><p>Для каждого оператора доступны, среди прочего:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">operator_name
+operator_cardinality
+operator_rows_scanned
+operator_timing
+children
+</code></pre></div><p>Помните: на этом шаге <code>sql</code> выполняется.</p>
+<h3 id="4-превратите-дерево-в-таблицу-evidence">4. Превратите дерево в таблицу evidence</h3>
+<p>Артефакт рекурсивно обходит оба дерева, присваивает узлам путь и соединяет плановые и
+фактические поля:</p>
+<table>
+<thead>
+<tr>
+<th>path</th>
+<th>operator</th>
+<th style="text-align:right">estimated_rows</th>
+<th style="text-align:right">actual_rows</th>
+<th style="text-align:right">rows_scanned</th>
+<th style="text-align:right">timing_seconds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td><code>PROJECTION</code></td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">наблюдение</td>
+</tr>
+<tr>
+<td><code>0.0</code></td>
+<td><code>UNGROUPED_AGGREGATE</code></td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">наблюдение</td>
+</tr>
+<tr>
+<td><code>0.0.0</code></td>
+<td><code>PROJECTION</code></td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">наблюдение</td>
+</tr>
+<tr>
+<td><code>0.0.0.0</code></td>
+<td><code>PROJECTION</code></td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">наблюдение</td>
+</tr>
+<tr>
+<td><code>0.0.0.0.0</code></td>
+<td><code>PANDAS_SCAN</code></td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">7</td>
+<td style="text-align:right">наблюдение</td>
+</tr>
+</tbody>
+</table>
+<p>Таблица хранится корнем вперёд, но читаем её от самого глубокого пути:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">0.0.0.0.0 -&gt; scan прочитал и отдал 7 строк
+0.0.0.0   -&gt; вычислены выражения
+0.0.0     -&gt; подготовлены входы агрегатов
+0.0       -&gt; агрегат отдал 1 строку
+0         -&gt; результат приведён к объявленным типам
+</code></pre></div><p>Точное число <code>PROJECTION</code> не является учебным инвариантом. Значимы одна входная ветвь,
+один scan семи строк и одна итоговая строка.</p>
+<h3 id="5-сравните-два-плана-только-после-result-gate">5. Сравните два плана только после result gate</h3>
+<p><code>compare_reviewed_queries</code> сначала выполняет оба statements и использует точное
+<code>assert_frame_equal</code>:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">columns
+dtypes
+row order
+values
+</code></pre></div><p>При различии функция останавливается:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">candidate result differs from baseline; plans are not comparable
+</code></pre></div><p>Только после этого формируется сравнение:</p>
+<div class="code-block"><span class="code-language">json</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-json">{
+  &quot;scope&quot;: {
+    &quot;engine&quot;: &quot;duckdb&quot;,
+    &quot;engine_version&quot;: &quot;зафиксированная версия окружения&quot;,
+    &quot;relation_name&quot;: &quot;cohort_activity&quot;,
+    &quot;input_rows&quot;: 7
+  },
+  &quot;baseline&quot;: {
+    &quot;scan_operators&quot;: 2,
+    &quot;rows_scanned&quot;: 14
+  },
+  &quot;candidate&quot;: {
+    &quot;scan_operators&quot;: 1,
+    &quot;rows_scanned&quot;: 7
+  },
+  &quot;scan_operators_removed&quot;: 1,
+  &quot;timing_is_observation_not_verdict&quot;: true
+}
+</code></pre></div><p>Каждый statement фактически выполняется дважды: один раз для результата и второй раз
+внутри <code>EXPLAIN ANALYZE</code>. Это осознанная цена учебного аудита и ещё одна причина не
+считать полученный timing benchmark-результатом.</p>
+<p>Запустите пример:</p>
+<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python code/main.py
+</code></pre></div><h3 id="6-перенесите-способ-чтения-на-join">6. Перенесите способ чтения на join</h3>
+<p>Пусть есть две маленькие relation:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">cohorts(cohort_id unique, cohort_size)
+segments(cohort_id unique, segment)
+</code></pre></div><p>Запрос:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT c.cohort_id, c.cohort_size, s.segment
+FROM cohorts AS c
+INNER JOIN segments AS s USING (cohort_id)
+ORDER BY c.cohort_id;
+</code></pre></div><p>Крупная форма плана:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">scan cohorts ----\
+                  -&gt; HASH_JOIN -&gt; ORDER_BY -&gt; result
+scan segments ---/
+</code></pre></div><p>Читаем:</p>
+<ol>
+<li>найти два scan-листа;</li>
+<li>проверить actual rows каждого входа;</li>
+<li>найти join-узел;</li>
+<li>проверить actual rows после join;</li>
+<li>сопоставить число строк с заявленной cardinality <code>one-to-one</code>.</li>
+</ol>
+<p>Если справа появится дубликат <code>cohort_id</code>, join может отдать три строки вместо двух. План
+сделает рост наблюдаемым, но смысл нарушения по-прежнему определяется контрактом ключа из
+<code>04/05</code>.</p>
+<p>Названия <code>HASH_JOIN</code>, build side и probe side относятся к физической реализации. Для
+этого урока достаточно увидеть две входные ветви, тип join и изменение числа строк.</p>
 <h2 id="сломайте-это">Сломайте это</h2>
-<h3 id="1-упростите-план-ценой-другой-population">1. Упростите план ценой другой population</h3>
-<p>Ошибочный кандидат оставляет фильтр только для <code>event_rows</code>:</p>
-<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">SELECT
-    count(*) FILTER (WHERE event_name = ?) AS event_rows,
-    count(DISTINCT user_id) AS active_users
-FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;);
-</code></pre></div><p>План содержит одно чтение, но результат равен <code>(6, 8)</code>, а не <code>(6, 3)</code>.
-<code>safe_to_compare_work</code> обязан стать <code>false</code>. Это наиболее опасная оптимизация:
-быстрый и правдоподобный ответ на другой вопрос.</p>
-<h3 id="2-перепутайте-estimate-и-actual">2. Перепутайте estimate и actual</h3>
-<p>Скопируйте <code>~31 rows</code> из <code>EXPLAIN</code> в отчёт как «файл содержит 31 строку». Проверка
-фактического плана покажет 16. Тильда — часть смысла, а не оформление.</p>
-<h3 id="3-запустите-explain-analyze-на-неизвестном-sql">3. Запустите <code>EXPLAIN ANALYZE</code> на неизвестном SQL</h3>
-<p><code>EXPLAIN ANALYZE</code> выполняет запрос. Не используйте его как валидатор «read-only» для
-непроверенного текста и не разрешайте произвольный SQL через CLI артефакта.</p>
-<h3 id="4-объявите-коэффициент-ускорения-по-tiny">4. Объявите коэффициент ускорения по tiny</h3>
-<p>Даже если один запуск показывает заметную разницу, тесты не утверждают порядок времени.
-На маленьком файле запуск, файловый кэш и шум могут быть сопоставимы с полезной работой.</p>
-<h3 id="5-судите-о-плане-по-числу-cte-или-длине-sql">5. Судите о плане по числу CTE или длине SQL</h3>
-<p>CTE может быть встроен, материализован или переиспользован в зависимости от запроса и
-версии движка. Число слов <code>WITH</code> не равно числу scan. Проверяйте физический план.</p>
-<h3 id="6-сделайте-текстовый-парсер-универсальным-обещанием">6. Сделайте текстовый парсер универсальным обещанием</h3>
-<p>Формат pretty-printed plan может измениться между версиями. Артефакт:</p>
-<ul>
-<li>сохраняет версию DuckDB;</li>
-<li>хранит полный текст;</li>
-<li>извлекает только узкие сигналы этого эксперимента;</li>
-<li>не обещает совместимость счётчиков с любой СУБД.</li>
-</ul>
-<h3 id="7-закройте-переданную-connection">7. Закройте переданную connection</h3>
-<p>Если <code>build_plan_report</code> закроет соединение, вызывающий код потеряет свой каталог и
-последующие запросы. Behavioral test выполняет <code>SELECT 42</code> после аудита и подтверждает
-сохранение ownership.</p>
+<h3 id="1-сравните-разные-результаты">1. Сравните разные результаты</h3>
+<p>Добавьте к сумме единицу:</p>
+<div class="code-block"><span class="code-language">sql</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-sql">CAST(sum(active_users) FILTER (...) AS BIGINT) + 1
+    AS active_user_period_sum
+</code></pre></div><p>Если сначала смотреть только на scan count, такой кандидат покажется «лучше». Result gate
+должен остановить сравнение до обсуждения плана.</p>
+<h3 id="2-посчитайте-scans-по-sql-тексту">2. Посчитайте scans по SQL-тексту</h3>
+<p>Число <code>FROM</code>, CTE или упоминаний relation не является физическим планом. Оптимизатор
+может перестроить запрос. Сначала сформулируйте ожидание, затем проверьте дерево.</p>
+<h3 id="3-примите-estimate-за-факт">3. Примите estimate за факт</h3>
+<p>В зафиксированном примере filter может иметь:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">estimated_rows = 1
+actual_rows = 4
+</code></pre></div><p>Фраза «после фильтра точно одна строка» неверна. Оценка существовала до выполнения.</p>
+<h3 id="4-перепутайте-output-rows-и-rows-scanned">4. Перепутайте output rows и rows scanned</h3>
+<p>Агрегат возвращает одну строку, но это не означает, что запрос прочитал одну строку.
+Ищите scan-узел и его <code>rows_scanned</code>.</p>
+<h3 id="5-назовите-победителя-по-одному-timing">5. Назовите победителя по одному timing</h3>
+<p>На семи строках различия сопоставимы с накладными расходами. Даже если candidate timing
+меньше, формулировка остаётся ограниченной:</p>
+<blockquote>
+<p>В этом запуске candidate использовал одну scan-ветвь вместо двух. Ускорение на рабочем
+объёме не измерялось.</p>
+</blockquote>
+<h3 id="6-запустите-explain-analyze-как-безопасный-preview">6. Запустите <code>EXPLAIN ANALYZE</code> как безопасный preview</h3>
+<p><code>ANALYZE</code> выполняет исходный statement. Артефакт не проверяет первое слово SQL и не
+обещает read-only. Передавайте только проверенные <code>SELECT</code>-assets.</p>
+<h3 id="7-объявите-любой-cross-product-ошибкой">7. Объявите любой <code>CROSS_PRODUCT</code> ошибкой</h3>
+<p>В baseline он объединяет два скалярных результата <code>1 × 1</code> и отдаёт одну строку. Это
+ожидаемая форма. Опасность определяется cardinality входов и бизнес-смыслом, а не одним
+названием оператора.</p>
+<h3 id="8-оптимизируйте-количество-технических-projections">8. Оптимизируйте количество технических projections</h3>
+<p>Число <code>PROJECTION</code> может меняться с версией DuckDB и преобразованием типов. Не ставьте
+цель «уменьшить каждый узел». Сначала найдите наблюдаемую дорогую или подозрительную
+работу: повторное чтение, рост строк, позднее сокращение или сортировку.</p>
 <h2 id="проверьте-это">Проверьте это</h2>
-<p>Запустите:</p>
+<p>Behavioral tests фиксируют содержательные инварианты.</p>
+<p><strong>Эквивалентность результата:</strong></p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">columns = [cohort_period_rows, active_user_period_sum]
+dtypes  = [int64, int64]
+values  = [(4, 9)] для января
+values  = [(3, 6)] для февраля
+values  = [(0, NULL)] для отсутствующей когорты
+</code></pre></div><p><strong>Форма основного плана:</strong></p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">baseline scan operators = 2
+baseline rows scanned = 14
+candidate scan operators = 1
+candidate rows scanned = 7
+scan operators removed = 1
+</code></pre></div><p><strong>Оценки и факты:</strong></p>
+<ul>
+<li>таблица содержит отдельные <code>estimated_rows</code>, <code>actual_rows</code> и <code>rows_scanned</code>;</li>
+<li>baseline filters фактически отдают четыре январские строки;</li>
+<li>timing не превращается в поле <code>faster_query</code> или иной автоматический вердикт.</li>
+<li>scope сохраняет версию DuckDB, relation, размер, columns и dtypes входа, а каждый
+вариант — SQL и параметры.</li>
+</ul>
+<p><strong>Перенос на join:</strong></p>
+<ul>
+<li>план содержит два scan-входа;</li>
+<li>между ними найден <code>HASH_JOIN</code>;</li>
+<li>one-to-one пример отдаёт две строки после join.</li>
+</ul>
+<p><strong>Программная граница:</strong></p>
+<ul>
+<li>relation снимается после успеха и после ошибки;</li>
+<li>переданная connection остаётся открытой;</li>
+<li>невалидный relation name и не-DataFrame отклоняются;</li>
+<li>артефакт использует JSON и не разбирает ASCII-план регулярным выражением;</li>
+<li>CLI отсутствует.</li>
+</ul>
+<p>Запустите только тесты урока:</p>
 <div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python -m unittest discover -s tests
-</code></pre></div><p>Behavioral suite проверяет:</p>
-<ul>
-<li>точные две метрики и их эквивалентность;</li>
-<li>два чтения против одного в <code>EXPLAIN</code> и <code>EXPLAIN ANALYZE</code>;</li>
-<li>наличие оценок только в статическом evidence;</li>
-<li>наличие фактических строк и <code>Total Time</code> после выполнения;</li>
-<li>несовпадение estimate и actual на tiny CSV;</li>
-<li>присутствие <code>READ_CSV</code>, <code>PROJECTION</code> и <code>UNGROUPED_AGGREGATE</code>;</li>
-<li>блокировку кандидата с неверной population;</li>
-<li>нулевой сценарий для отсутствующего события;</li>
-<li>запрет обещания speedup по одному timing;</li>
-<li>версию движка и scope входа;</li>
-<li>сохранение caller-owned connection;</li>
-<li>ошибки отсутствующего файла, пустого <code>event_name</code> и неподтверждённого SQL-кандидата;</li>
-<li>JSON stdout, запись самостоятельного отчёта и ошибку CLI.</li>
-</ul>
-<p>Тесты сознательно не содержат assertion вида:</p>
-<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">candidate_time &lt; baseline_time
-</code></pre></div><p>Такой порог был бы нестабилен и проверял бы текущую машину вместе с SQL. Здесь
-автоматически проверяются результат и plan shape; скорость требует отдельного
-benchmark-контракта.</p>
+</code></pre></div><p>Успешные тесты подтверждают reference implementation. Освоение урока означает, что вы
+можете взять новый план, начать со scan-листьев, проследить изменение строк и отделить
+наблюдение от вывода о производительности.</p>
 <h2 id="поставьте-результат">Поставьте результат</h2>
-<p>Именованный артефакт урока — <code>duckdb-plan-report</code>:</p>
-<div class="code-block"><span class="code-language">bash</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-bash">uv run --locked python outputs/plan_report.py \
-  --events /path/to/events.csv \
-  --event-name order_paid \
-  --output plan-audit.json
-</code></pre></div><p>Артефакт самодостаточен:</p>
+<p>Главный артефакт — <code>outputs/duckdb_plan_audit.py</code>.</p>
+<p>Он предоставляет три уровня повторного использования:</p>
 <ul>
-<li>принимает явный путь и значение события;</li>
-<li>выполняет только два встроенных доверенных SQL-варианта;</li>
-<li>фиксирует DuckDB version и входной scope;</li>
-<li>сохраняет результат, <code>EXPLAIN</code>, <code>EXPLAIN ANALYZE</code> и plan signals;</li>
-<li>не закрывает переданную connection в библиотечном API;</li>
-<li>формулирует вывод, ограниченный этим запросом, входом и версией движка.</li>
+<li><code>inspect_reviewed_query</code> — получить результат, JSON-планы и таблицу операторов одного
+проверенного statement;</li>
+<li><code>compare_reviewed_queries</code> — сначала проверить точную эквивалентность, затем сравнить
+два плана внутри уже подготовленной connection;</li>
+<li><code>compare_dataframe_queries</code> — временно зарегистрировать один типизированный DataFrame,
+выполнить сравнение и гарантированно снять регистрацию.</li>
 </ul>
-<p>Передавая отчёт коллеге, добавьте только внешний контекст: почему именно эти две метрики
-и этот workload важны. Все технические evidence уже находятся в JSON.</p>
+<p>SQL-assets:</p>
+<ul>
+<li><code>outputs/repeated_scan.sql</code> — baseline с двумя ветвями;</li>
+<li><code>outputs/single_scan.sql</code> — эквивалентный кандидат с одной ветвью.</li>
+</ul>
+<p>Минимальный вызов:</p>
+<div class="code-block"><span class="code-language">python</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-python">report = compare_dataframe_queries(
+    connection,
+    relation_name=&quot;cohort_activity&quot;,
+    frame=cohort_activity,
+    baseline_sql=repeated_scan_sql,
+    candidate_sql=single_scan_sql,
+    parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+)
+</code></pre></div><p>Артефакт пригоден для review двух проверенных аналитических запросов, когда нужно
+зафиксировать:</p>
+<div class="code-block"><span class="code-language">text</span><button class="copy-button" type="button">Копировать</button><pre><code class="language-text">результаты эквивалентны
+-&gt; планы получены в одном контексте
+-&gt; scan-ветви и строки наблюдаемы
+-&gt; timing не выдан за доказанное ускорение
+</code></pre></div><p>CLI сознательно не добавляется. Новый инструмент используется внутри Python-проверки,
+ноутбука или следующего интеграционного pipeline; командная оболочка не делает чтение
+дерева понятнее.</p>
 <h2 id="упражнения">Упражнения</h2>
 <ol>
-<li>На tiny вручную подпишите каждый оператор плана кандидата вопросами «что получает?»,
-«что выдаёт?» и «сколько строк проходит?». Сверьте <code>~N rows</code> с actual rows.</li>
-<li>Запустите тот же аудит на sample. Сравните только plan shape и row flow, не объявляя
-коэффициент ускорения по одному запуску.</li>
-<li>Измените кандидата так, чтобы <code>active_users</code> считались по всем событиям. Объясните,
-почему один scan не проходит semantic gate.</li>
-<li>Возьмите проверенный <code>JOIN</code> из 04/05 и найдите в плане два входа и выходную
-cardinality. Сопоставьте её с ранее объявленным grain, не меняя SQL ради «красивого»
-оператора.</li>
-<li>После обновления DuckDB сравните сохранённые plan text. Отделите изменение оформления
-от реального изменения дерева и не подгоняйте парсер без просмотра evidence.</li>
+<li>Измените параметр на <code>2026-02-01</code>. До запуска предскажите результат и фактическое
+число строк после каждого filter baseline. Затем сверьтесь с таблицей операторов.</li>
+<li>Измените candidate так, чтобы он считал только периоды <code>period_index &lt;= 2</code>. Объясните,
+почему один scan не даёт права сравнивать планы, и покажите срабатывание result gate.</li>
+<li>В join-примере добавьте в <code>segments</code> второй ряд для <code>cohort_id = 1</code>. Предскажите
+actual rows после <code>HASH_JOIN</code>, затем объясните рост через cardinality из <code>04/05</code>.</li>
+<li>Возьмите знакомую агрегацию из <code>04/04</code>. До <code>EXPLAIN</code> нарисуйте scan, filter и aggregate,
+затем сопоставьте ручную модель с фактическими операторами, не требуя совпадения числа
+технических projections.</li>
 </ol>
+<h2 id="что-сознательно-не-входит-в-урок">Что сознательно не входит в урок</h2>
+<ul>
+<li><strong>Benchmark harness.</strong> Warm-up, повторы, cache policy, медиана и разброс изучаются в
+<code>12/01</code>.</li>
+<li><strong>CPU и memory profiling.</strong> Это отдельный результат <code>12/02</code>.</li>
+<li><strong>Parquet pushdown, row groups и файловый layout.</strong> Они появляются в <code>12/04</code>, где есть
+подходящая задача и рабочий объём.</li>
+<li><strong>Статистика таблиц, join order и настройка оптимизатора.</strong> Для первого чтения плана
+достаточно заметить оценки и фактические строки.</li>
+<li><strong>Полный каталог операторов.</strong> Названия движка меняются; важнее роли scan, filter,
+aggregate, join и sort.</li>
+<li><strong>Автоматическая SQL-безопасность.</strong> Артефакт принимает только проверенные statements и
+не изображает sandbox.</li>
+<li><strong>CLI.</strong> Результат урока — способ чтения и сравнения планов, а не внешний интерфейс.</li>
+</ul>
 <h2 id="ключевые-термины">Ключевые термины</h2>
 <table>
 <thead>
@@ -570,274 +880,396 @@ cardinality. Сопоставьте её с ранее объявленным gr
 </thead>
 <tbody>
 <tr>
-<td>Query result</td>
-<td>То же самое, что SQL-текст</td>
-<td>Наблюдаемая таблица ответа с заявленными полями, grain и значениями</td>
+<td>Query plan</td>
+<td>Переформатированный SQL</td>
+<td>Дерево операторов, выбранных движком для выполнения</td>
 </tr>
 <tr>
-<td>Physical plan</td>
-<td>SQL, разбитый на строки</td>
-<td>Выбранное движком дерево физических операторов</td>
-</tr>
-<tr>
-<td>Operator</td>
-<td>Любая функция в SQL</td>
-<td>Узел плана, который получает поток данных, выполняет работу и передаёт результат родителю</td>
+<td>Physical operator</td>
+<td>Ключевое слово SQL</td>
+<td>Конкретный шаг чтения или преобразования данных</td>
 </tr>
 <tr>
 <td>Scan</td>
-<td>Просто слово <code>FROM</code></td>
-<td>Физическое чтение таблицы, файла или другого источника</td>
+<td>Любое упоминание таблицы в тексте</td>
+<td>Физический оператор чтения relation, таблицы или файла</td>
 </tr>
 <tr>
 <td>Cardinality</td>
-<td>Размер файла в байтах</td>
-<td>Число строк, выдаваемых оператором</td>
+<td>Размер файла</td>
+<td>Число строк на выходе определённого оператора</td>
 </tr>
 <tr>
 <td>Estimated cardinality</td>
-<td>Точный предварительный <code>count(*)</code></td>
-<td>Оценка оптимизатора до выполнения; в DuckDB отмечается <code>~</code></td>
+<td>Точное число строк</td>
+<td>Оценка оптимизатора до выполнения</td>
 </tr>
 <tr>
 <td>Actual cardinality</td>
-<td>Универсальное свойство SQL</td>
-<td>Наблюдаемое число строк конкретного оператора в конкретном запуске</td>
+<td>Число прочитанных строк</td>
+<td>Фактическое число строк, отданных оператором дальше</td>
+</tr>
+<tr>
+<td>Rows scanned</td>
+<td>Число строк результата</td>
+<td>Строки, просмотренные scan-оператором</td>
 </tr>
 <tr>
 <td><code>EXPLAIN</code></td>
-<td>Безопасно выполняет запрос на пробу</td>
-<td>Показывает план и оценки без выполнения целевого запроса</td>
+<td>Пробный запуск запроса</td>
+<td>Получение плана без выполнения исходного statement</td>
 </tr>
 <tr>
 <td><code>EXPLAIN ANALYZE</code></td>
-<td>Только добавляет детали к тексту</td>
-<td>Действительно выполняет запрос и профилирует операторы</td>
+<td>Безопасный preview</td>
+<td>Реальное выполнение с фактическими метриками операторов</td>
 </tr>
 <tr>
-<td>Semantic gate</td>
-<td>Сравнение финального runtime</td>
-<td>Доказательство, что варианты отвечают на один вопрос и дают эквивалентный результат</td>
+<td>Result gate</td>
+<td>Сравнение только итоговой суммы</td>
+<td>Точная проверка columns, dtypes, порядка и значений до планов</td>
 </tr>
 <tr>
 <td>Plan shape</td>
-<td>Число строк SQL</td>
-<td>Источники, операторы и связи между ними в физическом дереве</td>
+<td>Точное время запроса</td>
+<td>Ветви и отношения физических операторов в дереве</td>
 </tr>
 <tr>
-<td>Bounded claim</td>
-<td>Слабый вывод без пользы</td>
-<td>Точный вывод, явно ограниченный входом, версией, workload и собранными evidence</td>
+<td>Benchmark</td>
+<td>Любой timing из профиля</td>
+<td>Воспроизводимое измерение с контролем входа, окружения и повторов</td>
 </tr>
 </tbody>
 </table>
 <h2 id="дополнительное-чтение">Дополнительное чтение</h2>
 <ul>
-<li><a href="https://duckdb.org/docs/stable/guides/meta/explain" target="_blank" rel="noopener">EN · DuckDB: EXPLAIN — Inspect Query Plans</a> — прочитайте основной пример и <code>Additional Explain Settings</code>. Сопоставьте дерево операторов и оценки cardinality с планом кандидата, но не включайте <code>logical</code>/<code>optimized</code> output в обязательную практику урока.</li>
-<li><a href="https://duckdb.org/docs/stable/guides/meta/explain_analyze" target="_blank" rel="noopener">EN · DuckDB: EXPLAIN ANALYZE — Profile Queries</a> — разберите различие estimated и actual cardinality и предупреждение о cumulative wall-clock time. Это первичный контракт для фактических строк и границы интерпретации времени.</li>
-<li><a href="https://duckdb.org/docs/stable/dev/profiling" target="_blank" rel="noopener">EN · DuckDB: Profiling</a> — прочитайте разделы <code>EXPLAIN</code>, <code>EXPLAIN ANALYZE</code> и <code>Metrics</code>. Они показывают, как перейти от учебного текстового плана к более подробному профилированию, когда узких сигналов отчёта недостаточно.</li>
-<li><a href="https://postgrespro.ru/docs/postgresql/current/using-explain" target="_blank" rel="noopener">RU · PostgreSQL: использование EXPLAIN</a> — сосредоточьтесь на объяснении <code>rows</code>, узлах-потомках и разделе про <code>EXPLAIN ANALYZE</code>. Синтаксис и числа PostgreSQL не переносите в DuckDB; переносите способ чтения потока снизу вверх.</li>
-<li><a href="https://duckdb.org/docs/stable/guides/performance/overview" target="_blank" rel="noopener">EN · DuckDB: Performance Guide</a> — используйте страницу как карту следующих диагностик: environment, import, schema, joins, file formats и workload tuning. Не применяйте все советы одновременно до локализации проблемы планом.</li>
-<li><a href="https://duckdb.org/docs/stable/guides/performance/benchmarks" target="_blank" rel="noopener">EN · DuckDB: Benchmarks</a> — прочитайте <code>A Note on Benchmarks</code> и disclaimer. Материал углубляет причину, по которой один tiny-run и неполный workload нельзя превращать в общий performance-claim.</li>
-<li><a href="https://ydb.tech/docs/ru/yql/query_plans" target="_blank" rel="noopener">RU · YDB: структура планов запросов</a> — разберите определения scan, filter, aggregate, join и связи между стадиями. Это полезный перенос модели дерева на распределённый движок, но названия операторов YDB не являются DuckDB API.</li>
-<li><a href="https://ydb.tech/docs/ru/concepts/query_execution/optimizer" target="_blank" rel="noopener">RU · YDB: оптимизация запросов</a> — прочитайте введение и раздел об оценке стоимости. Обратите внимание на главное ограничение оптимизатора: альтернативный план должен оставаться эквивалентным по результату.</li>
-<li><a href="https://duckdb.org/2024/11/14/optimizers" target="_blank" rel="noopener">EN · DuckDB Blog: Optimizers — The Low-Key MVP</a> — прочитайте введение и пример с filter pushdown. Статья разработчика DuckDB показывает, почему текстовый порядок SQL не равен физическому порядку работы и почему ручное переписывание нужно подтверждать планом.</li>
-<li><a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener">EN · PostgreSQL: Using EXPLAIN</a> — для углубления прочитайте про estimated cost, rows, width и проверку оценок через <code>ANALYZE</code>. Этот источник помогает отделить абстрактную стоимость планировщика от фактического elapsed time.</li>
+<li><a href="https://duckdb.org/docs/current/guides/meta/explain" target="_blank" rel="noopener">EN · DuckDB: EXPLAIN — Inspect Query Plans</a> — начните с короткого примера и прочитайте план снизу вверх: от scan-листьев к filter, join и projection. Обратите внимание, что без выполнения запроса доступны только estimated cardinality; дополнительные варианты вывода пока можно пропустить.</li>
+<li><a href="https://duckdb.org/docs/current/guides/meta/explain_analyze" target="_blank" rel="noopener">EN · DuckDB: EXPLAIN ANALYZE — Profile Queries</a> — сравните оценки с фактическим числом строк в тех же узлах. Отдельно зафиксируйте два ограничения: запрос действительно выполняется, а времена параллельных операторов нельзя просто складывать и сравнивать с общим временем.</li>
+<li><a href="https://duckdb.org/docs/current/dev/profiling" target="_blank" rel="noopener">EN · DuckDB: Profiling</a> — прочитайте разделы <code>Statements</code>, <code>FORMAT Option</code> и <code>Query Graphs</code>. Они связывают учебный текстовый план с JSON-профилем, который использует артефакт урока; настройки detailed profiling оставьте для более глубокой диагностики.</li>
+<li><a href="https://duckdb.org/docs/current/dev/metrics" target="_blank" rel="noopener">EN · DuckDB: Metrics</a> — найдите <code>OPERATOR_CARDINALITY</code>, <code>OPERATOR_ROWS_SCANNED</code>, <code>OPERATOR_TIMING</code> и cumulative metrics. Сопоставьте их с таблицей операторов отчёта и проверьте, какие показатели относятся к одному узлу, а какие включают его дочернее поддерево.</li>
+<li><a href="https://postgrespro.ru/docs/postgrespro/current/using-explain" target="_blank" rel="noopener">RU · Postgres Pro: использование EXPLAIN</a> — прочитайте «Азы EXPLAIN» и начало раздела <code>EXPLAIN ANALYZE</code>: там особенно ясно объяснены дерево плана, scan-листья и различие оценок и фактов. Переносите способ рассуждения, но не PostgreSQL-специфичные стоимости, индексы и названия узлов в DuckDB.</li>
+<li><a href="https://ydb.tech/docs/ru/dev/query-execution-optimization/query-plans-optimization" target="_blank" rel="noopener">RU · YDB: использование планов при оптимизации запросов</a> — разберите введение и первый план до добавления индекса. Проследите путь от <code>TableFullScan</code> через <code>Filter</code> к корню и сравните его с правилом чтения снизу вверх; команды YDB и индексный рецепт к практике DuckDB не относятся.</li>
+<li><a href="https://ydb.tech/docs/ru/yql/query_plans" target="_blank" rel="noopener">RU · YDB: структура планов запросов</a> — используйте страницу как справочник по общим ролям <code>Filter</code>, <code>Aggregate</code>, <code>Join</code>, <code>Sort</code> и scan-операторов. Разделы о распределённых <code>Connection</code>, <code>Broadcast</code> и <code>HashShuffle</code> можно отложить: они выходят за необходимый минимум этого урока.</li>
+<li><a href="https://duckdb.org/2024/11/14/optimizers" target="_blank" rel="noopener">EN · DuckDB Blog: Optimizers — The Low-Key MVP</a> — прочитайте введение и пример с filter pushdown. Статья показывает, почему порядок конструкций в SQL не равен физическому порядку работы и почему гипотезу о «лучшем» переписывании нужно проверять результатом и планом.</li>
+<li><a href="https://duckdb.org/docs/current/guides/performance/my_workload_is_slow" target="_blank" rel="noopener">EN · DuckDB: My Workload Is Slow</a> — пройдите диагностический список целиком и найдите пункт о плане запроса. Он помогает удержать правильную границу: странный план — лишь одна из возможных причин, рядом с памятью, диском, типами, файлами и параллелизмом.</li>
+<li><a href="https://duckdb.org/docs/current/guides/performance/benchmarks" target="_blank" rel="noopener">EN · DuckDB: Benchmarks</a> — прочитайте <code>A Note on Benchmarks</code> и disclaimer. Материал объясняет, почему один timing из <code>EXPLAIN ANALYZE</code>, tiny-набор или неполный workload нельзя превращать в общий вывод об ускорении; полноценный benchmark появится в фазе 12.</li>
 </ul>
 </article>
-        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 7 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="0"><p class="quiz-number">01</p><h3>Какое различие между EXPLAIN и EXPLAIN ANALYZE существенно перед запуском неизвестного запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">EXPLAIN строит план без выполнения, а EXPLAIN ANALYZE действительно выполняет запрос</button><button type="button" class="quiz-option" data-choice="1">EXPLAIN работает только с SELECT, а EXPLAIN ANALYZE — только с JOIN</button><button type="button" class="quiz-option" data-choice="2">EXPLAIN показывает фактические строки, а EXPLAIN ANALYZE — только оценки</button><button type="button" class="quiz-option" data-choice="3">EXPLAIN изменяет SQL, а EXPLAIN ANALYZE сохраняет исходный текст</button></div><p class="quiz-feedback" hidden>EXPLAIN показывает выбранный физический план и оценки. EXPLAIN ANALYZE исполняет запрос и добавляет фактические cardinality и timing.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">02</p><h3>С какого места новичку полезнее начинать чтение дерева физического плана?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">С самого длинного имени оператора</button><button type="button" class="quiz-option" data-choice="1">С итогового значения Total Time</button><button type="button" class="quiz-option" data-choice="2">С корня и сразу угадывать текст исходного SQL</button><button type="button" class="quiz-option" data-choice="3">С нижних источников данных и затем идти по потоку строк к корню</button></div><p class="quiz-feedback" hidden>Нижние узлы читают данные, а родительские узлы преобразуют поток и передают его выше. Такой обход связывает дерево с фактической работой.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">03</p><h3>В EXPLAIN у scan указано ~31 rows, а в EXPLAIN ANALYZE — 16 rows. Как это интерпретировать?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Запрос потерял пятнадцать строк и обязательно неверен</button><button type="button" class="quiz-option" data-choice="1">31 — оценка до выполнения, а 16 — наблюдаемая cardinality этого запуска</button><button type="button" class="quiz-option" data-choice="2">16 — число столбцов, а 31 — число строк</button><button type="button" class="quiz-option" data-choice="3">DuckDB выполнил два разных SQL-запроса</button></div><p class="quiz-feedback" hidden>Тильда отмечает оценку оптимизатора. Фактическое выполнение даёт наблюдаемое число строк; расхождение является диагностическим сигналом, а не автоматической ошибкой результата.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">04</p><h3>Кандидат читает CSV один раз вместо двух и возвращает тот же контрольный результат. Какой вывод допустим?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Кандидат всегда будет ровно вдвое быстрее</button><button type="button" class="quiz-option" data-choice="1">CSV больше никогда не станет узким местом</button><button type="button" class="quiz-option" data-choice="2">На проверенном входе кандидат устранил одно повторное чтение; скорость на других workload ещё не доказана</button><button type="button" class="quiz-option" data-choice="3">Оптимизатор DuckDB отключён для исходного запроса</button></div><p class="quiz-feedback" hidden>План подтверждает конкретное уменьшение работы на данном запросе и входе. Коэффициент ускорения и перенос на другие данные требуют отдельного воспроизводимого измерения.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">05</p><h3>Кандидат имеет более простой план, но считает distinct пользователей по всем событиям вместо только order_paid. Что делать?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Заблокировать performance-вывод: варианты отвечают на разные вопросы</button><button type="button" class="quiz-option" data-choice="1">Выбрать кандидата, потому что в нём один scan</button><button type="button" class="quiz-option" data-choice="2">Сравнить только Total Time и не учитывать результат</button><button type="button" class="quiz-option" data-choice="3">Добавить больше повторов, чтобы различие результата исчезло</button></div><p class="quiz-feedback" hidden>Быстрый другой ответ не является оптимизацией. Сначала восстанавливают одинаковую population и результат, затем сравнивают работу.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">06</p><h3>Почему сумма времён отдельных операторов EXPLAIN ANALYZE может не совпасть с общим wall-clock временем?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Операторные времена всегда измеряются в строках</button><button type="button" class="quiz-option" data-choice="1">DuckDB случайно переставляет цифры в плане</button><button type="button" class="quiz-option" data-choice="2">EXPLAIN ANALYZE не выполняет запрос</button><button type="button" class="quiz-option" data-choice="3">Времена операторов могут быть накопительными, а параллельная работа перекрывается</button></div><p class="quiz-feedback" hidden>Профилирование описывает работу операторов, а не простое разбиение общего времени на непересекающиеся части. При параллельном выполнении времена могут перекрываться.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">07</p><h3>Что должно войти в корректный handoff по результатам план-аудита?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только самый быстрый runtime без версии движка</button><button type="button" class="quiz-option" data-choice="1">SQL-варианты, проверка результата, вход и версия движка, оба плана и ограниченный вывод</button><button type="button" class="quiz-option" data-choice="2">Только скриншот верхнего узла плана</button><button type="button" class="quiz-option" data-choice="3">Обещание ускорения для production без повторного измерения</button></div><p class="quiz-feedback" hidden>Получатель должен воспроизвести контекст и отделить наблюдение от переноса. Поэтому отчёт сохраняет scope, semantic gate, plan evidence и границу утверждения.</p></article></section>
+        <section class="lesson-quiz" data-stage="post"><p class="eyebrow">Quiz · 7 вопроса</p><h2>Проверьте себя</h2><p>Ответьте после практики. Объяснение появится сразу после выбора.</p><article class="quiz-question" data-correct="2"><p class="quiz-number">01</p><h3>С какой части дерева удобнее начинать содержательное чтение плана аналитического запроса?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">С самого длинного имени оператора</button><button type="button" class="quiz-option" data-choice="1">С итогового timing всей connection</button><button type="button" class="quiz-option" data-choice="2">Со scan-листьев и затем двигаться к корню, прослеживая изменение строк</button><button type="button" class="quiz-option" data-choice="3">С количества строк в исходном SQL-тексте</button></div><p class="quiz-feedback" hidden>Scan-листья показывают входы. Двигаясь от них к корню, можно восстановить, где строки фильтруются, соединяются, агрегируются и превращаются в результат.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">02</p><h3>Какое различие между EXPLAIN и EXPLAIN ANALYZE принципиально для безопасного использования?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">EXPLAIN работает только с CSV, а EXPLAIN ANALYZE только с таблицами</button><button type="button" class="quiz-option" data-choice="1">EXPLAIN показывает только SQL-текст, а EXPLAIN ANALYZE меняет SQL</button><button type="button" class="quiz-option" data-choice="2">EXPLAIN всегда точнее, потому что не содержит оценок</button><button type="button" class="quiz-option" data-choice="3">EXPLAIN не выполняет исходный запрос, а EXPLAIN ANALYZE выполняет его и добавляет фактические метрики</button></div><p class="quiz-feedback" hidden>ANALYZE означает реальное выполнение statement. Поэтому его нельзя считать безопасным preview произвольного SQL; в уроке он получает только проверенные SELECT-assets.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">03</p><h3>Scan прочитал семь строк, filter оставил четыре, а aggregate вернул одну строку. Как правильно описать эти величины?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">rows_scanned = 7, actual_rows filter = 4, actual_rows aggregate = 1</button><button type="button" class="quiz-option" data-choice="1">actual_rows всех операторов равны 1, потому что результат состоит из одной строки</button><button type="button" class="quiz-option" data-choice="2">rows_scanned = 4, потому что три строки отфильтрованы</button><button type="button" class="quiz-option" data-choice="3">estimated_rows обязаны совпадать со всеми тремя фактическими числами</button></div><p class="quiz-feedback" hidden>Rows scanned относится к чтению источника, а actual rows — к выходу конкретного оператора. Одна итоговая строка не стирает работу, выполненную ниже по дереву.</p></article><article class="quiz-question" data-correct="1"><p class="quiz-number">04</p><h3>EXPLAIN оценил одну строку после filter, а EXPLAIN ANALYZE показал четыре. Какой вывод корректен?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Запрос обязательно вернул неверный бизнес-результат</button><button type="button" class="quiz-option" data-choice="1">Оценка и факт различаются; это диагностическое наблюдение, причины которого требуют контекста</button><button type="button" class="quiz-option" data-choice="2">EXPLAIN ANALYZE нужно повторять, пока он не покажет одну строку</button><button type="button" class="quiz-option" data-choice="3">Filter следует удалить, потому что оптимизатор его не понимает</button></div><p class="quiz-feedback" hidden>Estimated cardinality формируется до выполнения и не является обещанием. Расхождение важно заметить, но само по себе оно не доказывает ни ошибку результата, ни необходимость конкретной оптимизации.</p></article><article class="quiz-question" data-correct="3"><p class="quiz-number">05</p><h3>Candidate вернул тот же результат, использовал один scan вместо двух и оказался быстрее в одном tiny-запуске. Что можно утверждать?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Candidate гарантированно быстрее на любых данных и машинах</button><button type="button" class="quiz-option" data-choice="1">Любое уменьшение числа scans доказывает линейное ускорение</button><button type="button" class="quiz-option" data-choice="2">Timing можно считать benchmark, потому что его сообщил сам DuckDB</button><button type="button" class="quiz-option" data-choice="3">Форма плана содержит меньше чтений; ускорение на рабочем объёме пока не измерено</button></div><p class="quiz-feedback" hidden>План подтверждает одну scan-ветвь вместо двух. Один timing на семи строках остаётся наблюдением; воспроизводимый benchmark требует контролируемого входа, warm-up, повторов и cache policy.</p></article><article class="quiz-question" data-correct="0"><p class="quiz-number">06</p><h3>После JOIN фактическое число строк выросло с двух до трёх. Что план позволяет заключить без дополнительных данных?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Рост строк произошёл вокруг join; является ли он fanout-ошибкой, решает контракт ключей и grain</button><button type="button" class="quiz-option" data-choice="1">HASH_JOIN всегда выбран неправильно</button><button type="button" class="quiz-option" data-choice="2">Третью строку нужно автоматически удалить через DISTINCT</button><button type="button" class="quiz-option" data-choice="3">Рост доказывает, что справа находится ровно один дубликат бизнес-ключа</button></div><p class="quiz-feedback" hidden>План делает изменение cardinality наблюдаемым, но не знает бизнес-контракта. Причину и допустимость роста проверяют по ключам, cardinality и grain из 04/05.</p></article><article class="quiz-question" data-correct="2"><p class="quiz-number">07</p><h3>Что нужно сохранить вместе с выводом план-аудита, чтобы коллега мог понять его границы?</h3><div class="quiz-options"><button type="button" class="quiz-option" data-choice="0">Только минимальный timing кандидата</button><button type="button" class="quiz-option" data-choice="1">Только названия scan-операторов</button><button type="button" class="quiz-option" data-choice="2">Версию DuckDB, входной scope, SQL и параметры, result gate и оба плана</button><button type="button" class="quiz-option" data-choice="3">Только итоговую рекомендацию без исходных запросов</button></div><p class="quiz-feedback" hidden>План зависит от запроса, входа и версии движка. Воспроизводимый handoff сохраняет этот scope, точную проверку результата и evidence обоих вариантов, а не только удобный итог.</p></article></section>
         <section class="lesson-files" id="lesson-files"><p class="eyebrow">Практика без перехода на GitHub</p><h2>Файлы урока</h2><p>Тесты, reference-код и артефакты встроены в страницу. Сначала попробуйте решить задачу самостоятельно, затем раскройте нужный файл и сравните подход.</p><section class="lesson-files-group"><h3>Тесты — это техническое задание</h3><details class="source-file"><summary><span>tests/test_main.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
 import importlib.util
-import json
-import subprocess
-import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;plan_report.py&quot;
-DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;events.csv&quot;
-SPEC = importlib.util.spec_from_file_location(&quot;plan_report&quot;, ARTIFACT)
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;duckdb_plan_audit.py&quot;
+BASELINE_SQL = (ROOT / &quot;outputs&quot; / &quot;repeated_scan.sql&quot;).read_text(encoding=&quot;utf-8&quot;)
+CANDIDATE_SQL = (ROOT / &quot;outputs&quot; / &quot;single_scan.sql&quot;).read_text(encoding=&quot;utf-8&quot;)
+SPEC = importlib.util.spec_from_file_location(&quot;duckdb_plan_audit&quot;, ARTIFACT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
 PLANS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PLANS)
 
 
-class PlanReportTest(unittest.TestCase):
-    def setUp(self) -&gt; None:
-        self.connection = duckdb.connect()
-        self.report = PLANS.build_plan_report(self.connection, DATA)
-        self.baseline, self.candidate = self.report[&quot;variants&quot;]
+def build_cohort_activity() -&gt; pd.DataFrame:
+    return pd.DataFrame(
+        {
+            &quot;cohort_month&quot;: pd.to_datetime(
+                [
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-02-01&quot;,
+                ]
+            ),
+            &quot;activity_month&quot;: pd.to_datetime(
+                [
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-03-01&quot;,
+                    &quot;2026-04-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-03-01&quot;,
+                    &quot;2026-04-01&quot;,
+                ]
+            ),
+            &quot;period_index&quot;: pd.Series([0, 1, 2, 3, 0, 1, 2], dtype=&quot;int64&quot;),
+            &quot;cohort_size&quot;: pd.Series([4, 4, 4, 4, 3, 3, 3], dtype=&quot;int64&quot;),
+            &quot;active_users&quot;: pd.Series([4, 3, 2, 0, 3, 2, 1], dtype=&quot;int64&quot;),
+            &quot;activity_rate&quot;: pd.Series(
+                [1.0, 0.75, 0.5, 0.0, 1.0, 0.6667, 0.3333],
+                dtype=&quot;float64&quot;,
+            ),
+        }
+    )
 
-    def tearDown(self) -&gt; None:
-        self.connection.close()
 
-    def test_equivalent_queries_return_same_detailed_result(self) -&gt; None:
-        self.assertTrue(self.report[&quot;comparison&quot;][&quot;results_equal&quot;])
+class DuckDBPlanAuditTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -&gt; None:
+        cls.frame = build_cohort_activity()
+        connection = duckdb.connect()
+        try:
+            cls.report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name=&quot;cohort_activity&quot;,
+                frame=cls.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+            )
+        finally:
+            connection.close()
+
+    def test_equivalent_queries_return_exact_same_result(self) -&gt; None:
+        self.assertTrue(self.report[&quot;results_equal&quot;])
         self.assertEqual(
-            self.baseline[&quot;result&quot;],
-            {&quot;event_rows&quot;: 6, &quot;active_users&quot;: 3},
-        )
-        self.assertEqual(self.candidate[&quot;result&quot;], self.baseline[&quot;result&quot;])
-
-    def test_static_plan_reveals_two_reads_and_one_read(self) -&gt; None:
-        self.assertEqual(self.baseline[&quot;explain&quot;][&quot;source_read_nodes&quot;], 2)
-        self.assertEqual(self.candidate[&quot;explain&quot;][&quot;source_read_nodes&quot;], 1)
-        self.assertEqual(self.report[&quot;comparison&quot;][&quot;source_reads_removed&quot;], 1)
-
-    def test_analyzed_plan_preserves_the_same_source_read_shape(self) -&gt; None:
-        self.assertEqual(
-            self.baseline[&quot;explain_analyze&quot;][&quot;source_read_nodes&quot;],
-            2,
+            self.report[&quot;result&quot;].to_dict(orient=&quot;records&quot;),
+            [{&quot;cohort_period_rows&quot;: 4, &quot;active_user_period_sum&quot;: 9}],
         )
         self.assertEqual(
-            self.candidate[&quot;explain_analyze&quot;][&quot;source_read_nodes&quot;],
-            1,
+            {column: str(dtype) for column, dtype in self.report[&quot;result&quot;].dtypes.items()},
+            {&quot;cohort_period_rows&quot;: &quot;int64&quot;, &quot;active_user_period_sum&quot;: &quot;int64&quot;},
         )
 
-    def test_explain_contains_estimates_but_no_total_time(self) -&gt; None:
-        evidence = self.candidate[&quot;explain&quot;]
-        self.assertTrue(evidence[&quot;estimated_row_markers&quot;])
-        self.assertEqual(evidence[&quot;actual_row_markers&quot;], [])
-        self.assertIsNone(evidence[&quot;total_time_seconds&quot;])
-        self.assertIn(&quot;~&quot;, evidence[&quot;plan_text&quot;])
-
-    def test_explain_analyze_contains_actual_rows_and_total_time(self) -&gt; None:
-        evidence = self.candidate[&quot;explain_analyze&quot;]
-        self.assertTrue(evidence[&quot;actual_row_markers&quot;])
-        self.assertEqual(evidence[&quot;estimated_row_markers&quot;], [])
-        self.assertIsInstance(evidence[&quot;total_time_seconds&quot;], float)
-        self.assertIn(16, evidence[&quot;actual_row_markers&quot;])
-
-    def test_estimate_is_not_treated_as_actual_cardinality(self) -&gt; None:
-        estimated = self.candidate[&quot;explain&quot;][&quot;estimated_row_markers&quot;]
-        actual = self.candidate[&quot;explain_analyze&quot;][&quot;actual_row_markers&quot;]
-        self.assertNotEqual(estimated, actual)
-        self.assertIn(16, actual)
-
-    def test_plan_text_contains_the_operators_used_in_the_lesson(self) -&gt; None:
-        plan = self.candidate[&quot;explain&quot;][&quot;plan_text&quot;]
-        self.assertIn(&quot;READ_CSV&quot;, plan)
-        self.assertIn(&quot;PROJECTION&quot;, plan)
-        self.assertIn(&quot;UNGROUPED_AGGREGATE&quot;, plan)
-
-    def test_wrong_population_blocks_optimization_conclusion(self) -&gt; None:
-        report = PLANS.build_plan_report(
-            self.connection,
-            DATA,
-            candidate_sql=PLANS.WRONG_POPULATION_SQL,
-            candidate_label=&quot;wrong_population&quot;,
+    def test_baseline_has_two_scan_branches(self) -&gt; None:
+        self.assertEqual(self.report[&quot;baseline&quot;][&quot;summary&quot;][&quot;scan_operators&quot;], 2)
+        self.assertIn(
+            &quot;CROSS_PRODUCT&quot;,
+            self.report[&quot;baseline&quot;][&quot;operators&quot;][&quot;operator&quot;].tolist(),
         )
-        self.assertFalse(report[&quot;comparison&quot;][&quot;results_equal&quot;])
-        self.assertFalse(report[&quot;comparison&quot;][&quot;safe_to_compare_work&quot;])
-        self.assertIn(&quot;blocked&quot;, report[&quot;comparison&quot;][&quot;conclusion&quot;])
+
+    def test_candidate_has_one_scan_branch(self) -&gt; None:
+        self.assertEqual(self.report[&quot;candidate&quot;][&quot;summary&quot;][&quot;scan_operators&quot;], 1)
+        self.assertEqual(self.report[&quot;comparison&quot;][&quot;scan_operators_removed&quot;], 1)
+
+    def test_rows_scanned_are_reported_separately_from_output_rows(self) -&gt; None:
+        self.assertEqual(self.report[&quot;baseline&quot;][&quot;summary&quot;][&quot;rows_scanned&quot;], 14)
+        self.assertEqual(self.report[&quot;candidate&quot;][&quot;summary&quot;][&quot;rows_scanned&quot;], 7)
+        candidate_scan = self.report[&quot;candidate&quot;][&quot;operators&quot;].loc[
+            self.report[&quot;candidate&quot;][&quot;operators&quot;][&quot;operator&quot;].str.contains(&quot;SCAN&quot;, regex=False)
+        ]
+        self.assertEqual(candidate_scan[&quot;actual_rows&quot;].tolist(), [7])
+        self.assertEqual(candidate_scan[&quot;rows_scanned&quot;].tolist(), [7])
+
+    def test_operator_table_has_stable_evidence_columns(self) -&gt; None:
         self.assertEqual(
-            report[&quot;variants&quot;][1][&quot;result&quot;],
-            {&quot;event_rows&quot;: 6, &quot;active_users&quot;: 8},
+            self.report[&quot;candidate&quot;][&quot;operators&quot;].columns.tolist(),
+            PLANS.OPERATOR_COLUMNS,
         )
 
-    def test_zero_matching_events_remain_semantically_equivalent(self) -&gt; None:
-        report = PLANS.build_plan_report(
-            self.connection,
-            DATA,
-            event_name=&quot;not_present&quot;,
+    def test_plan_is_read_from_root_to_deeper_paths(self) -&gt; None:
+        operators = self.report[&quot;candidate&quot;][&quot;operators&quot;]
+        self.assertEqual(operators.iloc[0][&quot;path&quot;], &quot;0&quot;)
+        self.assertIn(
+            operators.iloc[0][&quot;operator&quot;],
+            {&quot;PROJECTION&quot;, &quot;UNGROUPED_AGGREGATE&quot;},
         )
-        self.assertTrue(report[&quot;comparison&quot;][&quot;results_equal&quot;])
-        self.assertEqual(
-            report[&quot;variants&quot;][1][&quot;result&quot;],
-            {&quot;event_rows&quot;: 0, &quot;active_users&quot;: 0},
-        )
+        self.assertTrue(operators.iloc[-1][&quot;path&quot;].startswith(&quot;0.&quot;))
+        self.assertIn(&quot;SCAN&quot;, operators.iloc[-1][&quot;operator&quot;])
 
-    def test_report_does_not_claim_timing_proves_speedup(self) -&gt; None:
-        comparison = self.report[&quot;comparison&quot;]
-        self.assertFalse(comparison[&quot;timing_claim_allowed&quot;])
-        self.assertIn(&quot;timing remains an observation&quot;, comparison[&quot;conclusion&quot;])
-        self.assertIn(&quot;does not guarantee&quot;, self.report[&quot;scope&quot;][&quot;claim_boundary&quot;])
+    def test_explain_estimate_and_analyze_actual_are_both_present(self) -&gt; None:
+        baseline_filters = self.report[&quot;baseline&quot;][&quot;operators&quot;].query(&quot;operator == &#x27;FILTER&#x27;&quot;)
+        self.assertEqual(baseline_filters[&quot;estimated_rows&quot;].tolist(), [1, 1])
+        self.assertEqual(baseline_filters[&quot;actual_rows&quot;].tolist(), [4, 4])
 
-    def test_report_records_engine_and_input_scope(self) -&gt; None:
+    def test_analyze_timings_are_observations_not_a_winner(self) -&gt; None:
+        timings = self.report[&quot;candidate&quot;][&quot;operators&quot;][&quot;timing_seconds&quot;]
+        self.assertTrue(timings.ge(0).all())
+        self.assertTrue(self.report[&quot;comparison&quot;][&quot;timing_is_observation_not_verdict&quot;])
+        self.assertNotIn(&quot;faster_query&quot;, self.report[&quot;comparison&quot;])
+
+    def test_raw_plans_are_structured_json(self) -&gt; None:
+        self.assertIsInstance(self.report[&quot;baseline&quot;][&quot;explain_json&quot;], list)
+        self.assertIsInstance(self.report[&quot;baseline&quot;][&quot;analyze_json&quot;], dict)
+
+    def test_report_preserves_reproducible_scope(self) -&gt; None:
         scope = self.report[&quot;scope&quot;]
         self.assertEqual(scope[&quot;engine&quot;], &quot;duckdb&quot;)
         self.assertEqual(scope[&quot;engine_version&quot;], duckdb.__version__)
-        self.assertEqual(scope[&quot;events_path&quot;], str(DATA.resolve()))
-        self.assertEqual(scope[&quot;event_name&quot;], &quot;order_paid&quot;)
-        self.assertIn(&quot;SELECT&quot;, self.baseline[&quot;sql&quot;])
-        self.assertIn(str(DATA.resolve()), self.baseline[&quot;parameters&quot;])
-
-    def test_caller_owned_connection_remains_usable(self) -&gt; None:
-        self.assertEqual(self.connection.execute(&quot;SELECT 42&quot;).fetchone(), (42,))
-
-    def test_missing_events_file_is_rejected(self) -&gt; None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, &quot;does not exist&quot;):
-            PLANS.build_plan_report(
-                self.connection,
-                ROOT / &quot;missing.csv&quot;,
-            )
-
-    def test_empty_event_name_is_rejected(self) -&gt; None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, &quot;non-empty&quot;):
-            PLANS.build_plan_report(self.connection, DATA, &quot;   &quot;)
-
-    def test_untrusted_candidate_sql_is_rejected(self) -&gt; None:
-        with self.assertRaisesRegex(PLANS.PlanAuditError, &quot;trusted built-in&quot;):
-            PLANS.build_plan_report(
-                self.connection,
-                DATA,
-                candidate_sql=&quot;SELECT 1, 2&quot;,
-            )
-
-    def test_cli_prints_complete_json_report(self) -&gt; None:
-        result = subprocess.run(
-            [sys.executable, ARTIFACT, &quot;--events&quot;, DATA],
-            check=False,
-            capture_output=True,
-            text=True,
+        self.assertEqual(scope[&quot;relation_name&quot;], &quot;cohort_activity&quot;)
+        self.assertEqual(scope[&quot;input_rows&quot;], 7)
+        self.assertEqual(
+            self.report[&quot;baseline&quot;][&quot;parameters&quot;],
+            {&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        report = json.loads(result.stdout)
-        self.assertEqual(report[&quot;comparison&quot;][&quot;source_reads_removed&quot;], 1)
-        self.assertIn(&quot;plan_text&quot;, report[&quot;variants&quot;][0][&quot;explain&quot;])
+        self.assertIn(&quot;SELECT&quot;, self.report[&quot;baseline&quot;][&quot;sql&quot;])
+        self.assertIn(&quot;not a benchmark&quot;, scope[&quot;claim_boundary&quot;])
 
-    def test_cli_can_write_standalone_report(self) -&gt; None:
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / &quot;nested&quot; / &quot;plan-audit.json&quot;
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    ARTIFACT,
-                    &quot;--events&quot;,
-                    DATA,
-                    &quot;--output&quot;,
-                    output,
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
+    def test_parameter_changes_the_selected_cohort(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name=&quot;cohort_activity&quot;,
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={&quot;cohort_month&quot;: &quot;2026-02-01&quot;},
             )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(Path(result.stdout.strip()), output)
-            self.assertTrue(
-                json.loads(output.read_text(encoding=&quot;utf-8&quot;))[&quot;comparison&quot;][&quot;results_equal&quot;]
-            )
-
-    def test_cli_rejects_missing_input(self) -&gt; None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                ARTIFACT,
-                &quot;--events&quot;,
-                ROOT / &quot;missing.csv&quot;,
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
+        finally:
+            connection.close()
+        self.assertEqual(
+            report[&quot;result&quot;].to_dict(orient=&quot;records&quot;),
+            [{&quot;cohort_period_rows&quot;: 3, &quot;active_user_period_sum&quot;: 6}],
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(&quot;does not exist&quot;, result.stderr)
+
+    def test_missing_cohort_preserves_unknown_sum(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            report = PLANS.compare_dataframe_queries(
+                connection,
+                relation_name=&quot;cohort_activity&quot;,
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={&quot;cohort_month&quot;: &quot;2030-01-01&quot;},
+            )
+        finally:
+            connection.close()
+        record = report[&quot;result&quot;].to_dict(orient=&quot;records&quot;)[0]
+        self.assertEqual(record[&quot;cohort_period_rows&quot;], 0)
+        self.assertTrue(pd.isna(record[&quot;active_user_period_sum&quot;]))
+
+    def test_different_result_blocks_plan_comparison(self) -&gt; None:
+        broken_candidate = CANDIDATE_SQL.replace(
+            &quot;AS active_user_period_sum&quot;,
+            &quot;+ 1 AS active_user_period_sum&quot;,
+        )
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(
+                PLANS.QueryPlanAuditError,
+                &quot;result differs&quot;,
+            ):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name=&quot;cohort_activity&quot;,
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=broken_candidate,
+                    parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+                )
+        finally:
+            connection.close()
+
+    def test_temporary_relation_is_removed_after_success(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            PLANS.compare_dataframe_queries(
+                connection,
+                relation_name=&quot;cohort_activity&quot;,
+                frame=self.frame,
+                baseline_sql=BASELINE_SQL,
+                candidate_sql=CANDIDATE_SQL,
+                parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+            )
+            with self.assertRaises(duckdb.CatalogException):
+                connection.execute(&quot;SELECT * FROM cohort_activity&quot;)
+            self.assertEqual(connection.execute(&quot;SELECT 42&quot;).fetchone(), (42,))
+        finally:
+            connection.close()
+
+    def test_temporary_relation_is_removed_after_failure(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaises(duckdb.Error):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name=&quot;cohort_activity&quot;,
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=&quot;SELECT missing_column FROM cohort_activity&quot;,
+                    parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+                )
+            with self.assertRaises(duckdb.CatalogException):
+                connection.execute(&quot;SELECT * FROM cohort_activity&quot;)
+        finally:
+            connection.close()
+
+    def test_join_plan_can_be_read_as_two_inputs_and_one_join(self) -&gt; None:
+        connection = duckdb.connect()
+        connection.register(
+            &quot;cohorts&quot;,
+            pd.DataFrame(
+                {&quot;cohort_id&quot;: [1, 2], &quot;cohort_size&quot;: [4, 3]},
+            ),
+        )
+        connection.register(
+            &quot;segments&quot;,
+            pd.DataFrame(
+                {&quot;cohort_id&quot;: [1, 2], &quot;segment&quot;: [&quot;new&quot;, &quot;returning&quot;]},
+            ),
+        )
+        try:
+            inspection = PLANS.inspect_reviewed_query(
+                connection,
+                sql=&quot;&quot;&quot;
+                    SELECT c.cohort_id, c.cohort_size, s.segment
+                    FROM cohorts AS c
+                    INNER JOIN segments AS s USING (cohort_id)
+                    ORDER BY c.cohort_id
+                &quot;&quot;&quot;,
+            )
+        finally:
+            connection.unregister(&quot;cohorts&quot;)
+            connection.unregister(&quot;segments&quot;)
+            connection.close()
+        operator_names = inspection[&quot;operators&quot;][&quot;operator&quot;].tolist()
+        self.assertEqual(sum(&quot;SCAN&quot; in name for name in operator_names), 2)
+        self.assertIn(&quot;HASH_JOIN&quot;, operator_names)
+        join_row = inspection[&quot;operators&quot;].query(&quot;operator == &#x27;HASH_JOIN&#x27;&quot;).iloc[0]
+        self.assertEqual(join_row[&quot;actual_rows&quot;], 2)
+
+    def test_empty_sql_is_rejected_before_explain(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, &quot;must not be empty&quot;):
+                PLANS.inspect_reviewed_query(connection, sql=&quot;  &quot;)
+        finally:
+            connection.close()
+
+    def test_invalid_relation_name_is_rejected(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, &quot;relation_name&quot;):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name=&quot;cohort activity&quot;,
+                    frame=self.frame,
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=CANDIDATE_SQL,
+                )
+        finally:
+            connection.close()
+
+    def test_non_dataframe_input_is_rejected(self) -&gt; None:
+        connection = duckdb.connect()
+        try:
+            with self.assertRaisesRegex(PLANS.QueryPlanAuditError, &quot;pandas DataFrame&quot;):
+                PLANS.compare_dataframe_queries(
+                    connection,
+                    relation_name=&quot;cohort_activity&quot;,
+                    frame=[{&quot;cohort_month&quot;: &quot;2026-01-01&quot;}],
+                    baseline_sql=BASELINE_SQL,
+                    candidate_sql=CANDIDATE_SQL,
+                )
+        finally:
+            connection.close()
+
+    def test_artifact_has_no_cli_or_text_plan_regex(self) -&gt; None:
+        source = ARTIFACT.read_text(encoding=&quot;utf-8&quot;)
+        self.assertNotIn(&quot;argparse&quot;, source)
+        self.assertNotIn(&quot;Total Time:&quot;, source)
+        self.assertIn(&quot;FORMAT JSON&quot;, source)
 
 
 if __name__ == &quot;__main__&quot;:
@@ -849,14 +1281,16 @@ import json
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / &quot;outputs&quot; / &quot;plan_report.py&quot;
-DATA = ROOT.parent / &quot;data&quot; / &quot;tiny&quot; / &quot;events.csv&quot;
+ARTIFACT = ROOT / &quot;outputs&quot; / &quot;duckdb_plan_audit.py&quot;
+BASELINE_SQL = ROOT / &quot;outputs&quot; / &quot;repeated_scan.sql&quot;
+CANDIDATE_SQL = ROOT / &quot;outputs&quot; / &quot;single_scan.sql&quot;
 
 
 def load_artifact():
-    spec = importlib.util.spec_from_file_location(&quot;plan_report&quot;, ARTIFACT)
+    spec = importlib.util.spec_from_file_location(&quot;duckdb_plan_audit&quot;, ARTIFACT)
     if spec is None or spec.loader is None:
         raise RuntimeError(f&quot;cannot load {ARTIFACT}&quot;)
     module = importlib.util.module_from_spec(spec)
@@ -864,324 +1298,395 @@ def load_artifact():
     return module
 
 
+def build_cohort_activity() -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Return the typed cohort result introduced in lessons 04/10 and 04/11.&quot;&quot;&quot;
+
+    return pd.DataFrame(
+        {
+            &quot;cohort_month&quot;: pd.to_datetime(
+                [
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-02-01&quot;,
+                ]
+            ),
+            &quot;activity_month&quot;: pd.to_datetime(
+                [
+                    &quot;2026-01-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-03-01&quot;,
+                    &quot;2026-04-01&quot;,
+                    &quot;2026-02-01&quot;,
+                    &quot;2026-03-01&quot;,
+                    &quot;2026-04-01&quot;,
+                ]
+            ),
+            &quot;period_index&quot;: pd.Series([0, 1, 2, 3, 0, 1, 2], dtype=&quot;int64&quot;),
+            &quot;cohort_size&quot;: pd.Series([4, 4, 4, 4, 3, 3, 3], dtype=&quot;int64&quot;),
+            &quot;active_users&quot;: pd.Series([4, 3, 2, 0, 3, 2, 1], dtype=&quot;int64&quot;),
+            &quot;activity_rate&quot;: pd.Series(
+                [1.0, 0.75, 0.5, 0.0, 1.0, 0.6667, 0.3333],
+                dtype=&quot;float64&quot;,
+            ),
+        }
+    )
+
+
 def main() -&gt; None:
-    plan_report = load_artifact()
+    plans = load_artifact()
     connection = duckdb.connect()
     try:
-        report = plan_report.build_plan_report(connection, DATA)
+        report = plans.compare_dataframe_queries(
+            connection,
+            relation_name=&quot;cohort_activity&quot;,
+            frame=build_cohort_activity(),
+            baseline_sql=BASELINE_SQL.read_text(encoding=&quot;utf-8&quot;),
+            candidate_sql=CANDIDATE_SQL.read_text(encoding=&quot;utf-8&quot;),
+            parameters={&quot;cohort_month&quot;: &quot;2026-01-01&quot;},
+        )
     finally:
         connection.close()
 
-    baseline, candidate = report[&quot;variants&quot;]
-    compact = {
-        &quot;results&quot;: [baseline[&quot;result&quot;], candidate[&quot;result&quot;]],
-        &quot;estimated_rows&quot;: [
-            baseline[&quot;explain&quot;][&quot;estimated_row_markers&quot;],
-            candidate[&quot;explain&quot;][&quot;estimated_row_markers&quot;],
-        ],
-        &quot;actual_rows&quot;: [
-            baseline[&quot;explain_analyze&quot;][&quot;actual_row_markers&quot;],
-            candidate[&quot;explain_analyze&quot;][&quot;actual_row_markers&quot;],
-        ],
-        &quot;source_read_nodes&quot;: [
-            baseline[&quot;explain&quot;][&quot;source_read_nodes&quot;],
-            candidate[&quot;explain&quot;][&quot;source_read_nodes&quot;],
-        ],
-        &quot;comparison&quot;: report[&quot;comparison&quot;],
+    payload = {
+        &quot;results_equal&quot;: report[&quot;results_equal&quot;],
+        &quot;result&quot;: report[&quot;result&quot;].to_dict(orient=&quot;records&quot;),
+        &quot;baseline_summary&quot;: report[&quot;baseline&quot;][&quot;summary&quot;],
+        &quot;candidate_summary&quot;: report[&quot;candidate&quot;][&quot;summary&quot;],
+        &quot;scan_operators_removed&quot;: report[&quot;comparison&quot;][&quot;scan_operators_removed&quot;],
+        &quot;baseline_operators&quot;: report[&quot;baseline&quot;][&quot;operators&quot;].to_dict(orient=&quot;records&quot;),
+        &quot;candidate_operators&quot;: report[&quot;candidate&quot;][&quot;operators&quot;].to_dict(orient=&quot;records&quot;),
     }
-    print(json.dumps(compact, ensure_ascii=False, indent=2))
+    print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 if __name__ == &quot;__main__&quot;:
     main()
 </code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/code/main.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section><section class="lesson-files-group"><h3>Артефакт и результаты</h3><details class="source-file"><summary><span>outputs/artifact.json</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>{
-  &quot;name&quot;: &quot;duckdb-plan-report&quot;,
-  &quot;type&quot;: &quot;cli&quot;,
-  &quot;path&quot;: &quot;outputs/plan_report.py&quot;,
-  &quot;description&quot;: &quot;Проверяет эквивалентность двух DuckDB-запросов, сохраняет EXPLAIN и EXPLAIN ANALYZE и формулирует ограниченный планом вывод.&quot;,
-  &quot;usage&quot;: &quot;python outputs/plan_report.py --events ../data/sample/events.csv --event-name order_paid --output plan-audit.json&quot;
+  &quot;name&quot;: &quot;duckdb-plan-audit&quot;,
+  &quot;type&quot;: &quot;function&quot;,
+  &quot;path&quot;: &quot;outputs/duckdb_plan_audit.py&quot;,
+  &quot;description&quot;: &quot;Проверяет точную эквивалентность двух reviewed SELECT, получает JSON из EXPLAIN и EXPLAIN ANALYZE и сводит оценки, фактические строки и scans в таблицу операторов без автоматического вывода о скорости.&quot;,
+  &quot;usage&quot;: &quot;Импортируйте compare_dataframe_queries, передайте явную DuckDB connection, типизированный DataFrame, два проверенных SQL-assets и параметры-значения.&quot;
 }
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/plan_report.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/artifact.json" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/duckdb_plan_audit.py</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>from __future__ import annotations
 
-import argparse
 import json
-import re
 from collections.abc import Mapping, Sequence
-from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 import duckdb
+import pandas as pd
+from pandas.testing import assert_frame_equal
 
-TOTAL_TIME_PATTERN = re.compile(r&quot;Total Time:\s*([0-9.]+)s&quot;)
-ESTIMATED_ROWS_PATTERN = re.compile(r&quot;~([0-9][0-9,]*) rows?&quot;)
-ACTUAL_ROWS_PATTERN = re.compile(r&quot;(?&lt;!~)([0-9][0-9,]*) rows?&quot;)
-SOURCE_READ_MARKER = &quot;Function: READ_CSV&quot;
+QueryParameters = Sequence[Any] | Mapping[str, Any]
 
-BASELINE_SQL = &quot;&quot;&quot;
-SELECT
-    (
-        SELECT count(*)
-        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-        WHERE event_name = ?
-    ) AS event_rows,
-    (
-        SELECT count(DISTINCT user_id)
-        FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-        WHERE event_name = ?
-    ) AS active_users
-&quot;&quot;&quot;
-
-CONSOLIDATED_SQL = &quot;&quot;&quot;
-SELECT
-    count(*) FILTER (WHERE event_name = ?) AS event_rows,
-    count(DISTINCT user_id) FILTER (WHERE event_name = ?) AS active_users
-FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-&quot;&quot;&quot;
-
-WRONG_POPULATION_SQL = &quot;&quot;&quot;
-SELECT
-    count(*) FILTER (WHERE event_name = ?) AS event_rows,
-    count(DISTINCT user_id) AS active_users
-FROM read_csv(?, header = true, all_varchar = true, nullstr = &#x27;&#x27;)
-&quot;&quot;&quot;
+OPERATOR_COLUMNS = [
+    &quot;path&quot;,
+    &quot;operator&quot;,
+    &quot;estimated_rows&quot;,
+    &quot;actual_rows&quot;,
+    &quot;rows_scanned&quot;,
+    &quot;timing_seconds&quot;,
+]
 
 
-class PlanAuditError(ValueError):
-    &quot;&quot;&quot;Raised when a plan comparison cannot satisfy its input contract.&quot;&quot;&quot;
+class QueryPlanAuditError(ValueError):
+    &quot;&quot;&quot;Raised when reviewed queries cannot be compared under one contract.&quot;&quot;&quot;
 
 
-class QueryVariant(TypedDict):
-    label: str
-    sql: str
-    parameters: Sequence[Any]
+def _bound_parameters(parameters: QueryParameters) -&gt; list[Any] | dict[str, Any]:
+    return dict(parameters) if isinstance(parameters, Mapping) else list(parameters)
 
 
-def _validated_events_path(events_path: Path) -&gt; Path:
-    path = Path(events_path).expanduser()
-    if not path.is_file():
-        raise PlanAuditError(f&quot;events file does not exist: {path}&quot;)
-    return path.resolve()
+def _json_payload(row: tuple[Any, ...] | None, *, label: str) -&gt; Any:
+    if row is None or len(row) &lt; 2:
+        raise QueryPlanAuditError(f&quot;{label} returned no JSON plan&quot;)
+    try:
+        return json.loads(row[1])
+    except (TypeError, json.JSONDecodeError) as error:
+        raise QueryPlanAuditError(f&quot;{label} returned invalid JSON&quot;) from error
 
 
-def _validated_event_name(event_name: str) -&gt; str:
-    if not isinstance(event_name, str) or not event_name.strip():
-        raise PlanAuditError(&quot;event_name must be a non-empty string&quot;)
-    return event_name
+def _estimated_rows(extra_info: Mapping[str, Any]) -&gt; int | None:
+    raw_value = extra_info.get(&quot;Estimated Cardinality&quot;)
+    if raw_value is None:
+        return None
+    normalized = str(raw_value).strip().lstrip(&quot;~&quot;).replace(&quot;,&quot;, &quot;&quot;)
+    try:
+        return int(float(normalized))
+    except ValueError:
+        return None
 
 
-def _plan_text(
+def _flatten_explain_node(
+    node: Mapping[str, Any],
+    *,
+    path: str,
+) -&gt; list[dict[str, Any]]:
+    extra_info = node.get(&quot;extra_info&quot;)
+    if not isinstance(extra_info, Mapping):
+        extra_info = {}
+
+    rows = [
+        {
+            &quot;path&quot;: path,
+            &quot;operator&quot;: str(node.get(&quot;name&quot;, &quot;UNKNOWN&quot;)).strip(),
+            &quot;estimated_rows&quot;: _estimated_rows(extra_info),
+        }
+    ]
+    children = node.get(&quot;children&quot;, [])
+    if not isinstance(children, list):
+        raise QueryPlanAuditError(&quot;EXPLAIN node has invalid children&quot;)
+    for index, child in enumerate(children):
+        if not isinstance(child, Mapping):
+            raise QueryPlanAuditError(&quot;EXPLAIN child is not an object&quot;)
+        rows.extend(_flatten_explain_node(child, path=f&quot;{path}.{index}&quot;))
+    return rows
+
+
+def _flatten_analyze_node(
+    node: Mapping[str, Any],
+    *,
+    path: str,
+) -&gt; list[dict[str, Any]]:
+    rows = [
+        {
+            &quot;path&quot;: path,
+            &quot;operator&quot;: str(node.get(&quot;operator_name&quot;, &quot;UNKNOWN&quot;)).strip(),
+            &quot;actual_rows&quot;: int(node.get(&quot;operator_cardinality&quot;, 0)),
+            &quot;rows_scanned&quot;: int(node.get(&quot;operator_rows_scanned&quot;, 0)),
+            &quot;timing_seconds&quot;: float(node.get(&quot;operator_timing&quot;, 0.0)),
+        }
+    ]
+    children = node.get(&quot;children&quot;, [])
+    if not isinstance(children, list):
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE node has invalid children&quot;)
+    for index, child in enumerate(children):
+        if not isinstance(child, Mapping):
+            raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE child is not an object&quot;)
+        rows.extend(_flatten_analyze_node(child, path=f&quot;{path}.{index}&quot;))
+    return rows
+
+
+def _analyzed_plan_root(payload: Mapping[str, Any]) -&gt; Mapping[str, Any]:
+    children = payload.get(&quot;children&quot;, [])
+    if not isinstance(children, list) or len(children) != 1:
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE has no single wrapper node&quot;)
+    wrapper = children[0]
+    if not isinstance(wrapper, Mapping):
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE wrapper is invalid&quot;)
+    plan_children = wrapper.get(&quot;children&quot;, [])
+    if not isinstance(plan_children, list) or len(plan_children) != 1:
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE has no single physical plan root&quot;)
+    root = plan_children[0]
+    if not isinstance(root, Mapping):
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE physical plan root is invalid&quot;)
+    return root
+
+
+def inspect_reviewed_query(
     connection: duckdb.DuckDBPyConnection,
+    *,
     sql: str,
-    parameters: Sequence[Any],
-    *,
-    analyze: bool,
-) -&gt; str:
-    prefix = &quot;EXPLAIN ANALYZE &quot; if analyze else &quot;EXPLAIN &quot;
-    rows = connection.execute(prefix + sql, list(parameters)).fetchall()
-    if len(rows) != 1 or len(rows[0]) &lt; 2 or not isinstance(rows[0][1], str):
-        kind = &quot;EXPLAIN ANALYZE&quot; if analyze else &quot;EXPLAIN&quot;
-        raise PlanAuditError(f&quot;{kind} returned an unexpected result&quot;)
-    return rows[0][1]
-
-
-def _row_markers(pattern: re.Pattern[str], plan_text: str) -&gt; list[int]:
-    return [int(value.replace(&quot;,&quot;, &quot;&quot;)) for value in pattern.findall(plan_text)]
-
-
-def _plan_evidence(plan_text: str, *, analyzed: bool) -&gt; dict[str, Any]:
-    total_time_match = TOTAL_TIME_PATTERN.search(plan_text)
-    return {
-        &quot;source_read_nodes&quot;: plan_text.count(SOURCE_READ_MARKER),
-        &quot;estimated_row_markers&quot;: (
-            [] if analyzed else _row_markers(ESTIMATED_ROWS_PATTERN, plan_text)
-        ),
-        &quot;actual_row_markers&quot;: (_row_markers(ACTUAL_ROWS_PATTERN, plan_text) if analyzed else []),
-        &quot;total_time_seconds&quot;: (float(total_time_match.group(1)) if total_time_match else None),
-        &quot;plan_text&quot;: plan_text,
-    }
-
-
-def _result(connection: duckdb.DuckDBPyConnection, variant: QueryVariant) -&gt; dict[str, int]:
-    row = connection.execute(
-        variant[&quot;sql&quot;],
-        list(variant[&quot;parameters&quot;]),
-    ).fetchone()
-    if row is None or len(row) != 2:
-        raise PlanAuditError(f&quot;{variant[&#x27;label&#x27;]} must return event_rows and active_users&quot;)
-    return {
-        &quot;event_rows&quot;: int(row[0]),
-        &quot;active_users&quot;: int(row[1]),
-    }
-
-
-def inspect_variant(
-    connection: duckdb.DuckDBPyConnection,
-    variant: QueryVariant,
+    parameters: QueryParameters = (),
 ) -&gt; dict[str, Any]:
-    &quot;&quot;&quot;Run one trusted query variant and preserve static and actual plan evidence.&quot;&quot;&quot;
-    explain_text = _plan_text(
-        connection,
-        variant[&quot;sql&quot;],
-        variant[&quot;parameters&quot;],
-        analyze=False,
+    &quot;&quot;&quot;Execute one reviewed query and return its result and structured plan evidence.
+
+    ``EXPLAIN (ANALYZE, FORMAT JSON)`` executes ``sql``. This function is not a SQL
+    sandbox and must only receive statements that the caller has already reviewed.
+    The caller owns ``connection`` and remains responsible for closing it.
+    &quot;&quot;&quot;
+
+    if not sql.strip():
+        raise QueryPlanAuditError(&quot;sql must not be empty&quot;)
+
+    normalized_parameters = _bound_parameters(parameters)
+    result = connection.execute(sql, _bound_parameters(parameters)).fetchdf()
+    explain_payload = _json_payload(
+        connection.execute(
+            &quot;EXPLAIN (FORMAT JSON) &quot; + sql,
+            _bound_parameters(parameters),
+        ).fetchone(),
+        label=&quot;EXPLAIN&quot;,
     )
-    analyzed_text = _plan_text(
-        connection,
-        variant[&quot;sql&quot;],
-        variant[&quot;parameters&quot;],
-        analyze=True,
+    analyze_payload = _json_payload(
+        connection.execute(
+            &quot;EXPLAIN (ANALYZE, FORMAT JSON) &quot; + sql,
+            _bound_parameters(parameters),
+        ).fetchone(),
+        label=&quot;EXPLAIN ANALYZE&quot;,
     )
+
+    if not isinstance(explain_payload, list) or len(explain_payload) != 1:
+        raise QueryPlanAuditError(&quot;EXPLAIN has no single physical plan root&quot;)
+    explain_root = explain_payload[0]
+    if not isinstance(explain_root, Mapping):
+        raise QueryPlanAuditError(&quot;EXPLAIN physical plan root is invalid&quot;)
+    if not isinstance(analyze_payload, Mapping):
+        raise QueryPlanAuditError(&quot;EXPLAIN ANALYZE payload is not an object&quot;)
+
+    estimated = pd.DataFrame(_flatten_explain_node(explain_root, path=&quot;0&quot;))
+    actual = pd.DataFrame(_flatten_analyze_node(_analyzed_plan_root(analyze_payload), path=&quot;0&quot;))
+    operators = estimated.merge(
+        actual,
+        on=[&quot;path&quot;, &quot;operator&quot;],
+        how=&quot;outer&quot;,
+        validate=&quot;one_to_one&quot;,
+        indicator=True,
+    )
+    if not operators[&quot;_merge&quot;].eq(&quot;both&quot;).all():
+        mismatch = operators.loc[
+            ~operators[&quot;_merge&quot;].eq(&quot;both&quot;),
+            [&quot;path&quot;, &quot;operator&quot;, &quot;_merge&quot;],
+        ].to_dict(orient=&quot;records&quot;)
+        raise QueryPlanAuditError(f&quot;EXPLAIN and EXPLAIN ANALYZE plan shapes differ: {mismatch}&quot;)
+    operators = operators.drop(columns=&quot;_merge&quot;)[OPERATOR_COLUMNS]
+    operators[&quot;estimated_rows&quot;] = operators[&quot;estimated_rows&quot;].astype(&quot;Int64&quot;)
+    operators[&quot;actual_rows&quot;] = operators[&quot;actual_rows&quot;].astype(&quot;int64&quot;)
+    operators[&quot;rows_scanned&quot;] = operators[&quot;rows_scanned&quot;].astype(&quot;int64&quot;)
+
+    scan_mask = operators[&quot;operator&quot;].str.contains(&quot;SCAN&quot;, regex=False)
     return {
-        &quot;label&quot;: variant[&quot;label&quot;],
-        &quot;sql&quot;: variant[&quot;sql&quot;].strip(),
-        &quot;parameters&quot;: list(variant[&quot;parameters&quot;]),
-        &quot;result&quot;: _result(connection, variant),
-        &quot;explain&quot;: _plan_evidence(explain_text, analyzed=False),
-        &quot;explain_analyze&quot;: _plan_evidence(analyzed_text, analyzed=True),
-    }
-
-
-def audit_variants(
-    connection: duckdb.DuckDBPyConnection,
-    baseline: QueryVariant,
-    candidate: QueryVariant,
-) -&gt; dict[str, Any]:
-    &quot;&quot;&quot;Compare trusted query variants without taking ownership of the connection.&quot;&quot;&quot;
-    baseline_evidence = inspect_variant(connection, baseline)
-    candidate_evidence = inspect_variant(connection, candidate)
-    results_equal = baseline_evidence[&quot;result&quot;] == candidate_evidence[&quot;result&quot;]
-    baseline_reads = baseline_evidence[&quot;explain&quot;][&quot;source_read_nodes&quot;]
-    candidate_reads = candidate_evidence[&quot;explain&quot;][&quot;source_read_nodes&quot;]
-    reads_removed = baseline_reads - candidate_reads
-
-    if not results_equal:
-        conclusion = (
-            &quot;blocked: candidate changes the analytical result, so plan and timing &quot;
-            &quot;differences are not optimization evidence&quot;
-        )
-    elif reads_removed &gt; 0:
-        conclusion = (
-            &quot;supported on this input: candidate preserves the result and removes &quot;
-            f&quot;{reads_removed} repeated source read(s); timing remains an observation&quot;
-        )
-    else:
-        conclusion = (
-            &quot;inconclusive: results match, but this audit found no reduction in source &quot;
-            &quot;reads; inspect other operators and use a separate benchmark if speed matters&quot;
-        )
-
-    return {
-        &quot;variants&quot;: [baseline_evidence, candidate_evidence],
-        &quot;comparison&quot;: {
-            &quot;results_equal&quot;: results_equal,
-            &quot;safe_to_compare_work&quot;: results_equal,
-            &quot;baseline_source_read_nodes&quot;: baseline_reads,
-            &quot;candidate_source_read_nodes&quot;: candidate_reads,
-            &quot;source_reads_removed&quot;: reads_removed,
-            &quot;candidate_has_single_source_read&quot;: candidate_reads == 1,
-            &quot;timing_claim_allowed&quot;: False,
-            &quot;conclusion&quot;: conclusion,
+        &quot;sql&quot;: sql.strip(),
+        &quot;parameters&quot;: normalized_parameters,
+        &quot;result&quot;: result,
+        &quot;operators&quot;: operators,
+        &quot;summary&quot;: {
+            &quot;operator_count&quot;: int(len(operators)),
+            &quot;scan_operators&quot;: int(scan_mask.sum()),
+            &quot;rows_scanned&quot;: int(operators.loc[scan_mask, &quot;rows_scanned&quot;].sum()),
         },
+        &quot;explain_json&quot;: explain_payload,
+        &quot;analyze_json&quot;: analyze_payload,
     }
 
 
-def event_query_variants(
-    events_path: Path,
-    event_name: str,
-    *,
-    candidate_sql: str = CONSOLIDATED_SQL,
-    candidate_label: str = &quot;one_scan&quot;,
-) -&gt; tuple[QueryVariant, QueryVariant]:
-    path = _validated_events_path(events_path)
-    name = _validated_event_name(event_name)
-    if candidate_sql == CONSOLIDATED_SQL:
-        candidate_parameters = [name, name, str(path)]
-    elif candidate_sql == WRONG_POPULATION_SQL:
-        candidate_parameters = [name, str(path)]
-    else:
-        raise PlanAuditError(
-            &quot;candidate_sql must be a trusted built-in query; &quot;
-            &quot;use audit_variants for an explicitly constructed trusted pair&quot;
-        )
-    baseline: QueryVariant = {
-        &quot;label&quot;: &quot;two_scans&quot;,
-        &quot;sql&quot;: BASELINE_SQL,
-        &quot;parameters&quot;: [str(path), name, str(path), name],
-    }
-    candidate: QueryVariant = {
-        &quot;label&quot;: candidate_label,
-        &quot;sql&quot;: candidate_sql,
-        &quot;parameters&quot;: candidate_parameters,
-    }
-    return baseline, candidate
-
-
-def build_plan_report(
+def compare_reviewed_queries(
     connection: duckdb.DuckDBPyConnection,
-    events_path: Path,
-    event_name: str = &quot;order_paid&quot;,
     *,
-    candidate_sql: str = CONSOLIDATED_SQL,
-    candidate_label: str = &quot;one_scan&quot;,
+    baseline_sql: str,
+    candidate_sql: str,
+    parameters: QueryParameters = (),
 ) -&gt; dict[str, Any]:
-    &quot;&quot;&quot;Build a bounded DuckDB plan audit for the lesson&#x27;s event query.&quot;&quot;&quot;
-    path = _validated_events_path(events_path)
-    baseline, candidate = event_query_variants(
-        path,
-        event_name,
-        candidate_sql=candidate_sql,
-        candidate_label=candidate_label,
+    &quot;&quot;&quot;Require exact result equivalence before comparing two physical plans.&quot;&quot;&quot;
+
+    baseline = inspect_reviewed_query(
+        connection,
+        sql=baseline_sql,
+        parameters=parameters,
     )
-    audit = audit_variants(connection, baseline, candidate)
+    candidate = inspect_reviewed_query(
+        connection,
+        sql=candidate_sql,
+        parameters=parameters,
+    )
+    try:
+        assert_frame_equal(
+            baseline[&quot;result&quot;],
+            candidate[&quot;result&quot;],
+            check_exact=True,
+            check_dtype=True,
+            check_like=False,
+        )
+    except AssertionError as error:
+        raise QueryPlanAuditError(
+            &quot;candidate result differs from baseline; plans are not comparable&quot;
+        ) from error
+
+    removed_scans = baseline[&quot;summary&quot;][&quot;scan_operators&quot;] - candidate[&quot;summary&quot;][&quot;scan_operators&quot;]
     return {
         &quot;scope&quot;: {
             &quot;engine&quot;: &quot;duckdb&quot;,
             &quot;engine_version&quot;: duckdb.__version__,
-            &quot;events_path&quot;: str(path),
-            &quot;event_name&quot;: _validated_event_name(event_name),
             &quot;claim_boundary&quot;: (
-                &quot;The report diagnoses this query pair on this input. It does not &quot;
-                &quot;guarantee a speedup for another dataset, engine version, or workload.&quot;
+                &quot;The report diagnoses this reviewed query pair on this input and &quot;
+                &quot;engine version. Operator timings are observations, not a benchmark &quot;
+                &quot;or a speedup guarantee for another workload.&quot;
             ),
         },
-        **audit,
+        &quot;results_equal&quot;: True,
+        &quot;result&quot;: baseline[&quot;result&quot;],
+        &quot;baseline&quot;: baseline,
+        &quot;candidate&quot;: candidate,
+        &quot;comparison&quot;: {
+            &quot;safe_to_compare_work&quot;: True,
+            &quot;scan_operators_removed&quot;: int(removed_scans),
+            &quot;timing_is_observation_not_verdict&quot;: True,
+            &quot;conclusion&quot;: (
+                &quot;candidate preserves the exact result and changes the observed plan &quot;
+                f&quot;by {removed_scans} scan operator(s); no timing claim is made&quot;
+            ),
+        },
     }
 
 
-def _write_report(report: Mapping[str, Any], output_path: Path | None) -&gt; None:
-    payload = json.dumps(report, ensure_ascii=False, indent=2) + &quot;\n&quot;
-    if output_path is None:
-        print(payload, end=&quot;&quot;)
-        return
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(payload, encoding=&quot;utf-8&quot;)
-    print(output_path)
+def compare_dataframe_queries(
+    connection: duckdb.DuckDBPyConnection,
+    *,
+    relation_name: str,
+    frame: pd.DataFrame,
+    baseline_sql: str,
+    candidate_sql: str,
+    parameters: QueryParameters = (),
+) -&gt; dict[str, Any]:
+    &quot;&quot;&quot;Register one typed DataFrame temporarily and compare two reviewed queries.&quot;&quot;&quot;
 
+    if not relation_name or not relation_name.isidentifier():
+        raise QueryPlanAuditError(&quot;relation_name must be a non-empty Python-style identifier&quot;)
+    if not isinstance(frame, pd.DataFrame):
+        raise QueryPlanAuditError(&quot;frame must be a pandas DataFrame&quot;)
 
-def main() -&gt; None:
-    parser = argparse.ArgumentParser(
-        description=(
-            &quot;Audit equivalent DuckDB queries by result, EXPLAIN shape, and EXPLAIN ANALYZE evidence&quot;
-        )
-    )
-    parser.add_argument(&quot;--events&quot;, type=Path, required=True)
-    parser.add_argument(&quot;--event-name&quot;, default=&quot;order_paid&quot;)
-    parser.add_argument(&quot;--output&quot;, type=Path)
-    args = parser.parse_args()
-
-    connection = duckdb.connect()
+    connection.register(relation_name, frame)
     try:
-        report = build_plan_report(connection, args.events, args.event_name)
-        _write_report(report, args.output)
-    except (duckdb.Error, OSError, PlanAuditError) as error:
-        parser.error(str(error))
+        report = compare_reviewed_queries(
+            connection,
+            baseline_sql=baseline_sql,
+            candidate_sql=candidate_sql,
+            parameters=parameters,
+        )
+        report[&quot;scope&quot;].update(
+            {
+                &quot;relation_name&quot;: relation_name,
+                &quot;input_rows&quot;: int(len(frame)),
+                &quot;input_columns&quot;: frame.columns.tolist(),
+                &quot;input_dtypes&quot;: {column: str(dtype) for column, dtype in frame.dtypes.items()},
+            }
+        )
+        return report
     finally:
-        connection.close()
-
-
-if __name__ == &quot;__main__&quot;:
-    main()
-</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/plan_report.py" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
+        connection.unregister(relation_name)
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/duckdb_plan_audit.py" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/repeated_scan.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- Input relation: cohort_activity, one row per (cohort_month, period_index).
+-- Output grain: exactly one summary row for the selected cohort.
+-- The two independent scalar subqueries intentionally create two input branches.
+SELECT
+    (
+        SELECT count(*)
+        FROM cohort_activity
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS cohort_period_rows,
+    (
+        SELECT sum(active_users)::BIGINT
+        FROM cohort_activity
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS active_user_period_sum;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/repeated_scan.sql" target="_blank" rel="noopener">Файл в репозитории</a></details><details class="source-file"><summary><span>outputs/single_scan.sql</span><span>Показать</span></summary><div class="code-block file-code"><button class="copy-button" type="button">Копировать</button><pre><code>-- Input relation: cohort_activity, one row per (cohort_month, period_index).
+-- Output grain: exactly one summary row for the selected cohort.
+-- Both filtered aggregates are computed from one input branch.
+SELECT
+    count(*) FILTER (
+        WHERE cohort_month = $cohort_month::DATE
+    ) AS cohort_period_rows,
+    CAST(
+        sum(active_users) FILTER (
+            WHERE cohort_month = $cohort_month::DATE
+        ) AS BIGINT
+    ) AS active_user_period_sum
+FROM cohort_activity;
+</code></pre></div><a class="file-source-link" href="https://github.com/stabuev/analyst_tools/blob/main/phases/04-sql-and-duckdb/12-query-plans/outputs/single_scan.sql" target="_blank" rel="noopener">Файл в репозитории</a></details></section></section>
         <p class="lesson-source-note">Страница собрана из проверенных исходников курса. <a href="https://github.com/stabuev/analyst_tools/tree/main/phases/04-sql-and-duckdb/12-query-plans" target="_blank" rel="noopener">Посмотреть историю и предложить исправление на GitHub</a>.</p>
         <nav class="lesson-bottom-nav" aria-label="Соседние уроки"><a class="lesson-nav-card" href="../../../lessons/sql-and-duckdb/duckdb-python/"><span>← Предыдущий урок</span><strong>DuckDB из Python</strong></a><a class="lesson-nav-card is-next" href="../../../lessons/sql-and-duckdb/sql-vs-dataframes/"><span>Следующий урок →</span><strong>SQL или DataFrame: выбор инструмента</strong></a></nav>
       </div>
